@@ -230,3 +230,7 @@ const (
 	// multicluster field value for context field.
 	LogContextMulticluster = "multicluster"
 )
+
+const (
+	PipySidecar = "pipy"
+)

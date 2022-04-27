@@ -30,6 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/reconciler"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -47,6 +48,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	pipyregistry "github.com/openservicemesh/osm/pkg/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/pipy/repo"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -70,6 +73,8 @@ var (
 	osmMeshConfigName          string
 	osmVersion                 string
 
+	sidecarType string
+
 	certProviderKind string
 
 	tresorOptions      providers.TresorOptions
@@ -87,6 +92,12 @@ var (
 	log   = logger.New("osm-controller/main")
 )
 
+type XDSServer interface {
+	health.Probes
+	debugger.XDSDebugger
+	Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error
+}
+
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", constants.DefaultOSMLogLevel, "Set boot log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
@@ -95,6 +106,8 @@ func init() {
 	flags.StringVar(&validatorWebhookConfigName, "validator-webhook-config", "", "Name of the ValidatingWebhookConfiguration for the resource validator webhook")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
+
+	flags.StringVar(&sidecarType, "sidecar-type", "pipy", "Type of Sidecar")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -227,19 +240,36 @@ func main() {
 		msgBroker,
 	)
 
-	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
-
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
 
-	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
-	if err := xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
+	// Create and start the ADS service
+	var xdsServer XDSServer
+	var debugConfig debugger.DebugConfig
+
+	if sidecarType == constants.PipySidecar {
+		proxyMapper := &pipyregistry.KubeProxyServiceMapper{KubeController: k8sClient}
+		proxyRegistry := pipyregistry.NewProxyRegistry(proxyMapper, msgBroker)
+		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
+		go proxyRegistry.CacheMeshPodsHandler(stop)
+		// Create and start the ADS http service
+		xdsServer = repo.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
+		if err = xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
+		}
+		debugConfig = debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	} else {
+		proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
+		proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
+		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
+		// Create and start the ADS gRPC service
+		xdsServer = ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
+		if err = xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
+		}
+		debugConfig = debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	}
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
@@ -271,7 +301,6 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets
