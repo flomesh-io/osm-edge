@@ -92,9 +92,14 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
 	}
 
-	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
-	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
+	// Add the sidecar
+	if GetSidecarType() == constants.PipySidecar {
+		sidecar := getPipySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS, bootstrapCertificate, wh.osmNamespace)
+		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
+	} else {
+		sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
+		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
+	}
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
 	if err != nil {

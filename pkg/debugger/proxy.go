@@ -21,7 +21,7 @@ func (ds DebugConfig) getProxies() http.Handler {
 	listConnected := func() map[certificate.CommonName]time.Time {
 		proxies := make(map[certificate.CommonName]time.Time)
 		for cn, proxy := range ds.proxyRegistry.ListConnectedProxies() {
-			proxies[cn] = (*proxy).GetConnectedAt()
+			proxies[cn] = proxy.GetConnectedAt()
 		}
 		return proxies
 	}
