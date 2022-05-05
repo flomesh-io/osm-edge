@@ -83,7 +83,7 @@ func init() {
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
 
-	flags.StringVar(&sidecarType, "sidecar-type", "pipy", "Type of Sidecar")
+	flags.StringVar(&sidecarType, "sidecar-type", "envoy", "Type of Sidecar")
 
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")

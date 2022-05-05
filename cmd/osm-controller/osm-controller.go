@@ -107,7 +107,7 @@ func init() {
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
 
-	flags.StringVar(&sidecarType, "sidecar-type", "pipy", "Type of Sidecar")
+	flags.StringVar(&sidecarType, "sidecar-type", "envoy", "Type of Sidecar")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))

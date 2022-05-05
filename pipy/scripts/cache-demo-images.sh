@@ -40,5 +40,5 @@ if [[ "${BUILD_ARCH}" == "arm64" ]]; then
   docker push localhost:5000/curlimages/curl:latest
 
   sed -i 's# devilbox/mysql:mysql-8.0# localhost:5000/devilbox/mysql:mysql-8.0#g' ${OSM_HOME}/demo/deploy-mysql.sh
-  sed -i 's# curlimages/curl# localhost:5000/devilbox/curlimages/curl#g' ${OSM_HOME}/demo/multicluster-fault-injection.sh
+  sed -i 's# curlimages/curl# localhost:5000/curlimages/curl#g' ${OSM_HOME}/demo/multicluster-fault-injection.sh
 fi

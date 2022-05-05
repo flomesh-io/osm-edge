@@ -1,0 +1,45 @@
+GO_REPO ?= /golang
+BUILDDIR ?= $(GO_REPO)/build
+OUTDIR ?= $(CURDIR)/out
+RELEASEDIR ?= $(CURDIR)/release
+SBINDIR ?= usr/sbin/
+ETCDIR ?= etc/
+DESTDIR ?= /
+GOVERSION ?= 1.17.9
+
+GO_ARCH_MAP_x86 := 386
+GO_ARCH_MAP_x86_64 := amd64
+GO_ARCH_MAP_arm := arm
+GO_ARCH_MAP_arm64 := arm64
+GO_ARCH_MAP_aarch64 := arm64
+GO_ARCH_MAP_mips := mipsx
+GO_ARCH_MAP_mips64 := mips64x
+
+export GOOS := linux
+export CGO_ENABLED := 1
+
+default: install
+
+GOBUILDARCH := $(GO_ARCH_MAP_$(shell uname -m))
+GOBUILDOS := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+GOBUILDTARBALL := https://dl.google.com/go/go$(GOVERSION).$(GOBUILDOS)-$(GOBUILDARCH).tar.gz
+GOVERSION_NEEDED := go version go$(GOVERSION) $(GOBUILDOS)/$(GOBUILDARCH)
+export GOROOT := $(BUILDDIR)/$(GOVERSION)/goroot
+export GOPATH := $(BUILDDIR)/$(GOVERSION)/gopath
+export PATH := $(GOROOT)/bin:$(PATH)
+GOVERSION_CURRENT := $(shell $(GOROOT)/bin/go version 2>/dev/null)
+ifneq ($(GOVERSION_NEEDED),$(GOVERSION_CURRENT))
+$(shell rm -f $(GOROOT)/bin/go)
+endif
+$(GOROOT)/bin/go:
+	rm -rf "$(GOROOT)"
+	mkdir -p "$(GOROOT)"
+	curl "$(GOBUILDTARBALL)" | tar -C "$(GOROOT)" --strip-components=1 -xzf - || { rm -rf "$(GOROOT)"; exit 1; }
+
+install: $(GOROOT)/bin/go
+	go env -w GOPROXY=https://goproxy.cn
+	go env -w GOSUMDB=sum.golang.google.cn
+	go env -w GO111MODULE=on
+	go env -w GOROOT=$(BUILDDIR)/$(GOVERSION)/goroot
+	go env -w GOPATH=$(BUILDDIR)/$(GOVERSION)/gopath
+	@echo export PATH=$(BUILDDIR)/$(GOVERSION)/goroot/bin:'$$'PATH >> ~/.bashrc

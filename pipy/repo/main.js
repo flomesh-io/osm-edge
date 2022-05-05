@@ -1,12 +1,12 @@
 (config =>
 
   pipy({
-    _version: '2022.04.26b',
+    _version: '2022.05.01',
     _targetCount: new stats.Counter('lb_target_cnt', ['target']),
 
-    _specEnableEgress: config.Spec && config.Spec.Traffic && config.Spec.Traffic.EnableEgress,
+    _specEnableEgress: config?.Spec?.Traffic?.EnableEgress,
 
-    _inTrafficMatches: config.Inbound && config.Inbound.TrafficMatches && Object.fromEntries(
+    _inTrafficMatches: config?.Inbound?.TrafficMatches && Object.fromEntries(
       Object.entries(config.Inbound.TrafficMatches).map(
         ([k1, v1]) => [
           k1,
@@ -44,7 +44,7 @@
       )
     ),
 
-    _inClustersConfigs: config.Inbound && config.Inbound.ClustersConfigs && Object.fromEntries(
+    _inClustersConfigs: config?.Inbound?.ClustersConfigs && Object.fromEntries(
       Object.entries(
         config.Inbound.ClustersConfigs).map(
         ([k, v]) => [
@@ -53,7 +53,7 @@
       )
     ),
 
-    _outTrafficMatches: config.Outbound && config.Outbound.TrafficMatches && config.Outbound.TrafficMatches.map(
+    _outTrafficMatches: config?.Outbound?.TrafficMatches && config.Outbound.TrafficMatches.map(
       (o => (
         o.TargetClusters && (o['TargetClusters_'] = new algo.RoundRobinLoadBalancer(o.TargetClusters)),
         o.DestinationIPRanges && (o['DestinationIPRanges_'] = []) &&
@@ -84,7 +84,7 @@
       ))
     ),
 
-    _outClustersConfigs: config.Outbound && config.Outbound.ClustersConfigs && Object.fromEntries(
+    _outClustersConfigs: config?.Outbound?.ClustersConfigs && Object.fromEntries(
       Object.entries(
         config.Outbound.ClustersConfigs).map(
         ([k, v]) => [
@@ -98,7 +98,7 @@
       ((config._probeScheme == 'HTTP' && (config._probeTarget = '127.0.0.1:80')) ||
         (config._probeScheme == 'HTTPS' && (config._probeTarget = '127.0.0.1:443'))) && (config._probePath = '/'),
 
-    _AllowedEndpoints: config.AllowedEndpoints,
+    _AllowedEndpoints: config?.AllowedEndpoints,
     _prometheusTarget: '127.0.0.1:6060',
 
     _inPort: undefined,
@@ -210,14 +210,14 @@
   )
 
   // outbound
-  .listen(config.Outbound || config?.Spec?.Traffic?.EnableEgress ? 15001 : 0, {
+  .listen(config?.Outbound || config?.Spec?.Traffic?.EnableEgress ? 15001 : 0, {
     'transparent': true,
     'closeEOF': false
     // 'readTimeout': '5s'
   })
   .handleStreamStart(
     (_target) => (
-      _outPort = (__inbound?.destinationPort ? __inbound.destinationPort : '14001'),
+      _outPort = (__inbound?.destinationPort ? __inbound.destinationPort : '0'),
       _outIP = (__inbound?.destinationAddress ? __inbound.destinationAddress : '127.0.0.1'),
       (_outMatch = (_outTrafficMatches && (
         _outTrafficMatches.find(o => ((o.Port == _outPort) && o.DestinationIPRanges_ && o.DestinationIPRanges_.find(e => e.contains(_outIP)))) ||
@@ -311,7 +311,7 @@
   //   new Message('Hi, there!\n')
   // )
 
-  .listen(config._probeScheme ? 15901 : 0)
+  .listen(config?._probeScheme ? 15901 : 0)
   .link(
     'http_liveness', () => config._probeScheme == 'HTTP',
     'connection_liveness', () => Boolean(config._probeTarget),
@@ -327,15 +327,15 @@
       console.log('probe: ' + config._probeTarget + msg.head.path)
     )
   )
-  .muxHTTP('connection_liveness', config._probeTarget)
+  .muxHTTP('connection_liveness', config?._probeTarget)
   .pipeline('connection_liveness')
-  .connect(() => config._probeTarget)
+  .connect(() => config?._probeTarget)
   .pipeline('deny_liveness')
   .replaceStreamStart(
     new StreamEnd('ConnectionReset')
   )
 
-  .listen(config._probeScheme ? 15902 : 0)
+  .listen(config?._probeScheme ? 15902 : 0)
   .link(
     'http_readiness', () => config._probeScheme == 'HTTP',
     'connection_readiness', () => Boolean(config._probeTarget),
@@ -351,15 +351,15 @@
       console.log('probe: ' + config._probeTarget + msg.head.path)
     )
   )
-  .muxHTTP('connection_readiness', config._probeTarget)
+  .muxHTTP('connection_readiness', config?._probeTarget)
   .pipeline('connection_readiness')
-  .connect(() => config._probeTarget)
+  .connect(() => config?._probeTarget)
   .pipeline('deny_readiness')
   .replaceStreamStart(
     new StreamEnd('ConnectionReset')
   )
 
-  .listen(config._probeScheme ? 15903 : 0)
+  .listen(config?._probeScheme ? 15903 : 0)
   .link(
     'http_startup', () => config._probeScheme == 'HTTP',
     'connection_startup', () => Boolean(config._probeTarget),
@@ -375,9 +375,9 @@
       console.log('probe: ' + config._probeTarget + msg.head.path)
     )
   )
-  .muxHTTP('connection_startup', config._probeTarget)
+  .muxHTTP('connection_startup', config?._probeTarget)
   .pipeline('connection_startup')
-  .connect(() => config._probeTarget)
+  .connect(() => config?._probeTarget)
   .pipeline('deny_startup')
   .replaceStreamStart(
     new StreamEnd('ConnectionReset')
