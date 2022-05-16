@@ -12,16 +12,16 @@ import (
 
 func getProxy(kubeClient kubernetes.Interface, proxyCertCommonName certificate.CommonName, porxyCertSerialNumber certificate.SerialNumber) (*envoy.Proxy, error) {
 	bookbuyerPodLabels := map[string]string{
-		constants.AppLabel:               tests.BookbuyerService.Name,
-		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
+		constants.AppLabel:                 tests.BookbuyerService.Name,
+		constants.SidecarUniqueIDLabelName: tests.ProxyUUID,
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
 		return nil, err
 	}
 
 	bookstorePodLabels := map[string]string{
-		constants.AppLabel:               "bookstore",
-		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+		constants.AppLabel:                 "bookstore",
+		constants.SidecarUniqueIDLabelName: uuid.New().String(),
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, bookstorePodLabels); err != nil {
 		return nil, err

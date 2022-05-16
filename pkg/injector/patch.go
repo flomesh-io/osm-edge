@@ -24,13 +24,13 @@ import (
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
 	namespace := req.Namespace
 
-	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
+	// Issue a certificate for the proxy sidecar - used for Sidecar to connect to XDS (not Sidecar-to-Sidecar connections)
 	cn := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, namespace)
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
 	startTime := time.Now()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Sidecar with CN=%s", cn)
 		return nil, err
 	}
 	elapsed := time.Since(startTime)
@@ -40,22 +40,22 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		WithLabelValues().Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
-	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
+	// Create the bootstrap configuration for the Sidecar proxy for the given pod
+	sidecarBootstrapConfigName := fmt.Sprintf("sidecar-bootstrap-config-%s", proxyUUID)
 
 	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-	// corresponding to the Envoy bootstrap config. Such a side effect needs to be skipped
+	// corresponding to the Sidecar bootstrap config. Such a side effect needs to be skipped
 	// when the request is a DryRun.
 	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
 	if req.DryRun != nil && *req.DryRun {
-		log.Debug().Msgf("Skipping envoy bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Envoy bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+		log.Debug().Msgf("Skipping Sidecar bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
+	} else if _, err = wh.createSidecarBootstrapConfig(sidecarBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
+		log.Error().Err(err).Msgf("Failed to create Sidecar bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
 		return nil, err
 	}
 
-	// Create volume for envoy TLS secret
-	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
+	// Create volume for sidecar TLS secret
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(sidecarBootstrapConfigName)...)
 
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
@@ -93,11 +93,11 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the sidecar
-	if GetSidecarType() == constants.PipySidecar {
+	if wh.configurator.GetSidecarClass() == constants.SidecarClasssPipy {
 		sidecar := getPipySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS, bootstrapCertificate, wh.osmNamespace)
 		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 	} else {
-		sidecar := getEnvoySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
+		sidecar := getSidecarSidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
 		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 	}
 
@@ -111,17 +111,17 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 			pod.Annotations = make(map[string]string)
 		}
 		pod.Annotations[constants.PrometheusScrapeAnnotation] = strconv.FormatBool(true)
-		pod.Annotations[constants.PrometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
+		pod.Annotations[constants.PrometheusPortAnnotation] = strconv.Itoa(constants.SidecarPrometheusInboundListenerPort)
 		pod.Annotations[constants.PrometheusPathAnnotation] = constants.PrometheusScrapePath
 	}
 
-	// This will append a label to the pod, which points to the unique Envoy ID used in the
-	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
+	// This will append a label to the pod, which points to the unique Sidecar ID used in the
+	// xDS certificate for that Sidecar. This label will help xDS match the actual pod to the Sidecar that
 	// connects to xDS (with the certificate's CN matching this label).
 	if pod.Labels == nil {
 		pod.Labels = make(map[string]string)
 	}
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+	pod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 	return json.Marshal(makePatches(req, pod))
 }
@@ -131,13 +131,13 @@ func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 	isWindows := strings.EqualFold(podOS, constants.OSWindows)
 
 	// Verify that the required images are configured
-	if image := wh.configurator.GetEnvoyImage(); !isWindows && image == "" {
-		// Linux pods require Envoy Linux image
-		return errors.New("MeshConfig sidecar.envoyImage not set")
+	if image := wh.configurator.GetSidecarImage(); !isWindows && image == "" {
+		// Linux pods require Sidecar Linux image
+		return errors.New("MeshConfig sidecar.sidecarImage not set")
 	}
-	if image := wh.configurator.GetEnvoyWindowsImage(); isWindows && image == "" {
-		// Windows pods require Envoy Windows image
-		return errors.New("MeshConfig sidecar.envoyWindowsImage not set")
+	if image := wh.configurator.GetSidecarWindowsImage(); isWindows && image == "" {
+		// Windows pods require Sidecar Windows image
+		return errors.New("MeshConfig sidecar.sidecarWindowsImage not set")
 	}
 	if image := wh.configurator.GetInitContainerImage(); !isWindows && image == "" {
 		// Linux pods require init container image

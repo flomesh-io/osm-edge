@@ -94,7 +94,7 @@ spec:
               value: ${BOOKWAREHOUSE_NAMESPACE}
 
           # OSM's mutating webhook will rewrite this liveness probe to /osm-liveness-probe and
-          # Envoy will have a dedicated listener on port 15901 for this liveness probe
+          # Sidecar will have a dedicated listener on port 15901 for this liveness probe
           livenessProbe:
             httpGet:
               path: /liveness
@@ -103,7 +103,7 @@ spec:
             periodSeconds: 3
 
           # OSM's mutating webhook will rewrite this readiness probe to /osm-readiness-probe and
-          # Envoy will have a dedicated listener on port 15902 for this readiness probe
+          # Sidecar will have a dedicated listener on port 15902 for this readiness probe
           readinessProbe:
             failureThreshold: 10
             httpGet:
@@ -112,7 +112,7 @@ spec:
               scheme: HTTP
 
           # OSM's mutating webhook will rewrite this startup probe to /osm-startup-probe and
-          # Envoy will have a dedicated listener on port 15903 for this startup probe
+          # Sidecar will have a dedicated listener on port 15903 for this startup probe
           startupProbe:
             httpGet:
               path: /startup

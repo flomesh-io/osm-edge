@@ -65,46 +65,54 @@ func (mr *MockConfiguratorMockRecorder) GetConfigResyncInterval() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigResyncInterval", reflect.TypeOf((*MockConfigurator)(nil).GetConfigResyncInterval))
 }
 
-// GetEnvoyImage mocks base method.
-func (m *MockConfigurator) GetEnvoyImage() string {
+// GetSidecarClass mocks base method.
+func (m *MockConfigurator) GetSidecarClass() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnvoyImage")
+	ret := m.ctrl.Call(m, "GetSidecarClass")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// GetEnvoyImage indicates an expected call of GetEnvoyImage.
-func (mr *MockConfiguratorMockRecorder) GetEnvoyImage() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyImage", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyImage))
-}
-
-// GetEnvoyLogLevel mocks base method.
-func (m *MockConfigurator) GetEnvoyLogLevel() string {
+// GetSidecarImage mocks base method.
+func (m *MockConfigurator) GetSidecarImage() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnvoyLogLevel")
+	ret := m.ctrl.Call(m, "GetSidecarImage")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// GetEnvoyLogLevel indicates an expected call of GetEnvoyLogLevel.
-func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
+// GetSidecarImage indicates an expected call of GetSidecarImage.
+func (mr *MockConfiguratorMockRecorder) GetSidecarImage() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarImage))
 }
 
-// GetEnvoyWindowsImage mocks base method.
-func (m *MockConfigurator) GetEnvoyWindowsImage() string {
+// GetSidecarLogLevel mocks base method.
+func (m *MockConfigurator) GetSidecarLogLevel() string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEnvoyWindowsImage")
+	ret := m.ctrl.Call(m, "GetSidecarLogLevel")
 	ret0, _ := ret[0].(string)
 	return ret0
 }
 
-// GetEnvoyWindowsImage indicates an expected call of GetEnvoyWindowsImage.
-func (mr *MockConfiguratorMockRecorder) GetEnvoyWindowsImage() *gomock.Call {
+// GetSidecarLogLevel indicates an expected call of GetSidecarLogLevel.
+func (mr *MockConfiguratorMockRecorder) GetSidecarLogLevel() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyWindowsImage", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyWindowsImage))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarLogLevel))
+}
+
+// GetSidecarWindowsImage mocks base method.
+func (m *MockConfigurator) GetSidecarWindowsImage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarWindowsImage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSidecarWindowsImage indicates an expected call of GetSidecarWindowsImage.
+func (mr *MockConfiguratorMockRecorder) GetSidecarWindowsImage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarWindowsImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarWindowsImage))
 }
 
 // GetFeatureFlags mocks base method.

@@ -67,7 +67,7 @@ func (c *Config) getUniquePods() []types.NamespacedName {
 
 func getPerPodCommands(pod types.NamespacedName) [][]string {
 	return [][]string{
-		{"kubectl", "logs", pod.Name, "-n", pod.Namespace, "-c", "envoy"},
+		{"kubectl", "logs", pod.Name, "-n", pod.Namespace, "-c", "sidecar"},
 		{"osm", "proxy", "get", "config_dump", pod.Name, "-n", pod.Namespace},
 		{"osm", "proxy", "get", "ready", pod.Name, "-n", pod.Namespace},
 		{"osm", "proxy", "get", "stats", pod.Name, "-n", pod.Namespace},

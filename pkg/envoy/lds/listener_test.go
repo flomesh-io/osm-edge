@@ -42,7 +42,7 @@ var _ = Describe("Construct inbound listeners", func() {
 	Context("Test creation of inbound listener", func() {
 		It("Tests the inbound listener config", func() {
 			listener := newInboundListener()
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
+			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarInboundListenerPort)))
 			Expect(listener.AccessLog).NotTo(BeEmpty())
 			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
@@ -54,7 +54,7 @@ var _ = Describe("Construct inbound listeners", func() {
 		It("Tests the Prometheus listener config", func() {
 			connManager := getPrometheusConnectionManager()
 			listener, _ := buildPrometheusListener(connManager)
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
+			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})

@@ -119,7 +119,7 @@ func TestMeshUpgradeDropsInstallOverrides(t *testing.T) {
 	i.setOptions = []string{
 		"osm.enableEgress=true",
 		"osm.image.registry=installed",
-		"osm.envoyLogLevel=trace",
+		"osm.sidecarLogLevel=trace",
 	}
 
 	err := i.run(config)
@@ -137,7 +137,7 @@ func TestMeshUpgradeDropsInstallOverrides(t *testing.T) {
 
 	// Values overridden at install should be the same as their defaults in the
 	// chart after an upgrade that sets no values
-	for _, valKey := range []string{"osm.enableEgress", "osm.image.registry", "osm.envoyLogLevel"} {
+	for _, valKey := range []string{"osm.enableEgress", "osm.image.registry", "osm.sidecarLogLevel"} {
 		def, defErr := chartutil.Values(u.chart.Values).PathValue(valKey)
 		upgradedVal, upgErr := chartutil.Values(upgraded).PathValue(valKey)
 		a.Equal(def, upgradedVal)

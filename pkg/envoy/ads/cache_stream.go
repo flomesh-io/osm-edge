@@ -64,7 +64,7 @@ func GetProxyFromPod(pod *v1.Pod) (*envoy.Proxy, error) {
 	var serviceAccount string
 	var namespace string
 
-	uuidString, uuidFound := pod.Labels[constants.EnvoyUniqueIDLabelName]
+	uuidString, uuidFound := pod.Labels[constants.SidecarUniqueIDLabelName]
 	if !uuidFound {
 		return nil, errors.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
 	}

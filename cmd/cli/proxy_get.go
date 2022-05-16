@@ -17,8 +17,8 @@ import (
 )
 
 const getCmdDescription = `
-This command will get the Envoy proxy configuration for the given query and pod.
-The query is forwarded as is to the Envoy proxy sidecar.
+This command will get the proxy configuration for the given query and pod.
+The query is forwarded as is to the proxy sidecar.
 Refer to https://www.envoyproxy.io/docs/envoy/latest/operations/admin for the
 list of supported GET queries.
 `
@@ -77,13 +77,13 @@ func newProxyGetCmd(config *action.Configuration, out io.Writer) *cobra.Command 
 	f := cmd.Flags()
 	f.StringVarP(&getCmd.namespace, "namespace", "n", metav1.NamespaceDefault, "Namespace of pod")
 	f.StringVarP(&getCmd.outFile, "file", "f", "", "File to write output to")
-	f.Uint16VarP(&getCmd.localPort, "local-port", "p", constants.EnvoyAdminPort, "Local port to use for port forwarding")
+	f.Uint16VarP(&getCmd.localPort, "local-port", "p", constants.SidecarAdminPort, "Local port to use for port forwarding")
 
 	return cmd
 }
 
 func (cmd *proxyGetCmd) run() error {
-	envoyProxyConfig, err := cli.GetEnvoyProxyConfig(cmd.clientSet, cmd.config, cmd.namespace, cmd.pod, cmd.localPort, cmd.query)
+	sidecarProxyConfig, err := cli.GetSidecarProxyConfig(cmd.clientSet, cmd.config, cmd.namespace, cmd.pod, cmd.localPort, cmd.query)
 	if err != nil {
 		return err
 	}
@@ -100,13 +100,13 @@ func (cmd *proxyGetCmd) run() error {
 		out = fd // write output to file
 	}
 
-	_, err = out.Write(envoyProxyConfig)
+	_, err = out.Write(sidecarProxyConfig)
 	return err
 }
 
 // isMeshedPod returns a boolean indicating if the pod is part of a mesh
 func isMeshedPod(pod corev1.Pod) bool {
 	// osm-controller adds a unique label to each pod that belongs to a mesh
-	_, proxyLabelSet := pod.Labels[constants.EnvoyUniqueIDLabelName]
+	_, proxyLabelSet := pod.Labels[constants.SidecarUniqueIDLabelName]
 	return proxyLabelSet
 }

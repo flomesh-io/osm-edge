@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
+	sidecarBootstrapConfigVolume = "sidecar-bootstrap-config-volume"
 )
 
 var log = logger.New("sidecar-injector")
@@ -40,21 +40,21 @@ type Config struct {
 	ListenPort int
 }
 
-// Context needed to compose the Envoy bootstrap YAML.
-type envoyBootstrapConfigMeta struct {
-	EnvoyAdminPort uint32
-	XDSClusterName string
-	NodeID         string
-	RootCert       []byte
-	Cert           []byte
-	Key            []byte
+// Context needed to compose the Sidecar bootstrap YAML.
+type sidecarBootstrapConfigMeta struct {
+	SidecarAdminPort uint32
+	XDSClusterName   string
+	NodeID           string
+	RootCert         []byte
+	Cert             []byte
+	Key              []byte
 
-	// Host and port of the Envoy xDS server
+	// Host and port of the Sidecar xDS server
 	XDSHost string
 	XDSPort uint32
 
-	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
-	// the pod this Envoy is fronting.
+	// The bootstrap Sidecar config will be affected by the liveness, readiness, startup probes set on
+	// the pod this Sidecar is fronting.
 	OriginalHealthProbes healthProbes
 
 	// Sidecar TLS configuration

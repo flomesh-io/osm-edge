@@ -9,6 +9,5 @@ import (
 
 // GetXDSLog implements XDSDebugger interface.
 func (s *Server) GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time {
-	var logsCopy map[certificate.CommonName]map[envoy.TypeURI][]time.Time
-	return &logsCopy
+	return nil
 }

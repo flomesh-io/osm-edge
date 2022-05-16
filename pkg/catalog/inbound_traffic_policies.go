@@ -47,7 +47,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 		// ---
 		// Create local cluster configs for this upstram service
 		clusterConfigForSvc := &trafficpolicy.MeshClusterConfig{
-			Name:    upstreamSvc.EnvoyLocalClusterName(),
+			Name:    upstreamSvc.SidecarLocalClusterName(),
 			Service: upstreamSvc,
 			Address: constants.LocalhostIPAddress,
 			Port:    uint32(upstreamSvc.TargetPort),
@@ -96,7 +96,7 @@ func (mc *MeshCatalog) getInboundTrafficPoliciesForUpstream(upstreamSvc service.
 		hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 		inboundPolicyForUpstreamSvc = trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames)
 		localCluster := service.WeightedCluster{
-			ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
+			ClusterName: service.ClusterName(upstreamSvc.SidecarLocalClusterName()),
 			Weight:      constants.ClusterWeightAcceptAll,
 		}
 		inboundPolicyForUpstreamSvc.AddRule(*trafficpolicy.NewRouteWeightedCluster(trafficpolicy.WildCardRouteMatch, []service.WeightedCluster{localCluster}), identity.WildcardServiceIdentity)
@@ -112,7 +112,7 @@ func (mc *MeshCatalog) buildInboundHTTPPolicyFromTrafficTarget(upstreamSvc servi
 	hostnames := k8s.GetHostnamesForService(upstreamSvc, true /* local namespace FQDN should always be allowed for inbound routes*/)
 	inboundPolicy := trafficpolicy.NewInboundTrafficPolicy(upstreamSvc.FQDN(), hostnames)
 	localCluster := service.WeightedCluster{
-		ClusterName: service.ClusterName(upstreamSvc.EnvoyLocalClusterName()),
+		ClusterName: service.ClusterName(upstreamSvc.SidecarLocalClusterName()),
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
 

@@ -48,7 +48,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
 		NodeID:           bootstrapCert.GetCommonName().String(),
-		AdminPort:        constants.EnvoyAdminPort,
+		AdminPort:        constants.SidecarAdminPort,
 		XDSClusterName:   constants.OSMControllerName,
 		XDSHost:          fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
 		XDSPort:          constants.ADSServerPort,

@@ -37,7 +37,7 @@ type MeshCatalog struct {
 	policyController policy.Controller
 }
 
-// MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+// MeshCataloger is the mechanism by which the Service Mesh controller discovers all sidecar proxies connected to the catalog.
 type MeshCataloger interface {
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService

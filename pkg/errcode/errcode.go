@@ -169,7 +169,7 @@ const (
 	ErrMeshConfigMarshaling
 )
 
-// Range 5000-5500 reserved for errors related to Envoy XDS control plane
+// Range 5000-5500 reserved for errors related to Sidecar XDS control plane
 const (
 	// ErrMarshallingXDSResource indicates an XDS resource could not be marshalled
 	ErrMarshallingXDSResource ErrCode = iota + 5000
@@ -207,7 +207,7 @@ const (
 	// ErrStartingADSServer indicates the gPRC service failed to start
 	ErrStartingADSServer
 
-	// ERRInitializingProxy indicates an instance of the Envoy proxy that connected to the XDS server could not be
+	// ERRInitializingProxy indicates an instance of the Sidecar proxy that connected to the XDS server could not be
 	// initialized
 	ErrInitializingProxy
 
@@ -228,19 +228,19 @@ const (
 	// ErrParsingDiscoveryReqVersion indicates the discovery request response version could not be parsed
 	ErrParsingDiscoveryReqVersion
 
-	// ErrGettingOrgDstEgressCluster indicates that an Envoy egress cluster that routes traffic to its original destination could not be configured
+	// ErrGettingOrgDstEgressCluster indicates that an Sidecar egress cluster that routes traffic to its original destination could not be configured
 	ErrGettingOrgDstEgressCluster
 
-	// ErrGettingDNSEgressCluster indicates that an Envoy egress cluster that routes traffic based on the specified Host resolved using DNS could not be configured
+	// ErrGettingDNSEgressCluster indicates that an Sidecar egress cluster that routes traffic based on the specified Host resolved using DNS could not be configured
 	ErrGettingDNSEgressCluster
 
-	// ErrObtainingUpstreamServiceCluster indicates an Envoy cluster corresponding to an upstream service could not be configured
+	// ErrObtainingUpstreamServiceCluster indicates an Sidecar cluster corresponding to an upstream service could not be configured
 	ErrObtainingUpstreamServiceCluster
 
 	// ErrFetchingServiceList indicates the services corresponding to a specified proxy could not be listed
 	ErrFetchingServiceList
 
-	// ErrDuplicateluster indicates Envoy clusters with the same name were found
+	// ErrDuplicateluster indicates Sidecar clusters with the same name were found
 	ErrDuplicateClusters
 
 	// ErrUnsupportedProtocolForService indicates a port's corresponding application protocol is not supported
@@ -616,7 +616,7 @@ The XDS certificate common name could not be parsed. The CN should be of the for
 
 	ErrFetchingPodFromCert: `
 The proxy UUID obtained from parsing the XDS certificate's common name did not match
-the osm-proxy-uuid label value for any pod. The pod associated with the specified Envoy
+the osm-proxy-uuid label value for any pod. The pod associated with the specified Sidecar
 proxy could not be found.
 `,
 
@@ -624,11 +624,11 @@ proxy could not be found.
 A pod in the mesh belongs to more than one service. By Open Service Mesh convention
 the number of services a pod can belong to is 1. This is a limitation we set in place
 in order to make the mesh easy to understand and reason about. When a pod belongs to
-more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
+more than one service XDS will not program the Sidecar proxy, leaving it out of the mesh.
 `,
 
 	ErrGettingProxyFromPod: `
-The Envoy proxy data structure created by ADS to reference an Envoy proxy sidecar from
+The Sidecar proxy data structure created by ADS to reference an Sidecar proxy sidecar from
 a pod's osm-proxy-uuid label could not be configured.
 `,
 
@@ -638,7 +638,7 @@ DiscoveryRequests.
 `,
 
 	ErrSendingDiscoveryResponse: `
-The DiscoveryResponse configured by ADS failed to send to the Envoy proxy.
+The DiscoveryResponse configured by ADS failed to send to the Sidecar proxy.
 `,
 
 	ErrGeneratingReqResource: `
@@ -647,7 +647,7 @@ The resources to be included in the DiscoveryResponse could not be generated.
 
 	ErrRecordingSnapshot: `
 The aggregated resources generated for a DiscoveryResponse failed to be configured as
-a new snapshot in the Envoy xDS Aggregate Discovery Services cache.
+a new snapshot in the Sidecar xDS Aggregate Discovery Services cache.
 `,
 
 	ErrGettingServiceIdentity: `
@@ -661,7 +661,7 @@ The Aggregate Discovery Server (ADS) created by the OSM controller failed to sta
 `,
 
 	ErrInitializingProxy: `
-An Envoy proxy data structure representing a newly connected envoy proxy to the XDS
+An Sidecar proxy data structure representing a newly connected sidecar proxy to the XDS
 server could not be initialized.
 `,
 
@@ -677,7 +677,7 @@ The Stream Agreggated Resource server was terminated for the specified proxy.
 `,
 
 	ErrUnexpectedXDSRequest: `
-The envoy proxy has not completed the initialization phase and it is not ready
+The sidecar proxy has not completed the initialization phase and it is not ready
 to receive broadcast updates from control plane related changes. New versions
 should not be pushed if the first request has not be received.
 The broadcast update was ignored for that proxy.
@@ -692,28 +692,28 @@ The version of the DiscoveryRequest could not be parsed by ADS.
 `,
 
 	ErrGettingOrgDstEgressCluster: `
-An Envoy egress cluster which routes traffic to its original destination could not
+An Sidecar egress cluster which routes traffic to its original destination could not
 be configured. When a Host is not specified in the cluster config, the original
 destination is used.
 `,
 
 	ErrGettingDNSEgressCluster: `
-An Envoy egress cluster that routes traffic based on the specified Host resolved
+An Sidecar egress cluster that routes traffic based on the specified Host resolved
 using DNS could not be configured.
 `,
 
 	ErrObtainingUpstreamServiceCluster: `
-An Envoy cluster that corresponds to a specified upstream service could not be
+An Sidecar cluster that corresponds to a specified upstream service could not be
 configured.
 `,
 
 	ErrFetchingServiceList: `
-The meshed services corresponding a specified Envoy proxy could not be listed.
+The meshed services corresponding a specified Sidecar proxy could not be listed.
 `,
 
 	ErrDuplicateClusters: `
-Multiple Envoy clusters with the same name were configured. The duplicate clusters
-will not be sent to the Envoy proxy in a ClusterDiscovery response.
+Multiple Sidecar clusters with the same name were configured. The duplicate clusters
+will not be sent to the Sidecar proxy in a ClusterDiscovery response.
 `,
 
 	ErrUnsupportedProtocolForService: `

@@ -115,8 +115,8 @@ func (cmd *metricsEnableCmd) run() error {
 // enableMetricsForPods enables metrics for existing pods in the given namespace
 func (cmd *metricsEnableCmd) enableMetricsForPods(namespace string) error {
 	listOptions := metav1.ListOptions{
-		// Matches on pods which are already a part of the mesh, which contain the Envoy ID label
-		LabelSelector: constants.EnvoyUniqueIDLabelName,
+		// Matches on pods which are already a part of the mesh, which contain the Sidecar ID label
+		LabelSelector: constants.SidecarUniqueIDLabelName,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -138,7 +138,7 @@ func (cmd *metricsEnableCmd) enableMetricsForPods(namespace string) error {
 			"%s": "%s"
 		}
 	}
-}`, constants.PrometheusScrapeAnnotation, constants.PrometheusPortAnnotation, constants.EnvoyPrometheusInboundListenerPort,
+}`, constants.PrometheusScrapeAnnotation, constants.PrometheusPortAnnotation, constants.SidecarPrometheusInboundListenerPort,
 			constants.PrometheusPathAnnotation, constants.PrometheusScrapePath)
 
 		_, err = cmd.clientSet.CoreV1().Pods(namespace).Patch(ctx, pod.Name, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")

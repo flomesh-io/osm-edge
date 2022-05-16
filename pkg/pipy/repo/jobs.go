@@ -35,14 +35,14 @@ func (job *PipyConfGeneratorJob) Run() {
 	proxyIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
-			Msgf("Error looking up Service Account for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+			Msgf("Error looking up Service Account for Sidecar with serial number=%q", proxy.GetCertificateSerialNumber())
 		return
 	}
 
 	proxyServices, err := s.proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
-			Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+			Msgf("Error looking up services for Sidecar with serial number=%q", proxy.GetCertificateSerialNumber())
 		return
 	}
 
@@ -53,7 +53,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	if mc, ok := cataloger.(*catalog.MeshCatalog); ok {
 		meshConf := *mc.GetConfigurator()
 		flags := meshConf.GetFeatureFlags()
-		pipyConf.SetEnableSidecarActiveHealthChecks(flags.EnableEnvoyActiveHealthChecks)
+		pipyConf.SetEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
 		pipyConf.SetEnableEgress(meshConf.IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode(meshConf.IsPermissiveTrafficPolicyMode())
 	}
@@ -139,7 +139,7 @@ func (job *PipyConfGeneratorJob) JobName() string {
 // Hash implementation for this job to hash into the worker queues
 func (job *PipyConfGeneratorJob) Hash() uint64 {
 	// Uses proxy hash to always serialize work for the same proxy to the same worker,
-	// this avoid out-of-order mishandling of envoy updates by multiple workers
+	// this avoid out-of-order mishandling of sidecar updates by multiple workers
 	return job.proxy.GetHash()
 }
 

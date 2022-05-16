@@ -413,8 +413,8 @@ func TestListEndpointsForIdentity(t *testing.T) {
 			var pods []*corev1.Pod
 			for serviceIdentity, endpoints := range tc.outboundServiceAccountEndpoints {
 				podlabels := map[string]string{
-					constants.AppLabel:               tests.SelectorValue,
-					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+					constants.AppLabel:                 tests.SelectorValue,
+					constants.SidecarUniqueIDLabelName: uuid.New().String(),
 				}
 				sa := serviceIdentity.ToK8sServiceAccount()
 				pod := tests.NewPodFixture(sa.Namespace, sa.Name, sa.Name, podlabels)

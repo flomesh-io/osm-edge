@@ -13,17 +13,17 @@ import (
 
 var log = logger.New("proxy-registry")
 
-// ProxyRegistry keeps track of Envoy proxies as they connect and disconnect
+// ProxyRegistry keeps track of Sidecar proxies as they connect and disconnect
 // from the control plane.
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
 	connectedProxies sync.Map
 
-	// Maintain a mapping of pod UID to CN of the Envoy on the given pod
+	// Maintain a mapping of pod UID to CN of the Sidecar on the given pod
 	podUIDToCN sync.Map
 
-	// Maintain a mapping of pod UID to certificate SerialNumber of the Envoy on the given pod
+	// Maintain a mapping of pod UID to certificate SerialNumber of the Sidecar on the given pod
 	podUIDToCertificateSerialNumber sync.Map
 
 	releaseCertificateCallback func(podUID types.UID, endpointCN certificate.CommonName)

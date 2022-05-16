@@ -138,9 +138,9 @@ type MeshClusterConfig struct {
 	// +optional
 	Port uint32
 
-	// EnableEnvoyActiveHealthChecks enables Envoy's active health checks for the cluster
+	// EnableSidecarActiveHealthChecks enables Sidecar's active health checks for the cluster
 	// +optional
-	EnableEnvoyActiveHealthChecks bool
+	EnableSidecarActiveHealthChecks bool
 
 	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
 	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting

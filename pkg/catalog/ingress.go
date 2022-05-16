@@ -113,7 +113,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		// 'Matches' field in the spec can be used to extend this to perform
 		// stricter enforcement.
 		backendCluster := service.WeightedCluster{
-			ClusterName: service.ClusterName(svc.EnvoyLocalClusterName()),
+			ClusterName: service.ClusterName(svc.SidecarLocalClusterName()),
 			Weight:      constants.ClusterWeightAcceptAll,
 		}
 		routingRule := &trafficpolicy.Rule{
@@ -129,7 +129,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 	if len(trafficMatches) == 0 {
 		// Since no trafficMatches exist for this IngressBackend config, it implies that the given
 		// MeshService does not map to this IngressBackend config.
-		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.EnvoyLocalClusterName())
+		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.SidecarLocalClusterName())
 		return nil, nil
 	}
 

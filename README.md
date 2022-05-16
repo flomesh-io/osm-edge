@@ -34,7 +34,7 @@ The OSM project builds on the ideas and implementations of many cloud native eco
 
 ## Overview
 
-OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI APIs, and works by injecting an Envoy proxy as a sidecar container next to each instance of your application. The proxy contains and executes rules around access control policies, implements routing configuration, and captures metrics. The control plane continually configures proxies to ensure policies and routing rules are up to date and ensures proxies are healthy.
+OSM runs an Sidecar based control plane on Kubernetes, can be configured with SMI APIs, and works by injecting an Sidecar proxy as a sidecar container next to each instance of your application. The proxy contains and executes rules around access control policies, implements routing configuration, and captures metrics. The control plane continually configures proxies to ensure policies and routing rules are up to date and ensures proxies are healthy.
 
 ### Core Principles
 1. Simple to understand and contribute to
@@ -54,7 +54,7 @@ Documentation pertaining to development, release workflows, and other repository
 1. Define and execute fine grained [access control][4] policies for services
 1. [Observability](https://docs.openservicemesh.io/docs/troubleshooting/observability/) and insights into application metrics for debugging and monitoring services
 1. Integrate with [external certificate management](https://docs.openservicemesh.io/docs/guides/certificates/) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://docs.openservicemesh.io/docs/guides/app_onboarding/sidecar_injection/) of Envoy proxy
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](https://docs.openservicemesh.io/docs/guides/app_onboarding/sidecar_injection/) of Sidecar proxy
 
 ### Project status
 

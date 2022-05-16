@@ -24,8 +24,8 @@ import (
 
 func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 	podLabels := map[string]string{
-		constants.AppLabel:               tests.BookbuyerService.Name,
-		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
+		constants.AppLabel:                 tests.BookbuyerService.Name,
+		constants.SidecarUniqueIDLabelName: tests.ProxyUUID,
 	}
 	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, podLabels); err != nil {
 		return nil, err

@@ -42,14 +42,14 @@ spec:
               type: object
               properties:
                 sidecar:
-                  description: Configuration for Envoy sidecar
+                  description: Configuration for sidecar
                   type: object
                   properties:
                     enablePrivilegedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
                     logLevel:
-                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      description: Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.
                       type: string
                       enum:
                         - trace
@@ -63,11 +63,14 @@ spec:
                     maxDataPlaneConnections:
                       description: Max allowed data plane sidecar connections
                       type: integer
-                    envoyImage:
-                      description: Image for the Envoy sidecar
+                    sidcarClass:
+                      description: Class of the sidecar
                       type: string
-                    envoyWindowsImage:
-                      description: Image for the Envoy sidecar on Windows workers
+                    sidcarImage:
+                      description: Image for the sidecar
+                      type: string
+                    sidcarWindowsImage:
+                      description: Image for the sidecar on Windows workers
                       type: string
                     initContainerImage:
                       description: Image for the init container
@@ -263,7 +266,7 @@ spec:
                       type: boolean
                     enableIngressBackendPolicy:
                       type: boolean
-                    enableEnvoyActiveHealthChecks:
+                    enableSidecarActiveHealthChecks:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean
@@ -280,14 +283,14 @@ spec:
               type: object
               properties:
                 sidecar:
-                  description: Configuration for Envoy sidecar
+                  description: Configuration for sidecar
                   type: object
                   properties:
                     enablePrivilegedInitContainer:
                       description: Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN.
                       type: boolean
                     logLevel:
-                      description: Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.
+                      description: Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.
                       type: string
                       enum:
                         - trace
@@ -301,11 +304,15 @@ spec:
                     maxDataPlaneConnections:
                       description: Max allowed data plane sidecar connections
                       type: integer
-                    envoyImage:
-                      description: Image for the Envoy sidecar
+                    sidecarClass:
+                      description: Class of the sidecar
+                      type:
+                        string
+                    sidecarImage:
+                      description: Image for the sidecar
                       type: string
-                    envoyWindowsImage:
-                      description: Image for the Envoy sidecar on Windows workers
+                    sidecarWindowsImage:
+                      description: Image for the sidecar on Windows workers
                       type: string
                     initContainerImage:
                       description: Image for the init container
@@ -465,7 +472,7 @@ spec:
                       type: boolean
                     enableIngressBackendPolicy:
                       type: boolean
-                    enableEnvoyActiveHealthChecks:
+                    enableSidecarActiveHealthChecks:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean

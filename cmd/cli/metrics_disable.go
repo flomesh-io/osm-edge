@@ -108,8 +108,8 @@ func (cmd *metricsDisableCmd) run() error {
 // disableMetricsForPods disables metrics for existing pods in the given namespace
 func (cmd *metricsDisableCmd) disableMetricsForPods(namespace string) error {
 	listOptions := metav1.ListOptions{
-		// Matches on pods which are already a part of the mesh, which contain the Envoy ID label
-		LabelSelector: constants.EnvoyUniqueIDLabelName,
+		// Matches on pods which are already a part of the mesh, which contain the Sidecar ID label
+		LabelSelector: constants.SidecarUniqueIDLabelName,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

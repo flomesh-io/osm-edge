@@ -57,7 +57,7 @@ func TestGetProxyFromPod(t *testing.T) {
 					Name:      podName,
 					Namespace: namespace,
 					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: "invalid UUID",
+						constants.SidecarUniqueIDLabelName: "invalid UUID",
 					},
 				},
 				Spec: v1.PodSpec{
@@ -73,7 +73,7 @@ func TestGetProxyFromPod(t *testing.T) {
 					Name:      podName,
 					Namespace: namespace,
 					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: validUUID.String(),
+						constants.SidecarUniqueIDLabelName: validUUID.String(),
 					},
 				},
 				Spec: v1.PodSpec{

@@ -19,10 +19,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
-func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
+func getEnvoyConfigYAML(config sidecarBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	bootstrapConfig, err := bootstrap.BuildFromConfig(bootstrap.Config{
 		NodeID:                config.NodeID,
-		AdminPort:             constants.EnvoyAdminPort,
+		AdminPort:             constants.SidecarAdminPort,
 		XDSClusterName:        constants.OSMControllerName,
 		TrustedCA:             config.RootCert,
 		CertificateChain:      config.Cert,
@@ -60,7 +60,7 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 // These will not change during the lifetime of the Pod.
 // If the original probe defined a TCPSocket action, listener and cluster objects are not configured
 // to serve that probe.
-func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
+func getProbeResources(config sidecarBootstrapConfigMeta) ([]*xds_listener.Listener, []*xds_cluster.Cluster, error) {
 	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
 	var listeners []*xds_listener.Listener
 	var clusters []*xds_cluster.Cluster
@@ -101,11 +101,11 @@ func getProbeResources(config envoyBootstrapConfigMeta) ([]*xds_listener.Listene
 	return listeners, clusters, nil
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes healthProbes) (*corev1.Secret, error) {
-	configMeta := envoyBootstrapConfigMeta{
-		EnvoyAdminPort: constants.EnvoyAdminPort,
-		XDSClusterName: constants.OSMControllerName,
-		NodeID:         cert.GetCommonName().String(),
+func (wh *mutatingWebhook) createSidecarBootstrapConfig(name, namespace, osmNamespace string, cert *certificate.Certificate, originalHealthProbes healthProbes) (*corev1.Secret, error) {
+	configMeta := sidecarBootstrapConfigMeta{
+		SidecarAdminPort: constants.SidecarAdminPort,
+		XDSClusterName:   constants.OSMControllerName,
+		NodeID:           cert.GetCommonName().String(),
 
 		RootCert: cert.GetIssuingCA(),
 		Cert:     cert.GetCertificateChain(),
@@ -125,7 +125,7 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 	}
 	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
+		log.Error().Err(err).Msg("Error creating Sidecar bootstrap YAML")
 		return nil, err
 	}
 

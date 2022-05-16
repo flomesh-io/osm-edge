@@ -248,12 +248,12 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			namespace := uuid.New().String()
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			podlabels := map[string]string{
-				constants.AppLabel:               tests.SelectorValue,
-				constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+				constants.AppLabel:                 tests.SelectorValue,
+				constants.SidecarUniqueIDLabelName: proxyUUID.String(),
 			}
 			someOthePodLabels := map[string]string{
-				constants.AppLabel:               tests.SelectorValue,
-				constants.EnvoyUniqueIDLabelName: someOtherEnvoyUID,
+				constants.AppLabel:                 tests.SelectorValue,
+				constants.SidecarUniqueIDLabelName: someOtherEnvoyUID,
 			}
 
 			// Ensure correct presetup
@@ -299,7 +299,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			for range []int{0, 1} {
 				podName := uuid.New().String()
 				newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-				newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+				newPod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -324,7 +324,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			var pods []*v1.Pod
 			for range []int{0, 1} {
 				podName := uuid.New().String()
-				tests.PodLabels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+				tests.PodLabels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 				newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 				pods = append(pods, &newPod)
 
@@ -350,7 +350,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			podName := uuid.New().String()
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+			newPod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
@@ -375,7 +375,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			podName := uuid.New().String()
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+			newPod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())

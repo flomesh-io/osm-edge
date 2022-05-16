@@ -13,15 +13,15 @@ Scale testing will have several use cases:
 Current tests leverage the existing test framework to deploy OSM and repeat a work operation (iteration) till the validation phase of the iteration fails. How and what does the iteration do is up to the test, so implementation is free to scale any resource/s till failure.
 
 The framework provides helpers to track profiling information through the overall test and individual iterations. Some of most relevant metrics are automatically captured during the test, but more exclusive metrics for speicific tests might have to be implemented. 
-Gathering these metrics requires a Prometheus instance scraping both the envoy endpoints and the K8s api servers.
+Gathering these metrics requires a Prometheus instance scraping both the sidecar endpoints and the K8s api servers.
 
 The current set of metrics aimed to be automatically tracked across iteration for any set of resources specified in the test are:
 - CPU Average loads, for each iteration for each tracked resource.
 - RSS footprint and related relative increases per iteration per tracked resource.
 - Visual representation of the previous trends, provided by Grafana.
 - Control plane profiling (pprof), cpu and mem (Todo)
-- Envoy config latency trends (time to create an envoy config by osm-controller, latency increase per pod, test dependent) (Todo)
-- Envoy config latency apply trends (from  `SMI apply` to `200` network requests) (Todo)
+- Sidecar config latency trends (time to create an sidecar config by osm-controller, latency increase per pod, test dependent) (Todo)
+- Sidecar config latency apply trends (from  `SMI apply` to `200` network requests) (Todo)
 
 
 ## Usage examples

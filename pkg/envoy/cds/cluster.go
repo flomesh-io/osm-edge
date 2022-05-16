@@ -59,7 +59,7 @@ func getUpstreamServiceCluster(downstreamIdentity identity.ServiceIdentity, conf
 	upstreamCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
 	upstreamCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 
-	if config.EnableEnvoyActiveHealthChecks {
+	if config.EnableSidecarActiveHealthChecks {
 		enableHealthChecksOnCluster(upstreamCluster, config.Service)
 	}
 
@@ -183,21 +183,21 @@ func getLocalServiceCluster(config trafficpolicy.MeshClusterConfig) *xds_cluster
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
 func getPrometheusCluster() *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
-		Name:        constants.EnvoyMetricsCluster,
-		AltStatName: constants.EnvoyMetricsCluster,
+		Name:        constants.SidecarMetricsCluster,
+		AltStatName: constants.SidecarMetricsCluster,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STATIC,
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			// NOTE: results.MeshService is the top level service that is accessed.
-			ClusterName: constants.EnvoyMetricsCluster,
+			ClusterName: constants.SidecarMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(constants.LocalhostIPAddress, constants.EnvoyAdminPort),
+								Address: envoy.GetAddress(constants.LocalhostIPAddress, constants.SidecarAdminPort),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{

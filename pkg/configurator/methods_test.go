@@ -50,7 +50,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 					LogLevel:                      "error",
 					MaxDataPlaneConnections:       0,
 					ConfigResyncInterval:          "2m",
-					EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+					SidecarImage:                  "envoyproxy/envoy-alpine:v0.0.0",
 					InitContainerImage:            "openservicemesh/init:v0.0.0",
 				},
 				Traffic: configv1alpha2.TrafficSpec{
@@ -75,7 +75,7 @@ func TestCreateUpdateConfig(t *testing.T) {
 						LogLevel:                      "error",
 						MaxDataPlaneConnections:       0,
 						ConfigResyncInterval:          "2m",
-						EnvoyImage:                    "envoyproxy/envoy-alpine:v0.0.0",
+						SidecarImage:                  "envoyproxy/envoy-alpine:v0.0.0",
 						InitContainerImage:            "openservicemesh/init:v0.0.0",
 					},
 					Traffic: configv1alpha2.TrafficSpec{
@@ -191,10 +191,10 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 		},
 		{
-			name:                  "GetEnvoyLogLevel",
+			name:                  "GetSidecarLogLevel",
 			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("error", cfg.GetEnvoyLogLevel())
+				assert.Equal("error", cfg.GetSidecarLogLevel())
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
@@ -202,37 +202,37 @@ func TestCreateUpdateConfig(t *testing.T) {
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("info", cfg.GetEnvoyLogLevel())
+				assert.Equal("info", cfg.GetSidecarLogLevel())
 			},
 		},
 		{
-			name:                  "GetEnvoyImage",
+			name:                  "GetSidecarImage",
 			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("", cfg.GetEnvoyImage())
+				assert.Equal("", cfg.GetSidecarImage())
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
-					EnvoyImage: "envoyproxy/envoy-alpine:v1.17.1",
+					SidecarImage: "envoyproxy/envoy-alpine:v1.17.1",
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetEnvoyImage())
+				assert.Equal("envoyproxy/envoy-alpine:v1.17.1", cfg.GetSidecarImage())
 			},
 		},
 		{
-			name:                  "GetEnvoyWindowsImage",
+			name:                  "GetSidecarWindowsImage",
 			initialMeshConfigData: &configv1alpha2.MeshConfigSpec{},
 			checkCreate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("", cfg.GetEnvoyWindowsImage())
+				assert.Equal("", cfg.GetSidecarWindowsImage())
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
-					EnvoyImage: "envoyproxy/envoy-windows:v1.17.1",
+					SidecarImage: "envoyproxy/envoy-windows:v1.17.1",
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
-				assert.Equal("envoyproxy/envoy-windows:v1.17.1", cfg.GetEnvoyImage())
+				assert.Equal("envoyproxy/envoy-windows:v1.17.1", cfg.GetSidecarImage())
 			},
 		},
 		{

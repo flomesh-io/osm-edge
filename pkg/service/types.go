@@ -50,13 +50,13 @@ func (ms MeshService) String() string {
 	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
 }
 
-// EnvoyClusterName is the name of the cluster corresponding to the MeshService in Envoy
-func (ms MeshService) EnvoyClusterName() string {
+// SidecarClusterName is the name of the cluster corresponding to the MeshService in Sidecar
+func (ms MeshService) SidecarClusterName() string {
 	return fmt.Sprintf("%s/%s|%d", ms.Namespace, ms.Name, ms.TargetPort)
 }
 
-// EnvoyLocalClusterName is the name of the local cluster corresponding to the MeshService in Envoy
-func (ms MeshService) EnvoyLocalClusterName() string {
+// SidecarLocalClusterName is the name of the local cluster corresponding to the MeshService in Sidecar
+func (ms MeshService) SidecarLocalClusterName() string {
 	return fmt.Sprintf("%s/%s|%d|local", ms.Namespace, ms.Name, ms.TargetPort)
 }
 

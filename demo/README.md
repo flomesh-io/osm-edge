@@ -68,7 +68,7 @@ To see the results of deploying the services and the service mesh - run the tail
   This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## View Mesh Topology with Jaeger
-When the demo is run with `DEPLOY_JAEGER` set to `true` in your `.env` file, OSM will install a Jaeger pod. To configure all participating Envoys to send spans to this Jaeger instance, you must additionally enable tracing using:
+When the demo is run with `DEPLOY_JAEGER` set to `true` in your `.env` file, OSM will install a Jaeger pod. To configure all participating Sidecars to send spans to this Jaeger instance, you must additionally enable tracing using:
 ```console
 kubectl patch meshconfig osm-mesh-config -n osm-system -p '{"spec":{"observability":{"tracing":{"enable":true,"address": "jaeger.osm-system.svc.cluster.local","port":9411,"endpoint":"/api/v2/spans"}}}}'  --type=merge
 ```

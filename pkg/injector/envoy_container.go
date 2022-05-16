@@ -20,44 +20,44 @@ func getPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS stri
 		podSecurityContext = &corev1.SecurityContext{
 			WindowsOptions: &corev1.WindowsSecurityContextOptions{
 				RunAsUserName: func() *string {
-					userName := constants.EnvoyWindowsUser
+					userName := constants.SidecarWindowsUser
 					return &userName
 				}(),
 			},
 		}
-		envoyContainer = cfg.GetEnvoyWindowsImage()
+		envoyContainer = cfg.GetSidecarWindowsImage()
 	} else {
 		podSecurityContext = &corev1.SecurityContext{
 			RunAsUser: func() *int64 {
-				uid := constants.EnvoyUID
+				uid := constants.SidecarUID
 				return &uid
 			}(),
 		}
-		envoyContainer = cfg.GetEnvoyImage()
+		envoyContainer = cfg.GetSidecarImage()
 	}
 	return
 }
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes, podOS string) corev1.Container {
+func getSidecarSidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes, podOS string) corev1.Container {
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
 	securityContext, containerImage := getPlatformSpecificSpecComponents(cfg, podOS)
 
 	return corev1.Container{
-		Name:            constants.EnvoyContainerName,
+		Name:            constants.SidecarContainerName,
 		Image:           containerImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
-		Ports:           getEnvoyContainerPorts(originalHealthProbes),
+		Ports:           getSidecarContainerPorts(originalHealthProbes),
 		VolumeMounts: []corev1.VolumeMount{{
-			Name:      envoyBootstrapConfigVolume,
+			Name:      sidecarBootstrapConfigVolume,
 			ReadOnly:  true,
 			MountPath: envoyProxyConfigPath,
 		}},
 		Command:   []string{"envoy"},
 		Resources: cfg.GetProxyResources(),
 		Args: []string{
-			"--log-level", cfg.GetEnvoyLogLevel(),
+			"--log-level", cfg.GetSidecarLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
 			"--service-cluster", clusterID,
 		},
@@ -106,19 +106,19 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, cfg configurator.Configurator
 	}
 }
 
-func getEnvoyContainerPorts(originalHealthProbes healthProbes) []corev1.ContainerPort {
+func getSidecarContainerPorts(originalHealthProbes healthProbes) []corev1.ContainerPort {
 	containerPorts := []corev1.ContainerPort{
 		{
-			Name:          constants.EnvoyAdminPortName,
-			ContainerPort: constants.EnvoyAdminPort,
+			Name:          constants.SidecarAdminPortName,
+			ContainerPort: constants.SidecarAdminPort,
 		},
 		{
-			Name:          constants.EnvoyInboundListenerPortName,
-			ContainerPort: constants.EnvoyInboundListenerPort,
+			Name:          constants.SidecarInboundListenerPortName,
+			ContainerPort: constants.SidecarInboundListenerPort,
 		},
 		{
-			Name:          constants.EnvoyInboundPrometheusListenerPortName,
-			ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
+			Name:          constants.SidecarInboundPrometheusListenerPortName,
+			ContainerPort: constants.SidecarPrometheusInboundListenerPort,
 		},
 	}
 

@@ -114,8 +114,8 @@ func TestNewResponse(t *testing.T) {
 	mockConfigurator.EXPECT().GetMeshConfig().Return(meshConfig).AnyTimes()
 
 	podlabels := map[string]string{
-		constants.AppLabel:               testMeshSvc.Name,
-		constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
+		constants.AppLabel:                 testMeshSvc.Name,
+		constants.SidecarUniqueIDLabelName: proxyUUID.String(),
 	}
 
 	newPod1 := tests.NewPodFixture(tests.Namespace, fmt.Sprintf("pod-1-%s", proxyUUID), tests.BookbuyerServiceAccountName, podlabels)
@@ -317,12 +317,12 @@ func TestNewResponse(t *testing.T) {
 
 	expectedPrometheusCluster := &xds_cluster.Cluster{
 		TransportSocketMatches: nil,
-		Name:                   constants.EnvoyMetricsCluster,
-		AltStatName:            constants.EnvoyMetricsCluster,
+		Name:                   constants.SidecarMetricsCluster,
+		AltStatName:            constants.SidecarMetricsCluster,
 		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 		EdsClusterConfig:       nil,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: constants.EnvoyMetricsCluster,
+			ClusterName: constants.SidecarMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					Locality: nil,
@@ -398,15 +398,15 @@ func TestNewResponse(t *testing.T) {
 			continue
 		}
 
-		if a.Name == constants.EnvoyMetricsCluster {
+		if a.Name == constants.SidecarMetricsCluster {
 			assert.Truef(cmp.Equal(expectedPrometheusCluster, a, protocmp.Transform()), cmp.Diff(expectedPrometheusCluster, a, protocmp.Transform()))
 
-			foundClusters = append(foundClusters, constants.EnvoyMetricsCluster)
+			foundClusters = append(foundClusters, constants.SidecarMetricsCluster)
 			continue
 		}
 
-		if a.Name == constants.EnvoyTracingCluster {
-			foundClusters = append(foundClusters, constants.EnvoyTracingCluster)
+		if a.Name == constants.SidecarTracingCluster {
+			foundClusters = append(foundClusters, constants.SidecarTracingCluster)
 			continue
 		}
 

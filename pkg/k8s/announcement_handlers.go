@@ -46,10 +46,10 @@ func WatchAndUpdateProxyBootstrapSecret(kubeClient kubernetes.Interface, msgBrok
 			}
 
 			podUID := addedPodObj.GetUID()
-			podUUID := addedPodObj.GetLabels()[constants.EnvoyUniqueIDLabelName]
+			podUUID := addedPodObj.GetLabels()[constants.SidecarUniqueIDLabelName]
 			podName := addedPodObj.GetName()
 			namespace := addedPodObj.GetNamespace()
-			secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+			secretName := fmt.Sprintf("sidecar-bootstrap-config-%s", podUUID)
 
 			secret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 			if err != nil {

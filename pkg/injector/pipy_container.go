@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	PipyAdminPort = 6060
+	PipyAdminPort       = 6060
+	pipyProxyConfigPath = "/etc/pipy"
 )
 
 func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, originalHealthProbes healthProbes,
@@ -21,20 +22,20 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 		constants.OSMControllerName, osmNamespace, constants.ADSServerPort, bootstrapCertificate.GetCommonName())
 
 	return corev1.Container{
-		Name:            constants.EnvoyContainerName,
+		Name:            constants.SidecarContainerName,
 		Image:           containerImage,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
-		Ports:           getEnvoyContainerPorts(originalHealthProbes),
+		Ports:           getSidecarContainerPorts(originalHealthProbes),
 		VolumeMounts: []corev1.VolumeMount{{
-			Name:      envoyBootstrapConfigVolume,
+			Name:      sidecarBootstrapConfigVolume,
 			ReadOnly:  true,
-			MountPath: envoyProxyConfigPath,
+			MountPath: pipyProxyConfigPath,
 		}},
 		Command:   []string{"/usr/local/bin/pipy"},
 		Resources: cfg.GetProxyResources(),
 		Args: []string{
-			fmt.Sprintf("--log-level=%s", cfg.GetEnvoyLogLevel()),
+			fmt.Sprintf("--log-level=%s", cfg.GetSidecarLogLevel()),
 			fmt.Sprintf("--admin-port=%d", PipyAdminPort),
 			pipyRepo,
 		},

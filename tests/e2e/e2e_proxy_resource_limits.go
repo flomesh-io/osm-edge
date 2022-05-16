@@ -48,7 +48,7 @@ var _ = OSMDescribe("Test proxy resource setting",
 
 				found := false
 				for _, cont := range pod.Spec.Containers {
-					if cont.Name == "envoy" {
+					if cont.Name == "sidecar" {
 						Expect(len(cont.Resources.Limits)).To(BeZero())
 						Expect(len(cont.Resources.Requests)).To(BeZero())
 						found = true
@@ -79,7 +79,7 @@ var _ = OSMDescribe("Test proxy resource setting",
 
 				found = false
 				for _, cont := range pod.Spec.Containers {
-					if cont.Name == "envoy" {
+					if cont.Name == "sidecar" {
 						Expect(cont.Resources.Limits[corev1.ResourceCPU]).To(Equal(resource.MustParse("2")))
 						Expect(cont.Resources.Limits[corev1.ResourceMemory]).To(Equal(resource.MustParse("128M")))
 						Expect(cont.Resources.Requests[corev1.ResourceCPU]).To(Equal(resource.MustParse("1")))

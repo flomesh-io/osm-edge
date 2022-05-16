@@ -51,8 +51,6 @@ var (
 	webhookTimeout     int32
 	osmVersion         string
 
-	sidecarType string
-
 	injectorConfig injector.Config
 
 	certProviderKind string
@@ -82,8 +80,6 @@ func init() {
 	flags.Int32Var(&webhookTimeout, "webhook-timeout", int32(20), "Timeout of the MutatingWebhookConfiguration")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
-
-	flags.StringVar(&sidecarType, "sidecar-type", "envoy", "Type of Sidecar")
 
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
@@ -181,7 +177,6 @@ func main() {
 	}
 
 	// Initialize the sidecar injector webhook
-	injector.SetSidecarType(sidecarType)
 	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, osmVersion, webhookTimeout, enableReconciler, stop, cfg, corev1.PullPolicy(osmContainerPullPolicy)); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}

@@ -16,7 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// ProxyServiceMapper knows how to map Envoy instances to services.
+// ProxyServiceMapper knows how to map Sidecar instances to services.
 type ProxyServiceMapper interface {
 	ListProxyServices(*pipy.Proxy) ([]service.MeshService, error)
 	ListProxyPods() []v1.Pod
@@ -30,17 +30,17 @@ func (e ExplicitProxyServiceMapper) ListProxyServices(p *pipy.Proxy) ([]service.
 	return e(p)
 }
 
-// KubeProxyServiceMapper maps an Envoy instance to services in a Kubernetes cluster.
+// KubeProxyServiceMapper maps an Sidecar instance to services in a Kubernetes cluster.
 type KubeProxyServiceMapper struct {
 	KubeController k8s.Controller
 }
 
-// ListProxyServices maps an Envoy instance to a number of Kubernetes services.
+// ListProxyServices maps an Sidecar instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyPods() []v1.Pod {
 	allPods := k.KubeController.ListPods()
 	var matchedPods []v1.Pod
 	for _, pod := range allPods {
-		if _, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]; exists {
+		if _, exists := pod.Labels[constants.SidecarUniqueIDLabelName]; exists {
 			matchedPods = append(matchedPods, *pod)
 		}
 	}
@@ -131,13 +131,13 @@ func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1
 }
 
 func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
-	proxyUIDStr, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]
+	proxyUIDStr, exists := pod.Labels[constants.SidecarUniqueIDLabelName]
 	if !exists {
-		return "", errors.Errorf("no %s label", constants.EnvoyUniqueIDLabelName)
+		return "", errors.Errorf("no %s label", constants.SidecarUniqueIDLabelName)
 	}
 	proxyUID, err := uuid.Parse(proxyUIDStr)
 	if err != nil {
-		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.EnvoyUniqueIDLabelName)
+		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.SidecarUniqueIDLabelName)
 	}
 	cn := pipy.NewXDSCertCommonName(proxyUID, pipy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
 	return cn, nil

@@ -577,7 +577,7 @@
           },
           {
             "expr": "irate(envoy_cluster_upstream_cx_destroy_local_with_active_rq{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
-            "legendFormat": "Connection destroyed by local Envoy - {{envoy_cluster_name}}",
+            "legendFormat": "Connection destroyed by local Sidecar - {{envoy_cluster_name}}",
             "refId": "C"
           },
           {

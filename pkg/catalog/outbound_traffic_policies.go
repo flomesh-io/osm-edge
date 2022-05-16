@@ -54,9 +54,9 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// ---
 		// Create the cluster config for this upstream service
 		clusterConfigForServicePort := &trafficpolicy.MeshClusterConfig{
-			Name:                          meshSvc.EnvoyClusterName(),
-			Service:                       meshSvc,
-			EnableEnvoyActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+			Name:                            meshSvc.SidecarClusterName(),
+			Service:                         meshSvc,
+			EnableSidecarActiveHealthChecks: mc.configurator.GetFeatureFlags().EnableSidecarActiveHealthChecks,
 			UpstreamTrafficSetting: mc.policyController.GetUpstreamTrafficSetting(
 				policy.UpstreamTrafficSettingGetOpt{MeshService: &meshSvc}),
 		}
@@ -82,14 +82,14 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 					TargetPort: meshSvc.TargetPort,
 				}
 				wc := service.WeightedCluster{
-					ClusterName: service.ClusterName(backendMeshSvc.EnvoyClusterName()),
+					ClusterName: service.ClusterName(backendMeshSvc.SidecarClusterName()),
 					Weight:      backend.Weight,
 				}
 				upstreamClusters = append(upstreamClusters, wc)
 			}
 		} else {
 			wc := service.WeightedCluster{
-				ClusterName: service.ClusterName(meshSvc.EnvoyClusterName()),
+				ClusterName: service.ClusterName(meshSvc.SidecarClusterName()),
 				Weight:      constants.ClusterWeightAcceptAll,
 			}
 			// No TrafficSplit for this upstream service, so use a default weighted cluster

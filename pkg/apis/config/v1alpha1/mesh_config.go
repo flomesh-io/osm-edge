@@ -48,11 +48,14 @@ type SidecarSpec struct {
 	// LogLevel defines the logging level for the sidecar's logs. Non developers should generally never set this value. In production environments the LogLevel should be set to error.
 	LogLevel string `json:"logLevel,omitempty"`
 
-	// EnvoyImage defines the container image used for the Envoy proxy sidecar.
-	EnvoyImage string `json:"envoyImage,omitempty"`
+	// SidecarClass defines the container provider used for the proxy sidecar.
+	SidecarClass string `json:"sidecarClass,omitempty"`
 
-	// EnvoyWindowsImage defines the windows container image used for the Envoy proxy sidecar.
-	EnvoyWindowsImage string `json:"envoyWindowsImage,omitempty"`
+	// SidecarImage defines the container image used for the proxy sidecar.
+	SidecarImage string `json:"sidecarImage,omitempty"`
+
+	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
+	SidecarWindowsImage string `json:"sideWindowsImage,omitempty"`
 
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
@@ -194,9 +197,9 @@ type FeatureFlags struct {
 	// service mesh backends.
 	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy"`
 
-	// EnableEnvoyActiveHealthChecks defines if OSM will Envoy active health
+	// EnableSidecarActiveHealthChecks defines if OSM will sidecar active health
 	// checks between services allowed to communicate.
-	EnableEnvoyActiveHealthChecks bool `json:"enableEnvoyActiveHealthChecks"`
+	EnableSidecarActiveHealthChecks bool `json:"enableSidecarActiveHealthChecks"`
 
 	// EnableRetryPolicy defines if retry policy is enabled.
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`

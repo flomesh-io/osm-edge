@@ -29,8 +29,8 @@ const (
 	// default cert manager
 	defaultCertManager = "tresor"
 
-	// default envoy loglevel
-	defaultEnvoyLogLevel = "debug"
+	// default sidecar loglevel
+	defaultSidecarLogLevel = "debug"
 
 	// default OSM loglevel
 	defaultOSMLogLevel = "trace"
@@ -69,9 +69,9 @@ const (
 
 // Windows Specific container images
 const (
-	// EnvoyOSMWindowsImage is Envoy Windows image used for testing.
+	// SidecarOSMWindowsImage is Sidecar Windows image used for testing.
 	// On Windows until Windows Server 2022 is publicly available we have to rely on this testing images.
-	EnvoyOSMWindowsImage = "openservicemesh/envoy-windows-nanoserver@sha256:94590d10bc8a46c60cd3a3858d80f3d6577d4e9a191fa05c0077f8b3d6002e22"
+	SidecarOSMWindowsImage = "openservicemesh/envoy-windows-nanoserver@sha256:94590d10bc8a46c60cd3a3858d80f3d6577d4e9a191fa05c0077f8b3d6002e22"
 
 	// WindowsNanoserverDockerImage is the base Windows image that is compatible with the test cluster.
 	WindowsNanoserverDockerImage = "mcr.microsoft.com/powershell:lts-nanoserver-ltsc2022"

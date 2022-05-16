@@ -24,7 +24,7 @@ var _ = OSMDescribe("Permissive Traffic Policy Mode",
 
 		Context("Permissive mode HTTP test without a Kubernetes Service for the Source", func() {
 			// Prior iterations of OSM required that a source pod belong to a Kubernetes service
-			// for the Envoy proxy to be configured for outbound traffic to some remote server.
+			// for the Sidecar proxy to be configured for outbound traffic to some remote server.
 			// This test ensures we test this scenario: client Pod is not associated w/ a service.
 			withSourceKubernetesService := false
 			testPermissiveMode(withSourceKubernetesService)

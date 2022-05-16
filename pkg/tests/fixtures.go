@@ -87,7 +87,7 @@ const (
 	// SelectorValue is a Pod selector value constant.
 	SelectorValue = "frontend"
 
-	// ProxyUUID is the unique ID of the Envoy used for unit tests.
+	// ProxyUUID is the unique ID of the Sidecar used for unit tests.
 	ProxyUUID = "abcdef12-5791-9876-abcd-1234567890ab"
 
 	// ServicePort is the port used by a service
@@ -539,8 +539,8 @@ var (
 
 	// PodLabels is a map of the default labels on pods
 	PodLabels = map[string]string{
-		constants.AppLabel:               SelectorValue,
-		constants.EnvoyUniqueIDLabelName: ProxyUUID,
+		constants.AppLabel:                 SelectorValue,
+		constants.SidecarUniqueIDLabelName: ProxyUUID,
 	}
 
 	// WildCardRouteMatch is HTTPRouteMatch with wildcard path and method

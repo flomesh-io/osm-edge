@@ -10,26 +10,26 @@ import (
 
 // iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
 var iptablesOutboundStaticRules = []string{
-	// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Envoy's outbound listener port
-	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.EnvoyOutboundListenerPort),
+	// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Sidecar's outbound listener port
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarOutboundListenerPort),
 
 	// Traffic to the Proxy Admin port flows to the Proxy -- not redirected
-	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.EnvoyAdminPort),
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.SidecarAdminPort),
 
 	// For outbound TCP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
 	"-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
 
-	// Outbound traffic from Envoy to the local app over the loopback interface should jump to the inbound proxy redirect chain.
+	// Outbound traffic from Sidecar to the local app over the loopback interface should jump to the inbound proxy redirect chain.
 	// So when an app directs traffic to itself via the k8s service, traffic flows as follows:
-	// app -> local envoy's outbound listener -> iptables -> local envoy's inbound listener -> app
-	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner %d -j OSM_PROXY_IN_REDIRECT", constants.EnvoyUID),
+	// app -> local sidecar's outbound listener -> iptables -> local sidecar's inbound listener -> app
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo ! -d 127.0.0.1/32 -m owner --uid-owner %d -j OSM_PROXY_IN_REDIRECT", constants.SidecarUID),
 
 	// Outbound traffic from the app to itself over the loopback interface is not be redirected via the proxy.
 	// E.g. when app sends traffic to itself via the pod IP.
-	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner %d -j RETURN", constants.EnvoyUID),
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -o lo -m owner ! --uid-owner %d -j RETURN", constants.SidecarUID),
 
-	// Don't redirect Envoy traffic back to itself, return it to the next chain for processing
-	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -m owner --uid-owner %d -j RETURN", constants.EnvoyUID),
+	// Don't redirect Sidecar traffic back to itself, return it to the next chain for processing
+	fmt.Sprintf("-A OSM_PROXY_OUTBOUND -m owner --uid-owner %d -j RETURN", constants.SidecarUID),
 
 	// Skip localhost traffic, doesn't need to be routed via the proxy
 	"-A OSM_PROXY_OUTBOUND -d 127.0.0.1/32 -j RETURN",
@@ -37,17 +37,17 @@ var iptablesOutboundStaticRules = []string{
 
 // iptablesInboundStaticRules is the list of iptables rules related to inbound traffic interception and redirection
 var iptablesInboundStaticRules = []string{
-	// Redirects inbound TCP traffic hitting the OSM_PROXY_IN_REDIRECT chain to Envoy's inbound listener port
-	fmt.Sprintf("-A OSM_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.EnvoyInboundListenerPort),
+	// Redirects inbound TCP traffic hitting the OSM_PROXY_IN_REDIRECT chain to Sidecar's inbound listener port
+	fmt.Sprintf("-A OSM_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarInboundListenerPort),
 
 	// For inbound traffic jump from PREROUTING chain to OSM_PROXY_INBOUND chain
 	"-A PREROUTING -p tcp -j OSM_PROXY_INBOUND",
 
-	// Skip metrics query traffic being directed to Envoy's inbound prometheus listener port
-	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.EnvoyPrometheusInboundListenerPort),
+	// Skip metrics query traffic being directed to Sidecar's inbound prometheus listener port
+	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.SidecarPrometheusInboundListenerPort),
 
 	// Skip inbound health probes; These ports will be explicitly handled by listeners configured on the
-	// Envoy proxy IF any health probes have been configured in the Pod Spec.
+	// Sidecar proxy IF any health probes have been configured in the Pod Spec.
 	// TODO(draychev): Do not add these if no health probes have been defined (https://github.com/openservicemesh/osm/issues/2243)
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", livenessProbePort),
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", readinessProbePort),
@@ -55,7 +55,7 @@ var iptablesInboundStaticRules = []string{
 	// Skip inbound health probes (originally TCPSocket health probes); requests handled by osm-healthcheck
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", healthcheckPort),
 
-	// Redirect remaining inbound traffic to Envoy
+	// Redirect remaining inbound traffic to Sidecar
 	"-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",
 }
 

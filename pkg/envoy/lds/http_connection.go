@@ -130,7 +130,7 @@ func getPrometheusConnectionManager() *xds_hcm.HttpConnectionManager {
 						Action: &xds_route.Route_Route{
 							Route: &xds_route.RouteAction{
 								ClusterSpecifier: &xds_route.RouteAction_Cluster{
-									Cluster: constants.EnvoyMetricsCluster,
+									Cluster: constants.SidecarMetricsCluster,
 								},
 								PrefixRewrite: constants.PrometheusScrapePath,
 							},

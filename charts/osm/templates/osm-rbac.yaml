@@ -19,7 +19,7 @@ rules:
     verbs: ["list", "get", "watch"]
 
   # Port forwarding is needed for the OSM pod to be able to connect
-  # to participating Envoys and fetch their configuration.
+  # to participating Sidecars and fetch their configuration.
   # This is used by the OSM debugging system.
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/portforward"]

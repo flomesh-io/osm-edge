@@ -290,13 +290,13 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 				OldObj: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{constants.PrometheusScrapeAnnotation: "false"},
-						Labels:      map[string]string{constants.EnvoyUniqueIDLabelName: "foo"},
+						Labels:      map[string]string{constants.SidecarUniqueIDLabelName: "foo"},
 					},
 				},
 				NewObj: &corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{constants.PrometheusScrapeAnnotation: "true"},
-						Labels:      map[string]string{constants.EnvoyUniqueIDLabelName: "foo"},
+						Labels:      map[string]string{constants.SidecarUniqueIDLabelName: "foo"},
 					},
 				},
 				Kind: announcements.PodUpdated,

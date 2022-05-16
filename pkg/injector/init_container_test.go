@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-var _ = Describe("Test functions creating Envoy bootstrap configuration", func() {
+var _ = Describe("Test functions creating Sidecar bootstrap configuration", func() {
 	const (
 		containerName  = "-container-name-"
 		containerImage = "-init-container-image-"

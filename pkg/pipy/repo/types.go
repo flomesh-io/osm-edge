@@ -20,7 +20,7 @@ var (
 	log = logger.New("flomesh-pipy")
 )
 
-// Server implements the Envoy xDS Aggregate Discovery Services
+// Server implements the Sidecar xDS Aggregate Discovery Services
 type Server struct {
 	catalog        catalog.MeshCataloger
 	proxyRegistry  *registry.ProxyRegistry

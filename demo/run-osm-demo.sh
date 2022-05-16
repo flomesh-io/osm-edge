@@ -36,7 +36,7 @@ TRACING_ADDRESS="${TRACING_ADDRESS:-jaeger.${K8S_NAMESPACE}.svc.cluster.local}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
-ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
+SIDECAR_LOG_LEVEL="${SIDECAR_LOG_LEVEL:-debug}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
@@ -118,7 +118,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.tracing.address="$TRACING_ADDRESS" \
       --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
@@ -142,7 +142,7 @@ else
       --set=osm.tracing.address="$TRACING_ADDRESS" \
       --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
-      --set=osm.envoyLogLevel="$ENVOY_LOG_LEVEL" \
+      --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="trace" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs

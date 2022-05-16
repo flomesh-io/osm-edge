@@ -63,14 +63,17 @@ type Configurator interface {
 	// GetOsmLogLevel returns the configured OSM log level
 	GetOSMLogLevel() string
 
-	// GetEnvoyLogLevel returns the envoy log level
-	GetEnvoyLogLevel() string
+	// GetSidecarLogLevel returns the sidecar log level
+	GetSidecarLogLevel() string
 
-	// GetEnvoyImage returns the envoy image
-	GetEnvoyImage() string
+	// GetSidecarClass returns the sidecar class
+	GetSidecarClass() string
 
-	// GetEnvoyWindowsImage returns the envoy windows image
-	GetEnvoyWindowsImage() string
+	// GetSidecarImage returns the sidecar image
+	GetSidecarImage() string
+
+	// GetSidecarWindowsImage returns the sidecar image
+	GetSidecarWindowsImage() string
 
 	// GetInitContainerImage returns the init container image
 	GetInitContainerImage() string

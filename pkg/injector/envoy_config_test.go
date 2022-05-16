@@ -117,13 +117,13 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		startup:   &healthProbe{path: "/startup", port: 83, isHTTP: true},
 	}
 
-	config := envoyBootstrapConfigMeta{
+	config := sidecarBootstrapConfigMeta{
 		NodeID:   cert.GetCommonName().String(),
 		RootCert: cert.GetIssuingCA(),
 		Cert:     cert.GetCertificateChain(),
 		Key:      cert.GetPrivateKey(),
 
-		EnvoyAdminPort: 15000,
+		SidecarAdminPort: 15000,
 
 		XDSClusterName: constants.OSMControllerName,
 		XDSHost:        "osm-controller.b.svc.cluster.local",
@@ -162,7 +162,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 			namespace := "a"
 			osmNamespace := "b"
 
-			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
+			secret, err := wh.createSidecarBootstrapConfig(name, namespace, osmNamespace, cert, probes)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
@@ -217,7 +217,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				configurator:        mockConfigurator,
 			}
 
-			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, probes)
+			secret, err := wh.createSidecarBootstrapConfig(name, namespace, osmNamespace, cert, probes)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
@@ -260,18 +260,18 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		})
 	})
 
-	Context("Test getEnvoyContainerPorts()", func() {
+	Context("Test getSidecarContainerPorts()", func() {
 		It("creates container port list", func() {
-			actualRewrittenContainerPorts := getEnvoyContainerPorts(originalHealthProbes)
+			actualRewrittenContainerPorts := getSidecarContainerPorts(originalHealthProbes)
 			Expect(actualRewrittenContainerPorts).To(Equal(expectedRewrittenContainerPorts))
 		})
 	})
 
-	Context("test unix getEnvoySidecarContainerSpec()", func() {
+	Context("test unix getSidecarSidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(1)
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(0)
+			mockConfigurator.EXPECT().GetSidecarLogLevel().Return("debug").Times(1)
+			mockConfigurator.EXPECT().GetSidecarImage().Return(envoyImage).Times(1)
+			mockConfigurator.EXPECT().GetSidecarWindowsImage().Return(envoyImage).Times(0)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
 				// Test set Limits
 				Limits: map[corev1.ResourceName]resource.Quantity{
@@ -281,22 +281,22 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				// Test unset Requests
 				Requests: nil,
 			}).Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSLinux)
+			actual := getSidecarSidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSLinux)
 
 			expected := corev1.Container{
-				Name:            constants.EnvoyContainerName,
+				Name:            constants.SidecarContainerName,
 				Image:           envoyImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
 					RunAsUser: func() *int64 {
-						uid := constants.EnvoyUID
+						uid := constants.SidecarUID
 						return &uid
 					}(),
 				},
 				Ports: expectedRewrittenContainerPorts,
 				VolumeMounts: []corev1.VolumeMount{
 					{
-						Name:      envoyBootstrapConfigVolume,
+						Name:      sidecarBootstrapConfigVolume,
 						ReadOnly:  true,
 						MountPath: envoyProxyConfigPath,
 					},
@@ -391,11 +391,11 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 		})
 	})
 
-	Context("test Windows getEnvoySidecarContainerSpec()", func() {
+	Context("test Windows getSidecarSidecarContainerSpec()", func() {
 		It("creates Envoy sidecar spec", func() {
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return(envoyImage).Times(1)
-			mockConfigurator.EXPECT().GetEnvoyImage().Return(envoyImage).Times(0)
+			mockConfigurator.EXPECT().GetSidecarLogLevel().Return("debug").Times(1)
+			mockConfigurator.EXPECT().GetSidecarWindowsImage().Return(envoyImage).Times(1)
+			mockConfigurator.EXPECT().GetSidecarImage().Return(envoyImage).Times(0)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{
 				// Test set Limits
 				Limits: map[corev1.ResourceName]resource.Quantity{
@@ -405,10 +405,10 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				// Test unset Requests
 				Requests: nil,
 			}).Times(1)
-			actual := getEnvoySidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSWindows)
+			actual := getSidecarSidecarContainerSpec(pod, mockConfigurator, originalHealthProbes, constants.OSWindows)
 
 			expected := corev1.Container{
-				Name:            constants.EnvoyContainerName,
+				Name:            constants.SidecarContainerName,
 				Image:           envoyImage,
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				SecurityContext: &corev1.SecurityContext{
@@ -422,7 +422,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				Ports: expectedRewrittenContainerPorts,
 				VolumeMounts: []corev1.VolumeMount{
 					{
-						Name:      envoyBootstrapConfigVolume,
+						Name:      sidecarBootstrapConfigVolume,
 						ReadOnly:  true,
 						MountPath: envoyProxyConfigPath,
 					},

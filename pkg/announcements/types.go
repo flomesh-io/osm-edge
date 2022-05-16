@@ -187,7 +187,7 @@ const (
 	MultiClusterServiceUpdated Kind = "multiclusterservice-updated"
 )
 
-// Announcement is a struct for messages between various components of OSM signaling a need for a change in Envoy proxy configuration
+// Announcement is a struct for messages between various components of OSM signaling a need for a change in Sidecar proxy configuration
 type Announcement struct {
 	Type               Kind
 	ReferencedObjectID interface{}

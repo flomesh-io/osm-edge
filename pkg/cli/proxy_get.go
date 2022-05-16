@@ -17,8 +17,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/mesh"
 )
 
-// GetEnvoyProxyConfig returns the sidecar envoy proxy config of a pod
-func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, namespace string, podName string, localPort uint16, query string) ([]byte, error) {
+// GetSidecarProxyConfig returns the sidecar proxy config of a pod
+func GetSidecarProxyConfig(clientSet kubernetes.Interface, config *rest.Config, namespace string, podName string, localPort uint16, query string) ([]byte, error) {
 	// Check if the pod belongs to a mesh
 	pod, err := clientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
@@ -36,12 +36,12 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 		return nil, err
 	}
 
-	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.EnvoyAdminPort))
+	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.SidecarAdminPort))
 	if err != nil {
 		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	var envoyProxyConfig []byte
+	var sidecarProxyConfig []byte
 	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		defer pf.Stop()
 		url := fmt.Sprintf("http://localhost:%d/%s", localPort, query)
@@ -52,7 +52,7 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 			return errors.Errorf("Error fetching url %s: %s", url, err)
 		}
 
-		envoyProxyConfig, err = ioutil.ReadAll(resp.Body)
+		sidecarProxyConfig, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Errorf("Error rendering HTTP response: %s", err)
 		}
@@ -62,5 +62,5 @@ func GetEnvoyProxyConfig(clientSet kubernetes.Interface, config *rest.Config, na
 		return nil, errors.Errorf("Error retrieving proxy config for pod %s in namespace %s: %s", podName, namespace, err)
 	}
 
-	return envoyProxyConfig, nil
+	return sidecarProxyConfig, nil
 }

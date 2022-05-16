@@ -16,7 +16,7 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config secrets",
+var _ = OSMDescribe("Test garbage collection for unused sidecar bootstrap config secrets",
 	OSMDescribeInfo{
 		Tier:   2,
 		Bucket: 2,
@@ -59,14 +59,14 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 
 				By("Verifying the secrets have been patched with OwnerReference")
 
-				podSelector := constants.EnvoyUniqueIDLabelName
+				podSelector := constants.SidecarUniqueIDLabelName
 
 				pods, err := Td.Client.CoreV1().Pods(userService).List(context.Background(), metav1.ListOptions{LabelSelector: podSelector})
 				Expect(err).To(BeNil())
 
 				for _, pod := range pods.Items {
 					podUUID := pod.GetLabels()[podSelector]
-					secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+					secretName := fmt.Sprintf("sidecar-bootstrap-config-%s", podUUID)
 					secret, err := Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
 					Expect(err).To(BeNil())
 
@@ -102,7 +102,7 @@ var _ = OSMDescribe("Test garbage collection for unused envoy bootstrap config s
 
 				for _, pod := range pods.Items {
 					podUUID := pod.GetLabels()[podSelector]
-					secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+					secretName := fmt.Sprintf("sidecar-bootstrap-config-%s", podUUID)
 					_, err := Td.Client.CoreV1().Secrets(userService).Get(context.Background(), secretName, metav1.GetOptions{})
 					Expect(err).ToNot(BeNil())
 				}

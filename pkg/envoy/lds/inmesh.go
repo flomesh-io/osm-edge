@@ -80,7 +80,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 		// Additional filters
 		wasmStatsHeaders:         lb.getWASMStatsHeaders(),
 		extAuthConfig:            lb.getExtAuthConfig(),
-		enableActiveHealthChecks: lb.cfg.GetFeatureFlags().EnableEnvoyActiveHealthChecks,
+		enableActiveHealthChecks: lb.cfg.GetFeatureFlags().EnableSidecarActiveHealthChecks,
 
 		// Tracing options
 		enableTracing:      lb.cfg.IsTracingEnabled(),
@@ -222,8 +222,8 @@ func (lb *listenerBuilder) getInboundTCPFilters(proxyService service.MeshService
 
 	// Apply the TCP Proxy Filter
 	tcpProxy := &xds_tcp_proxy.TcpProxy{
-		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, proxyService.EnvoyLocalClusterName()),
-		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: proxyService.EnvoyLocalClusterName()},
+		StatPrefix:       fmt.Sprintf("%s.%s", inboundMeshTCPProxyStatPrefix, proxyService.SidecarLocalClusterName()),
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: proxyService.SidecarLocalClusterName()},
 	}
 	marshalledTCPProxy, err := anypb.New(tcpProxy)
 	if err != nil {

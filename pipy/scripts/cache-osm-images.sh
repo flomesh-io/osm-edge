@@ -23,12 +23,8 @@ if [[ "${BUILD_ARCH}" == "amd64" ]]; then
   docker pull docker.io/envoyproxy/envoy-alpine:v1.19.3
   docker pull docker.io/projectcontour/contour:v1.18.0
   docker pull docker.io/flomesh/pipy-nightly:latest
-  echo -e "\033[1;32;40mNow, you need vpn tunnel, start it and then Enter\033[0m"
-  read
   docker pull gcr.io/distroless/base:latest
   docker pull gcr.io/distroless/static:latest
-  echo -e "\033[1;32;40mNow, you can stop vpn tunnel, stop it and then Enter\033[0m"
-  read
 
   docker tag docker.io/library/alpine:3 localhost:5000/library/alpine:3
   docker tag docker.io/library/busybox:1.33 localhost:5000/library/busybox:1.33
@@ -71,12 +67,8 @@ if [[ "${BUILD_ARCH}" == "arm64" ]]; then
   docker pull docker.io/projectcontour/contour:v1.18.0
   docker pull docker.io/flomesh/pipy-nightly:latest
   docker pull docker.io/flomesh/proxy-wasm-cpp-sdk:v2
-  echo -e "\033[1;32;40mNow, you need vpn tunnel, start it and then Enter\033[0m"
-  read
   docker pull gcr.io/distroless/base:latest
   docker pull gcr.io/distroless/static:latest
-  echo -e "\033[1;32;40mNow, you can stop vpn tunnel, stop it and then Enter\033[0m"
-  read
 
   docker tag docker.io/arm64v8/alpine:3.12 localhost:5000/arm64v8/alpine:3.12
   docker tag docker.io/library/busybox:1.33 localhost:5000/library/busybox:1.33

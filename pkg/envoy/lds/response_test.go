@@ -31,8 +31,8 @@ import (
 
 func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
 	podLabels := map[string]string{
-		constants.AppLabel:               tests.BookbuyerService.Name,
-		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
+		constants.AppLabel:                 tests.BookbuyerService.Name,
+		constants.SidecarUniqueIDLabelName: tests.ProxyUUID,
 	}
 
 	newPod1 := tests.NewPodFixture(tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, podLabels)

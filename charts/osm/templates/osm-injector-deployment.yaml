@@ -116,9 +116,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: OSM_DEFAULT_ENVOY_IMAGE
+            - name: OSM_DEFAULT_SIDECAR_CLASS
+              value: "{{ .Values.osm.sidecarClass }}"
+            - name: OSM_DEFAULT_SIDECAR_IMAGE
               value: "{{ .Values.osm.sidecarImage }}"
-            - name: OSM_DEFAULT_ENVOY_WINDOWS_IMAGE
+            - name: OSM_DEFAULT_SIDECAR_WINDOWS_IMAGE
               value: "{{ .Values.osm.sidecarWindowsImage }}"
             - name: OSM_DEFAULT_INIT_CONTAINER_IMAGE
               value: '{{ include "osmSidecarInit.image" . }}'

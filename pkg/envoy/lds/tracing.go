@@ -12,7 +12,7 @@ import (
 // getHTTPTracingConfig returns an HTTP configuration tracing config for the HTTP connection manager to use
 func getHTTPTracingConfig(apiEndpoint string) (*xds_hcm.HttpConnectionManager_Tracing, error) {
 	zipkinTracingConf := &xds_tracing.ZipkinConfig{
-		CollectorCluster:         constants.EnvoyTracingCluster,
+		CollectorCluster:         constants.SidecarTracingCluster,
 		CollectorEndpoint:        apiEndpoint,
 		CollectorEndpointVersion: xds_tracing.ZipkinConfig_HTTP_JSON,
 	}

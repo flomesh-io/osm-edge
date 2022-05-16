@@ -47,11 +47,11 @@ spec:
             - name: "multicluster"
               containerPort: 15443
           volumeMounts:
-            - name: envoy-bootstrap-config-volume
+            - name: sidecar-bootstrap-config-volume
               mountPath: /etc/envoy
               readOnly: true
       volumes:
-        - name: envoy-bootstrap-config-volume
+        - name: sidecar-bootstrap-config-volume
           secret:
             secretName: osm-multicluster-gateway-bootstrap-config
 {{- end }}

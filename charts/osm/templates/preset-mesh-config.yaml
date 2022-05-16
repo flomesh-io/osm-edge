@@ -8,7 +8,7 @@ data:
     {
       "sidecar": {
         "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
-        "logLevel": {{.Values.osm.envoyLogLevel | mustToJson}},
+        "logLevel": {{.Values.osm.sidecarLogLevel | mustToJson}},
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
         "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}}
       },
@@ -36,10 +36,10 @@ data:
         "serviceCertValidityDuration": {{.Values.osm.certificateProvider.serviceCertValidityDuration | mustToJson}},
         {{- if .Values.contour.enabled }}
         "ingressGateway": {
-          "subjectAltNames": ["osm-contour-envoy.{{include "osm.namespace" .}}.cluster.local"],
+          "subjectAltNames": ["osm-contour-sidecar.{{include "osm.namespace" .}}.cluster.local"],
           "validityDuration": "24h",
           "secret": {
-            "name": "osm-contour-envoy-client-cert",
+            "name": "osm-contour-sidecar-client-cert",
             "namespace": "{{include "osm.namespace" .}}"
           }
         },
@@ -53,7 +53,7 @@ data:
         "enableSnapshotCacheMode": {{.Values.osm.featureFlags.enableSnapshotCacheMode | mustToJson}},
         "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
         "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},
-        "enableEnvoyActiveHealthChecks": {{.Values.osm.featureFlags.enableEnvoyActiveHealthChecks | mustToJson}},
+        "enableSidecarActiveHealthChecks": {{.Values.osm.featureFlags.enableSidecarActiveHealthChecks | mustToJson}},
         "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
       }
     }

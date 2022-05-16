@@ -24,8 +24,8 @@ var _ = Describe("Test CDS Tracing Configuration", func() {
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
 
 			actual := *getTracingCluster(mockConfigurator)
-			Expect(actual.Name).To(Equal(constants.EnvoyTracingCluster))
-			Expect(actual.AltStatName).To(Equal(constants.EnvoyTracingCluster))
+			Expect(actual.Name).To(Equal(constants.SidecarTracingCluster))
+			Expect(actual.AltStatName).To(Equal(constants.SidecarTracingCluster))
 			Expect(len(actual.GetLoadAssignment().GetEndpoints())).To(Equal(1))
 		})
 	})

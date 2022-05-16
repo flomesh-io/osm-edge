@@ -50,7 +50,7 @@ Open Service Mesh will issue certificates during the following operations:
 
 **Mutating webhook** *(Diagram object 6)* - When OSM injector starts it will create a web server for the mutating webhook to inject the proxy into the pods joined to the mesh. This web server will have a certificate issued for it. This certificate is stored in the OSM control plane namespace and named `mutating-webhook-cert-secret`.
 
-**Mutating webhook patch** *(Diagram object 7)* - Part of the mutating webhook implementation is to create a patch to inject the proxy sidecar. A bootstrap certificate will be issued so that the Envoy sidecar can communicate with the XDS server. The bootstrap config (including this certificate) will be stored in the same namespace as the pod as a secret with the name `envoy-bootstrap-config-<proxy_id>`.
+**Mutating webhook patch** *(Diagram object 7)* - Part of the mutating webhook implementation is to create a patch to inject the proxy sidecar. A bootstrap certificate will be issued so that the Envoy sidecar can communicate with the XDS server. The bootstrap config (including this certificate) will be stored in the same namespace as the pod as a secret with the name `sidecar-bootstrap-config-<proxy_id>`.
 
 ![OSM certificate management diagram](./images/osm_certificate_management1.png)
 
@@ -86,7 +86,7 @@ Certificate:
 Compare that to the CA cert in an issued certificate (for example, a bootstrap cert for a proxy):
 
 ```
-$ kubectl get secret -n bookstore envoy-bootstrap-config-6048e496-40d9-4b49-b450-3772c5627581 -o jsonpath='{.data.bootstrap\.yaml}' |
+$ kubectl get secret -n bookstore sidecar-bootstrap-config-6048e496-40d9-4b49-b450-3772c5627581 -o jsonpath='{.data.bootstrap\.yaml}' |
     base64 -d |
     yq ".static_resources.clusters[0].transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_bytes" -r |
     base64 -d | openssl x509 -noout -text
@@ -108,7 +108,7 @@ You can also see that these are the same by comparing the modulus of the certifi
 ```
 $ kubectl get secret -n osm-system osm-ca-bundle -o jsonpath='{.data.ca\.crt}' |
         base64 -d | openssl x509 -noout -modulus &&
-    kubectl get secret -n bookstore envoy-bootstrap-config-6048e496-40d9-4b49-b450-3772c5627581 -o jsonpath='{.data.bootstrap\.yaml}' |
+    kubectl get secret -n bookstore sidecar-bootstrap-config-6048e496-40d9-4b49-b450-3772c5627581 -o jsonpath='{.data.bootstrap\.yaml}' |
         base64 -d | yq ".static_resources.clusters[0].transport_socket.typed_config.common_tls_context.validation_context.trusted_ca.inline_bytes" -r |
         base64 -d | openssl x509 -noout -modulus
 Modulus=A8E69...545E9

@@ -62,7 +62,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
-	labels := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
+	labels := map[string]string{constants.SidecarUniqueIDLabelName: proxyUUID.String()}
 	mc := catalog.NewFakeMeshCatalog(kubeClient, configClient)
 	proxyRegistry := registry.NewProxyRegistry(registry.ExplicitProxyServiceMapper(func(*envoy.Proxy) ([]service.MeshService, error) {
 		return nil, nil
@@ -70,7 +70,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	// Create a Pod
 	pod := tests.NewPodFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()), tests.BookstoreServiceAccountName, tests.PodLabels)
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+	pod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())

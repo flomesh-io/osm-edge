@@ -269,12 +269,12 @@ func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
 		workloadName,
 	}
 
-	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
+	return strings.Join(items, constants.SidecarServiceNodeSeparator)
 }
 
 // ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
 func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
-	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
+	chunks := strings.Split(serviceNodeID, constants.SidecarServiceNodeSeparator)
 
 	if len(chunks) < 5 {
 		return nil, errors.New("invalid envoy service node id format")
@@ -332,14 +332,14 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 		return nil, err
 	}
 
-	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID)
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID)
 	podList := kubecontroller.ListPods()
 	var pods []v1.Pod
 	for _, pod := range podList {
 		if pod.Namespace != cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace {
 			continue
 		}
-		if uuid, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && uuid == cnMeta.ProxyUUID.String() {
+		if uuid, labelFound := pod.Labels[constants.SidecarUniqueIDLabelName]; labelFound && uuid == cnMeta.ProxyUUID.String() {
 			pods = append(pods, *pod)
 		}
 	}
@@ -347,7 +347,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if len(pods) == 0 {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
 			Msgf("Did not find Pod with label %s = %s in namespace %s",
-				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
+				constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrDidNotFindPodForCertificate
 	}
 
@@ -359,7 +359,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if len(pods) > 1 {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
 			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
-				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
+				constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrMoreThanOnePodForCertificate
 	}
 

@@ -787,8 +787,8 @@ func TestPodCreationHandler(t *testing.T) {
 func TestWebhookMutate(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-	mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
+	mockConfigurator.EXPECT().GetSidecarImage().Return("sidecar-linux-image").AnyTimes()
+	mockConfigurator.EXPECT().GetSidecarWindowsImage().Return("sidecar-windows-image").AnyTimes()
 	mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 
 	t.Run("invalid JSON", func(t *testing.T) {
@@ -847,10 +847,10 @@ func TestWebhookMutate(t *testing.T) {
 		cfg.EXPECT().GetMeshConfig().AnyTimes()
 		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
+		cfg.EXPECT().GetSidecarImage().Return("sidecar-linux-image").AnyTimes()
+		cfg.EXPECT().GetSidecarWindowsImage().Return("sidecar-windows-image").AnyTimes()
 		cfg.EXPECT().GetProxyResources()
-		cfg.EXPECT().GetEnvoyLogLevel()
+		cfg.EXPECT().GetSidecarLogLevel()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),
@@ -893,10 +893,10 @@ func TestWebhookMutate(t *testing.T) {
 		cfg.EXPECT().GetMeshConfig().AnyTimes()
 		cfg.EXPECT().IsPrivilegedInitContainer()
 		cfg.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyImage().Return("envoy-linux-image").AnyTimes()
-		cfg.EXPECT().GetEnvoyWindowsImage().Return("envoy-windows-image").AnyTimes()
+		cfg.EXPECT().GetSidecarImage().Return("sidecar-linux-image").AnyTimes()
+		cfg.EXPECT().GetSidecarWindowsImage().Return("sidecar-windows-image").AnyTimes()
 		cfg.EXPECT().GetProxyResources()
-		cfg.EXPECT().GetEnvoyLogLevel()
+		cfg.EXPECT().GetSidecarLogLevel()
 
 		wh := &mutatingWebhook{
 			nonInjectNamespaces: mapset.NewSet(),

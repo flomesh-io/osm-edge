@@ -204,7 +204,7 @@ func TestRun(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-1",
@@ -214,7 +214,7 @@ func TestRun(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-2",
 					Namespace: "ns-2",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-2",
@@ -341,7 +341,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-1",
@@ -351,7 +351,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-2",
 					Namespace: "ns-2",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-2",
@@ -399,7 +399,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-1",
@@ -409,7 +409,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-3",
 					Namespace: "ns-3",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-3",
@@ -458,7 +458,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-1",
 					Namespace: "ns-1",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-1",
@@ -468,7 +468,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "pod-3",
 					Namespace: "ns-3",
-					Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+					Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 				},
 				Spec: corev1.PodSpec{
 					ServiceAccountName: "sa-3",

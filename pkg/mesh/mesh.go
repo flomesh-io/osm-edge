@@ -12,7 +12,7 @@ import (
 // as the label may continue to exist even if the pod is removed from the mesh.
 func ProxyLabelExists(pod corev1.Pod) bool {
 	// osm-controller adds a unique label to a pod when it is added to a mesh
-	proxyUUID, proxyLabelSet := pod.Labels[constants.EnvoyUniqueIDLabelName]
+	proxyUUID, proxyLabelSet := pod.Labels[constants.SidecarUniqueIDLabelName]
 	return proxyLabelSet && isValidUUID(proxyUUID)
 }
 

@@ -63,7 +63,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -71,7 +71,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -118,7 +118,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -126,7 +126,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -177,7 +177,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -185,7 +185,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -233,7 +233,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -241,7 +241,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -292,7 +292,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -300,7 +300,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -347,7 +347,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -355,7 +355,7 @@ func TestCRDEventHandlerUpdateFunc(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -442,7 +442,7 @@ func TestCRDEventHandlerDeleteFunc(t *testing.T) {
 								Properties: map[string]apiv1.JSONSchemaProps{
 									"sidecar": {
 										Type:        "object",
-										Description: "Configuration for Envoy sidecar",
+										Description: "Configuration for sidecar",
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"enablePrivilegedInitContainer": {
 												Type:        "boolean",
@@ -450,7 +450,7 @@ func TestCRDEventHandlerDeleteFunc(t *testing.T) {
 											},
 											"logLevel": {
 												Type:        "string",
-												Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+												Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 											},
 										},
 									},
@@ -527,7 +527,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -535,7 +535,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -582,7 +582,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -590,7 +590,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -641,7 +641,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -649,7 +649,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -697,7 +697,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -705,7 +705,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -756,7 +756,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -764,7 +764,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},
@@ -811,7 +811,7 @@ func TestIsCRDUpdated(t *testing.T) {
 										Properties: map[string]apiv1.JSONSchemaProps{
 											"sidecar": {
 												Type:        "object",
-												Description: "Configuration for Envoy sidecar",
+												Description: "Configuration for sidecar",
 												Properties: map[string]apiv1.JSONSchemaProps{
 													"enablePrivilegedInitContainer": {
 														Type:        "boolean",
@@ -819,7 +819,7 @@ func TestIsCRDUpdated(t *testing.T) {
 													},
 													"logLevel": {
 														Type:        "string",
-														Description: "Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh.",
+														Description: "Sets the logging verbosity of proxy sidecar, only applicable to newly created pods joining the mesh.",
 													},
 												},
 											},

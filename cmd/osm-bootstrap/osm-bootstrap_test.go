@@ -42,7 +42,7 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	"enablePrivilegedInitContainer": false,
 	"logLevel": "error",
 	"maxDataPlaneConnections": 0,
-	"envoyImage": "envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3",
+	"sidecarImage": "envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3",
 	"initContainerImage": "openservicemesh/init:latest-main",
 	"configResyncInterval": "2s"
 },
@@ -70,7 +70,7 @@ var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
 	"enableMulticlusterMode": false,
 	"enableAsyncProxyServiceMapping": false,
 	"enableIngressBackendPolicy": true,
-	"enableEnvoyActiveHealthChecks": true,
+	"enableSidecarActiveHealthChecks": true,
 	"enableSnapshotCacheMode": true,
 	"enableRetryPolicy": false
 	}
@@ -92,7 +92,7 @@ func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert.False(meshConfig.Spec.Observability.EnableDebugServer)
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "23h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
-	assert.True(meshConfig.Spec.FeatureFlags.EnableEnvoyActiveHealthChecks)
+	assert.True(meshConfig.Spec.FeatureFlags.EnableSidecarActiveHealthChecks)
 	assert.False(meshConfig.Spec.FeatureFlags.EnableRetryPolicy)
 }
 

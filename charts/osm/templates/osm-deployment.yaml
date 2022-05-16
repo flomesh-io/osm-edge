@@ -119,6 +119,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: OSM_DEFAULT_SIDECAR_CLASS
+              value: "{{ .Values.osm.sidecarClass }}"
       {{- if .Values.osm.enableFluentbit }}
         - name: {{ .Values.osm.fluentBit.name }}
           image: {{ .Values.osm.fluentBit.registry }}/fluent-bit:{{ .Values.osm.fluentBit.tag }}

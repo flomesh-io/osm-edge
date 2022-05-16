@@ -10,12 +10,12 @@ import (
 var _ = Describe("Test volume functions", func() {
 	Context("Test getVolumeSpec", func() {
 		It("creates volume spec", func() {
-			actual := getVolumeSpec("-envoy-config-")
+			actual := getVolumeSpec("-sidecar-config-")
 			expected := []v1.Volume{{
-				Name: "envoy-bootstrap-config-volume",
+				Name: "sidecar-bootstrap-config-volume",
 				VolumeSource: v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
-						SecretName: "-envoy-config-",
+						SecretName: "-sidecar-config-",
 					},
 				},
 			}}

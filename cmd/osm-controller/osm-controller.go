@@ -73,8 +73,6 @@ var (
 	osmMeshConfigName          string
 	osmVersion                 string
 
-	sidecarType string
-
 	certProviderKind string
 
 	tresorOptions      providers.TresorOptions
@@ -106,8 +104,6 @@ func init() {
 	flags.StringVar(&validatorWebhookConfigName, "validator-webhook-config", "", "Name of the ValidatingWebhookConfiguration for the resource validator webhook")
 	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
 	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
-
-	flags.StringVar(&sidecarType, "sidecar-type", "envoy", "Type of Sidecar")
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
@@ -249,7 +245,7 @@ func main() {
 	var xdsServer XDSServer
 	var debugConfig debugger.DebugConfig
 
-	if sidecarType == constants.PipySidecar {
+	if cfg.GetSidecarClass() == constants.SidecarClasssPipy {
 		proxyMapper := &pipyregistry.KubeProxyServiceMapper{KubeController: k8sClient}
 		proxyRegistry := pipyregistry.NewProxyRegistry(proxyMapper, msgBroker)
 		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)

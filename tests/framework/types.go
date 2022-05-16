@@ -118,7 +118,7 @@ type InstallOSMOpts struct {
 	EgressEnabled        bool
 	EnablePermissiveMode bool
 	OSMLogLevel          string
-	EnvoyLogLevel        string
+	SidecarLogLevel      string
 	EnableDebugServer    bool
 
 	SetOverrides []string

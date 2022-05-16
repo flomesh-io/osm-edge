@@ -66,14 +66,14 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 		return nil, err
 	}
 
-	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID)
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID)
 	podList := kubecontroller.ListPods()
 	var pods []v1.Pod
 	for _, pod := range podList {
 		if pod.Namespace != cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace {
 			continue
 		}
-		if proxyUUID, labelFound := pod.Labels[constants.EnvoyUniqueIDLabelName]; labelFound && proxyUUID == cnMeta.ProxyUUID.String() {
+		if proxyUUID, labelFound := pod.Labels[constants.SidecarUniqueIDLabelName]; labelFound && proxyUUID == cnMeta.ProxyUUID.String() {
 			pods = append(pods, *pod)
 		}
 	}
@@ -81,18 +81,18 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if len(pods) == 0 {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingPodFromCert)).
 			Msgf("Did not find Pod with label %s = %s in namespace %s",
-				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
+				constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrDidNotFindPodForCertificate
 	}
 
 	// --- CONVENTION ---
 	// By Open Service Mesh convention the number of services a pod can belong to is 1
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
-	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
+	// When a pod belongs to more than one service XDS will not program the Sidecar proxy, leaving it out of the mesh.
 	if len(pods) > 1 {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrPodBelongsToMultipleServices)).
 			Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
-				constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
+				constants.SidecarUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.ServiceIdentity.ToK8sServiceAccount().Namespace)
 		return nil, ErrMoreThanOnePodForCertificate
 	}
 

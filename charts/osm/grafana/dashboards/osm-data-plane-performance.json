@@ -82,7 +82,7 @@
         },
         "id": 5,
         "panels": [],
-        "title": "Envoy sidecar",
+        "title": "Sidecar",
         "type": "row"
       },
       {
@@ -142,7 +142,7 @@
         "timeFrom": null,
         "timeRegions": [],
         "timeShift": null,
-        "title": "Envoy CPU usage",
+        "title": "Sidecar CPU usage",
         "tooltip": {
           "shared": true,
           "sort": 0,
@@ -236,7 +236,7 @@
         "timeFrom": null,
         "timeRegions": [],
         "timeShift": null,
-        "title": "Envoy RSS usage",
+        "title": "Sidecar RSS usage",
         "tooltip": {
           "shared": true,
           "sort": 0,

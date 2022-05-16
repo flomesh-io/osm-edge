@@ -114,29 +114,38 @@ func (c *client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections
 }
 
-// GetEnvoyLogLevel returns the envoy log level
-func (c *client) GetEnvoyLogLevel() string {
+// GetSidecarLogLevel returns the sidecar log level
+func (c *client) GetSidecarLogLevel() string {
 	logLevel := c.getMeshConfig().Spec.Sidecar.LogLevel
 	if logLevel != "" {
 		return logLevel
 	}
-	return constants.DefaultEnvoyLogLevel
+	return constants.DefaultSidecarLogLevel
 }
 
-// GetEnvoyImage returns the envoy image
-func (c *client) GetEnvoyImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.EnvoyImage
+// GetSidecarClass returns the sidecar class
+func (c *client) GetSidecarClass() string {
+	class := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	if class == "" {
+		class = os.Getenv("OSM_DEFAULT_SIDECAR_CLASS")
+	}
+	return class
+}
+
+// GetSidecarImage returns the sidecar image
+func (c *client) GetSidecarImage() string {
+	image := c.getMeshConfig().Spec.Sidecar.SidecarImage
 	if image == "" {
-		image = os.Getenv("OSM_DEFAULT_ENVOY_IMAGE")
+		image = os.Getenv("OSM_DEFAULT_SIDECAR_IMAGE")
 	}
 	return image
 }
 
-// GetEnvoyWindowsImage returns the envoy windows image
-func (c *client) GetEnvoyWindowsImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.EnvoyWindowsImage
+// GetSidecarWindowsImage returns the sidecar windows image
+func (c *client) GetSidecarWindowsImage() string {
+	image := c.getMeshConfig().Spec.Sidecar.SidecarWindowsImage
 	if image == "" {
-		image = os.Getenv("OSM_DEFAULT_ENVOY_WINDOWS_IMAGE")
+		image = os.Getenv("OSM_DEFAULT_SIDECAR_WINDOWS_IMAGE")
 	}
 	return image
 }

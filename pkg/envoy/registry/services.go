@@ -119,13 +119,13 @@ func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1
 }
 
 func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
-	proxyUIDStr, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]
+	proxyUIDStr, exists := pod.Labels[constants.SidecarUniqueIDLabelName]
 	if !exists {
-		return "", errors.Errorf("no %s label", constants.EnvoyUniqueIDLabelName)
+		return "", errors.Errorf("no %s label", constants.SidecarUniqueIDLabelName)
 	}
 	proxyUID, err := uuid.Parse(proxyUIDStr)
 	if err != nil {
-		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.EnvoyUniqueIDLabelName)
+		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.SidecarUniqueIDLabelName)
 	}
 	cn := envoy.NewXDSCertCommonName(proxyUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
 	return cn, nil

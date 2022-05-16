@@ -40,8 +40,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName,
 				map[string]string{
-					constants.EnvoyUniqueIDLabelName: proxyUUID.String(),
-					constants.AppLabel:               tests.SelectorValue})
+					constants.SidecarUniqueIDLabelName: proxyUUID.String(),
+					constants.AppLabel:                 tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
 			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
 
@@ -90,7 +90,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			namespace := uuid.New().String()
 			podName := uuid.New().String()
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
+			newPod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod}).Times(1)
 
@@ -416,7 +416,7 @@ func TestGetCertCommonNameForPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+						constants.SidecarUniqueIDLabelName: uuid.New().String(),
 					},
 				},
 				Spec: v1.PodSpec{
@@ -431,7 +431,7 @@ func TestGetCertCommonNameForPod(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns",
 					Labels: map[string]string{
-						constants.EnvoyUniqueIDLabelName: uuid.New().String() + "-not-valid",
+						constants.SidecarUniqueIDLabelName: uuid.New().String() + "-not-valid",
 					},
 				},
 				Spec: v1.PodSpec{

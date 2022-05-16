@@ -40,14 +40,14 @@ func newMeshPod(name string, scrapingEnabled bool) *corev1.Pod {
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+			Labels: map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 		},
 	}
 
 	if scrapingEnabled {
 		pod.Annotations = map[string]string{
 			constants.PrometheusScrapeAnnotation: "true",
-			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
+			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.SidecarPrometheusInboundListenerPort),
 			constants.PrometheusPathAnnotation:   constants.PrometheusScrapePath,
 		}
 	}
@@ -137,7 +137,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 			assert.NotEmpty(podList.Items)
 			for _, pod := range podList.Items {
 				assert.Equal(pod.Annotations[constants.PrometheusScrapeAnnotation], "true")
-				assert.Equal(pod.Annotations[constants.PrometheusPortAnnotation], strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort))
+				assert.Equal(pod.Annotations[constants.PrometheusPortAnnotation], strconv.Itoa(constants.SidecarPrometheusInboundListenerPort))
 				assert.Equal(pod.Annotations[constants.PrometheusPathAnnotation], constants.PrometheusScrapePath)
 			}
 		}

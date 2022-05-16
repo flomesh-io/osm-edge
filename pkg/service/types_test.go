@@ -38,7 +38,7 @@ func TestMeshServiceCluster(t *testing.T) {
 		expectedLocalClusterName string
 	}{
 		{
-			name: "envoy cluster and local cluster name",
+			name: "sidecar cluster and local cluster name",
 			meshSvc: MeshService{
 				Namespace:  "ns1",
 				Name:       "s1",
@@ -53,8 +53,8 @@ func TestMeshServiceCluster(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			assert := tassert.New(t)
-			assert.Equal(tc.expectedClusterName, tc.meshSvc.EnvoyClusterName())
-			assert.Equal(tc.expectedLocalClusterName, tc.meshSvc.EnvoyLocalClusterName())
+			assert.Equal(tc.expectedClusterName, tc.meshSvc.SidecarClusterName())
+			assert.Equal(tc.expectedLocalClusterName, tc.meshSvc.SidecarLocalClusterName())
 		})
 	}
 }

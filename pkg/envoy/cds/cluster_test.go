@@ -44,17 +44,17 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 		{
 			name: "EDS based cluster adds health checks when configured",
 			clusterConfig: trafficpolicy.MeshClusterConfig{
-				Name:                          "default/bookstore-v1_14001",
-				Service:                       upstreamSvc,
-				EnableEnvoyActiveHealthChecks: true,
+				Name:                            "default/bookstore-v1_14001",
+				Service:                         upstreamSvc,
+				EnableSidecarActiveHealthChecks: true,
 			},
 		},
 		{
 			name: "EDS based cluster does not add health checks when not configured",
 			clusterConfig: trafficpolicy.MeshClusterConfig{
-				Name:                          "default/bookstore-v1_14001",
-				Service:                       upstreamSvc,
-				EnableEnvoyActiveHealthChecks: false,
+				Name:                            "default/bookstore-v1_14001",
+				Service:                         upstreamSvc,
+				EnableSidecarActiveHealthChecks: false,
 			},
 		},
 		{
@@ -100,7 +100,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 			remoteCluster := getUpstreamServiceCluster(downstreamSvcAccount, tc.clusterConfig, configv1alpha2.SidecarSpec{})
 			assert.NotNil(remoteCluster)
 
-			if tc.clusterConfig.EnableEnvoyActiveHealthChecks {
+			if tc.clusterConfig.EnableSidecarActiveHealthChecks {
 				assert.NotNil(remoteCluster.HealthChecks)
 			} else {
 				assert.Nil(remoteCluster.HealthChecks)
@@ -252,12 +252,12 @@ func TestGetPrometheusCluster(t *testing.T) {
 
 	expectedCluster := &xds_cluster.Cluster{
 		TransportSocketMatches: nil,
-		Name:                   constants.EnvoyMetricsCluster,
-		AltStatName:            constants.EnvoyMetricsCluster,
+		Name:                   constants.SidecarMetricsCluster,
+		AltStatName:            constants.SidecarMetricsCluster,
 		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 		EdsClusterConfig:       nil,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: constants.EnvoyMetricsCluster,
+			ClusterName: constants.SidecarMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					Locality: nil,

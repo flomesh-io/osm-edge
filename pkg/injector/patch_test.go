@@ -47,16 +47,16 @@ func TestCreatePatch(t *testing.T) {
 				},
 			},
 			expectedPatches: []string{
-				// Add Envoy UID Label
+				// Add Sidecar UID Label
 				`"path":"/metadata/labels"`,
 				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
+				fmt.Sprintf(`"value":[{"name":"sidecar-bootstrap-config-volume","secret":{"secretName":"sidecar-bootstrap-config-%v"}}]}`, proxyUUID),
 				// Add Init Container
 				`"path":"/spec/initContainers"`,
 				`"command":["/bin/sh"]`,
-				// Add Envoy Container
+				// Add Sidecar Container
 				`"path":"/spec/containers"`,
 				`"command":["envoy"]`,
 			},
@@ -70,13 +70,13 @@ func TestCreatePatch(t *testing.T) {
 				},
 			},
 			expectedPatches: []string{
-				// Add Envoy UID Label
+				// Add Sidecar UID Label
 				`"path":"/metadata/labels"`,
 				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
-				// Add Envoy Container
+				fmt.Sprintf(`"value":[{"name":"sidecar-bootstrap-config-volume","secret":{"secretName":"sidecar-bootstrap-config-%v"}}]}`, proxyUUID),
+				// Add Sidecar Container
 				`"path":"/spec/containers"`,
 				`"command":["envoy"]`,
 			},
@@ -91,7 +91,7 @@ func TestCreatePatch(t *testing.T) {
 				},
 			},
 			expectedPatches: []string{
-				// Add Envoy UID Label
+				// Add Sidecar UID Label
 				`"path":"/metadata/labels"`,
 				fmt.Sprintf(`"value":{"osm-proxy-uuid":"%v"`, proxyUUID),
 				// Add metrics Annotations
@@ -99,11 +99,11 @@ func TestCreatePatch(t *testing.T) {
 				`"value":{"prometheus.io/path":"/stats/prometheus","prometheus.io/port":"15010","prometheus.io/scrape":"true"}`,
 				// Add Volumes
 				`"path":"/spec/volumes"`,
-				fmt.Sprintf(`"value":[{"name":"envoy-bootstrap-config-volume","secret":{"secretName":"envoy-bootstrap-config-%v"}}]}`, proxyUUID),
+				fmt.Sprintf(`"value":[{"name":"sidecar-bootstrap-config-volume","secret":{"secretName":"sidecar-bootstrap-config-%v"}}]}`, proxyUUID),
 				// Add Init Container
 				`"path":"/spec/initContainers"`,
 				`"command":["/bin/sh"]`,
-				// Add Envoy Container
+				// Add Sidecar Container
 				`"path":"/spec/containers"`,
 				`"command":["envoy"]`,
 			},
@@ -140,8 +140,8 @@ func TestCreatePatch(t *testing.T) {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			mockConfigurator.EXPECT().GetEnvoyWindowsImage().Return("envoy-linux-image").AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyImage().Return("envoy-windows-image").AnyTimes()
+			mockConfigurator.EXPECT().GetSidecarWindowsImage().Return("sidecar-linux-image").AnyTimes()
+			mockConfigurator.EXPECT().GetSidecarImage().Return("sidecar-windows-image").AnyTimes()
 			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()
 
 			if tc.os == constants.OSLinux {
@@ -149,7 +149,7 @@ func TestCreatePatch(t *testing.T) {
 			}
 
 			mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
-			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
+			mockConfigurator.EXPECT().GetSidecarLogLevel().Return("").Times(1)
 			mockConfigurator.EXPECT().GetProxyResources().Return(corev1.ResourceRequirements{}).Times(1)
 			mockConfigurator.EXPECT().GetCertKeyBitSize().Return(2048).AnyTimes()
 
@@ -190,7 +190,7 @@ func TestCreatePatch(t *testing.T) {
 			nonInjectNamespaces: mapset.NewSet(),
 		}
 
-		mockConfigurator.EXPECT().GetEnvoyImage().Return("")
+		mockConfigurator.EXPECT().GetSidecarImage().Return("")
 		mockConfigurator.EXPECT().GetMeshConfig().AnyTimes()
 
 		pod := tests.NewOsSpecificPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil, constants.OSLinux)
@@ -228,7 +228,7 @@ func TestVerifyPrerequisites(t *testing.T) {
 			expectErr:  true,
 		},
 		{
-			name:      "prereqs not met for linux pod when envoy container image is missing",
+			name:      "prereqs not met for linux pod when sidecar container image is missing",
 			initImage: "init",
 			expectErr: true,
 		},
@@ -246,7 +246,7 @@ func TestVerifyPrerequisites(t *testing.T) {
 			expectErr:    false,
 		},
 		{
-			name:      "prereqs not met for windows pod when envoy container image is missing",
+			name:      "prereqs not met for windows pod when sidecar container image is missing",
 			initImage: "init",
 			expectErr: true,
 		},
@@ -264,8 +264,8 @@ func TestVerifyPrerequisites(t *testing.T) {
 				configurator: mockCfg,
 			}
 
-			mockCfg.EXPECT().GetEnvoyImage().Return(tc.linuxImage).AnyTimes()
-			mockCfg.EXPECT().GetEnvoyWindowsImage().Return(tc.windowsImage).AnyTimes()
+			mockCfg.EXPECT().GetSidecarImage().Return(tc.linuxImage).AnyTimes()
+			mockCfg.EXPECT().GetSidecarWindowsImage().Return(tc.windowsImage).AnyTimes()
 			mockCfg.EXPECT().GetInitContainerImage().Return(tc.initImage).AnyTimes()
 
 			err := wh.verifyPrerequisites(tc.podOS)

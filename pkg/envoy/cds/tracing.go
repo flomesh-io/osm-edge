@@ -11,14 +11,14 @@ import (
 
 func getTracingCluster(cfg configurator.Configurator) *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
-		Name:        constants.EnvoyTracingCluster,
-		AltStatName: constants.EnvoyTracingCluster,
+		Name:        constants.SidecarTracingCluster,
+		AltStatName: constants.SidecarTracingCluster,
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_LOGICAL_DNS,
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: constants.EnvoyTracingCluster,
+			ClusterName: constants.SidecarTracingCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{

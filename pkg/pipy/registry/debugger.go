@@ -5,7 +5,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
-// ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
+// ListConnectedProxies lists the Sidecar proxies already connected and the time they first connected.
 func (pr *ProxyRegistry) ListConnectedProxies() map[certificate.CommonName]debugger.Proxy {
 	proxies := make(map[certificate.CommonName]debugger.Proxy)
 	pr.connectedProxies.Range(func(cnIface, propsIface interface{}) bool {

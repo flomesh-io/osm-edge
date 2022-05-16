@@ -356,7 +356,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerName:  "osm-ca",
 		CertKeyBitSize:         2048,
 		CertValidtyDuration:    time.Hour * 24,
-		EnvoyLogLevel:          defaultEnvoyLogLevel,
+		SidecarLogLevel:        defaultSidecarLogLevel,
 		OSMLogLevel:            defaultOSMLogLevel,
 		EnableDebugServer:      true,
 		SetOverrides:           []string{},
@@ -425,7 +425,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 
 	meshConfig.Spec.Sidecar.Resources = corev1.ResourceRequirements{}
 	meshConfig.Spec.Sidecar.EnablePrivilegedInitContainer = instOpts.EnablePrivilegedInitContainer
-	meshConfig.Spec.Sidecar.LogLevel = instOpts.EnvoyLogLevel
+	meshConfig.Spec.Sidecar.LogLevel = instOpts.SidecarLogLevel
 	meshConfig.Spec.Sidecar.MaxDataPlaneConnections = 0
 	meshConfig.Spec.Sidecar.ConfigResyncInterval = "0s"
 
@@ -481,7 +481,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enableEgress=%v", instOpts.EgressEnabled),
 		fmt.Sprintf("osm.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
 		fmt.Sprintf("osm.enableDebugServer=%v", instOpts.EnableDebugServer),
-		fmt.Sprintf("osm.envoyLogLevel=%s", instOpts.EnvoyLogLevel),
+		fmt.Sprintf("osm.sidecarLogLevel=%s", instOpts.SidecarLogLevel),
 		fmt.Sprintf("osm.deployGrafana=%v", instOpts.DeployGrafana),
 		fmt.Sprintf("osm.deployPrometheus=%v", instOpts.DeployPrometheus),
 		fmt.Sprintf("osm.deployJaeger=%v", instOpts.DeployJaeger),
@@ -561,7 +561,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.ClusterOS == constants.OSWindows {
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 		meshConfig.Spec.FeatureFlags.EnableWASMStats = false
-		meshConfig.Spec.Sidecar.EnvoyWindowsImage = EnvoyOSMWindowsImage
+		meshConfig.Spec.Sidecar.SidecarWindowsImage = SidecarOSMWindowsImage
 		_, err = Td.UpdateOSMConfig(meshConfig)
 		if err != nil {
 			return err
@@ -1481,22 +1481,22 @@ func (td *OsmTestData) GrabLogs() error {
 		return err
 	}
 
-	envoyConfDir := td.GetTestFilePath("envoy_configs")
-	err = os.Mkdir(envoyConfDir, 0750)
+	sidecarConfDir := td.GetTestFilePath("envoy_configs")
+	err = os.Mkdir(sidecarConfDir, 0750)
 	if err != nil && !os.IsExist(err) {
-		td.T.Logf("Error on creating dir for %s: %v", envoyConfDir, err)
+		td.T.Logf("Error on creating dir for %s: %v", sidecarConfDir, err)
 		return err
 	}
 
 	for _, pod := range pods.Items {
-		podEnvoyConfigFilepath := strings.Join([]string{envoyConfDir, fmt.Sprintf("%s_%s", pod.Namespace, pod.Name)}, "/")
-		err := os.Mkdir(podEnvoyConfigFilepath, 0750)
+		podSidecarConfigFilepath := strings.Join([]string{sidecarConfDir, fmt.Sprintf("%s_%s", pod.Namespace, pod.Name)}, "/")
+		err := os.Mkdir(podSidecarConfigFilepath, 0750)
 		if err != nil && !os.IsExist(err) {
-			td.T.Logf("Error on creating dir for %s: %v, skipping", podEnvoyConfigFilepath, err)
+			td.T.Logf("Error on creating dir for %s: %v, skipping", podSidecarConfigFilepath, err)
 			continue
 		}
 
-		envoyDebugPaths := []string{
+		sidecarDebugPaths := []string{
 			"config_dump",
 			"clusters",
 			"certs",
@@ -1505,13 +1505,13 @@ func (td *OsmTestData) GrabLogs() error {
 			"stats",
 		}
 
-		for _, dbgEnvoyPath := range envoyDebugPaths {
+		for _, dbgSidecarPath := range sidecarDebugPaths {
 			cmd := "../../bin/osm"
-			filePath := fmt.Sprintf("%s/%s.txt", podEnvoyConfigFilepath, dbgEnvoyPath)
+			filePath := fmt.Sprintf("%s/%s.txt", podSidecarConfigFilepath, dbgSidecarPath)
 			args := []string{
 				"proxy",
 				"get",
-				dbgEnvoyPath,
+				dbgSidecarPath,
 				pod.Name,
 				"--namespace",
 				pod.Namespace,

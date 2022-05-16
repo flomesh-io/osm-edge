@@ -22,23 +22,23 @@ const directoryForExpectationsYAML = "../../tests/envoy_xds_expectations/"
 var log = logger.New("sidecar-injector")
 
 func getTempDir() string {
-	dir, err := ioutil.TempDir("", "osm_test_envoy")
+	dir, err := ioutil.TempDir("", "osm_test_sidecar")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating temp directory")
 	}
 	return dir
 }
 
-// LoadExpectedEnvoyYAML loads the expectation for a given test from the file system. This must run within ginkgo.It()
-func LoadExpectedEnvoyYAML(expectationFilePath string) string {
+// LoadExpectedSidecarYAML loads the expectation for a given test from the file system. This must run within ginkgo.It()
+func LoadExpectedSidecarYAML(expectationFilePath string) string {
 	// The expectationFileName will contain the name of the function by convention
 	log.Info().Msgf("Loading test expectation from %s", filepath.Clean(expectationFilePath))
-	expectedEnvoyConfig, err := ioutil.ReadFile(filepath.Clean(expectationFilePath))
+	expectedSidecarConfig, err := ioutil.ReadFile(filepath.Clean(expectationFilePath))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error reading expected Envoy bootstrap YAML from file %s", expectationFilePath)
+		log.Error().Err(err).Msgf("Error reading expected Sidecar bootstrap YAML from file %s", expectationFilePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	return string(expectedEnvoyConfig)
+	return string(expectedSidecarConfig)
 }
 
 // MarshalXdsStructAndSaveToFile converts a an xDS struct into YAML and saves it to a file. This must run within ginkgo.It()
@@ -66,7 +66,7 @@ func MarshalXdsStructAndSaveToFile(m protoreflect.ProtoMessage, filePath string)
 	log.Info().Msgf("Saving %s...", filePath)
 	err = ioutil.WriteFile(filepath.Clean(filePath), configYAML, 0600)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
+		log.Error().Err(err).Msgf("Error writing actual Sidecar Cluster XDS YAML to file %s", filePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(configYAML)
@@ -79,7 +79,7 @@ func MarshalAndSaveToFile(someStruct interface{}, filePath string) string {
 	log.Info().Msgf("Saving %s...", filePath)
 	err = ioutil.WriteFile(filepath.Clean(filePath), fileContent, 0600)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error writing actual Envoy Cluster XDS YAML to file %s", filePath)
+		log.Error().Err(err).Msgf("Error writing actual Sidecar Cluster XDS YAML to file %s", filePath)
 	}
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	return string(fileContent)
@@ -88,13 +88,13 @@ func MarshalAndSaveToFile(someStruct interface{}, filePath string) string {
 // ThisFunction runs the given function in a ginkgo.Context(), marshals the output and compares to an expectation loaded from file.
 func ThisFunction(functionName string, fn func() interface{}) {
 	ginkgo.Context(fmt.Sprintf("ThisFunction %s", functionName), func() {
-		ginkgo.It("creates Envoy config", func() {
+		ginkgo.It("creates Sidecar config", func() {
 			expectationFilePath := path.Join(directoryForExpectationsYAML, fmt.Sprintf("expected_output_%s.yaml", functionName))
 			actualFilePath := path.Join(getTempDir(), fmt.Sprintf("actual_output_%s.yaml", functionName))
 			log.Info().Msgf("Actual output of %s is going to be saved in %s", functionName, actualFilePath)
 			actual := fn()
 
-			expectedYAML := LoadExpectedEnvoyYAML(expectationFilePath)
+			expectedYAML := LoadExpectedSidecarYAML(expectationFilePath)
 			actualYAML := MarshalAndSaveToFile(actual, actualFilePath)
 
 			Compare(functionName, actualFilePath, expectationFilePath, actualYAML, expectedYAML)
@@ -105,13 +105,13 @@ func ThisFunction(functionName string, fn func() interface{}) {
 // ThisXdsClusterFunction runs the given function in a ginkgo.Context(), marshals the output and compares to an expectation loaded from file.
 func ThisXdsClusterFunction(functionName string, fn func() protoreflect.ProtoMessage) {
 	ginkgo.Context(fmt.Sprintf("ThisFunction %s", functionName), func() {
-		ginkgo.It("creates Envoy config", func() {
+		ginkgo.It("creates Sidecar config", func() {
 			expectationFilePath := path.Join(directoryForExpectationsYAML, fmt.Sprintf("expected_output_%s.yaml", functionName))
 			actualFilePath := path.Join(getTempDir(), fmt.Sprintf("actual_output_%s.yaml", functionName))
 			log.Info().Msgf("Actual output of %s is going to be saved in %s", functionName, actualFilePath)
 			actual := fn()
 
-			expectedYAML := LoadExpectedEnvoyYAML(expectationFilePath)
+			expectedYAML := LoadExpectedSidecarYAML(expectationFilePath)
 			actualYAML := MarshalXdsStructAndSaveToFile(actual, actualFilePath)
 
 			Compare(functionName, actualFilePath, expectationFilePath, actualYAML, expectedYAML)
@@ -122,14 +122,14 @@ func ThisXdsClusterFunction(functionName string, fn func() protoreflect.ProtoMes
 // ThisXdsListenerFunction runs the given function in a ginkgo.Context(), marshals the output and compares to an expectation loaded from file.
 func ThisXdsListenerFunction(functionName string, fn func() (protoreflect.ProtoMessage, error)) {
 	ginkgo.Context(fmt.Sprintf("ThisFunction %s", functionName), func() {
-		ginkgo.It("creates Envoy config", func() {
+		ginkgo.It("creates Sidecar config", func() {
 			expectationFilePath := path.Join(directoryForExpectationsYAML, fmt.Sprintf("expected_output_%s.yaml", functionName))
 			actualFilePath := path.Join(getTempDir(), fmt.Sprintf("actual_output_%s.yaml", functionName))
 			log.Info().Msgf("Actual output of %s is going to be saved in %s", functionName, actualFilePath)
 			actual, err := fn()
 			gomega.Expect(err).To(gomega.BeNil())
 
-			expectedYAML := LoadExpectedEnvoyYAML(expectationFilePath)
+			expectedYAML := LoadExpectedSidecarYAML(expectationFilePath)
 			actualYAML := MarshalXdsStructAndSaveToFile(actual, actualFilePath)
 
 			Compare(functionName, actualFilePath, expectationFilePath, actualYAML, expectedYAML)

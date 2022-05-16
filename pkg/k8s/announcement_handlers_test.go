@@ -40,10 +40,10 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 
 	podName := "app"
 	namespace := "app"
-	envoyBootstrapConfigVolume := "envoy-bootstrap-config-volume"
+	sidecarBootstrapConfigVolume := "sidecar-bootstrap-config-volume"
 	podUUID := uuid.New().String()
 	podUID := uuid.New().String()
-	secretName := fmt.Sprintf("envoy-bootstrap-config-%s", podUUID)
+	secretName := fmt.Sprintf("sidecar-bootstrap-config-%s", podUUID)
 
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -55,13 +55,13 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      podName,
 			Namespace: namespace,
-			Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: podUUID},
+			Labels:    map[string]string{constants.SidecarUniqueIDLabelName: podUUID},
 			UID:       types.UID(podUID),
 		},
 		Spec: corev1.PodSpec{
 			Volumes: []corev1.Volume{
 				{
-					Name: envoyBootstrapConfigVolume,
+					Name: sidecarBootstrapConfigVolume,
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: secretName,

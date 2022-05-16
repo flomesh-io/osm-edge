@@ -226,7 +226,7 @@ func (sd *DataHandle) OutputIterationTable(f *os.File) {
 		itDuration := sd.ItEndTime[it].Sub(sd.ItStartTime[it])
 		itDurationString += itDuration.Round(time.Second).String()
 
-		nPods, err := sd.PromHandle.GetNumEnvoysInMesh(sd.ItEndTime[it])
+		nPods, err := sd.PromHandle.GetNumSidecarsInMesh(sd.ItEndTime[it])
 		var nPodsString string
 		if err != nil {
 			nPodsString = "err"
@@ -313,13 +313,13 @@ func (sd *DataHandle) OutputMemPerPod(f *os.File) {
 			continue
 		}
 
-		numPodsStart, err := sd.PromHandle.GetNumEnvoysInMesh(sd.ItEndTime[0])
+		numPodsStart, err := sd.PromHandle.GetNumSidecarsInMesh(sd.ItEndTime[0])
 		if err != nil && memRSSStart < 0 {
 			table.Append(append(row, "err"))
 			continue
 		}
 
-		numPodsEnd, err := sd.PromHandle.GetNumEnvoysInMesh(sd.ItEndTime[sd.Iterations-1])
+		numPodsEnd, err := sd.PromHandle.GetNumSidecarsInMesh(sd.ItEndTime[sd.Iterations-1])
 		if err != nil && memRSSStart < 0 {
 			table.Append(append(row, "err"))
 			continue

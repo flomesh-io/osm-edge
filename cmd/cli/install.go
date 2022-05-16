@@ -48,7 +48,7 @@ Example:
 
 The mesh name is used in various ways like for naming Kubernetes resources as
 well as for adding a Kubernetes Namespace to the list of Namespaces a control
-plane should watch for sidecar injection of Envoy proxies.
+plane should watch for sidecar injection of proxies.
 `
 const (
 	defaultChartPath         = ""

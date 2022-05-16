@@ -68,7 +68,7 @@ var _ = OSMDescribe("Ignore Namespaces",
 
 func hasSidecar(containers []corev1.Container) bool {
 	for _, container := range containers {
-		if container.Name == constants.EnvoyContainerName {
+		if container.Name == constants.SidecarContainerName {
 			return true
 		}
 	}

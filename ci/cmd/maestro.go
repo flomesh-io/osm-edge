@@ -205,8 +205,8 @@ func printLogsForContainers(kubeClient kubernetes.Interface, pod v1.Pod) {
 	for _, containerObj := range pod.Spec.Containers {
 		initLogs := maestro.GetPodLogs(kubeClient, pod.Namespace, pod.Name, containerObj.Name, maestro.FailureLogsFromTimeSince)
 		switch containerObj.Name {
-		case constants.EnvoyContainerName:
-			fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Envoy Logs: --------\n",
+		case constants.SidecarContainerName:
+			fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Sidecar Logs: --------\n",
 				pod.Namespace, pod.Name), initLogs)
 		default:
 			fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Container: %s --------\n",

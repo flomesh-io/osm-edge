@@ -54,7 +54,7 @@ func (c *Config) rootNamespaceDirPath() string {
 func getPerNamespaceCommands(namespace string) [][]string {
 	return [][]string{
 		{"kubectl", "get", "events", "-n", namespace},
-		{"kubectl", "get", "pods", "-n", namespace, "-l", constants.EnvoyUniqueIDLabelName},
+		{"kubectl", "get", "pods", "-n", namespace, "-l", constants.SidecarUniqueIDLabelName},
 		{"kubectl", "get", "svc", "-n", namespace},
 	}
 }

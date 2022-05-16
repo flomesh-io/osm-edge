@@ -327,7 +327,7 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		prevMetricAnnotation := prevPod.Annotations[constants.PrometheusScrapeAnnotation]
 		newMetricAnnotation := newPod.Annotations[constants.PrometheusScrapeAnnotation]
 		if prevMetricAnnotation != newMetricAnnotation {
-			proxyUUID := newPod.Labels[constants.EnvoyUniqueIDLabelName]
+			proxyUUID := newPod.Labels[constants.SidecarUniqueIDLabelName]
 			return &proxyUpdateEvent{
 				msg:   msg,
 				topic: GetPubSubTopicForProxyUUID(proxyUUID),

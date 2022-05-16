@@ -22,8 +22,7 @@ BUILD_ARCH=$2
 SIDECAR=$3
 
 if [[ "${SIDECAR}" == "pipy" ]]; then
-  sed -i 's/"sidecar-type", "envoy"/"sidecar-type", "pipy"/g' ${OSM_HOME}/cmd/osm-injector/osm-injector.go
-  sed -i 's/"sidecar-type", "envoy"/"sidecar-type", "pipy"/g' ${OSM_HOME}/cmd/osm-controller/osm-controller.go
+  sed -i 's#sidecarClass:.*#sidecarClass: pipy#g' ${OSM_HOME}/charts/osm/values.yaml
 
   if [[ "${BUILD_ARCH}" == "amd64" ]]; then
     sed -i 's#envoyproxy/envoy-alpine:v1.19.3@sha256:.*b0f3"#flomesh/pipy-nightly:latest"#g' ${OSM_HOME}/charts/osm/values.schema.json
@@ -40,8 +39,7 @@ if [[ "${SIDECAR}" == "pipy" ]]; then
 fi
 
 if [[ "${SIDECAR}" == "envoy" ]]; then
-  sed -i 's/"sidecar-type", "pipy"/"sidecar-type", "envoy"/g' ${OSM_HOME}/cmd/osm-injector/osm-injector.go
-  sed -i 's/"sidecar-type", "pipy"/"sidecar-type", "envoy"/g' ${OSM_HOME}/cmd/osm-controller/osm-controller.go
+  sed -i 's#sidecarClass:.*#sidecarClass: envoy#g' ${OSM_HOME}/charts/osm/values.yaml
 
   if [[ "${BUILD_ARCH}" == "amd64" ]]; then
     sed -i 's#flomesh/pipy-nightly:latest"#envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3"#g' ${OSM_HOME}/charts/osm/values.schema.json

@@ -25,7 +25,7 @@ func TestIsMeshedPod(t *testing.T) {
 					Name: "pod-1",
 					Labels: map[string]string{
 						// This test requires an actual UUID
-						constants.EnvoyUniqueIDLabelName: uuid.New().String()},
+						constants.SidecarUniqueIDLabelName: uuid.New().String()},
 				},
 			},
 			isMeshed: true,

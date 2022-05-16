@@ -28,7 +28,7 @@ func newClusterLoadAssignment(svc service.MeshService, serviceEndpoints []endpoi
 	}
 
 	cla := &xds_endpoint.ClusterLoadAssignment{
-		ClusterName: svc.EnvoyClusterName(),
+		ClusterName: svc.SidecarClusterName(),
 		Endpoints:   []*xds_endpoint.LocalityLbEndpoints{localLbEndpoints},
 	}
 

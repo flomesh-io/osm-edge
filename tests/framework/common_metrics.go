@@ -59,9 +59,9 @@ func (p *Prometheus) VectorQuery(query string, t time.Time) (float64, error) {
 	}
 }
 
-// GetNumEnvoysInMesh Gets the Number of in-mesh pods (or envoys) in the mesh as seen
+// GetNumSidecarsInMesh Gets the Number of in-mesh pods (or sidecars) in the mesh as seen
 // by prometheus at a certain point in time.
-func (p *Prometheus) GetNumEnvoysInMesh(t time.Time) (int, error) {
+func (p *Prometheus) GetNumSidecarsInMesh(t time.Time) (int, error) {
 	queryString := "sum(osm_k8s_api_event_count{type=\"pod-added\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"pod-deleted\"})"
 	val, err := p.VectorQuery(queryString, t)
 	if err == errEmptyResult {

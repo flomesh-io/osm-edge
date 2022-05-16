@@ -23,7 +23,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 	for _, trafficMatch := range inboundPolicy.TrafficMatches {
 		upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
 		cluster := getMeshClusterConfigs(inboundPolicy.ClustersConfigs,
-			service.ClusterName(upstreamSvc.EnvoyLocalClusterName()))
+			service.ClusterName(upstreamSvc.SidecarLocalClusterName()))
 		tm := itp.NewTrafficMatch(Port(cluster.Service.Port))
 		tm.SetProtocol(Protocol(trafficMatch.DestinationProtocol))
 		tm.SetPort(Port(trafficMatch.DestinationPort))

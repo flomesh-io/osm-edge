@@ -1,3 +1,4 @@
+//go:build withEnvPathSet
 // +build withEnvPathSet
 
 package bugreport
@@ -41,7 +42,7 @@ func TestRun(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "pod1",
 			Namespace: "ns1",
-			Labels:    map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+			Labels:    map[string]string{constants.SidecarUniqueIDLabelName: "test"},
 		},
 	}
 	_, err = fakeClient.CoreV1().Pods(pod1.Namespace).Create(context.TODO(), pod1, metav1.CreateOptions{})

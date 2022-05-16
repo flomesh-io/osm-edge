@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Server) InformTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
-	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
+	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		connectedProxy.initError = errTooManyConnections
 		return errTooManyConnections
@@ -67,7 +67,7 @@ func (s *Server) InformTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connected
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
 
 			// Queue a full configuration update
-			// Do not send SDS, let envoy figure out what certs does it want.
+			// Do not send SDS, let sidecar figure out what certs does it want.
 			<-s.workqueues.AddJob(newJob())
 
 		case certRotateMsg := <-certRotateChan:

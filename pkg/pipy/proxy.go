@@ -15,16 +15,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-// Proxy is a representation of an Envoy proxy connected to the xDS server.
+// Proxy is a representation of an Sidecar proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	// The Subject Common Name of the certificate used for Envoy to XDS communication.
-	xDSCertificateCommonName certificate.CommonName
+	// The Subject Common Name of the certificate used for Sidecar to communication.
+	certificateCommonName certificate.CommonName
 
 	// UUID of the proxy
 	uuid.UUID
 
-	// The Serial Number of the certificate used for Envoy to XDS communication.
+	// The Serial Number of the certificate used for Sidecar to XDS communication.
 	xDSCertificateSerialNumber certificate.SerialNumber
 
 	net.Addr
@@ -46,8 +46,8 @@ type Proxy struct {
 	// kind is the proxy's kind (ex. sidecar, gateway)
 	kind ProxyKind
 
-	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
-	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
+	// Records metadata around the Kubernetes Pod on which this Sidecar Proxy is installed.
+	// This could be nil if the Sidecar is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
 	// eventually be set when the metadata arrives via the xDS protocol.
 	PodMetadata *PodMetadata
@@ -71,7 +71,7 @@ func (p *Proxy) String() string {
 	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
 }
 
-// PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
+// PodMetadata is a struct holding information on the Pod on which a given Sidecar proxy is installed
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
 	UID             string
@@ -80,7 +80,7 @@ type PodMetadata struct {
 	IP              string
 	ServiceAccount  identity.K8sServiceAccount
 	Cluster         string
-	EnvoyNodeID     string
+	SidecarNodeID   string
 	WorkloadKind    string
 	WorkloadName    string
 	ReadinessProbes []*v1.Probe
@@ -88,7 +88,7 @@ type PodMetadata struct {
 	StartupProbes   []*v1.Probe
 }
 
-// HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
+// HasPodMetadata answers the question - has the Pod metadata been recorded for the given Sidecar proxy
 func (p *Proxy) HasPodMetadata() bool {
 	return p.PodMetadata != nil
 }
@@ -142,12 +142,12 @@ func (p *Proxy) PodMetadataString() string {
 	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
 }
 
-// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
+// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Sidecar proxy connected to xDS.
 func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
-	return p.xDSCertificateCommonName
+	return p.certificateCommonName
 }
 
-// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
+// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Sidecar proxy.
 func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
 	return p.xDSCertificateSerialNumber
 }
@@ -162,7 +162,7 @@ func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
-// GetIP returns the IP address of the Envoy proxy connected to xDS.
+// GetIP returns the IP address of the Sidecar proxy connected to xDS.
 func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
 }
@@ -188,7 +188,7 @@ func (p *Proxy) Kind() ProxyKind {
 	return p.kind
 }
 
-// NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
+// NewProxy creates a new instance of an Sidecar proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
 	// Get CommonName hash for this proxy
 	hash, err := utils.HashFromString(certCommonName.String())
@@ -202,7 +202,7 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	}
 
 	return &Proxy{
-		xDSCertificateCommonName:   certCommonName,
+		certificateCommonName:      certCommonName,
 		xDSCertificateSerialNumber: certSerialNumber,
 		UUID:                       cnMeta.ProxyUUID,
 

@@ -32,7 +32,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 
 	listener := &xds_listener.Listener{
 		Name:             outboundListenerName,
-		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
 		FilterChains:     serviceFilterChains,
 		ListenerFilters: []*xds_listener.ListenerFilter{
@@ -109,7 +109,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 func newInboundListener() *xds_listener.Listener {
 	return &xds_listener.Listener{
 		Name:             inboundListenerName,
-		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarInboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		FilterChains:     []*xds_listener.FilterChain{},
 		ListenerFilters: []*xds_listener.ListenerFilter{
@@ -138,7 +138,7 @@ func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_l
 	return &xds_listener.Listener{
 		Name:             prometheusListenerName,
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
-		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarPrometheusInboundListenerPort),
 		FilterChains: []*xds_listener.FilterChain{
 			{
 				Filters: []*xds_listener.Filter{
