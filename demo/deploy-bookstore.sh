@@ -10,6 +10,8 @@ DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
 KUBE_CONTEXT=$(kubectl config current-context)
 ENABLE_MULTICLUSTER="${ENABLE_MULTICLUSTER:-false}"
+KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
+KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
@@ -89,10 +91,10 @@ spec:
     spec:
       serviceAccountName: "$SVC"
       nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
+        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
-        - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
+        - image: "${CTR_REGISTRY}/osm-demo-bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:

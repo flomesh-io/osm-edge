@@ -48,7 +48,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 					SimplePodAppDef{
 						PodName:   framework.RandomNameWithPrefix("serverpod"),
 						Namespace: serverNamespace,
-						Image:     "kennethreitz/httpbin",
+						Image:     "flomesh/httpbin:ken",
 						Ports:     []int{80},
 						OS:        Td.ClusterOS,
 					})
@@ -71,7 +71,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 					ContainerName: clientContainerName,
 					Command:       []string{"/bin/bash", "-c", "--"},
 					Args:          []string{"while true; do sleep 30; done;"},
-					Image:         "songrgg/alpine-debug",
+					Image:         "flomesh/alpine-debug",
 					Ports:         []int{80},
 					OS:            Td.ClusterOS,
 				})

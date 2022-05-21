@@ -23,13 +23,9 @@ if [[ "${BUILD_ARCH}" == "arm64" ]]; then
   sed -i 's/envoy-alpine:v1.19.3@sha256:.*b0f3/envoy:v1.19.3@sha256:9bbd3140c7ba67e32ecdf1731c03f010e2de386ef84d215023327624fc2c37ae/g' ${OSM_HOME}/charts/osm/values.schema.json
   sed -i 's/envoy-alpine:v1.19.3@sha256:.*b0f3/envoy:v1.19.3@sha256:9bbd3140c7ba67e32ecdf1731c03f010e2de386ef84d215023327624fc2c37ae/g' ${OSM_HOME}/cmd/osm-bootstrap/osm-bootstrap_test.go
 
-  find ${OSM_HOME}/dockerfiles -type f | xargs sed -i 's# alpine:3$# arm64v8/alpine:3.12#g'
-  find ${OSM_HOME}/dockerfiles -type f | xargs sed -i 's#openservicemesh/proxy-wasm-cpp-sdk:.* AS#flomesh/proxy-wasm-cpp-sdk:v2 AS#g'
-
   sed -i 's/kind create cluster --name/kind create cluster --image kindest\/node-arm64:v1.20.15 --name/g' ${OSM_HOME}/scripts/kind-with-registry.sh
 
   find ${OSM_HOME}/demo -type f | xargs sed -i 's/amd64/arm64/g'
-  sed -i 's/image: mysql:5.6/image: devilbox\/mysql:mysql-8.0/g' ${OSM_HOME}/demo/deploy-mysql.sh
 
   find ${OSM_HOME}/tests -type f | xargs sed -i 's#"simonkowallik/httpbin"#"flomesh/httpbin:latest"#g'
   find ${OSM_HOME}/tests -type f | xargs sed -i 's#"kennethreitz/httpbin"#"flomesh/httpbin:ken"#g'
@@ -37,3 +33,6 @@ if [[ "${BUILD_ARCH}" == "arm64" ]]; then
   find ${OSM_HOME}/tests -type f | xargs sed -i 's#"networld/grpcurl"#"flomesh/grpcurl"#g'
   find ${OSM_HOME}/tests -type f | xargs sed -i 's#"moul/grpcbin"#"flomesh/grpcbin"#g'
 fi
+
+find ${OSM_HOME}/dockerfiles -type f | xargs sed -i 's#openservicemesh/proxy-wasm-cpp-sdk:.* AS#flomesh/proxy-wasm-cpp-sdk:v2 AS#g'
+sed -i 's/image: mysql:5.6/image: devilbox\/mysql:mysql-8.0/g' ${OSM_HOME}/demo/deploy-mysql.sh

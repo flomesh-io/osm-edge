@@ -91,7 +91,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 					ServiceAccountName: serverApp,
 					ServiceName:        serverApp,
 					ReplicaCount:       int32(serverReplicaSet),
-					Image:              "simonkowallik/httpbin",
+					Image:              "flomesh/httpbin:latest",
 					Ports:              []int{DefaultUpstreamServicePort},
 					AppProtocol:        appProtocol,
 					Command:            HttpbinCmd,
@@ -139,7 +139,7 @@ func testTrafficSplit(appProtocol string, permissiveMode bool) {
 					ReplicaCount:       int32(clientReplicaSet),
 					Command:            []string{"/bin/bash", "-c", "--"},
 					Args:               []string{"while true; do sleep 30; done;"},
-					Image:              "songrgg/alpine-debug",
+					Image:              "flomesh/alpine-debug",
 					Ports:              []int{DefaultUpstreamServicePort},
 					OS:                 Td.ClusterOS,
 				})

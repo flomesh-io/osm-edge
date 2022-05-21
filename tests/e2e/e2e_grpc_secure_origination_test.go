@@ -50,7 +50,7 @@ func testSecureGRPCTraffic() {
 				PodName:            destName,
 				Namespace:          destName,
 				ServiceAccountName: destName,
-				Image:              "moul/grpcbin",
+				Image:              "flomesh/grpcbin",
 				Ports:              []int{grpcbinSecurePort},
 				AppProtocol:        "tcp",
 				OS:                 Td.ClusterOS,

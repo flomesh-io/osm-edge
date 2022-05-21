@@ -117,7 +117,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 	dependClusters := make(map[service.ClusterName]service.WeightedCluster)
 
 	for _, trafficMatch := range outboundPolicy.TrafficMatches {
-		tm := otp.NewTrafficMatch()
+		tm := otp.NewTrafficMatch(Port(trafficMatch.DestinationPort))
 		tm.SetProtocol(Protocol(trafficMatch.DestinationProtocol))
 		tm.SetPort(Port(trafficMatch.DestinationPort))
 		tm.SetServiceIdentity(proxyIdentity)
@@ -195,7 +195,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 	dependClusters := make(map[service.ClusterName]*service.WeightedCluster)
 
 	for _, trafficMatch := range egressPolicy.TrafficMatches {
-		tm := otp.NewTrafficMatch()
+		tm := otp.NewTrafficMatch(Port(trafficMatch.DestinationPort))
 		tm.SetProtocol(Protocol(trafficMatch.DestinationProtocol))
 		tm.SetPort(Port(trafficMatch.DestinationPort))
 

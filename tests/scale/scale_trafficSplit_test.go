@@ -99,7 +99,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits till fai
 							Namespace:          serverNamespace,
 							ServiceAccountName: serverApp,
 							ReplicaCount:       int32(serverReplicaSet),
-							Image:              "simonkowallik/httpbin",
+							Image:              "flomesh/httpbin:latest",
 							Ports:              []int{80},
 							OS:                 Td.ClusterOS,
 						})
@@ -141,7 +141,7 @@ var _ = Describe("Scales a setup with client-servers and traffic splits till fai
 							ReplicaCount:       int32(clientReplicaSet),
 							Command:            []string{"/bin/bash", "-c", "--"},
 							Args:               []string{"while true; do sleep 30; done;"},
-							Image:              "songrgg/alpine-debug",
+							Image:              "flomesh/alpine-debug",
 							Ports:              []int{80},
 							OS:                 Td.ClusterOS,
 						})

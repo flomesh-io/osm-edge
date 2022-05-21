@@ -52,7 +52,7 @@ func testK8sVersion(version string) {
 			SimplePodAppDef{
 				PodName:   destName,
 				Namespace: destName,
-				Image:     "kennethreitz/httpbin",
+				Image:     "flomesh/httpbin:ken",
 				Ports:     []int{80},
 				OS:        Td.ClusterOS,
 			})

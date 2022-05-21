@@ -176,7 +176,7 @@ func deployBackendApp(version string, serviceName string, namespace string) erro
 					Containers: []corev1.Container{
 						{
 							Name:            appName,
-							Image:           "simonkowallik/httpbin",
+							Image:           "flomesh/httpbin:latest",
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         HttpbinCmd,
 							Ports: []corev1.ContainerPort{
@@ -266,7 +266,7 @@ func createClientApp(name string, namespace string) error {
 		Namespace: namespace,
 		Command:   []string{"/bin/bash", "-c", "--"},
 		Args:      []string{"while true; do sleep 30; done;"},
-		Image:     "songrgg/alpine-debug",
+		Image:     "flomesh/alpine-debug",
 		Ports:     []int{80},
 		OS:        Td.ClusterOS,
 	})

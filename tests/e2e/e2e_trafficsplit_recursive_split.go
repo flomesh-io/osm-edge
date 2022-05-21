@@ -79,7 +79,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 				ServiceAccountName: trafficSplitName, // 	TODO refactor
 				ServiceName:        trafficSplitName,
 				ReplicaCount:       int32(serverReplicaSet),
-				Image:              "simonkowallik/httpbin",
+				Image:              "flomesh/httpbin:latest",
 				Ports:              []int{DefaultUpstreamServicePort},
 				AppProtocol:        appProtocol,
 				Command:            HttpbinCmd,
@@ -127,7 +127,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 					ReplicaCount:       int32(clientReplicaSet),
 					Command:            []string{"/bin/bash", "-c", "--"},
 					Args:               []string{"while true; do sleep 30; done;"},
-					Image:              "songrgg/alpine-debug",
+					Image:              "flomesh/alpine-debug",
 					Ports:              []int{DefaultUpstreamServicePort},
 					OS:                 Td.ClusterOS,
 				})

@@ -412,7 +412,7 @@
                     "title": "The sidecarClass schema",
                     "description": "The class of the OSM Sidecar.",
                     "examples": [
-                        "envoy"
+                        "pipy | envoy"
                     ]
                 },
                 "sidecarImage": {
@@ -421,7 +421,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.19.3@sha256:874e699857e023d9234b10ffc5af39ccfc9011feab89638e56ac4042ecd4b0f3"
+                        "flomesh/pipy:latest"
                     ]
                 },
                 "curlImage": {
@@ -439,7 +439,7 @@
                     "title": "The sidecarWindowsImage schema",
                     "description": "The proxy side car image to run on Windows payloads.",
                     "examples": [
-                        "envoyproxy/envoy-windows:v1.19.3@sha256:f990f024e7e95f07b6c0d416684734607761e382c35d1ba9414c7e3fbf23969c"
+                        "flomesh/pipy-windows-nightly:latest"
                     ]
                 },
                 "certificateProvider": {
@@ -738,6 +738,36 @@
                     "examples": [
                         true
                     ]
+                },
+                "nodeSelector": {
+                    "$id": "#/properties/osm/properties/nodeSelector",
+                    "type": "object",
+                    "title": "NodeSelector",
+                    "description": "Dode Selector",
+                    "required": [
+                        "arch",
+                        "os"
+                    ],
+                    "properties": {
+                        "arch": {
+                            "$id": "#/properties/osm/properties/nodeSelector/properties/arch",
+                            "type": "string",
+                            "title": "kubernetes.io/arch",
+                            "description": "kubernetes.io/arch",
+                            "examples": [
+                                "amd64"
+                            ]
+                        },
+                        "os": {
+                            "$id": "#/properties/osm/properties/nodeSelector/properties/os",
+                            "type": "string",
+                            "title": "kubernetes.io/os",
+                            "description": "kubernetes.io/os",
+                            "examples": [
+                                "linux"
+                            ]
+                        }
+                    }
                 },
                 "tracing": {
                     "$id": "#/properties/osm/properties/tracing",

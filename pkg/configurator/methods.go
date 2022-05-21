@@ -129,6 +129,9 @@ func (c *client) GetSidecarClass() string {
 	if class == "" {
 		class = os.Getenv("OSM_DEFAULT_SIDECAR_CLASS")
 	}
+	if class == "" {
+		class = constants.SidecarClasssPipy
+	}
 	return class
 }
 

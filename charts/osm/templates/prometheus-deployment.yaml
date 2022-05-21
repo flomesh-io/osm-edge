@@ -23,8 +23,8 @@ spec:
       {{- include "restricted.securityContext" . | nindent 6 }}
       {{- end }}
       nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/arch: {{ .Values.osm.nodeSelector.arch }}
+        kubernetes.io/os: {{ .Values.osm.nodeSelector.os }}
       containers:
       - name: prometheus
         ports:

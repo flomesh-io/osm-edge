@@ -20,7 +20,7 @@ var (
 	log = logger.New("flomesh-pipy")
 )
 
-// Server implements the Sidecar xDS Aggregate Discovery Services
+// Server implements the Aggregate Discovery Services
 type Server struct {
 	catalog        catalog.MeshCataloger
 	proxyRegistry  *registry.ProxyRegistry
@@ -79,10 +79,13 @@ type ServiceName string
 type Services []ServiceName
 
 type HttpRouteRule struct {
-	Headers         HeadersMatch     `json:"Headers,omitempty"`
-	Methods         MethodsMatch     `json:"Methods,omitempty"`
-	TargetClusters  WeightedClusters `json:"TargetClusters,omitempty"`
-	AllowedServices Services         `json:"AllowedServices,omitempty"`
+	Headers         HeadersMatch     `json:"Headers"`
+	Methods         MethodsMatch     `json:"Methods"`
+	TargetClusters  WeightedClusters `json:"TargetClusters"`
+	AllowedServices Services         `json:"AllowedServices"`
+
+	allowedAnyService bool
+	allowedAnyMethod  bool
 }
 type HttpRouteRules map[URIPathRegexp]*HttpRouteRule
 type HttpRouteRuleName string
@@ -120,7 +123,7 @@ type OutboundTrafficMatch struct {
 	AllowedEgressTraffic bool
 	ServiceIdentity      identity.ServiceIdentity
 }
-type OutboundTrafficMatches []*OutboundTrafficMatch
+type OutboundTrafficMatches map[Port][]*OutboundTrafficMatch
 
 type TrafficPolicy struct {
 	ClustersConfigs ClustersConfigs `json:"ClustersConfigs"`

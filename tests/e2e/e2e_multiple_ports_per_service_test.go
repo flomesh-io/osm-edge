@@ -50,7 +50,7 @@ func testMultipleServicePorts() {
 			SimplePodAppDef{
 				PodName:   serverName,
 				Namespace: serverName,
-				Image:     "kennethreitz/httpbin",
+				Image:     "flomesh/httpbin:ken",
 				// To test multiple ports per service, an additional port 90 is exposed
 				// on the service.
 				Ports:   []int{DefaultUpstreamServicePort, 90},

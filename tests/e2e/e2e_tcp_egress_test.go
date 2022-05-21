@@ -40,7 +40,7 @@ func testTCPEgressTraffic() {
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 
 		// Load TCP server image
-		Expect(Td.LoadImagesToKind([]string{"tcp-echo-server"})).To(Succeed())
+		Expect(Td.LoadImagesToKind([]string{"osm-demo-tcp-echo-server"})).To(Succeed())
 
 		// Create client ns and add it to the mesh
 		Expect(Td.CreateNs(sourceName, nil)).To(Succeed())
@@ -56,7 +56,7 @@ func testTCPEgressTraffic() {
 			SimplePodAppDef{
 				PodName:     destName,
 				Namespace:   destName,
-				Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
+				Image:       fmt.Sprintf("%s/osm-demo-tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
 				Command:     []string{"/tcp-echo-server"},
 				Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 				Ports:       []int{destinationPort},

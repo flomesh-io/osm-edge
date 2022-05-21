@@ -82,7 +82,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							ServiceAccountName: svcAcc.Name,
 							ServiceName:        serverApp,
 							ReplicaCount:       int32(serverReplicaSet),
-							Image:              "simonkowallik/httpbin",
+							Image:              "flomesh/httpbin:latest",
 							Ports:              []int{DefaultUpstreamServicePort},
 							Command:            HttpbinCmd,
 							OS:                 Td.ClusterOS,
@@ -126,7 +126,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							ReplicaCount:       int32(clientReplicaSet),
 							Command:            []string{"/bin/bash", "-c", "--"},
 							Args:               []string{"while true; do sleep 30; done;"},
-							Image:              "songrgg/alpine-debug",
+							Image:              "flomesh/alpine-debug",
 							Ports:              []int{DefaultUpstreamServicePort},
 							OS:                 Td.ClusterOS,
 						})

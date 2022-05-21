@@ -37,7 +37,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 					Namespace: sourceNs,
 					Command:   []string{"/bin/bash", "-c", "--"},
 					Args:      []string{"while true; do sleep 30; done;"},
-					Image:     "songrgg/alpine-debug",
+					Image:     "flomesh/alpine-debug",
 					Ports:     []int{80},
 					OS:        Td.ClusterOS,
 				})

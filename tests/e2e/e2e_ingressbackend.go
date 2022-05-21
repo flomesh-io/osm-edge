@@ -48,7 +48,7 @@ func testIngressBackend() {
 			SimplePodAppDef{
 				PodName:   "server",
 				Namespace: destNs,
-				Image:     "kennethreitz/httpbin",
+				Image:     "flomesh/httpbin:ken",
 				Ports:     []int{serverPort},
 				OS:        Td.ClusterOS,
 			})

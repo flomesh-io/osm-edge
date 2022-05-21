@@ -25,8 +25,8 @@ spec:
       {{- end }}
       serviceAccountName: osm-grafana
       nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/arch: {{ .Values.osm.nodeSelector.arch }}
+        kubernetes.io/os: {{ .Values.osm.nodeSelector.os }}
       containers:
         - name: grafana
           image: {{.Values.osm.grafana.image}}

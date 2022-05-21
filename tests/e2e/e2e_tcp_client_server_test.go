@@ -45,7 +45,7 @@ func testTCPTraffic(permissiveMode bool) {
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 		// Load TCP server image
-		Expect(Td.LoadImagesToKind([]string{"tcp-echo-server"})).To(Succeed())
+		Expect(Td.LoadImagesToKind([]string{"osm-demo-tcp-echo-server"})).To(Succeed())
 
 		// Create Test NS
 		for _, n := range ns {

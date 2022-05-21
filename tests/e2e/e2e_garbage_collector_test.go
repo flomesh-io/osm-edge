@@ -42,7 +42,7 @@ var _ = OSMDescribe("Test garbage collection for unused sidecar bootstrap config
 						ReplicaCount:   int32(userReplicaSet),
 						Command:        []string{"/bin/bash", "-c", "--"},
 						Args:           []string{"while true; do sleep 30; done;"},
-						Image:          "songrgg/alpine-debug",
+						Image:          "flomesh/alpine-debug",
 						Ports:          []int{80},
 						OS:             Td.ClusterOS,
 					})

@@ -100,7 +100,7 @@ func createSimpleApp(appName string, ns string) {
 			Namespace: ns,
 			Command:   []string{"/bin/bash", "-c", "--"},
 			Args:      []string{"while true; do sleep 30; done;"},
-			Image:     "songrgg/alpine-debug",
+			Image:     "flomesh/alpine-debug",
 			Ports:     []int{80},
 			OS:        Td.ClusterOS,
 		})

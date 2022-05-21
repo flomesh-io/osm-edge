@@ -557,7 +557,7 @@ func (td *OsmTestData) GetOSSpecificHTTPBinPod(podName string, namespace string)
 		SimplePodAppDef{
 			PodName:   podName,
 			Namespace: namespace,
-			Image:     "kennethreitz/httpbin",
+			Image:     "flomesh/httpbin:ken",
 			Ports:     []int{80},
 			OS:        Td.ClusterOS,
 		})
@@ -581,7 +581,7 @@ func (td *OsmTestData) GetOSSpecificSleepPod(sourceNs string) (corev1.ServiceAcc
 		Namespace: sourceNs,
 		Command:   []string{"/bin/bash", "-c", "--"},
 		Args:      []string{"while true; do sleep 30; done;"},
-		Image:     "songrgg/alpine-debug",
+		Image:     "flomesh/alpine-debug",
 		Ports:     []int{80},
 		OS:        td.ClusterOS,
 	})
@@ -593,10 +593,10 @@ func (td *OsmTestData) GetOSSpecificTCPEchoPod(podName string, namespace string,
 	var command string
 	installOpts := Td.GetOSMInstallOpts()
 	if td.ClusterOS == constants.OSWindows {
-		image = fmt.Sprintf("%s/tcp-echo-server-windows:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		image = fmt.Sprintf("%s/osm-demo-tcp-echo-server-windows:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
 		command = "/tcp-echo-server.exe"
 	} else {
-		image = fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		image = fmt.Sprintf("%s/osm-demo-tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
 		command = "/tcp-echo-server"
 	}
 	return Td.SimplePodApp(

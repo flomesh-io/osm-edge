@@ -190,9 +190,14 @@ func (itp *InboundTrafficPolicy) GetTrafficMatch(port Port) *InboundTrafficMatch
 	}
 }
 
-func (otp *OutboundTrafficPolicy) NewTrafficMatch() *OutboundTrafficMatch {
+func (otp *OutboundTrafficPolicy) NewTrafficMatch(port Port) *OutboundTrafficMatch {
 	trafficMatch := new(OutboundTrafficMatch)
-	otp.TrafficMatches = append(otp.TrafficMatches, trafficMatch)
+	if otp.TrafficMatches == nil {
+		otp.TrafficMatches = make(OutboundTrafficMatches)
+	}
+	trafficMatches, _ := otp.TrafficMatches[port]
+	trafficMatches = append(trafficMatches, trafficMatch)
+	otp.TrafficMatches[port] = trafficMatches
 	return trafficMatch
 }
 
@@ -214,7 +219,17 @@ func (hrr *HttpRouteRule) AddHeaderMatch(header Header, headerRegexp HeaderRegex
 }
 
 func (hrr *HttpRouteRule) AddMethodMatch(method Method) {
-	hrr.Methods = append(hrr.Methods, method)
+	if hrr.allowedAnyMethod {
+		return
+	}
+	if "*" == method {
+		hrr.allowedAnyMethod = true
+	}
+	if hrr.allowedAnyMethod {
+		hrr.Methods = nil
+	} else {
+		hrr.Methods = append(hrr.Methods, method)
+	}
 }
 
 func (hrr *HttpRouteRule) AddWeightedCluster(clusterName ClusterName, weight Weight) {
@@ -225,7 +240,17 @@ func (hrr *HttpRouteRule) AddWeightedCluster(clusterName ClusterName, weight Wei
 }
 
 func (hrr *HttpRouteRule) AddAllowedService(serviceName ServiceName) {
-	hrr.AllowedServices = append(hrr.AllowedServices, serviceName)
+	if hrr.allowedAnyService {
+		return
+	}
+	if "*" == serviceName {
+		hrr.allowedAnyService = true
+	}
+	if hrr.allowedAnyService {
+		hrr.AllowedServices = nil
+	} else {
+		hrr.AllowedServices = append(hrr.AllowedServices, serviceName)
+	}
 }
 
 func (tp *TrafficPolicy) NewClusterConfigs(clusterName ClusterName) *WeightedEndpoint {

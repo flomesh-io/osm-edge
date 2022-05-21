@@ -69,7 +69,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						ServiceName:        destApp,
 						ServiceAccountName: destApp,
 						ReplicaCount:       int32(replicaSetPerService),
-						Image:              "simonkowallik/httpbin",
+						Image:              "flomesh/httpbin:latest",
 						Ports:              []int{DefaultUpstreamServicePort},
 						Command:            HttpbinCmd,
 						OS:                 Td.ClusterOS,
@@ -117,7 +117,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							ReplicaCount:       int32(replicaSetPerService),
 							Command:            []string{"/bin/bash", "-c", "--"},
 							Args:               []string{"while true; do sleep 30; done;"},
-							Image:              "songrgg/alpine-debug",
+							Image:              "flomesh/alpine-debug",
 							Ports:              []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
 							OS:                 Td.ClusterOS,
 						})

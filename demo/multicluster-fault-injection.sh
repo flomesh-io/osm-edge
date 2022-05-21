@@ -9,6 +9,8 @@ source .env
 BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKSTORE_SVC="bookstore-v1"
+KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
+KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
 
 action=$1
 
@@ -44,8 +46,8 @@ spec:
     spec:
       serviceAccountName: "$BOOKSTORE_SVC"
       nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
+        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
         - image: curlimages/curl
           imagePullPolicy: IfNotPresent

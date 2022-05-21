@@ -53,7 +53,7 @@ func testGRPCTraffic() {
 			SimplePodAppDef{
 				PodName:     framework.RandomNameWithPrefix("pod"),
 				Namespace:   destNs,
-				Image:       "moul/grpcbin",
+				Image:       "flomesh/grpcbin",
 				Ports:       []int{grpcbinInsecurePort},
 				AppProtocol: "grpc",
 				OS:          Td.ClusterOS,
@@ -151,7 +151,7 @@ func setupGRPCClient(sourceName string) *corev1.Pod {
 		PodName:   sourceName,
 		Namespace: sourceName,
 		Command:   []string{"sleep", "365d"},
-		Image:     "networld/grpcurl",
+		Image:     "flomesh/grpcurl",
 		OS:        Td.ClusterOS,
 	})
 	Expect(err).NotTo(HaveOccurred())

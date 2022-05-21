@@ -5,6 +5,9 @@
 # shellcheck disable=SC1091
 source .env
 
+KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
+KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
+
 kubectl delete deployment vault -n "$K8S_NAMESPACE" --ignore-not-found
 kubectl delete pod vault -n "$K8S_NAMESPACE" --ignore-not-found
 kubectl delete service vault -n "$K8S_NAMESPACE" --ignore-not-found
@@ -28,8 +31,8 @@ spec:
         app: vault
     spec:
       nodeSelector:
-        kubernetes.io/arch: amd64
-        kubernetes.io/os: linux
+        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
+        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       terminationGracePeriodSeconds: 10
       containers:
       - name: vault
