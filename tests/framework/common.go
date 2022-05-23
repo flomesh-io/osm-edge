@@ -623,13 +623,13 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha2.MeshConf
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
-		constants.OSMControllerName,
-		constants.OSMInjectorName,
-		"init",
-		"osm-crds",
-		constants.OSMBootstrapName,
-		"osm-preinstall",
-		"osm-healthcheck",
+		"osm-edge-controller",
+		"osm-edge-injector",
+		"osm-edge-sidecar-init",
+		"osm-edge-crds",
+		"osm-edge-bootstrap",
+		"osm-edge-preinstall",
+		"osm-edge-healthcheck",
 	}
 
 	return td.LoadImagesToKind(imageNames)

@@ -66,7 +66,7 @@ spec:
         kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
       - name: tcp-echo-server
-        image: "${CTR_REGISTRY}/osm-demo-tcp-echo-server:${CTR_TAG}"
+        image: "${CTR_REGISTRY}/osm-edge-demo-tcp-echo-server:${CTR_TAG}"
         imagePullPolicy: Always
         command: ["/tcp-echo-server"]
         args: [ "--port", "9000" ]

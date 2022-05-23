@@ -48,7 +48,7 @@ spec:
         kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
       - name: tcp-client
-        image: "${CTR_REGISTRY}/osm-demo-tcp-client:${CTR_TAG}"
+        image: "${CTR_REGISTRY}/osm-edge-demo-tcp-client:${CTR_TAG}"
         imagePullPolicy: Always
         command: ["/tcp-client"]
         args: [ "--server-address", "tcp-echo:9000" ]
