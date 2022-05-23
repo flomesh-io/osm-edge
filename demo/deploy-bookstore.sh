@@ -94,7 +94,7 @@ spec:
         kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
         kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
-        - image: "${CTR_REGISTRY}/osm-demo-bookstore:${CTR_TAG}"
+        - image: "${CTR_REGISTRY}/osm-edge-demo-bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:

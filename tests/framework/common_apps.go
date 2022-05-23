@@ -593,10 +593,10 @@ func (td *OsmTestData) GetOSSpecificTCPEchoPod(podName string, namespace string,
 	var command string
 	installOpts := Td.GetOSMInstallOpts()
 	if td.ClusterOS == constants.OSWindows {
-		image = fmt.Sprintf("%s/osm-demo-tcp-echo-server-windows:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		image = fmt.Sprintf("%s/osm-edge-demo-tcp-echo-server-windows:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
 		command = "/tcp-echo-server.exe"
 	} else {
-		image = fmt.Sprintf("%s/osm-demo-tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
+		image = fmt.Sprintf("%s/osm-edge-demo-tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag)
 		command = "/tcp-echo-server"
 	}
 	return Td.SimplePodApp(
