@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-
 	_ "embed" // required to embed resources
 	"fmt"
 	"io"
@@ -154,6 +153,8 @@ func (i *installCmd) loadOSMChart() error {
 	} else {
 		i.chartRequested, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
 	}
+
+	ensureNodeSelector(i.chartRequested)
 
 	if err != nil {
 		return fmt.Errorf("Error loading chart for installation: %s", err)

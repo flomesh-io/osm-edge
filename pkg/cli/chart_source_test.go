@@ -33,6 +33,7 @@ func TestChartSource(t *testing.T) {
 	assert.Nil(errors.Wrap(err, "failed to get chart source"))
 
 	ch, err := loader.LoadArchive(bytes.NewReader(source))
+	ensureNodeSelector(ch)
 	assert.Nil(errors.Wrap(err, "failed to load chart source"))
 
 	assert.Equal(ch.Name(), chartName)

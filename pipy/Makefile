@@ -50,6 +50,9 @@ disable-wasm-stats:
 enable-wasm-stats:
 	scripts/enable-wasm-stats.sh ${OSM_HOME} ${BUILDARCH}
 
+pull-images:
+	scripts/pull-images.sh ${OSM_HOME} ${BUILDARCH}
+
 cache-osm-images:
 	scripts/cache-osm-images.sh ${OSM_HOME} ${BUILDARCH}
 
@@ -88,6 +91,9 @@ enable-port-forward-addr:
 
 disable-test-e2e-docker-build:
 	scripts/disable-test-e2e-docker-build.sh ${OSM_HOME}
+
+test-e2e:
+	scripts/e2e.sh ${OSM_HOME}
 
 once: .env secret adapter-os-arch
 	@echo

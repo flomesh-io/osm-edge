@@ -3,7 +3,7 @@
 TARGETS      := darwin/amd64 darwin/arm64 linux/amd64 linux/arm64 windows/amd64
 BINNAME      ?= osm
 DIST_DIRS    := find * -type d -exec
-CTR_REGISTRY ?= openservicemesh
+CTR_REGISTRY ?= flomesh
 CTR_TAG      ?= latest
 VERIFY_TAGS  ?= false
 
@@ -15,7 +15,7 @@ ifeq ($(shell uname),Darwin)
 	SHA256 = shasum -a 256
 endif
 
-VERSION ?= dev
+VERSION ?= edge
 BUILD_DATE ?=
 GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate

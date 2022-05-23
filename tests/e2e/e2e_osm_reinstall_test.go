@@ -1,10 +1,9 @@
 package e2e
 
 import (
-	"path/filepath"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"path/filepath"
 
 	. "github.com/openservicemesh/osm/tests/framework"
 )

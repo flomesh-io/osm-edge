@@ -125,6 +125,9 @@ type InstallOSMOpts struct {
 
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
+
+	NodeSelectorArch string
+	NodeSelectorOs   string
 }
 
 // CleanupType identifies what triggered the cleanup

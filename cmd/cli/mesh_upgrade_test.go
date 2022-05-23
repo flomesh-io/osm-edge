@@ -31,6 +31,7 @@ func meshUpgradeConfig() *action.Configuration {
 
 func defaultMeshUpgradeCmd() *meshUpgradeCmd {
 	chart, err := loader.Load(testChartPath)
+	ensureNodeSelector(chart)
 	if err != nil {
 		panic(err)
 	}

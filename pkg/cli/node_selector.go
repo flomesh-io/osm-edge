@@ -1,18 +1,9 @@
-package e2e
+package cli
 
 import (
 	"helm.sh/helm/v3/pkg/chart"
 	"runtime"
-	"testing"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
-
-func TestSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ginkgo e2e tests")
-}
 
 func ensureNodeSelector(chartRequested *chart.Chart) {
 	if chartRequested == nil || chartRequested.Values == nil {

@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	rt "runtime"
 	"strings"
 	"time"
 
@@ -363,6 +364,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 
 		EnablePrivilegedInitContainer: enablePrivilegedInitContainer,
 		EnableIngressBackendPolicy:    true,
+		NodeSelectorArch:              rt.GOARCH,
 	}
 }
 
@@ -489,6 +491,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
 		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
 		fmt.Sprintf("osm.enableReconciler=%v", instOpts.EnableReconciler),
+		fmt.Sprintf("osm.nodeSelector.arch=%s", instOpts.NodeSelectorArch),
 	)
 
 	switch instOpts.CertManager {
