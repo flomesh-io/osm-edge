@@ -28,7 +28,8 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 		tm.SetProtocol(Protocol(trafficMatch.DestinationProtocol))
 		tm.SetPort(Port(trafficMatch.DestinationPort))
 
-		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP {
+		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP ||
+			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
 			httpRouteConfig := getInboundHttpRouteConfigs(inboundPolicy.HTTPRouteConfigsPerPort,
@@ -126,7 +127,8 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			tm.AddDestinationIPRange(DestinationIPRange(ipRange))
 		}
 
-		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP {
+		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP ||
+			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 			upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
@@ -203,7 +205,8 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 			tm.AddDestinationIPRange(DestinationIPRange(ipRange))
 		}
 
-		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP {
+		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP ||
+			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 
 			httpRouteConfigs := getEgressHttpRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort,
 				trafficMatch.DestinationPort, trafficMatch.Name)
