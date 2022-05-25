@@ -18,9 +18,9 @@ endif
 VERSION ?= dev
 BUILD_DATE ?=
 GIT_SHA=$$(git rev-parse HEAD)
-BUILD_DATE_VAR := github.com/flomesh-io/osm-edge/pkg/version.BuildDate
-BUILD_VERSION_VAR := github.com/flomesh-io/osm-edge/pkg/version.Version
-BUILD_GITCOMMIT_VAR := github.com/flomesh-io/osm-edge/pkg/version.GitCommit
+BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
+BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
+BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 DOCKER_GO_VERSION = 1.17
 DOCKER_BUILDX_PLATFORM ?= linux/amd64
 # Value for the --output flag on docker buildx build.
