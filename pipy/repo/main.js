@@ -1,4 +1,4 @@
-// version: '2022.05.13'
+// version: '2022.05.25'
 (config => (
   (
     specEnableEgress,
@@ -140,7 +140,7 @@
           (
             // Allow?
             _inMatch &&
-            _inMatch.Protocol !== 'http'
+            _inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc'
           ) && (
             // Load balance
             inClustersConfigs?.[
@@ -156,7 +156,7 @@
       )
     )
     .link(
-      'http_in', () => _inMatch?.Protocol === 'http',
+      'http_in', () => _inMatch?.Protocol === 'http' || _inMatch.Protocol === 'grpc',
       'connection_in', () => Boolean(_inTarget),
       'deny_in'
     )
@@ -188,7 +188,7 @@
           ),
 
           // Find a match by the service's route rules
-          match = _inMatch.HttpServiceRouteRules?.[service]?.find(o => (
+          match = _inMatch.HttpServiceRouteRules?.[service]?.find?.(o => (
             // Match methods
             (!o.Methods || o.Methods[msg.head.method]) &&
             // Match service whitelist
@@ -214,8 +214,19 @@
       )
     )
     .link(
+      'request_in2', () => Boolean(_inTarget) && _inMatch?.Protocol === 'grpc',
       'request_in', () => Boolean(_inTarget),
       'deny_in_http'
+    )
+
+    //
+    // Multiplexing access to HTTP/2 service
+    //
+    .pipeline('request_in2')
+    .muxHTTP(
+      'connection_in', () => _inTarget, {
+        version: 2
+      }
     )
 
     //
@@ -268,9 +279,9 @@
 
         _outMatch = (outTrafficMatches && outTrafficMatches[_outPort] && (
           // Strict matching Destination IP address
-          outTrafficMatches[_outPort].find(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
+          outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
           // EGRESS mode - does not check the IP
-          outTrafficMatches[_outPort].find(o => (!Boolean(o.DestinationIPRanges) &&
+          outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
             (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
         )),
 
@@ -279,7 +290,7 @@
           (
             // Allow?
             _outMatch &&
-            _outMatch.Protocol !== 'http'
+            _outMatch.Protocol !== 'http' && _outMatch.Protocol !== 'grpc'
           ) && (
             // Load balance
             outClustersConfigs?.[
@@ -299,7 +310,7 @@
       )
     )
     .link(
-      'http_out', () => _outMatch?.Protocol === 'http',
+      'http_out', () => _outMatch?.Protocol === 'http' || _outMatch?.Protocol === 'grpc',
       'connection_out', () => Boolean(_outTarget),
       'deny_out'
     )
@@ -328,7 +339,7 @@
           route = service && _outMatch.HttpServiceRouteRules?.[service],
 
           // Find a match by the service's route rules
-          match = route?.find(o => (
+          match = route?.find?.(o => (
             // Match methods
             (!o.Methods || o.Methods[msg.head.method]) &&
             // Match service whitelist
@@ -360,8 +371,19 @@
       )
     )
     .link(
+      'request_out2', () => Boolean(_outTarget) && _outMatch?.Protocol === 'grpc',
       'request_out', () => Boolean(_outTarget),
       'deny_out_http'
+    )
+
+    //
+    // Multiplexing access to HTTP/2 service
+    //
+    .pipeline('request_out2')
+    .muxHTTP(
+      'connection_out', () => _outTarget, {
+        version: 2
+      }
     )
 
     //
