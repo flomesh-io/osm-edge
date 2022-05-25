@@ -36,7 +36,7 @@ allCases=(
 "Version v1.23.6"
 "Version v1.22.9"
 "Version v1.21.12"
-"Version v1.20.10"
+"Version v1.20.15"
 "Version v1.19.16"
 "#Custom WASM metrics between one client pod and one server"
 "Multiple service ports"
