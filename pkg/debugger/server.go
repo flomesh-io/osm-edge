@@ -1,6 +1,7 @@
 package debugger
 
 import (
+	"github.com/openservicemesh/osm/pkg/sidecar"
 	"net/http"
 	"net/http/pprof"
 
@@ -39,7 +40,7 @@ func (ds DebugConfig) GetHandlers() map[string]http.Handler {
 
 // NewDebugConfig returns an implementation of DebugConfig interface.
 func NewDebugConfig(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger,
-	proxyRegistry ProxyRegistry, kubeConfig *rest.Config, kubeClient kubernetes.Interface,
+	proxyRegistry sidecar.ProxyRegistry, kubeConfig *rest.Config, kubeClient kubernetes.Interface,
 	cfg configurator.Configurator, kubeController k8s.Controller, msgBroker *messaging.Broker) DebugConfig {
 	return DebugConfig{
 		certDebugger:        certDebugger,
