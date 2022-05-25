@@ -8,9 +8,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
       - name: Publish Helm charts
-        uses: stefanprodan/helm-gh-pages@v1.1.0
+        uses: stefanprodan/helm-gh-pages@v1.5.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          charts_dir: charts
