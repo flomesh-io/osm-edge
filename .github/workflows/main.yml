@@ -51,6 +51,7 @@ jobs:
         with:
           version: latest
           skip-pkg-cache: true
+          skip-build-cache: true
 
   codegen:
     name: Codegen
