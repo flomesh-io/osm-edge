@@ -51,7 +51,7 @@ jobs:
           kubectl version
           kubectl get nodes
       - name: Setup Go 1.17
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.17
       - name: Install OSM via OSM CLI
