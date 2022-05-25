@@ -11,7 +11,7 @@ import (
 )
 
 func getLatestReleaseVersion() (string, error) {
-	url := "https://api.github.com/repos/openservicemesh/osm/releases/latest"
+	url := "https://api.github.com/repos/flomesh-io/osm-edge/releases/latest"
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to create GET request for latest release version from %s", url)
@@ -49,7 +49,7 @@ func outputLatestReleaseVersion(out io.Writer, latestRelease string, currentRele
 		return err
 	}
 	if current.LessThan(latest) {
-		fmt.Fprintf(out, "\nOSM %s is now available. Please see https://github.com/openservicemesh/osm/releases/latest.\nWARNING: upgrading could introduce breaking changes. Please review the release notes.\n\n", latestRelease)
+		fmt.Fprintf(out, "\nOSM %s is now available. Please see https://github.com/flomesh-io/osm-edge/releases/latest.\nWARNING: upgrading could introduce breaking changes. Please review the release notes.\n\n", latestRelease)
 	}
 	return nil
 }
