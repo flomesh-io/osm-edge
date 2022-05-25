@@ -11,7 +11,7 @@ jobs:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
       CTR_TAG: latest-main
-      CTR_REGISTRY: ${{ github.repository_owner }}
+      CTR_REGISTRY: flomesh
     steps:
       - name: Checkout
         uses: actions/checkout@v2
