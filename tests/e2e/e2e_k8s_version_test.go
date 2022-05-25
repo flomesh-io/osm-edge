@@ -18,11 +18,20 @@ var _ = OSMDescribe("Test HTTP traffic for different k8s versions",
 		Bucket: 6,
 	},
 	func() {
-		Context("Version v1.22.8", func() {
-			testK8sVersion("v1.22.8")
+		Context("Version v1.23.6", func() {
+			testK8sVersion("v1.23.6")
 		})
-		Context("Version v1.21.11", func() {
-			testK8sVersion("v1.21.11")
+		Context("Version v1.22.9", func() {
+			testK8sVersion("v1.22.9")
+		})
+		Context("Version v1.21.12", func() {
+			testK8sVersion("v1.21.12")
+		})
+		Context("Version v1.20.15", func() {
+			testK8sVersion("v1.20.15")
+		})
+		Context("Version v1.19.16", func() {
+			testK8sVersion("v1.19.16")
 		})
 	})
 
@@ -66,7 +75,7 @@ func testK8sVersion(version string) {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 600*time.Second, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, false /* no service for client */)
 

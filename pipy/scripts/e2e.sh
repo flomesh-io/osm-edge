@@ -33,8 +33,11 @@ allCases=(
 "HTTP ingress with IngressBackend"
 "When OSM is Installed"
 "Test IP range exclusion"
-"Version v1.22.8"
-"Version v1.21.11"
+"Version v1.23.6"
+"Version v1.22.9"
+"Version v1.21.12"
+"Version v1.20.10"
+"Version v1.19.16"
 "#Custom WASM metrics between one client pod and one server"
 "Multiple service ports"
 "Multiple services matching same pod"
@@ -69,5 +72,5 @@ allCases=(
 # shellcheck disable=SC2068
 for item in "${allCases[@]}"; do
   echo -e "Testing $item ..."
-  E2E_FLAGS="-ginkgo.focus='$item' --timeout=0" make test-e2e 2>/dev/null | grep 'Passed.*Failed.*Skipped'
+  TIMEOUT=600s E2E_FLAGS="-ginkgo.focus='$item' --timeout=0" make test-e2e 2>/dev/null | grep 'Passed.*Failed.*Skipped'
 done
