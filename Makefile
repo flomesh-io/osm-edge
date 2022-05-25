@@ -15,7 +15,7 @@ ifeq ($(shell uname),Darwin)
 	SHA256 = shasum -a 256
 endif
 
-VERSION ?= edge
+VERSION ?= dev
 BUILD_DATE ?=
 GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/flomesh-io/osm-edge/pkg/version.BuildDate
@@ -269,8 +269,8 @@ dist:
 		cd _dist && \
 		$(DIST_DIRS) cp ../LICENSE {} \; && \
 		$(DIST_DIRS) cp ../README.md {} \; && \
-		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
-		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; && \
+		$(DIST_DIRS) tar -zcf osm-edge-${VERSION}-{}.tar.gz {} \; && \
+		$(DIST_DIRS) zip -r osm-edge-${VERSION}-{}.zip {} \; && \
 		$(SHA256) osm-* > sha256sums.txt \
 	)
 

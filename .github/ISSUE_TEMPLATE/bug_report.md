@@ -25,7 +25,7 @@ Be sure to not include any sensitive information. Sensitive information should _
 - Permissive Traffic Policy  [ ]
 - Ingress                    [ ]
 - Egress                     [ ]
-- Envoy Control Plane        [ ]
+- Sidecar Control Plane      [ ]
 - CLI Tool                   [ ]
 - Metrics                    [ ]
 - Certificate Management     [ ]
