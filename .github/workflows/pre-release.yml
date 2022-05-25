@@ -6,7 +6,7 @@ on:
       - "v0.0.0-nightly*"
 
 env:
-  CTR_REGISTRY: ${{ github.repository_owner }}
+  CTR_REGISTRY: flomesh
 
 jobs:
   version:
