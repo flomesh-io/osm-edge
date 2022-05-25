@@ -65,56 +65,6 @@ func (mr *MockConfiguratorMockRecorder) GetConfigResyncInterval() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfigResyncInterval", reflect.TypeOf((*MockConfigurator)(nil).GetConfigResyncInterval))
 }
 
-// GetSidecarClass mocks base method.
-func (m *MockConfigurator) GetSidecarClass() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSidecarClass")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetSidecarImage mocks base method.
-func (m *MockConfigurator) GetSidecarImage() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSidecarImage")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetSidecarImage indicates an expected call of GetSidecarImage.
-func (mr *MockConfiguratorMockRecorder) GetSidecarImage() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarImage))
-}
-
-// GetSidecarLogLevel mocks base method.
-func (m *MockConfigurator) GetSidecarLogLevel() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSidecarLogLevel")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetSidecarLogLevel indicates an expected call of GetSidecarLogLevel.
-func (mr *MockConfiguratorMockRecorder) GetSidecarLogLevel() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarLogLevel))
-}
-
-// GetSidecarWindowsImage mocks base method.
-func (m *MockConfigurator) GetSidecarWindowsImage() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSidecarWindowsImage")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetSidecarWindowsImage indicates an expected call of GetSidecarWindowsImage.
-func (mr *MockConfiguratorMockRecorder) GetSidecarWindowsImage() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarWindowsImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarWindowsImage))
-}
-
 // GetFeatureFlags mocks base method.
 func (m *MockConfigurator) GetFeatureFlags() v1alpha2.FeatureFlags {
 	m.ctrl.T.Helper()
@@ -254,6 +204,62 @@ func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 func (mr *MockConfiguratorMockRecorder) GetServiceCertValidityPeriod() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceCertValidityPeriod", reflect.TypeOf((*MockConfigurator)(nil).GetServiceCertValidityPeriod))
+}
+
+// GetSidecarClass mocks base method.
+func (m *MockConfigurator) GetSidecarClass() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarClass")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSidecarClass indicates an expected call of GetSidecarClass.
+func (mr *MockConfiguratorMockRecorder) GetSidecarClass() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarClass", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarClass))
+}
+
+// GetSidecarImage mocks base method.
+func (m *MockConfigurator) GetSidecarImage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarImage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSidecarImage indicates an expected call of GetSidecarImage.
+func (mr *MockConfiguratorMockRecorder) GetSidecarImage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarImage))
+}
+
+// GetSidecarLogLevel mocks base method.
+func (m *MockConfigurator) GetSidecarLogLevel() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarLogLevel")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSidecarLogLevel indicates an expected call of GetSidecarLogLevel.
+func (mr *MockConfiguratorMockRecorder) GetSidecarLogLevel() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarLogLevel))
+}
+
+// GetSidecarWindowsImage mocks base method.
+func (m *MockConfigurator) GetSidecarWindowsImage() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarWindowsImage")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetSidecarWindowsImage indicates an expected call of GetSidecarWindowsImage.
+func (mr *MockConfiguratorMockRecorder) GetSidecarWindowsImage() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarWindowsImage", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarWindowsImage))
 }
 
 // GetTracingEndpoint mocks base method.
