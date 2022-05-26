@@ -245,7 +245,7 @@ func main() {
 	var xdsServer XDSServer
 	var debugConfig debugger.DebugConfig
 
-	if cfg.GetSidecarClass() == constants.SidecarClasssPipy {
+	if cfg.GetSidecarClass() == constants.SidecarClassPipy {
 		proxyMapper := &pipyregistry.KubeProxyServiceMapper{KubeController: k8sClient}
 		proxyRegistry := pipyregistry.NewProxyRegistry(proxyMapper, msgBroker)
 		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)

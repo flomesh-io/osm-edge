@@ -93,7 +93,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	}
 
 	// Add the sidecar
-	if wh.configurator.GetSidecarClass() == constants.SidecarClasssPipy {
+	if wh.configurator.GetSidecarClass() == constants.SidecarClassPipy {
 		sidecar := getPipySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS, bootstrapCertificate, wh.osmNamespace)
 		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 	} else {

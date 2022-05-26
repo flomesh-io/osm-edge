@@ -15,9 +15,7 @@ import (
 	"strings"
 )
 
-func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity,
-	pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {
-
+func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {
 	itp := pipyConf.NewInboundTrafficPolicy()
 
 	for _, trafficMatch := range inboundPolicy.TrafficMatches {

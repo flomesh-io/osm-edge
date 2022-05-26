@@ -232,6 +232,9 @@ const (
 )
 
 const (
-	SidecarClasssEnvoy = "envoy"
-	SidecarClasssPipy  = "pipy"
+	// sidecarClass field value for context field.
+	SidecarClassEnvoy = "envoy"
+
+	// sidecarClass field value for context field.
+	SidecarClassPipy = "pipy"
 )

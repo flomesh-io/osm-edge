@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/pipy"
@@ -35,7 +32,7 @@ type KubeProxyServiceMapper struct {
 	KubeController k8s.Controller
 }
 
-// ListProxyServices maps an Sidecar instance to a number of Kubernetes services.
+// ListProxyPods maps an Sidecar instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyPods() []v1.Pod {
 	allPods := k.KubeController.ListPods()
 	var matchedPods []v1.Pod
@@ -105,40 +102,4 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service
 	}
 
 	return serviceList
-}
-
-func listPodsForService(service *v1.Service, kubeController k8s.Controller) []v1.Pod {
-	svcRawSelector := service.Spec.Selector
-	// service has no selectors, we do not need to match against the pod label
-	if len(svcRawSelector) == 0 {
-		return nil
-	}
-	selector := labels.Set(svcRawSelector).AsSelector()
-
-	allPods := kubeController.ListPods()
-
-	var matchedPods []v1.Pod
-	for _, pod := range allPods {
-		if service.Namespace != pod.Namespace {
-			continue
-		}
-		if selector.Matches(labels.Set(pod.Labels)) {
-			matchedPods = append(matchedPods, *pod)
-		}
-	}
-
-	return matchedPods
-}
-
-func getCertCommonNameForPod(pod v1.Pod) (certificate.CommonName, error) {
-	proxyUIDStr, exists := pod.Labels[constants.SidecarUniqueIDLabelName]
-	if !exists {
-		return "", errors.Errorf("no %s label", constants.SidecarUniqueIDLabelName)
-	}
-	proxyUID, err := uuid.Parse(proxyUIDStr)
-	if err != nil {
-		return "", errors.Wrapf(err, "invalid UID value for %s label", constants.SidecarUniqueIDLabelName)
-	}
-	cn := pipy.NewXDSCertCommonName(proxyUID, pipy.KindSidecar, pod.Spec.ServiceAccountName, pod.Namespace)
-	return cn, nil
 }

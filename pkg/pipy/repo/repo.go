@@ -1,6 +1,7 @@
 package repo
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -12,8 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"net"
 	"net/http"
-	"os"
-	"path"
 	"strings"
 	"sync"
 	"time"
@@ -25,48 +24,38 @@ const (
 	HttpStatusNotFound    = 404
 	RequestURIMaxLength   = 2083
 
-	CodeBasePrefixRepo     = "/repo"
-	CodebaseSuffixJs       = ".js"
-	CodebaseSuffixJson     = ".json"
-	CodebasePipyPolicyJson = "/pipy.json"
+	codeBasePrefixRepo = "/repo"
+	codebasePlugin     = "/main.js"
+	codebasePolicy     = "/pipy.json"
+
+	httpMethodGet = "GET"
 )
 
+// codebasePluginSource is the main pjs.
+// Its value is embedded at build time.
+//go:embed repo.main.js
+var codebasePluginSource []byte
+
 var (
-	codebasePlugins = []string{
-		"/main.js",
-	}
-
-	codebaseConfigs = []string{
-		"/pipy.json",
-	}
-
 	codebaseLayout      = make(map[string]bool)
-	codebasePluginsView = strings.Join(codebasePlugins, "\n")
-	codebaseConfigsView = strings.Join(codebaseConfigs, "\n")
+	codebasePluginsView = strings.Join([]string{codebasePlugin}, "\n")
+	codebaseConfigsView = strings.Join([]string{codebasePolicy}, "\n")
 
 	pluginResources = make(map[pipy.RepoResource]*pipy.RepoResourceV)
 )
 
 func init() {
-	for _, v := range codebaseConfigs {
-		codebaseLayout[v] = true
-	}
+	codebaseLayout[codebasePlugin] = true
 
 	hashCodes := make([]string, 0)
-	for _, v := range codebasePlugins {
-		codebaseLayout[v] = true
-		resourceName := path.Join(CodeBasePrefixRepo, v)
-
-		if resourceContent, err := loadCodebaseResource(resourceName); err == nil {
-			resourceV := new(pipy.RepoResourceV)
-			resourceV.Content = string(resourceContent)
-			if hashCode, err := utils.HashFromString(resourceV.Content); err == nil {
-				resourceV.Version = fmt.Sprintf("%d", hashCode)
-				hashCodes = append(hashCodes, resourceV.Version)
-			}
-			pluginResources[pipy.RepoResource(v)] = resourceV
-		}
+	codebaseLayout[codebasePlugin] = true
+	resourceV := new(pipy.RepoResourceV)
+	resourceV.Content = string(codebasePluginSource)
+	if hashCode, err := utils.HashFromString(resourceV.Content); err == nil {
+		resourceV.Version = fmt.Sprintf("%d", hashCode)
+		hashCodes = append(hashCodes, resourceV.Version)
 	}
+	pluginResources[pipy.RepoResource(codebasePlugin)] = resourceV
 }
 
 func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
@@ -121,13 +110,8 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 
 		uri := req.RequestURI
 
-		if strings.HasSuffix(uri, CodebaseSuffixJs) {
+		if strings.HasSuffix(uri, codebasePlugin) {
 			r.handlePipyStaticScriptRequest(w, req, uri, certCommonName)
-			return
-		}
-
-		if strings.HasSuffix(uri, CodebaseSuffixJson) && !strings.HasSuffix(uri, CodebasePipyPolicyJson) {
-			r.handlePipyStaticJsonRequest(w, req, uri, certCommonName, connectedProxy)
 			return
 		}
 
@@ -148,7 +132,7 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 			return
 		}
 
-		if strings.HasSuffix(uri, CodebasePipyPolicyJson) {
+		if strings.HasSuffix(uri, codebasePolicy) {
 			r.handlePipyPolicyJsonRequest(w, req, latestRepoCodebaseV, certCommonName, pipyConf)
 			return
 		}
@@ -159,7 +143,7 @@ func (r *Repo) handlePipyPolicyJsonRequest(w http.ResponseWriter, req *http.Requ
 	w.Header().Set(`Etag`, latestRepoCodebaseV)
 	log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
 		req.RequestURI, req.RemoteAddr, latestRepoCodebaseV)
-	if "GET" == req.Method {
+	if httpMethodGet == req.Method {
 		if _, netErr := fmt.Fprint(w, string(pipyConf.bytes)); netErr != nil {
 			log.Error().Err(netErr).Msgf("Error writing response content")
 		}
@@ -176,7 +160,7 @@ func (r *Repo) handlePipyCodebaseLayoutRequest(w http.ResponseWriter, req *http.
 	w.Header().Set(`Etag`, etag)
 	log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
 		req.RequestURI, req.RemoteAddr, latestRepoCodebaseV)
-	if strings.EqualFold(`GET`, req.Method) {
+	if httpMethodGet == req.Method {
 		if _, netErr := fmt.Fprint(w, codebasePluginsView, "\n", codebaseConfigsView, "\n"); netErr != nil {
 			log.Error().Err(netErr).Msgf("Error writing response content")
 		}
@@ -204,41 +188,10 @@ func (r *Repo) getCodebaseStatus(w http.ResponseWriter, req *http.Request, conne
 	return codebaseConf, latestRepoCodebaseV, true
 }
 
-func (r *Repo) handlePipyStaticJsonRequest(w http.ResponseWriter, req *http.Request, uri string,
-	certCommonName certificate.CommonName, connectedProxy *ConnectedProxy) {
-	resourceName := strings.Replace(uri, fmt.Sprintf("/%s", certCommonName), "", 1)
-	resourceURI := strings.TrimPrefix(resourceName, CodeBasePrefixRepo)
-	if _, find := codebaseLayout[resourceURI]; find {
-		resourceV, ok := connectedProxy.proxy.GetLatestRepoResources(pipy.RepoResource(resourceURI))
-		if !ok {
-			if resourceContent, loadErr := loadCodebaseResource(resourceName); loadErr == nil {
-				resourceV = new(pipy.RepoResourceV)
-				resourceV.Content = string(resourceContent)
-				connectedProxy.proxy.SetLatestRepoResources(pipy.RepoResource(resourceURI), resourceV)
-			}
-		}
-
-		if resourceV != nil {
-			w.Header().Set(`Etag`, resourceV.Version)
-			log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
-				req.RequestURI, req.RemoteAddr, resourceV.Version)
-			if "GET" == req.Method {
-				if _, netErr := fmt.Fprint(w, resourceV.Content); netErr != nil {
-					log.Error().Err(netErr).Msgf("Error writing response content")
-				}
-			}
-		} else {
-			w.WriteHeader(HttpStatusNotFound)
-		}
-	} else {
-		w.WriteHeader(HttpStatusNotFound)
-	}
-}
-
 func (r *Repo) handlePipyStaticScriptRequest(w http.ResponseWriter, req *http.Request, uri string,
 	certCommonName certificate.CommonName) {
 	resourceName := strings.Replace(uri, fmt.Sprintf("/%s", certCommonName), "", 1)
-	resourceURI := strings.TrimPrefix(resourceName, CodeBasePrefixRepo)
+	resourceURI := strings.TrimPrefix(resourceName, codeBasePrefixRepo)
 	if _, find := codebaseLayout[resourceURI]; find {
 		if resourceV, ok := pluginResources[pipy.RepoResource(resourceURI)]; ok {
 			w.Header().Set(`Etag`, resourceV.Version)
@@ -312,24 +265,4 @@ func (r *Repo) validateRequest(req *http.Request) (certificate.CommonName, *net.
 	}
 
 	return certificate.CommonName(pathVars[2]), remoteAddr, true
-}
-
-func loadCodebaseResource(resourceName string) (resourceContent []byte, err error) {
-	var resourceFile *os.File
-	resourceFile, err = os.Open(resourceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error opening resource file[%s]", resourceName)
-		return
-	}
-
-	defer func(resourceFile *os.File) {
-		_ = resourceFile.Close()
-	}(resourceFile)
-
-	resourceContent, err = ioutil.ReadAll(resourceFile)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error reading resource file[%s]", resourceName)
-		return
-	}
-	return
 }
