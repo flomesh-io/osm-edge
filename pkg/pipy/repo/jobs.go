@@ -1,8 +1,10 @@
 package repo
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"encoding/json"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/pipy"
@@ -24,6 +26,7 @@ func (job *PipyConfGeneratorJob) GetDoneCh() <-chan struct{} {
 	return job.done
 }
 
+// Run is the logic unit of job
 func (job *PipyConfGeneratorJob) Run() {
 	defer close(job.done)
 	if job.proxy == nil {

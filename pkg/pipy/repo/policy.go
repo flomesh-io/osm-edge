@@ -2,11 +2,12 @@ package repo
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/pipy/registry"
-	"regexp"
-	"strings"
 )
 
 var (
@@ -185,9 +186,8 @@ func (itp *InboundTrafficPolicy) GetTrafficMatch(port Port) *InboundTrafficMatch
 	}
 	if trafficMatch, exist := itp.TrafficMatches[port]; exist {
 		return trafficMatch
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (otp *OutboundTrafficPolicy) NewTrafficMatch(port Port) *OutboundTrafficMatch {

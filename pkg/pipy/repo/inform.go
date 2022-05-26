@@ -1,6 +1,9 @@
 package repo
 
 import (
+	"strings"
+	"sync"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -10,8 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/pipy"
-	"strings"
-	"sync"
 )
 
 func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {

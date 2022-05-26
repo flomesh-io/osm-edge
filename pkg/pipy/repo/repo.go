@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	CertificateNoSerial   = "NoSerial"
-	HttpStatusNotModified = 304
-	HttpStatusNotFound    = 404
-	RequestURIMaxLength   = 2083
+	certificateNoSerial   = "NoSerial"
+	httpStatusNotModified = 304
+	httpStatusNotFound    = 404
+	requestURIMaxLength   = 2083
 
 	codeBasePrefixRepo = "/repo"
 	codebasePlugin     = "/main.js"
@@ -54,7 +54,7 @@ func init() {
 	pluginResources[codebasePlugin] = resourceV
 }
 
-func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
+func (r *Repo) registerProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
 	var actual interface{}
 	connectedProxy = &ConnectedProxy{
 		proxy:       proxy,
@@ -119,7 +119,7 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 		var pipyConf *PipyConf
 		castOk := false
 		if pipyConf, castOk = codebaseConf.(*PipyConf); !castOk {
-			w.WriteHeader(HttpStatusNotFound)
+			w.WriteHeader(httpStatusNotFound)
 			return
 		}
 
@@ -176,7 +176,7 @@ func (r *Repo) getCodebaseStatus(w http.ResponseWriter, req *http.Request, conne
 		}
 		<-r.server.workqueues.AddJob(newJob())
 
-		w.WriteHeader(HttpStatusNotModified)
+		w.WriteHeader(httpStatusNotModified)
 		log.Debug().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s Status:304",
 			req.RequestURI, req.RemoteAddr)
 		return nil, "", false
@@ -199,10 +199,10 @@ func (r *Repo) handlePipyStaticScriptRequest(w http.ResponseWriter, req *http.Re
 				}
 			}
 		} else {
-			w.WriteHeader(HttpStatusNotFound)
+			w.WriteHeader(httpStatusNotFound)
 		}
 	} else {
-		w.WriteHeader(HttpStatusNotFound)
+		w.WriteHeader(httpStatusNotFound)
 	}
 }
 
@@ -217,14 +217,14 @@ func (r *Repo) handlePipyReportRequest(connectedProxy *ConnectedProxy, req *http
 }
 
 func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remoteAddr *net.TCPAddr) (*ConnectedProxy, bool) {
-	proxy, err := pipy.NewProxy(certCommonName, CertificateNoSerial, remoteAddr)
+	proxy, err := pipy.NewProxy(certCommonName, certificateNoSerial, remoteAddr)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).
 			Msgf("Error initializing proxy with certificate Common Name=%s", certCommonName)
 		return nil, false
 	}
 
-	connectedProxy, exists := r.RegisterProxy(proxy)
+	connectedProxy, exists := r.registerProxy(proxy)
 	if !exists {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
@@ -245,7 +245,7 @@ func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remote
 }
 
 func (r *Repo) validateRequest(req *http.Request) (certificate.CommonName, *net.TCPAddr, bool) {
-	if len(req.RequestURI) > RequestURIMaxLength {
+	if len(req.RequestURI) > requestURIMaxLength {
 		return "", nil, false
 	}
 
