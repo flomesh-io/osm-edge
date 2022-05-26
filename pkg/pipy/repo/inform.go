@@ -35,7 +35,7 @@ func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connected
 	s.proxyRegistry.RegisterProxy(proxy)
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
-	defer repo.UnregisterProxy(proxy)
+	defer repo.unregisterProxy(proxy)
 
 	connectedProxy.quit = make(chan struct{})
 	// Subscribe to both broadcast and proxy UUID specific events

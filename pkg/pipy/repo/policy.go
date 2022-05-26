@@ -144,14 +144,14 @@ func (tm *TrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weigh
 	tm.TargetClusters[clusterName] = weight
 }
 
-func (tm *TrafficMatch) addHttpHostPort2Service(hostPort HttpHostPort, ruleName HttpRouteRuleName) {
+func (tm *TrafficMatch) addHTTPHostPort2Service(hostPort HttpHostPort, ruleName HttpRouteRuleName) {
 	if tm.HttpHostPort2Service == nil {
 		tm.HttpHostPort2Service = make(HttpHostPort2Service)
 	}
 	tm.HttpHostPort2Service[hostPort] = ruleName
 }
 
-func (tm *TrafficMatch) newHttpServiceRouteRules(httpRouteRuleName HttpRouteRuleName) *HttpRouteRules {
+func (tm *TrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HttpRouteRuleName) *HttpRouteRules {
 	if tm.HttpServiceRouteRules == nil {
 		tm.HttpServiceRouteRules = make(HttpServiceRouteRules)
 	}

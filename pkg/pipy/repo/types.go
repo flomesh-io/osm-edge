@@ -40,11 +40,13 @@ type Server struct {
 	msgBroker *messaging.Broker
 }
 
+// Repo
 type Repo struct {
 	server           *Server
 	connectedProxies sync.Map
 }
 
+// ConnectedProxy
 type ConnectedProxy struct {
 	proxy        *pipy.Proxy
 	connectedAt  time.Time
@@ -53,6 +55,7 @@ type ConnectedProxy struct {
 	quit         chan struct{}
 }
 
+// PipyReport
 type PipyReport struct {
 	Timestamp uint64 `json:"timestamp"`
 	Uuid      string `json:"uuid"`

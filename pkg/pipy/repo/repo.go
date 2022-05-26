@@ -73,12 +73,12 @@ func (r *Repo) registerProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy,
 	return
 }
 
-func (r *Repo) UnregisterProxy(p *pipy.Proxy) {
+func (r *Repo) unregisterProxy(p *pipy.Proxy) {
 	r.connectedProxies.Delete(p.GetCertificateCommonName())
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 
-func (r *Repo) GetPipyRepoHandler() http.Handler {
+func (r *Repo) getPipyRepoHandler() http.Handler {
 
 	r.server.proxyRegistry.SetReleaseCertificateCallback(func(podUID types.UID, endpointCN certificate.CommonName) {
 		if actual, exist := r.connectedProxies.Load(endpointCN); exist {
@@ -131,13 +131,13 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 		}
 
 		if strings.HasSuffix(uri, codebasePolicy) {
-			r.handlePipyPolicyJsonRequest(w, req, latestRepoCodebaseV, certCommonName, pipyConf)
+			r.handlePipyPolicyJSONRequest(w, req, latestRepoCodebaseV, certCommonName, pipyConf)
 			return
 		}
 	})
 }
 
-func (r *Repo) handlePipyPolicyJsonRequest(w http.ResponseWriter, req *http.Request, latestRepoCodebaseV string, certCommonName certificate.CommonName, pipyConf *PipyConf) {
+func (r *Repo) handlePipyPolicyJSONRequest(w http.ResponseWriter, req *http.Request, latestRepoCodebaseV string, certCommonName certificate.CommonName, pipyConf *PipyConf) {
 	w.Header().Set(`Etag`, latestRepoCodebaseV)
 	log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
 		req.RequestURI, req.RemoteAddr, latestRepoCodebaseV)
