@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"github.com/openservicemesh/osm/pkg/pipy"
 	"net"
 
 	"github.com/google/uuid"
@@ -12,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/pipy"
 )
 
 // Routine which fulfills listening to proxy broadcasts

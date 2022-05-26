@@ -1,8 +1,9 @@
 package sidecar
 
 import (
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 // Proxy is an interface providing adaptiving proxies of multiple sidecars

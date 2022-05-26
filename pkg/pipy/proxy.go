@@ -2,13 +2,13 @@ package pipy
 
 import (
 	"fmt"
-	v1 "k8s.io/api/core/v1"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -53,12 +53,14 @@ type Proxy struct {
 	PodMetadata *PodMetadata
 }
 
+// GetCodebase return codebaseConf, codebaseETag, codebaseStatus
 func (p *Proxy) GetCodebase() (interface{}, string, bool) {
 	p.codebaseLock.RLock()
 	defer p.codebaseLock.RUnlock()
 	return p.codebaseConf, p.latestRepoCodebaseV, p.codebaseReady
 }
 
+// SetCodebase set codebaseConf, codebaseETag, codebaseStatus
 func (p *Proxy) SetCodebase(codebaseConf interface{}, latestRepoCodebaseV string, codebaseReady bool) {
 	p.codebaseLock.Lock()
 	defer p.codebaseLock.Unlock()
@@ -167,11 +169,13 @@ func (p *Proxy) GetIP() net.Addr {
 	return p.Addr
 }
 
+// GetLatestRepoResources return latest repo resources
 func (p *Proxy) GetLatestRepoResources(repoResource RepoResource) (*RepoResourceV, bool) {
 	repoResourceV, ok := p.latestRepoResources[repoResource]
 	return repoResourceV, ok
 }
 
+// SetLatestRepoResources set latest repo resources
 func (p *Proxy) SetLatestRepoResources(repoResource RepoResource, resource *RepoResourceV) {
 	if hashcode, err := utils.HashFromString(resource.Content); err == nil {
 		resource.Version = fmt.Sprintf("%d", hashcode)
@@ -179,6 +183,7 @@ func (p *Proxy) SetLatestRepoResources(repoResource RepoResource, resource *Repo
 	p.latestRepoResources[repoResource] = resource
 }
 
+// SetReportRepoCodebaseV record the version of sidecar
 func (p *Proxy) SetReportRepoCodebaseV(reportRepoCodebaseV string) {
 	p.reportRepoCodebaseV = reportRepoCodebaseV
 }

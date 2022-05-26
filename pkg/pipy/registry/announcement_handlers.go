@@ -1,17 +1,22 @@
 package registry
 
 import (
+	"sync"
+
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sync"
 )
 
 var (
-	CachedMeshPods     = make(map[string]string)
-	CachedMeshPodsV    = uint64(0)
+	// CachedMeshPods cache mesh pods
+	CachedMeshPods = make(map[string]string)
+	// CachedMeshPodsV the latest version of CachedMeshPodsV
+	CachedMeshPodsV = uint64(0)
+	// CachedMeshPodsLock the lock of CachedMeshPods
 	CachedMeshPodsLock = sync.RWMutex{}
 )
 
@@ -55,10 +60,12 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manag
 	}
 }
 
+// SetReleaseCertificateCallback is used to set the callback after certificate is released
 func (pr *ProxyRegistry) SetReleaseCertificateCallback(cb func(podUID types.UID, endpointCN certificate.CommonName)) {
 	pr.releaseCertificateCallback = cb
 }
 
+// CacheMeshPodsHandler handles mesh pods cache
 func (pr *ProxyRegistry) CacheMeshPodsHandler(stop <-chan struct{}) {
 	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
 	podChan := kubePubSub.Sub(announcements.PodUpdated.String())
@@ -89,16 +96,18 @@ func (pr *ProxyRegistry) CacheMeshPodsHandler(stop <-chan struct{}) {
 	}
 }
 
+// AddCachedMeshPod is used to cache mesh pod by addr
 func AddCachedMeshPod(addr, cn string) {
 	CachedMeshPodsLock.Lock()
-	CachedMeshPodsLock.Unlock()
+	defer CachedMeshPodsLock.Unlock()
 	CachedMeshPods[addr] = cn
 	CachedMeshPodsV++
 }
 
+// RemoveCachedMeshPod is used to remove cached mesh pod by addr
 func RemoveCachedMeshPod(addr string) {
 	CachedMeshPodsLock.Lock()
-	CachedMeshPodsLock.Unlock()
+	defer CachedMeshPodsLock.Unlock()
 	delete(CachedMeshPods, addr)
 	CachedMeshPodsV++
 }

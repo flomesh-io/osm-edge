@@ -1,76 +1,63 @@
 package repo
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"net/http"
+	"strings"
+	"sync"
+	"time"
+
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/pipy"
 	"github.com/openservicemesh/osm/pkg/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/utils"
-	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
-	"net"
-	"net/http"
-	"os"
-	"path"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
-	CertificateNoSerial   = "NoSerial"
-	HttpStatusNotModified = 304
-	HttpStatusNotFound    = 404
-	RequestURIMaxLength   = 2083
+	certificateNoSerial   = "NoSerial"
+	httpStatusNotModified = 304
+	httpStatusNotFound    = 404
+	requestURIMaxLength   = 2083
 
-	CodeBasePrefixRepo     = "/repo"
-	CodebaseSuffixJs       = ".js"
-	CodebaseSuffixJson     = ".json"
-	CodebasePipyPolicyJson = "/pipy.json"
+	codeBasePrefixRepo = "/repo"
+	codebasePlugin     = "/main.js"
+	codebasePolicy     = "/pipy.json"
+
+	httpMethodGet = "GET"
 )
 
+// codebasePluginSource is the main pjs.
+// Its value is embedded at build time.
+//go:embed repo.main.js
+var codebasePluginSource []byte
+
 var (
-	codebasePlugins = []string{
-		"/main.js",
-	}
-
-	codebaseConfigs = []string{
-		"/pipy.json",
-	}
-
 	codebaseLayout      = make(map[string]bool)
-	codebasePluginsView = strings.Join(codebasePlugins, "\n")
-	codebaseConfigsView = strings.Join(codebaseConfigs, "\n")
+	codebasePluginsView = strings.Join([]string{codebasePlugin}, "\n")
+	codebaseConfigsView = strings.Join([]string{codebasePolicy}, "\n")
 
 	pluginResources = make(map[pipy.RepoResource]*pipy.RepoResourceV)
 )
 
 func init() {
-	for _, v := range codebaseConfigs {
-		codebaseLayout[v] = true
+	codebaseLayout[codebasePlugin] = true
+	resourceV := new(pipy.RepoResourceV)
+	resourceV.Content = string(codebasePluginSource)
+	if hashCode, err := utils.HashFromString(resourceV.Content); err == nil {
+		resourceV.Version = fmt.Sprintf("%d", hashCode)
 	}
-
-	hashCodes := make([]string, 0)
-	for _, v := range codebasePlugins {
-		codebaseLayout[v] = true
-		resourceName := path.Join(CodeBasePrefixRepo, v)
-
-		if resourceContent, err := loadCodebaseResource(resourceName); err == nil {
-			resourceV := new(pipy.RepoResourceV)
-			resourceV.Content = string(resourceContent)
-			if hashCode, err := utils.HashFromString(resourceV.Content); err == nil {
-				resourceV.Version = fmt.Sprintf("%d", hashCode)
-				hashCodes = append(hashCodes, resourceV.Version)
-			}
-			pluginResources[pipy.RepoResource(v)] = resourceV
-		}
-	}
+	pluginResources[codebasePlugin] = resourceV
 }
 
-func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
-	var actual interface{} = nil
+func (r *Repo) registerProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
+	var actual interface{}
 	connectedProxy = &ConnectedProxy{
 		proxy:       proxy,
 		connectedAt: time.Now(),
@@ -86,13 +73,12 @@ func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy,
 	return
 }
 
-func (r *Repo) UnregisterProxy(p *pipy.Proxy) {
+func (r *Repo) unregisterProxy(p *pipy.Proxy) {
 	r.connectedProxies.Delete(p.GetCertificateCommonName())
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 
-func (r *Repo) GetPipyRepoHandler() http.Handler {
-
+func (r *Repo) getPipyRepoHandler() http.Handler {
 	r.server.proxyRegistry.SetReleaseCertificateCallback(func(podUID types.UID, endpointCN certificate.CommonName) {
 		if actual, exist := r.connectedProxies.Load(endpointCN); exist {
 			connectedProxy := actual.(*ConnectedProxy)
@@ -106,7 +92,7 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 			return
 		}
 
-		connectedProxy, success := r.LoadOrRegisterProxy(certCommonName, remoteAddr)
+		connectedProxy, success := r.loadOrRegisterProxy(certCommonName, remoteAddr)
 		if !success {
 			return
 		}
@@ -121,13 +107,8 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 
 		uri := req.RequestURI
 
-		if strings.HasSuffix(uri, CodebaseSuffixJs) {
+		if strings.HasSuffix(uri, codebasePlugin) {
 			r.handlePipyStaticScriptRequest(w, req, uri, certCommonName)
-			return
-		}
-
-		if strings.HasSuffix(uri, CodebaseSuffixJson) && !strings.HasSuffix(uri, CodebasePipyPolicyJson) {
-			r.handlePipyStaticJsonRequest(w, req, uri, certCommonName, connectedProxy)
 			return
 		}
 
@@ -139,7 +120,7 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 		var pipyConf *PipyConf
 		castOk := false
 		if pipyConf, castOk = codebaseConf.(*PipyConf); !castOk {
-			w.WriteHeader(HttpStatusNotFound)
+			w.WriteHeader(httpStatusNotFound)
 			return
 		}
 
@@ -148,18 +129,18 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 			return
 		}
 
-		if strings.HasSuffix(uri, CodebasePipyPolicyJson) {
-			r.handlePipyPolicyJsonRequest(w, req, latestRepoCodebaseV, certCommonName, pipyConf)
+		if strings.HasSuffix(uri, codebasePolicy) {
+			r.handlePipyPolicyJSONRequest(w, req, latestRepoCodebaseV, certCommonName, pipyConf)
 			return
 		}
 	})
 }
 
-func (r *Repo) handlePipyPolicyJsonRequest(w http.ResponseWriter, req *http.Request, latestRepoCodebaseV string, certCommonName certificate.CommonName, pipyConf *PipyConf) {
+func (r *Repo) handlePipyPolicyJSONRequest(w http.ResponseWriter, req *http.Request, latestRepoCodebaseV string, certCommonName certificate.CommonName, pipyConf *PipyConf) {
 	w.Header().Set(`Etag`, latestRepoCodebaseV)
 	log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
 		req.RequestURI, req.RemoteAddr, latestRepoCodebaseV)
-	if "GET" == req.Method {
+	if httpMethodGet == req.Method {
 		if _, netErr := fmt.Fprint(w, string(pipyConf.bytes)); netErr != nil {
 			log.Error().Err(netErr).Msgf("Error writing response content")
 		}
@@ -169,14 +150,14 @@ func (r *Repo) handlePipyPolicyJsonRequest(w http.ResponseWriter, req *http.Requ
 func (r *Repo) handlePipyCodebaseLayoutRequest(w http.ResponseWriter, req *http.Request,
 	connectedProxy *ConnectedProxy, pipyConf *PipyConf, latestRepoCodebaseV string,
 	certCommonName certificate.CommonName) {
-	etag := RefreshPipyConf(connectedProxy.proxy, pipyConf)
+	etag := refreshPipyConf(connectedProxy.proxy, pipyConf)
 	if len(etag) == 0 {
 		etag = latestRepoCodebaseV
 	}
 	w.Header().Set(`Etag`, etag)
 	log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
 		req.RequestURI, req.RemoteAddr, latestRepoCodebaseV)
-	if strings.EqualFold(`GET`, req.Method) {
+	if httpMethodGet == req.Method {
 		if _, netErr := fmt.Fprint(w, codebasePluginsView, "\n", codebaseConfigsView, "\n"); netErr != nil {
 			log.Error().Err(netErr).Msgf("Error writing response content")
 		}
@@ -196,7 +177,7 @@ func (r *Repo) getCodebaseStatus(w http.ResponseWriter, req *http.Request, conne
 		}
 		<-r.server.workqueues.AddJob(newJob())
 
-		w.WriteHeader(HttpStatusNotModified)
+		w.WriteHeader(httpStatusNotModified)
 		log.Debug().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s Status:304",
 			req.RequestURI, req.RemoteAddr)
 		return nil, "", false
@@ -204,41 +185,10 @@ func (r *Repo) getCodebaseStatus(w http.ResponseWriter, req *http.Request, conne
 	return codebaseConf, latestRepoCodebaseV, true
 }
 
-func (r *Repo) handlePipyStaticJsonRequest(w http.ResponseWriter, req *http.Request, uri string,
-	certCommonName certificate.CommonName, connectedProxy *ConnectedProxy) {
-	resourceName := strings.Replace(uri, fmt.Sprintf("/%s", certCommonName), "", 1)
-	resourceURI := strings.TrimPrefix(resourceName, CodeBasePrefixRepo)
-	if _, find := codebaseLayout[resourceURI]; find {
-		resourceV, ok := connectedProxy.proxy.GetLatestRepoResources(pipy.RepoResource(resourceURI))
-		if !ok {
-			if resourceContent, loadErr := loadCodebaseResource(resourceName); loadErr == nil {
-				resourceV = new(pipy.RepoResourceV)
-				resourceV.Content = string(resourceContent)
-				connectedProxy.proxy.SetLatestRepoResources(pipy.RepoResource(resourceURI), resourceV)
-			}
-		}
-
-		if resourceV != nil {
-			w.Header().Set(`Etag`, resourceV.Version)
-			log.Trace().Str("Proxy", certCommonName.String()).Msgf("URI:%s RIP:%s ETag:%s",
-				req.RequestURI, req.RemoteAddr, resourceV.Version)
-			if "GET" == req.Method {
-				if _, netErr := fmt.Fprint(w, resourceV.Content); netErr != nil {
-					log.Error().Err(netErr).Msgf("Error writing response content")
-				}
-			}
-		} else {
-			w.WriteHeader(HttpStatusNotFound)
-		}
-	} else {
-		w.WriteHeader(HttpStatusNotFound)
-	}
-}
-
 func (r *Repo) handlePipyStaticScriptRequest(w http.ResponseWriter, req *http.Request, uri string,
 	certCommonName certificate.CommonName) {
 	resourceName := strings.Replace(uri, fmt.Sprintf("/%s", certCommonName), "", 1)
-	resourceURI := strings.TrimPrefix(resourceName, CodeBasePrefixRepo)
+	resourceURI := strings.TrimPrefix(resourceName, codeBasePrefixRepo)
 	if _, find := codebaseLayout[resourceURI]; find {
 		if resourceV, ok := pluginResources[pipy.RepoResource(resourceURI)]; ok {
 			w.Header().Set(`Etag`, resourceV.Version)
@@ -250,10 +200,10 @@ func (r *Repo) handlePipyStaticScriptRequest(w http.ResponseWriter, req *http.Re
 				}
 			}
 		} else {
-			w.WriteHeader(HttpStatusNotFound)
+			w.WriteHeader(httpStatusNotFound)
 		}
 	} else {
-		w.WriteHeader(HttpStatusNotFound)
+		w.WriteHeader(httpStatusNotFound)
 	}
 }
 
@@ -267,20 +217,20 @@ func (r *Repo) handlePipyReportRequest(connectedProxy *ConnectedProxy, req *http
 	}
 }
 
-func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remoteAddr *net.TCPAddr) (*ConnectedProxy, bool) {
-	proxy, err := pipy.NewProxy(certCommonName, CertificateNoSerial, remoteAddr)
+func (r *Repo) loadOrRegisterProxy(certCommonName certificate.CommonName, remoteAddr *net.TCPAddr) (*ConnectedProxy, bool) {
+	proxy, err := pipy.NewProxy(certCommonName, certificateNoSerial, remoteAddr)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).
 			Msgf("Error initializing proxy with certificate Common Name=%s", certCommonName)
 		return nil, false
 	}
 
-	connectedProxy, exists := r.RegisterProxy(proxy)
+	connectedProxy, exists := r.registerProxy(proxy)
 	if !exists {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		go func() {
-			if aggregatedErr := r.server.InformTrafficPolicies(r, wg, connectedProxy); aggregatedErr != nil {
+			if aggregatedErr := r.server.informTrafficPolicies(r, wg, connectedProxy); aggregatedErr != nil {
 				wg.Done()
 				log.Error().Err(aggregatedErr).Msgf("Pipy Aggregated Traffic Policies Error.")
 			}
@@ -296,7 +246,7 @@ func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remote
 }
 
 func (r *Repo) validateRequest(req *http.Request) (certificate.CommonName, *net.TCPAddr, bool) {
-	if len(req.RequestURI) > RequestURIMaxLength {
+	if len(req.RequestURI) > requestURIMaxLength {
 		return "", nil, false
 	}
 
@@ -312,24 +262,4 @@ func (r *Repo) validateRequest(req *http.Request) (certificate.CommonName, *net.
 	}
 
 	return certificate.CommonName(pathVars[2]), remoteAddr, true
-}
-
-func loadCodebaseResource(resourceName string) (resourceContent []byte, err error) {
-	var resourceFile *os.File
-	resourceFile, err = os.Open(resourceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error opening resource file[%s]", resourceName)
-		return
-	}
-
-	defer func(resourceFile *os.File) {
-		_ = resourceFile.Close()
-	}(resourceFile)
-
-	resourceContent, err = ioutil.ReadAll(resourceFile)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error reading resource file[%s]", resourceName)
-		return
-	}
-	return
 }

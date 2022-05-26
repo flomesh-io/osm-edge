@@ -2,12 +2,12 @@ package repo
 
 import (
 	"context"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"sync"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/pipy/registry"
@@ -46,7 +46,7 @@ func (s *Server) Start(_ context.Context, cancel context.CancelFunc, port int, _
 	// Start broadcast listener thread
 	go s.broadcastListener()
 
-	err := s.pipyRepoHttpServer(uint16(port))
+	err := s.pipyRepoHTTPServer(uint16(port))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
 			Msg("Error starting ADS server")

@@ -1,11 +1,12 @@
 package registry
 
 import (
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"k8s.io/apimachinery/pkg/types"
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/pipy"

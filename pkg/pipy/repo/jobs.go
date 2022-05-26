@@ -1,8 +1,10 @@
 package repo
 
 import (
-	"encoding/json"
 	"fmt"
+
+	"encoding/json"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/pipy"
@@ -10,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+// PipyConfGeneratorJob is the job to generate pipy policy json
 type PipyConfGeneratorJob struct {
 	proxy     *pipy.Proxy
 	xdsServer *Server
@@ -23,6 +26,7 @@ func (job *PipyConfGeneratorJob) GetDoneCh() <-chan struct{} {
 	return job.done
 }
 
+// Run is the logic unit of job
 func (job *PipyConfGeneratorJob) Run() {
 	defer close(job.done)
 	if job.proxy == nil {
@@ -53,8 +57,8 @@ func (job *PipyConfGeneratorJob) Run() {
 	if mc, ok := cataloger.(*catalog.MeshCatalog); ok {
 		meshConf := *mc.GetConfigurator()
 		flags := meshConf.GetFeatureFlags()
-		pipyConf.SetEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
-		pipyConf.SetEnableEgress(meshConf.IsEgressEnabled())
+		pipyConf.setEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
+		pipyConf.setEnableEgress(meshConf.IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode(meshConf.IsPermissiveTrafficPolicyMode())
 	}
 
@@ -120,8 +124,8 @@ func (job *PipyConfGeneratorJob) Run() {
 		}
 	}
 
-	pipyConf.RebalanceOutboundClusters()
-	pipyConf.CopyAllowedEndpoints()
+	pipyConf.rebalanceOutboundClusters()
+	pipyConf.copyAllowedEndpoints()
 
 	if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
 		if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
@@ -143,10 +147,10 @@ func (job *PipyConfGeneratorJob) Hash() uint64 {
 	return job.proxy.GetHash()
 }
 
-func RefreshPipyConf(proxy *pipy.Proxy, pipyConf *PipyConf) string {
+func refreshPipyConf(proxy *pipy.Proxy, pipyConf *PipyConf) string {
 	if pipyConf.allowedEndpointsV != registry.CachedMeshPodsV {
 		prevAllowedEndpointsV := pipyConf.allowedEndpointsV
-		pipyConf.CopyAllowedEndpoints()
+		pipyConf.copyAllowedEndpoints()
 		if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
 			if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
 				pipyConf.bytes = bytes

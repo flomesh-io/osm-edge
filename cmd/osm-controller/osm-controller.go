@@ -90,7 +90,7 @@ var (
 	log   = logger.New("osm-controller/main")
 )
 
-type XDSServer interface {
+type xDSServer interface {
 	health.Probes
 	debugger.XDSDebugger
 	Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error
@@ -242,10 +242,10 @@ func main() {
 	}
 
 	// Create and start the ADS service
-	var xdsServer XDSServer
+	var xdsServer xDSServer
 	var debugConfig debugger.DebugConfig
 
-	if cfg.GetSidecarClass() == constants.SidecarClasssPipy {
+	if cfg.GetSidecarClass() == constants.SidecarClassPipy {
 		proxyMapper := &pipyregistry.KubeProxyServiceMapper{KubeController: k8sClient}
 		proxyRegistry := pipyregistry.NewProxyRegistry(proxyMapper, msgBroker)
 		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)

@@ -2,15 +2,16 @@ package injector
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/certificate"
+
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
-	PipyAdminPort       = 6060
+	pipyAdminPort       = 6060
 	pipyProxyConfigPath = "/etc/pipy"
 )
 
@@ -36,7 +37,7 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 		Resources: cfg.GetProxyResources(),
 		Args: []string{
 			fmt.Sprintf("--log-level=%s", cfg.GetSidecarLogLevel()),
-			fmt.Sprintf("--admin-port=%d", PipyAdminPort),
+			fmt.Sprintf("--admin-port=%d", pipyAdminPort),
 			pipyRepo,
 		},
 		Env: []corev1.EnvVar{
