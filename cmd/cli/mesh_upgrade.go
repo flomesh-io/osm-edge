@@ -12,6 +12,8 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const upgradeDesc = `
@@ -71,7 +73,7 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 			if chartPath != "" {
 				var err error
 				upg.chart, err = loader.Load(chartPath)
-				ensureNodeSelector(upg.chart)
+				cli.EnsureNodeSelector(upg.chart)
 				if err != nil {
 					return err
 				}
@@ -94,7 +96,7 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	if u.chart == nil {
 		var err error
 		u.chart, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
-		ensureNodeSelector(u.chart)
+		cli.EnsureNodeSelector(u.chart)
 		if err != nil {
 			return err
 		}

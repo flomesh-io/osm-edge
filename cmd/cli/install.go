@@ -17,6 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const installDesc = `
@@ -154,7 +156,7 @@ func (i *installCmd) loadOSMChart() error {
 		i.chartRequested, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
 	}
 
-	ensureNodeSelector(i.chartRequested)
+	cli.EnsureNodeSelector(i.chartRequested)
 
 	if err != nil {
 		return fmt.Errorf("Error loading chart for installation: %s", err)

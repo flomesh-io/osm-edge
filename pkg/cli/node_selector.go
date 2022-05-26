@@ -1,11 +1,13 @@
 package cli
 
 import (
-	"helm.sh/helm/v3/pkg/chart"
 	"runtime"
+
+	"helm.sh/helm/v3/pkg/chart"
 )
 
-func ensureNodeSelector(chartRequested *chart.Chart) {
+// EnsureNodeSelector ensure nodeSelector
+func EnsureNodeSelector(chartRequested *chart.Chart) {
 	if chartRequested == nil || chartRequested.Values == nil {
 		return
 	}

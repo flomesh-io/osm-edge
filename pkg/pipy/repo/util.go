@@ -1,6 +1,11 @@
 package repo
 
 import (
+	"strconv"
+	"strings"
+
+	"github.com/pkg/errors"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -9,9 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/pipy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/pkg/errors"
-	"strconv"
-	"strings"
 )
 
 func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {

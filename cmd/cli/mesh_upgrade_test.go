@@ -12,6 +12,8 @@ import (
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 func meshUpgradeConfig() *action.Configuration {
@@ -31,7 +33,7 @@ func meshUpgradeConfig() *action.Configuration {
 
 func defaultMeshUpgradeCmd() *meshUpgradeCmd {
 	chart, err := loader.Load(testChartPath)
-	ensureNodeSelector(chart)
+	cli.EnsureNodeSelector(chart)
 	if err != nil {
 		panic(err)
 	}

@@ -2,8 +2,9 @@ package framework
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
 
 // HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
