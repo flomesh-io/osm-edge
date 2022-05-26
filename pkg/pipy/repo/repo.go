@@ -79,7 +79,6 @@ func (r *Repo) unregisterProxy(p *pipy.Proxy) {
 }
 
 func (r *Repo) getPipyRepoHandler() http.Handler {
-
 	r.server.proxyRegistry.SetReleaseCertificateCallback(func(podUID types.UID, endpointCN certificate.CommonName) {
 		if actual, exist := r.connectedProxies.Load(endpointCN); exist {
 			connectedProxy := actual.(*ConnectedProxy)
