@@ -213,7 +213,7 @@ func (hrrs *HttpRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *Http
 
 func (hrr *HttpRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
 	if hrr.Headers == nil {
-		hrr.Headers = make(HeadersMatch)
+		hrr.Headers = make(Headers)
 	}
 	hrr.Headers[header] = headerRegexp
 }
