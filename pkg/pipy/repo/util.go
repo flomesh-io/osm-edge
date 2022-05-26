@@ -38,10 +38,10 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 				continue
 			}
 
-			ruleName := HttpRouteRuleName(httpRouteConfig.Name)
+			ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 			for _, hostname := range httpRouteConfig.Hostnames {
-				tm.addHTTPHostPort2Service(HttpHostPort(hostname), ruleName)
+				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 			}
 			if len(httpRouteConfig.Rules) > 0 {
 				for _, rule := range httpRouteConfig.Rules {
@@ -135,10 +135,10 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				continue
 			}
 
-			ruleName := HttpRouteRuleName(httpRouteConfig.Name)
+			ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 			for _, hostname := range httpRouteConfig.Hostnames {
-				tm.addHTTPHostPort2Service(HttpHostPort(hostname), ruleName)
+				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 			}
 			for _, route := range httpRouteConfig.Routes {
 				pathRegexp := URIPathRegexp(route.HTTPRouteMatch.Path)
@@ -206,10 +206,10 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 			}
 
 			for _, httpRouteConfig := range httpRouteConfigs {
-				ruleName := HttpRouteRuleName(httpRouteConfig.Name)
+				ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 				for _, hostname := range httpRouteConfig.Hostnames {
-					tm.addHTTPHostPort2Service(HttpHostPort(hostname), ruleName)
+					tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 				}
 				for _, rule := range httpRouteConfig.RoutingRules {
 					route := rule.Route
@@ -324,8 +324,8 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 				continue
 			}
 			for _, hostname := range httpRouteConfig.Hostnames {
-				ruleName := HttpRouteRuleName(hostname)
-				tm.addHTTPHostPort2Service(HttpHostPort(hostname), ruleName)
+				ruleName := HTTPRouteRuleName(hostname)
+				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 				for _, rule := range httpRouteConfig.Rules {

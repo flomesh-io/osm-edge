@@ -58,7 +58,7 @@ type ConnectedProxy struct {
 // PipyReport is data reported by pipy sidecar
 type PipyReport struct {
 	Timestamp uint64 `json:"timestamp"`
-	Uuid      string `json:"uuid"`
+	UUID      string `json:"uuid"`
 	Version   string `json:"version"`
 }
 
@@ -77,8 +77,8 @@ type Weight uint32
 // ClusterName is a string wrapper type
 type ClusterName string
 
-// WeightedEndpoint is a wrapper type of map[HttpHostPort]Weight
-type WeightedEndpoint map[HttpHostPort]Weight
+// WeightedEndpoint is a wrapper type of map[HTTPHostPort]Weight
+type WeightedEndpoint map[HTTPHostPort]Weight
 
 // ClustersConfigs is a wrapper type of map[ClusterName]*WeightedEndpoint
 type ClustersConfigs map[ClusterName]*WeightedEndpoint
@@ -110,8 +110,8 @@ type ServiceName string
 // Services is a wrapper type of []ServiceName
 type Services []ServiceName
 
-// HttpRouteRule http route rule
-type HttpRouteRule struct {
+// HTTPRouteRule http route rule
+type HTTPRouteRule struct {
 	Headers         Headers          `json:"Headers"`
 	Methods         Methods          `json:"Methods"`
 	TargetClusters  WeightedClusters `json:"TargetClusters"`
@@ -121,20 +121,20 @@ type HttpRouteRule struct {
 	allowedAnyMethod  bool
 }
 
-// HttpRouteRules is a wrapper type of map[URIPathRegexp]*HttpRouteRule
-type HttpRouteRules map[URIPathRegexp]*HttpRouteRule
+// HTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
+type HTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
 
-// HttpRouteRuleName is a string wrapper type
-type HttpRouteRuleName string
+// HTTPRouteRuleName is a string wrapper type
+type HTTPRouteRuleName string
 
-// HttpServiceRouteRules is a wrapper type of map[HttpRouteRuleName]*HttpRouteRules
-type HttpServiceRouteRules map[HttpRouteRuleName]*HttpRouteRules
+// HTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
+type HTTPServiceRouteRules map[HTTPRouteRuleName]*HTTPRouteRules
 
-// HttpHostPort is a string wrapper type
-type HttpHostPort string
+// HTTPHostPort is a string wrapper type
+type HTTPHostPort string
 
-// HttpHostPort2Service is a wrapper type of map[HttpHostPort]HttpRouteRuleName
-type HttpHostPort2Service map[HttpHostPort]HttpRouteRuleName
+// HTTPHostPort2Service is a wrapper type of map[HTTPHostPort]HTTPRouteRuleName
+type HTTPHostPort2Service map[HTTPHostPort]HTTPRouteRuleName
 
 // DestinationIPRange is a string wrapper type
 type DestinationIPRange string
@@ -155,8 +155,8 @@ type AllowedEndpoints map[Address]ServiceName
 type TrafficMatch struct {
 	Port                  Port                  `json:"Port"`
 	Protocol              Protocol              `json:"Protocol"`
-	HttpHostPort2Service  HttpHostPort2Service  `json:"HttpHostPort2Service"`
-	HttpServiceRouteRules HttpServiceRouteRules `json:"HttpServiceRouteRules"`
+	HTTPHostPort2Service  HTTPHostPort2Service  `json:"HttpHostPort2Service"`
+	HTTPServiceRouteRules HTTPServiceRouteRules `json:"HttpServiceRouteRules"`
 	TargetClusters        WeightedClusters      `json:"TargetClusters"`
 }
 

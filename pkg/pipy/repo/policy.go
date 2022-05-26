@@ -144,24 +144,24 @@ func (tm *TrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weigh
 	tm.TargetClusters[clusterName] = weight
 }
 
-func (tm *TrafficMatch) addHTTPHostPort2Service(hostPort HttpHostPort, ruleName HttpRouteRuleName) {
-	if tm.HttpHostPort2Service == nil {
-		tm.HttpHostPort2Service = make(HttpHostPort2Service)
+func (tm *TrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
+	if tm.HTTPHostPort2Service == nil {
+		tm.HTTPHostPort2Service = make(HTTPHostPort2Service)
 	}
-	tm.HttpHostPort2Service[hostPort] = ruleName
+	tm.HTTPHostPort2Service[hostPort] = ruleName
 }
 
-func (tm *TrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HttpRouteRuleName) *HttpRouteRules {
-	if tm.HttpServiceRouteRules == nil {
-		tm.HttpServiceRouteRules = make(HttpServiceRouteRules)
+func (tm *TrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTPRouteRuleName) *HTTPRouteRules {
+	if tm.HTTPServiceRouteRules == nil {
+		tm.HTTPServiceRouteRules = make(HTTPServiceRouteRules)
 	}
 	if len(httpRouteRuleName) == 0 {
 		return nil
 	}
-	rules, exist := tm.HttpServiceRouteRules[httpRouteRuleName]
+	rules, exist := tm.HTTPServiceRouteRules[httpRouteRuleName]
 	if !exist || rules == nil {
-		newCluster := make(HttpRouteRules, 0)
-		tm.HttpServiceRouteRules[httpRouteRuleName] = &newCluster
+		newCluster := make(HTTPRouteRules, 0)
+		tm.HTTPServiceRouteRules[httpRouteRuleName] = &newCluster
 		return &newCluster
 	}
 	return rules
@@ -201,24 +201,24 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMat
 	return trafficMatch
 }
 
-func (hrrs *HttpRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HttpRouteRule {
+func (hrrs *HTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HTTPRouteRule {
 	routeRule, exist := (*hrrs)[pathReg]
 	if !exist || routeRule == nil {
-		routeRule = new(HttpRouteRule)
+		routeRule = new(HTTPRouteRule)
 		(*hrrs)[pathReg] = routeRule
 		return routeRule
 	}
 	return routeRule
 }
 
-func (hrr *HttpRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
+func (hrr *HTTPRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
 	if hrr.Headers == nil {
 		hrr.Headers = make(Headers)
 	}
 	hrr.Headers[header] = headerRegexp
 }
 
-func (hrr *HttpRouteRule) addMethodMatch(method Method) {
+func (hrr *HTTPRouteRule) addMethodMatch(method Method) {
 	if hrr.allowedAnyMethod {
 		return
 	}
@@ -232,14 +232,14 @@ func (hrr *HttpRouteRule) addMethodMatch(method Method) {
 	}
 }
 
-func (hrr *HttpRouteRule) addWeightedCluster(clusterName ClusterName, weight Weight) {
+func (hrr *HTTPRouteRule) addWeightedCluster(clusterName ClusterName, weight Weight) {
 	if hrr.TargetClusters == nil {
 		hrr.TargetClusters = make(WeightedClusters)
 	}
 	hrr.TargetClusters[clusterName] = weight
 }
 
-func (hrr *HttpRouteRule) addAllowedService(serviceName ServiceName) {
+func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	if hrr.allowedAnyService {
 		return
 	}
@@ -271,10 +271,10 @@ func (we *WeightedEndpoint) addWeightedEndpoint(
 	port Port,
 	weight Weight) {
 	if addrWithPort.MatchString(string(address)) {
-		httpHostPort := HttpHostPort(address)
+		httpHostPort := HTTPHostPort(address)
 		(*we)[httpHostPort] = weight
 	} else {
-		httpHostPort := HttpHostPort(fmt.Sprintf("%s:%d", address, port))
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
 		(*we)[httpHostPort] = weight
 	}
 }
