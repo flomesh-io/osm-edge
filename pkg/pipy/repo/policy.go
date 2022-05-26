@@ -94,8 +94,8 @@ func (p *PipyConf) copyAllowedEndpoints() {
 			continue
 		}
 		for _, ipRange := range trafficMatch.SourceIPRanges {
-			ingressIp := strings.TrimSuffix(string(ipRange), "/32")
-			p.AllowedEndpoints[ingressIp] = "Ingress Controller"
+			ingressIP := strings.TrimSuffix(string(ipRange), "/32")
+			p.AllowedEndpoints[ingressIP] = "Ingress Controller"
 		}
 	}
 }
@@ -171,13 +171,13 @@ func (itp *InboundTrafficPolicy) newTrafficMatch(port Port) *InboundTrafficMatch
 	if itp.TrafficMatches == nil {
 		itp.TrafficMatches = make(InboundTrafficMatches)
 	}
-	if trafficMatch, exist := itp.TrafficMatches[port]; !exist || trafficMatch == nil {
+	trafficMatch, exist := itp.TrafficMatches[port]
+	if !exist || trafficMatch == nil {
 		trafficMatch = new(InboundTrafficMatch)
 		itp.TrafficMatches[port] = trafficMatch
 		return trafficMatch
-	} else {
-		return trafficMatch
 	}
+	return trafficMatch
 }
 
 func (itp *InboundTrafficPolicy) getTrafficMatch(port Port) *InboundTrafficMatch {
@@ -202,13 +202,13 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMat
 }
 
 func (hrrs *HttpRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HttpRouteRule {
-	if routeRule, exist := (*hrrs)[pathReg]; !exist || routeRule == nil {
+	routeRule, exist := (*hrrs)[pathReg]
+	if !exist || routeRule == nil {
 		routeRule = new(HttpRouteRule)
 		(*hrrs)[pathReg] = routeRule
 		return routeRule
-	} else {
-		return routeRule
 	}
+	return routeRule
 }
 
 func (hrr *HttpRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
@@ -257,13 +257,13 @@ func (tp *TrafficPolicy) newClusterConfigs(clusterName ClusterName) *WeightedEnd
 	if tp.ClustersConfigs == nil {
 		tp.ClustersConfigs = make(ClustersConfigs)
 	}
-	if cluster, exist := tp.ClustersConfigs[clusterName]; !exist || cluster == nil {
+	cluster, exist := tp.ClustersConfigs[clusterName]
+	if !exist || cluster == nil {
 		newCluster := make(WeightedEndpoint, 0)
 		tp.ClustersConfigs[clusterName] = &newCluster
 		return &newCluster
-	} else {
-		return cluster
 	}
+	return cluster
 }
 
 func (we *WeightedEndpoint) addWeightedEndpoint(

@@ -93,7 +93,7 @@ func (r *Repo) GetPipyRepoHandler() http.Handler {
 			return
 		}
 
-		connectedProxy, success := r.LoadOrRegisterProxy(certCommonName, remoteAddr)
+		connectedProxy, success := r.loadOrRegisterProxy(certCommonName, remoteAddr)
 		if !success {
 			return
 		}
@@ -218,7 +218,7 @@ func (r *Repo) handlePipyReportRequest(connectedProxy *ConnectedProxy, req *http
 	}
 }
 
-func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remoteAddr *net.TCPAddr) (*ConnectedProxy, bool) {
+func (r *Repo) loadOrRegisterProxy(certCommonName certificate.CommonName, remoteAddr *net.TCPAddr) (*ConnectedProxy, bool) {
 	proxy, err := pipy.NewProxy(certCommonName, certificateNoSerial, remoteAddr)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).

@@ -1,9 +1,10 @@
 package e2e
 
 import (
-	"helm.sh/helm/v3/pkg/chart"
 	"runtime"
 	"testing"
+
+	"helm.sh/helm/v3/pkg/chart"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
