@@ -44,6 +44,7 @@ func (k *KubeProxyServiceMapper) ListProxyPods() []v1.Pod {
 	return matchedPods
 }
 
+// ListProxyServices retrives mesh services by proxy
 func (k *KubeProxyServiceMapper) ListProxyServices(p *pipy.Proxy) ([]service.MeshService, error) {
 	cn := p.GetCertificateCommonName()
 

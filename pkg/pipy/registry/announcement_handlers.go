@@ -57,10 +57,12 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manag
 	}
 }
 
+// SetReleaseCertificateCallback is used to set the callback after certificate is released
 func (pr *ProxyRegistry) SetReleaseCertificateCallback(cb func(podUID types.UID, endpointCN certificate.CommonName)) {
 	pr.releaseCertificateCallback = cb
 }
 
+// CacheMeshPodsHandler handles mesh pods cache
 func (pr *ProxyRegistry) CacheMeshPodsHandler(stop <-chan struct{}) {
 	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
 	podChan := kubePubSub.Sub(announcements.PodUpdated.String())
@@ -91,6 +93,7 @@ func (pr *ProxyRegistry) CacheMeshPodsHandler(stop <-chan struct{}) {
 	}
 }
 
+// AddCachedMeshPod is used to cache mesh pod by addr
 func AddCachedMeshPod(addr, cn string) {
 	CachedMeshPodsLock.Lock()
 	CachedMeshPodsLock.Unlock()
@@ -98,6 +101,7 @@ func AddCachedMeshPod(addr, cn string) {
 	CachedMeshPodsV++
 }
 
+// RemoveCachedMeshPod is used to remove cached mesh pod by addr
 func RemoveCachedMeshPod(addr string) {
 	CachedMeshPodsLock.Lock()
 	CachedMeshPodsLock.Unlock()

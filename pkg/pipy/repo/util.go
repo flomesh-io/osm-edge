@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"fmt"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -104,10 +103,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 	}
 }
 
-func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity,
-	pipyConf *PipyConf,
-	outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy) map[service.ClusterName]service.WeightedCluster {
-
+func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy) map[service.ClusterName]service.WeightedCluster {
 	if len(outboundPolicy.TrafficMatches) == 0 {
 		return nil
 	}
@@ -183,9 +179,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 	return dependClusters
 }
 
-func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity,
-	pipyConf *PipyConf,
-	egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*service.WeightedCluster {
+func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*service.WeightedCluster {
 
 	if len(egressPolicy.TrafficMatches) == 0 {
 		return nil
@@ -203,9 +197,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 			tm.AddDestinationIPRange(DestinationIPRange(ipRange))
 		}
 
-		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP ||
-			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
-
+		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP || trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 			httpRouteConfigs := getEgressHttpRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort,
 				trafficMatch.DestinationPort, trafficMatch.Name)
 			if len(httpRouteConfigs) == 0 {
@@ -289,7 +281,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 		}
 		clusterConfigs := otp.NewClusterConfigs(ClusterName(cluster.ClusterName.String()))
 		for _, upstreamEndpoint := range upstreamEndpoints {
-			address := Address(fmt.Sprintf("%s", upstreamEndpoint.IP))
+			address := Address(upstreamEndpoint.IP.String())
 			port := Port(clusterConfig.Service.Port)
 			weight := Weight(upstreamEndpoint.Weight)
 			clusterConfigs.AddWeightedEndpoint(address, port, weight)

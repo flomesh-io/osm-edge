@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	addrWithPort, _ = regexp.Compile(":\\d+$")
+	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
 
 func (p *PipyConf) SetEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) {

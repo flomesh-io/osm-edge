@@ -46,16 +46,12 @@ var (
 
 func init() {
 	codebaseLayout[codebasePlugin] = true
-
-	hashCodes := make([]string, 0)
-	codebaseLayout[codebasePlugin] = true
 	resourceV := new(pipy.RepoResourceV)
 	resourceV.Content = string(codebasePluginSource)
 	if hashCode, err := utils.HashFromString(resourceV.Content); err == nil {
 		resourceV.Version = fmt.Sprintf("%d", hashCode)
-		hashCodes = append(hashCodes, resourceV.Version)
 	}
-	pluginResources[pipy.RepoResource(codebasePlugin)] = resourceV
+	pluginResources[codebasePlugin] = resourceV
 }
 
 func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {

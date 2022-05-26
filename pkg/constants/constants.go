@@ -224,17 +224,17 @@ const (
 
 // Logging contexts
 const (
-	// field key string for context
+	// LogFieldContext is the field key string for context
 	LogFieldContext = "context"
 
-	// multicluster field value for context field.
+	// LogContextMulticluster is the the multicluster field value for context field.
 	LogContextMulticluster = "multicluster"
 )
 
 const (
-	// sidecarClass field value for context field.
+	// SidecarClassEnvoy is the SidecarClass field value for context field.
 	SidecarClassEnvoy = "envoy"
 
-	// sidecarClass field value for context field.
+	// SidecarClassPipy is the SidecarClass field value for context field.
 	SidecarClassPipy = "pipy"
 )
