@@ -1,17 +1,17 @@
 package repo
 
 import (
-	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/pipy"
 	"sync"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/pipy"
 	"github.com/openservicemesh/osm/pkg/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )

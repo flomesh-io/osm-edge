@@ -4,18 +4,20 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/pipy"
-	"github.com/openservicemesh/osm/pkg/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/utils"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/types"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/pipy"
+	"github.com/openservicemesh/osm/pkg/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -149,7 +151,7 @@ func (r *Repo) handlePipyPolicyJsonRequest(w http.ResponseWriter, req *http.Requ
 func (r *Repo) handlePipyCodebaseLayoutRequest(w http.ResponseWriter, req *http.Request,
 	connectedProxy *ConnectedProxy, pipyConf *PipyConf, latestRepoCodebaseV string,
 	certCommonName certificate.CommonName) {
-	etag := RefreshPipyConf(connectedProxy.proxy, pipyConf)
+	etag := refreshPipyConf(connectedProxy.proxy, pipyConf)
 	if len(etag) == 0 {
 		etag = latestRepoCodebaseV
 	}

@@ -57,8 +57,8 @@ func (job *PipyConfGeneratorJob) Run() {
 	if mc, ok := cataloger.(*catalog.MeshCatalog); ok {
 		meshConf := *mc.GetConfigurator()
 		flags := meshConf.GetFeatureFlags()
-		pipyConf.SetEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
-		pipyConf.SetEnableEgress(meshConf.IsEgressEnabled())
+		pipyConf.setEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
+		pipyConf.setEnableEgress(meshConf.IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode(meshConf.IsPermissiveTrafficPolicyMode())
 	}
 
@@ -124,8 +124,8 @@ func (job *PipyConfGeneratorJob) Run() {
 		}
 	}
 
-	pipyConf.RebalanceOutboundClusters()
-	pipyConf.CopyAllowedEndpoints()
+	pipyConf.rebalanceOutboundClusters()
+	pipyConf.copyAllowedEndpoints()
 
 	if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
 		if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
@@ -147,10 +147,10 @@ func (job *PipyConfGeneratorJob) Hash() uint64 {
 	return job.proxy.GetHash()
 }
 
-func RefreshPipyConf(proxy *pipy.Proxy, pipyConf *PipyConf) string {
+func refreshPipyConf(proxy *pipy.Proxy, pipyConf *PipyConf) string {
 	if pipyConf.allowedEndpointsV != registry.CachedMeshPodsV {
 		prevAllowedEndpointsV := pipyConf.allowedEndpointsV
-		pipyConf.CopyAllowedEndpoints()
+		pipyConf.copyAllowedEndpoints()
 		if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
 			if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
 				pipyConf.bytes = bytes
