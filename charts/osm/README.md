@@ -1,8 +1,8 @@
-# Open Service Mesh Helm Chart
+# Open Service Mesh Edge Helm Chart
 
 ![Version: 1.1.0](https://img.shields.io/badge/Version-1.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.1.0](https://img.shields.io/badge/AppVersion-v1.1.0-informational?style=flat-square)
 
-A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
+A Helm chart to install the [OSM](https://github.com/flomesh-io/osm-edge) control plane on Kubernetes.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) contro
 ## Get Repo Info
 
 ```console
-helm repo add osm https://openservicemesh.github.io/osm
+helm repo add osm https://flomesh-io.github.io/osm-edge
 helm repo update
 ```
 
@@ -123,7 +123,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.name.osmSidecarInit | string | `"osm-edge-sidecar-init"` | Sidecar init container's image name |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"flomesh"` | Container image registry for control plane images |
-| osm.image.tag | string | `""` | Container image tag for control plane images |
+| osm.image.tag | string | `"latest"` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.injector.autoScale | object | `{"cpu":{"targetAverageUtilization":80},"enable":false,"maxReplicas":5,"memory":{"targetAverageUtilization":80},"minReplicas":1}` | Auto scale configuration |
@@ -166,7 +166,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar |
-| osm.sidecarImage | string | `"flomesh/pipy:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarLogLevel | string | `"error"` | Log level for the proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
 | osm.sidecarWindowsImage | string | `"flomesh/pipy-windows-nightly:latest"` | Sidecar image for Windows workloads |
 | osm.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
