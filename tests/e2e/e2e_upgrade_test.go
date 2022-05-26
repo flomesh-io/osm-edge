@@ -44,12 +44,12 @@ var _ = OSMDescribe("Upgrade from latest",
 			const releaseName = "osm"
 			i := action.NewInstall(helmCfg)
 
-			i.ChartPathOptions.RepoURL = "https://openservicemesh.github.io/osm"
+			i.ChartPathOptions.RepoURL = "https://flomesh-io.github.io/osm-edge"
 			// On the main branch, this should refer to the latest release. On
 			// release branches, it should specify the most recent patch of the
 			// previous minor release. e.g. on the release-v1.0 branch, this
 			// should be "0.11".
-			i.Version = "1.0"
+			i.Version = "1.1.0"
 			i.Namespace = Td.OsmNamespace
 			i.Wait = true
 			i.ReleaseName = releaseName

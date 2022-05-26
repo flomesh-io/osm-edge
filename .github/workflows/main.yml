@@ -151,7 +151,7 @@ jobs:
           flags: unittests
 
   scenarios_tests:
-    name: Test various Envoy + SMI configuration scenarios
+    name: Test various Sidecar + SMI configuration scenarios
     runs-on: ubuntu-latest
     needs: build
     steps:

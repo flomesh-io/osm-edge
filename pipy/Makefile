@@ -23,6 +23,9 @@ k8s-tools: install-docker
 golang:
 	make -f scripts/Makefile.golang
 
+kind-node-images:
+	scripts/kind-node-images.sh ${OSM_HOME} ${BUILDARCH} ${BUILDOS}
+
 .env:
 	scripts/env.sh ${OSM_HOME} ${BUILDARCH} ${BUILDOS}
 

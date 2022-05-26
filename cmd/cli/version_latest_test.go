@@ -35,7 +35,7 @@ func TestOutputLatestReleaseVersion(t *testing.T) {
 			current: "v1.21.4",
 			latest:  "v1.21.5",
 			err:     nil,
-			output:  "\nOSM v1.21.5 is now available. Please see https://github.com/openservicemesh/osm/releases/latest.\nWARNING: upgrading could introduce breaking changes. Please review the release notes.\n\n",
+			output:  "\nOSM v1.21.5 is now available. Please see https://github.com/flomesh-io/osm-edge/releases/latest.\nWARNING: upgrading could introduce breaking changes. Please review the release notes.\n\n",
 		},
 		{
 			name:    "current is latest version",
