@@ -157,13 +157,13 @@ func (tm *TrafficMatch) NewHttpServiceRouteRules(httpRouteRuleName HttpRouteRule
 	if len(httpRouteRuleName) == 0 {
 		return nil
 	}
-	if rules, exist := tm.HttpServiceRouteRules[httpRouteRuleName]; !exist || rules == nil {
+	rules, exist := tm.HttpServiceRouteRules[httpRouteRuleName]
+	if !exist || rules == nil {
 		newCluster := make(HttpRouteRules, 0)
 		tm.HttpServiceRouteRules[httpRouteRuleName] = &newCluster
 		return &newCluster
-	} else {
-		return rules
 	}
+	return rules
 }
 
 func (itp *InboundTrafficPolicy) NewTrafficMatch(port Port) *InboundTrafficMatch {
@@ -195,7 +195,7 @@ func (otp *OutboundTrafficPolicy) NewTrafficMatch(port Port) *OutboundTrafficMat
 	if otp.TrafficMatches == nil {
 		otp.TrafficMatches = make(OutboundTrafficMatches)
 	}
-	trafficMatches, _ := otp.TrafficMatches[port]
+	trafficMatches := otp.TrafficMatches[port]
 	trafficMatches = append(trafficMatches, trafficMatch)
 	otp.TrafficMatches[port] = trafficMatches
 	return trafficMatch

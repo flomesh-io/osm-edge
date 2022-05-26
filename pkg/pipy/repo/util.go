@@ -29,7 +29,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
-			httpRouteConfig := getInboundHttpRouteConfigs(inboundPolicy.HTTPRouteConfigsPerPort,
+			httpRouteConfig := getInboundHTTPRouteConfigs(inboundPolicy.HTTPRouteConfigsPerPort,
 				int(upstreamSvc.TargetPort),
 				upstreamSvcFQDN)
 			if httpRouteConfig == nil {
@@ -126,7 +126,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
-			httpRouteConfig := getOutboundHttpRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
+			httpRouteConfig := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
 				int(upstreamSvc.TargetPort),
 				upstreamSvcFQDN)
 			if httpRouteConfig == nil {
@@ -180,7 +180,6 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 }
 
 func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*service.WeightedCluster {
-
 	if len(egressPolicy.TrafficMatches) == 0 {
 		return nil
 	}
@@ -198,7 +197,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 		}
 
 		if trafficMatch.DestinationProtocol == constants.ProtocolHTTP || trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
-			httpRouteConfigs := getEgressHttpRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort,
+			httpRouteConfigs := getEgressHTTPRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort,
 				trafficMatch.DestinationPort, trafficMatch.Name)
 			if len(httpRouteConfigs) == 0 {
 				continue
@@ -291,10 +290,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 	return true
 }
 
-func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity,
-	pipyConf *PipyConf,
-	ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
-
+func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
 	if len(ingressPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -365,11 +361,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 	}
 }
 
-func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy,
-	_ identity.ServiceIdentity,
-	pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy,
-	dependClusters map[service.ClusterName]*service.WeightedCluster) bool {
-
+func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*service.WeightedCluster) bool {
 	otp := pipyConf.NewOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
 		clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, cluster.ClusterName)
@@ -386,7 +378,7 @@ func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Pro
 	return true
 }
 
-func getInboundHttpRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.InboundTrafficPolicy,
+func getInboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.InboundTrafficPolicy,
 	targetPort int, upstreamSvcFQDN string) *trafficpolicy.InboundTrafficPolicy {
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
 		for _, httpRouteConfig := range httpRouteConfigs {
@@ -398,7 +390,7 @@ func getInboundHttpRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy
 	return nil
 }
 
-func getOutboundHttpRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy,
+func getOutboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy,
 	targetPort int, upstreamSvcFQDN string) *trafficpolicy.OutboundTrafficPolicy {
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
 		for _, httpRouteConfig := range httpRouteConfigs {
@@ -410,7 +402,7 @@ func getOutboundHttpRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolic
 	return nil
 }
 
-func getEgressHttpRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.EgressHTTPRouteConfig,
+func getEgressHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.EgressHTTPRouteConfig,
 	targetPort int, egressSvcName string) []*trafficpolicy.EgressHTTPRouteConfig {
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
 		if len(egressSvcName) == 0 {

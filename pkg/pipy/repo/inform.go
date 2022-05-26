@@ -14,7 +14,7 @@ import (
 	"sync"
 )
 
-func (s *Server) InformTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
+func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		connectedProxy.initError = errTooManyConnections

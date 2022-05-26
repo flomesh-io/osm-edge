@@ -55,7 +55,7 @@ func init() {
 }
 
 func (r *Repo) RegisterProxy(proxy *pipy.Proxy) (connectedProxy *ConnectedProxy, exists bool) {
-	var actual interface{} = nil
+	var actual interface{}
 	connectedProxy = &ConnectedProxy{
 		proxy:       proxy,
 		connectedAt: time.Now(),
@@ -229,7 +229,7 @@ func (r *Repo) LoadOrRegisterProxy(certCommonName certificate.CommonName, remote
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		go func() {
-			if aggregatedErr := r.server.InformTrafficPolicies(r, wg, connectedProxy); aggregatedErr != nil {
+			if aggregatedErr := r.server.informTrafficPolicies(r, wg, connectedProxy); aggregatedErr != nil {
 				wg.Done()
 				log.Error().Err(aggregatedErr).Msgf("Pipy Aggregated Traffic Policies Error.")
 			}

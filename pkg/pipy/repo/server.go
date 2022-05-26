@@ -46,7 +46,7 @@ func (s *Server) Start(_ context.Context, cancel context.CancelFunc, port int, _
 	// Start broadcast listener thread
 	go s.broadcastListener()
 
-	err := s.pipyRepoHttpServer(uint16(port))
+	err := s.pipyRepoHTTPServer(uint16(port))
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).
 			Msg("Error starting ADS server")

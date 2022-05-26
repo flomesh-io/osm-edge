@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+// PipyConfGeneratorJob is the job to generate pipy policy json
 type PipyConfGeneratorJob struct {
 	proxy     *pipy.Proxy
 	xdsServer *Server

@@ -2,7 +2,6 @@
 package debugger
 
 import (
-	"github.com/openservicemesh/osm/pkg/sidecar"
 	"time"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -18,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/sidecar"
 )
 
 var log = logger.New("debugger")

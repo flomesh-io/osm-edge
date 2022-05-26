@@ -1,7 +1,6 @@
 package debugger
 
 import (
-	"github.com/openservicemesh/osm/pkg/sidecar"
 	"net/http"
 	"net/http/pprof"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/sidecar"
 )
 
 // GetHandlers implements DebugConfig interface and returns the rest of URLs and the handling functions.

@@ -12,8 +12,11 @@ import (
 )
 
 var (
-	CachedMeshPods     = make(map[string]string)
-	CachedMeshPodsV    = uint64(0)
+	// CachedMeshPods cache mesh pods
+	CachedMeshPods = make(map[string]string)
+	// CachedMeshPodsV the latest version of CachedMeshPodsV
+	CachedMeshPodsV = uint64(0)
+	// CachedMeshPodsLock the lock of CachedMeshPods
 	CachedMeshPodsLock = sync.RWMutex{}
 )
 
@@ -96,7 +99,7 @@ func (pr *ProxyRegistry) CacheMeshPodsHandler(stop <-chan struct{}) {
 // AddCachedMeshPod is used to cache mesh pod by addr
 func AddCachedMeshPod(addr, cn string) {
 	CachedMeshPodsLock.Lock()
-	CachedMeshPodsLock.Unlock()
+	defer CachedMeshPodsLock.Unlock()
 	CachedMeshPods[addr] = cn
 	CachedMeshPodsV++
 }
@@ -104,7 +107,7 @@ func AddCachedMeshPod(addr, cn string) {
 // RemoveCachedMeshPod is used to remove cached mesh pod by addr
 func RemoveCachedMeshPod(addr string) {
 	CachedMeshPodsLock.Lock()
-	CachedMeshPodsLock.Unlock()
+	defer CachedMeshPodsLock.Unlock()
 	delete(CachedMeshPods, addr)
 	CachedMeshPodsV++
 }
