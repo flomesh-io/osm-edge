@@ -21,6 +21,7 @@ docker pull docker.io/library/golang:1.17
 docker pull docker.io/envoyproxy/envoy:v1.19.3
 docker pull docker.io/projectcontour/contour:v1.18.0
 docker pull docker.io/flomesh/pipy:latest
+docker pull docker.io/flomesh/pipy-nightly:latest
 docker pull docker.io/flomesh/proxy-wasm-cpp-sdk:v2
 docker pull docker.io/prom/prometheus:v2.18.1
 docker pull docker.io/grafana/grafana:8.2.2
@@ -35,6 +36,7 @@ docker tag docker.io/library/golang:1.17 localhost:5000/library/golang:1.17
 docker tag docker.io/envoyproxy/envoy:v1.19.3 localhost:5000/envoyproxy/envoy:v1.19.3
 docker tag docker.io/projectcontour/contour:v1.18.0 localhost:5000/projectcontour/contour:v1.18.0
 docker tag docker.io/flomesh/pipy:latest localhost:5000/flomesh/pipy:latest
+docker tag docker.io/flomesh/pipy-nightly:latest localhost:5000/flomesh/pipy-nightly:latest
 docker tag docker.io/flomesh/proxy-wasm-cpp-sdk:v2 localhost:5000/flomesh/proxy-wasm-cpp-sdk:v2
 docker tag docker.io/prom/prometheus:v2.18.1 localhost:5000/prom/prometheus:v2.18.1
 docker tag docker.io/grafana/grafana:8.2.2 localhost:5000/grafana/grafana:8.2.2
@@ -49,6 +51,7 @@ docker push localhost:5000/library/golang:1.17
 docker push localhost:5000/envoyproxy/envoy:v1.19.3
 docker push localhost:5000/projectcontour/contour:v1.18.0
 docker push localhost:5000/flomesh/pipy:latest
+docker push localhost:5000/flomesh/pipy-nightly:latest
 docker push localhost:5000/flomesh/proxy-wasm-cpp-sdk:v2
 docker push localhost:5000/prom/prometheus:v2.18.1
 docker push localhost:5000/grafana/grafana:8.2.2
@@ -66,7 +69,8 @@ find ${OSM_HOME}/dockerfiles -type f | xargs sed -i 's# flomesh/proxy-wasm-cpp-s
 
 sed -i 's#docker.io#localhost:5000#g' ${OSM_HOME}/charts/osm/values.yaml
 sed -i 's#sidecarImage: envoyproxy/envoy#sidecarImage: localhost:5000/envoyproxy/envoy#g' ${OSM_HOME}/charts/osm/values.yaml
-sed -i 's#sidecarImage: flomesh/pipy#sidecarImage: localhost:5000/flomesh/pipy#g' ${OSM_HOME}/charts/osm/values.yaml
+sed -i 's#sidecarImage: flomesh/pipy:latest#sidecarImage: localhost:5000/flomesh/pipy:latest#g' ${OSM_HOME}/charts/osm/values.yaml
+sed -i 's#sidecarImage: flomesh/pipy-nightly:latest#sidecarImage: localhost:5000/flomesh/pipy-nightly:latest#g' ${OSM_HOME}/charts/osm/values.yaml
 sed -i 's#curlImage: curlimages/curl#curlImage: localhost:5000/curlimages/curl#g' ${OSM_HOME}/charts/osm/values.yaml
 sed -i 's#image: prom/prometheus:v2.18.1#image: localhost:5000/prom/prometheus:v2.18.1#g' ${OSM_HOME}/charts/osm/values.yaml
 sed -i 's#image: grafana/grafana:8.2.2#image: localhost:5000/grafana/grafana:8.2.2#g' ${OSM_HOME}/charts/osm/values.yaml

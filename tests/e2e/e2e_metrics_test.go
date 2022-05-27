@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"path/filepath"
 	"strings"
 	"time"
@@ -12,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
