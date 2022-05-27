@@ -205,7 +205,7 @@ func TestMeshUpgradeRemovedValue(t *testing.T) {
 	a.NoError(err)
 	delete(u.chart.Values["osm"].(map[string]interface{}), "namespace")
 	// Schema only accepting the remaining values
-	u.chart.Schema = []byte(`{"properties": {"osm": {"properties": {"image": {}, "imagePullSecrets": {}}, "additionalProperties": false}}}`)
+	u.chart.Schema = []byte(`{"properties": {"osm": {"properties": {"image": {}, "imagePullSecrets": {}, "nodeSelector": {}}}, "additionalProperties": false}}}`)
 
 	err = u.run(config)
 	a.NoError(err)
