@@ -140,6 +140,7 @@ func TestCreatePatch(t *testing.T) {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
+			mockConfigurator.EXPECT().GetSidecarClass().Return(constants.SidecarClassEnvoy).AnyTimes()
 			mockConfigurator.EXPECT().GetSidecarWindowsImage().Return("sidecar-linux-image").AnyTimes()
 			mockConfigurator.EXPECT().GetSidecarImage().Return("sidecar-windows-image").AnyTimes()
 			mockConfigurator.EXPECT().GetInitContainerImage().Return("init-container-image").AnyTimes()

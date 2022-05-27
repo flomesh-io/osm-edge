@@ -1,4 +1,4 @@
-// version: '2022.05.25'
+// version: '2022.05.27'
 (config => (
   (
     specEnableEgress,
@@ -156,7 +156,7 @@
       )
     )
     .link(
-      'http_in', () => _inMatch?.Protocol === 'http' || _inMatch.Protocol === 'grpc',
+      'http_in', () => _inMatch?.Protocol === 'http' || _inMatch?.Protocol === 'grpc',
       'connection_in', () => Boolean(_inTarget),
       'deny_in'
     )
@@ -574,3 +574,4 @@
 
   )
 )())(JSON.decode(pipy.load('pipy.json')))
+

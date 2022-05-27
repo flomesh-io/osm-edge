@@ -329,7 +329,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
-      - name: Push images with git sha tag
+      - name: Push images with "latest-main" tag
         env:
-          CTR_TAG: ${{ github.sha }}
+          CTR_TAG: latest-main
         run: make docker-build-cross

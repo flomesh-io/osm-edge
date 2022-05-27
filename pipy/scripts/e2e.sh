@@ -38,7 +38,7 @@ allCases=(
 "Version v1.21.12"
 "Version v1.20.15"
 "Version v1.19.16"
-"#Custom WASM metrics between one client pod and one server"
+"Custom WASM metrics between one client pod and one server"
 "Multiple service ports"
 "Multiple services matching same pod"
 "Becomes ready after being reinstalled"
@@ -64,7 +64,7 @@ allCases=(
 "HTTP traffic splitting with SMI"
 "TCP traffic splitting with SMI"
 "HTTP traffic splitting with Permissive mode"
-"#Tests upgrading the control plane"
+"Tests upgrading the control plane"
 "With SMI Traffic Target validation enabled"
 "With SMI validation disabled"
 )

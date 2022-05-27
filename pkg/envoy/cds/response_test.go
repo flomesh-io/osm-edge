@@ -356,8 +356,8 @@ func TestNewResponse(t *testing.T) {
 		"default/bookstore-v2|80",
 		"default/bookbuyer|8080|local",
 		"passthrough-outbound",
-		"envoy-metrics-cluster",
-		"envoy-tracing-cluster",
+		"sidecar-metrics-cluster",
+		"sidecar-tracing-cluster",
 	}
 
 	var foundClusters []string

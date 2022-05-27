@@ -129,7 +129,7 @@ kind-reset:
 .PHONY: test-e2e
 test-e2e: DOCKER_BUILDX_OUTPUT=type=docker
 test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server
-	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
+	E2E_FLAGS="--timeout=0" go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
 	cp .env.example .env

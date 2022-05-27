@@ -5,8 +5,8 @@ on:
     types: [completed]
 
 env:
-  CTR_REGISTRY: openservicemesh
-  CTR_TAG: latest-main
+  CTR_REGISTRY: flomesh
+  CTR_TAG: latest-nightly
 
 jobs:
   test:
@@ -61,6 +61,6 @@ jobs:
             --set=osm.image.registry="$CTR_REGISTRY" \
             --set=osm.image.tag="$CTR_TAG"
       - name: Run e2es
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 60m -installType=NoInstall
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -test.timeout 0 -installType=NoInstall
       - name: Kind cleanup
         run: kind delete cluster --name $KIND_CLUSTER_NAME

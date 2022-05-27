@@ -414,7 +414,7 @@ var _ = Describe("Test functions creating Envoy bootstrap configuration", func()
 				SecurityContext: &corev1.SecurityContext{
 					WindowsOptions: &corev1.WindowsSecurityContextOptions{
 						RunAsUserName: func() *string {
-							userName := "EnvoyUser"
+							userName := "SidecarUser"
 							return &userName
 						}(),
 					},

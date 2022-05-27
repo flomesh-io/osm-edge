@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -44,6 +45,11 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 				"osm.osmController.resource.requests.memory=256M",
 			}
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+			sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
+			if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
+				Skip("Pipy doesn't support WASM extension")
+			}
 
 			// Create Test NS
 			for _, n := range ns {
