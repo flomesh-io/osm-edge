@@ -620,6 +620,21 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha2.MeshConf
 	return meshConfig, nil
 }
 
+func (td *OsmTestData) GetSidecarClass(namespace string) (string, error) {
+	meshConfig, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
+
+	if err != nil {
+		return "", err
+	}
+
+	sidecarClass := meshConfig.Spec.Sidecar.SidecarClass
+	if sidecarClass == "" {
+		sidecarClass = os.Getenv("OSM_DEFAULT_SIDECAR_CLASS")
+	}
+
+	return sidecarClass, nil
+}
+
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{

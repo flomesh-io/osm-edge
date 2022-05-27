@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"path/filepath"
 	"strings"
 	"time"
@@ -44,6 +45,11 @@ var _ = OSMDescribe("Custom WASM metrics between one client pod and one server",
 				"osm.osmController.resource.requests.memory=256M",
 			}
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+			sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
+			if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
+				Skip("Pipy doesn't support WASM extension")
+			}
 
 			// Create Test NS
 			for _, n := range ns {
