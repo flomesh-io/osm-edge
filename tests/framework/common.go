@@ -620,6 +620,7 @@ func (td *OsmTestData) GetMeshConfig(namespace string) (*configv1alpha2.MeshConf
 	return meshConfig, nil
 }
 
+// GetSidecarClass is a wrapper to get sidecarClass in a particular namespace
 func (td *OsmTestData) GetSidecarClass(namespace string) (string, error) {
 	meshConfig, err := td.ConfigClient.ConfigV1alpha2().MeshConfigs(namespace).Get(context.TODO(), td.OsmMeshConfigName, v1.GetOptions{})
 
