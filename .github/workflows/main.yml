@@ -25,14 +25,14 @@ env:
   OSM_HUMAN_DEBUG_LOG: true
 
 jobs:
-  #shellcheck:
-  #  name: Shellcheck
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - name: Checkout
-  #      uses: actions/checkout@v2
-  #    - name: ShellCheck
-  #      run: shellcheck -x $(find . -name '*.sh')
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: ShellCheck
+        run: shellcheck -x $(find . -name '*.sh')
 
   lint:
     name: Lint
