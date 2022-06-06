@@ -200,7 +200,6 @@ type OutboundTrafficPolicy struct {
 
 // FeatureFlags represents the flags of feature
 type FeatureFlags struct {
-	SidecarLogLevel                 string
 	EnableSidecarActiveHealthChecks bool
 }
 
@@ -212,9 +211,10 @@ type TrafficSpec struct {
 
 // MeshConfigSpec represents the spec of mesh config
 type MeshConfigSpec struct {
-	Traffic      TrafficSpec
-	FeatureFlags FeatureFlags
-	Probes       struct {
+	SidecarLogLevel string
+	Traffic         TrafficSpec
+	FeatureFlags    FeatureFlags
+	Probes          struct {
 		ReadinessProbes []interface{}
 		LivenessProbes  []interface{}
 		StartupProbes   []interface{}

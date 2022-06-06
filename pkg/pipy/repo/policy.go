@@ -15,7 +15,7 @@ var (
 )
 
 func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) {
-	p.Spec.FeatureFlags.SidecarLogLevel = sidecarLogLevel
+	p.Spec.SidecarLogLevel = sidecarLogLevel
 }
 
 func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) {
