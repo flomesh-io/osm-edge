@@ -14,6 +14,10 @@ var (
 	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
 
+func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) {
+	p.Spec.FeatureFlags.SidecarLogLevel = sidecarLogLevel
+}
+
 func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) {
 	p.Spec.FeatureFlags.EnableSidecarActiveHealthChecks = enableSidecarActiveHealthChecks
 }

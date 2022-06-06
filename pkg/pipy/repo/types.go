@@ -200,6 +200,7 @@ type OutboundTrafficPolicy struct {
 
 // FeatureFlags represents the flags of feature
 type FeatureFlags struct {
+	SidecarLogLevel                 string
 	EnableSidecarActiveHealthChecks bool
 }
 
