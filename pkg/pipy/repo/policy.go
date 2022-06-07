@@ -134,6 +134,7 @@ func (tm *TrafficMatch) setPort(port Port) {
 }
 
 func (tm *TrafficMatch) setProtocol(protocol Protocol) {
+	protocol = Protocol(strings.ToLower(string(protocol)))
 	if constants.ProtocolTCPServerFirst == protocol {
 		tm.Protocol = constants.ProtocolTCP
 	} else {
