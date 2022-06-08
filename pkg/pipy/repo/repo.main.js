@@ -1,6 +1,7 @@
-// version: '2022.05.27'
+// version: '2022.06.07'
 (config => (
   (
+    debugLogLevel,
     specEnableEgress,
     inTrafficMatches,
     inClustersConfigs,
@@ -13,6 +14,7 @@
     probePath,
     funcHttpServiceRouteRules
   ) => (
+    debugLogLevel = (config?.Spec?.SidecarLogLevel === 'debug'),
 
     funcHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
@@ -20,8 +22,10 @@
           name,
           Object.entries(rule).map(
             ([path, condition]) => ({
+              Path_: path, // for debug
               Path: new RegExp(path), // HTTP request path
               Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
+              Headers_: condition?.Headers, // for debug
               Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
               AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
               TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(condition.TargetClusters) // Loadbalancer for services
@@ -39,6 +43,7 @@
             Port: match.Port,
             Protocol: match.Protocol,
             HttpHostPort2Service: match.HttpHostPort2Service,
+            SourceIPRanges_: match?.SourceIPRanges, // for debug
             SourceIPRanges: match.SourceIPRanges && match.SourceIPRanges.map(e => new Netmask(e)),
             TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(match.TargetClusters),
             HttpServiceRouteRules: match.HttpServiceRouteRules && funcHttpServiceRouteRules(match.HttpServiceRouteRules),
@@ -98,6 +103,8 @@
 
     specEnableEgress = config?.Spec?.Traffic?.EnableEgress,
 
+
+
     allowedEndpoints = config?.AllowedEndpoints,
 
     // PIPY admin port
@@ -147,6 +154,12 @@
               _inMatch.TargetClusters?.select?.()
             ]?.select?.()
           )
+        ),
+
+        debugLogLevel && (
+          console.log('inbound _inMatch: ', _inMatch) ||
+          console.log('inbound _inTarget: ', _inTarget) ||
+          console.log('inbound protocol: ', _inMatch?.Protocol)
         ),
 
         // Session termination control
@@ -209,7 +222,16 @@
           // Close sessions from any HTTP proxies
           !_inTarget && headers['x-forwarded-for'] && (
             _inSessionControl.close = true
+          ),
+
+          debugLogLevel && (
+            console.log('inbound path: ', msg.head.path) ||
+            console.log('inbound headers: ', msg.head.headers) ||
+            console.log('inbound service: ', service) ||
+            console.log('inbound match: ', match) ||
+            console.log('inbound _inTarget: ', _inTarget)
           )
+
         ))()
       )
     )
@@ -304,6 +326,12 @@
           _outTarget = _outIP + ':' + _outPort
         ),
 
+        debugLogLevel && (
+          console.log('outbound _outMatch: ', _outMatch) ||
+          console.log('outbound _outTarget: ', _outTarget) ||
+          console.log('outbound protocol: ', _outMatch?.Protocol)
+        ),
+
         _outSessionControl = {
           close: false
         }
@@ -366,7 +394,16 @@
           ),
 
           // Loadbalancer metrics
-          _outTarget && _targetCount.withLabels(_outTarget).increase()
+          _outTarget && _targetCount.withLabels(_outTarget).increase(),
+
+          debugLogLevel && (
+            console.log('outbound path: ', msg.head.path) ||
+            console.log('outbound headers: ', msg.head.headers) ||
+            console.log('outbound service: ', service) ||
+            console.log('outbound route: ', route) ||
+            console.log('outbound match: ', match) ||
+            console.log('outbound _outTarget: ', _outTarget)
+          )
         ))()
       )
     )
@@ -574,4 +611,3 @@
 
   )
 )())(JSON.decode(pipy.load('pipy.json')))
-

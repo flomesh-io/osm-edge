@@ -57,6 +57,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	if mc, ok := cataloger.(*catalog.MeshCatalog); ok {
 		meshConf := *mc.GetConfigurator()
 		flags := meshConf.GetFeatureFlags()
+		pipyConf.setSidecarLogLevel(meshConf.GetSidecarLogLevel())
 		pipyConf.setEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
 		pipyConf.setEnableEgress(meshConf.IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode(meshConf.IsPermissiveTrafficPolicyMode())

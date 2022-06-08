@@ -14,6 +14,10 @@ var (
 	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
 
+func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) {
+	p.Spec.SidecarLogLevel = sidecarLogLevel
+}
+
 func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) {
 	p.Spec.FeatureFlags.EnableSidecarActiveHealthChecks = enableSidecarActiveHealthChecks
 }
@@ -130,6 +134,7 @@ func (tm *TrafficMatch) setPort(port Port) {
 }
 
 func (tm *TrafficMatch) setProtocol(protocol Protocol) {
+	protocol = Protocol(strings.ToLower(string(protocol)))
 	if constants.ProtocolTCPServerFirst == protocol {
 		tm.Protocol = constants.ProtocolTCP
 	} else {

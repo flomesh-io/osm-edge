@@ -25,14 +25,14 @@ env:
   OSM_HUMAN_DEBUG_LOG: true
 
 jobs:
-  #shellcheck:
-  #  name: Shellcheck
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - name: Checkout
-  #      uses: actions/checkout@v3
-  #    - name: ShellCheck
-  #      run: shellcheck -x $(find . -name '*.sh')
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: ShellCheck
+        run: shellcheck -x $(find . -name '*.sh')
 
   lint:
     name: Lint
@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Setup Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Setup Go 1.17
         uses: actions/setup-go@v2
         with:
@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: chart checks
         run: make chart-checks
 
@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -123,7 +123,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -146,7 +146,7 @@ jobs:
         run: make go-test-coverage
       - name: Upload Coverage
         if: ${{ success() }}
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v2
         with:
           flags: unittests
 
@@ -156,7 +156,7 @@ jobs:
     needs: build
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -187,7 +187,7 @@ jobs:
       CTR_REGISTRY: "localhost:5000"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Build docker images
         env:
           DOCKER_BUILDX_OUTPUT: type=docker
@@ -209,7 +209,7 @@ jobs:
       CTR_REGISTRY: "localhost:5000" # unused for kind, but currently required in framework
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -240,7 +240,7 @@ jobs:
         continue-on-error: true
       - name: Upload PR test logs
         if: ${{ steps.pr_test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: pr_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
@@ -261,7 +261,7 @@ jobs:
         continue-on-error: true
       - name: Upload Push test logs
         if: ${{ steps.push_test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v2
         with:
           name: push_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
@@ -278,7 +278,7 @@ jobs:
     needs: [build]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
       - name: Restore Module Cache
         uses: actions/cache@v2
@@ -326,7 +326,7 @@ jobs:
       CTR_REGISTRY: flomesh
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with "latest-main" tag
