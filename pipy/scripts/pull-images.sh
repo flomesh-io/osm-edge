@@ -12,9 +12,6 @@ if [ -z "$2" ]; then
   exit 1
 fi
 
-OSM_HOME=$1
-BUILD_ARCH=$2
-
 docker pull alpine:3
 docker pull busybox:latest
 docker pull curlimages/curl:latest

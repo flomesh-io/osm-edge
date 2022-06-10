@@ -14,7 +14,7 @@ sudo apt -y install ca-certificates curl gnupg lsb-release
 sudo apt -y install docker-ce docker-ce-cli containerd.io
 
 sudo groupadd docker
-sudo gpasswd -a $USER docker
+sudo gpasswd -a "$USER" docker
 sudo systemctl restart docker
 sudo newgrp docker &
 

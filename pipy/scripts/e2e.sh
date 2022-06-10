@@ -9,7 +9,7 @@ fi
 
 OSM_HOME=$1
 
-cd ${OSM_HOME}
+cd "${OSM_HOME}" || exit 1
 
 allCases=(
 "CertManagerSimpleClientServer"

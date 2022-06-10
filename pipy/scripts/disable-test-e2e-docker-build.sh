@@ -9,4 +9,4 @@ fi
 
 OSM_HOME=$1
 
-sed -i 's/^test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server$/test-e2e:/g' ${OSM_HOME}/Makefile
+sed -i 's/^test-e2e: docker-build-osm build-osm docker-build-tcp-echo-server$/test-e2e:/g' "${OSM_HOME}"/Makefile

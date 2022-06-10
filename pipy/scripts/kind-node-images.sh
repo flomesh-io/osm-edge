@@ -17,8 +17,6 @@ if [ -z "$3" ]; then
   exit 1
 fi
 
-OSM_HOME=$1
 BUILD_ARCH=$2
-BUILD_OS=$3
 
-wget -q https://registry.hub.docker.com/v1/repositories/kindest/node-${BUILD_ARCH}/tags -O - | jq -r '.[].name' | sort -u
+wget -q https://registry.hub.docker.com/v1/repositories/kindest/node-"${BUILD_ARCH}"/tags -O - | jq -r '.[].name' | sort -u
