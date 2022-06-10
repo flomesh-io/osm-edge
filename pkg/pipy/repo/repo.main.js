@@ -481,7 +481,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_liveness', probeTarget)
+    .muxHTTP('connection_liveness', () => probeTarget)
 
     //
     // connect to the app port
@@ -521,7 +521,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_readiness', probeTarget)
+    .muxHTTP('connection_readiness', () => probeTarget)
 
     //
     // connect to the app port
@@ -560,7 +560,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_startup', probeTarget)
+    .muxHTTP('connection_startup', () => probeTarget)
 
     //
     // connect to the app port
