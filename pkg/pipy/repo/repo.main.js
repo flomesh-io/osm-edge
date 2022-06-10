@@ -1,4 +1,4 @@
-// version: '2022.06.07'
+// version: '2022.06.08a'
 (config => (
   (
     debugLogLevel,
@@ -256,7 +256,7 @@
     //
     .pipeline('request_in')
     .muxHTTP(
-      'connection_in', () => _inTarget
+      'connection_in'
     )
 
     //
@@ -428,7 +428,7 @@
     //
     .pipeline('request_out')
     .muxHTTP(
-      'connection_out', () => _outTarget
+      'connection_out'
     )
 
     //
@@ -481,7 +481,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_liveness', probeTarget)
+    .muxHTTP('connection_liveness', () => probeTarget)
 
     //
     // connect to the app port
@@ -521,7 +521,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_readiness', probeTarget)
+    .muxHTTP('connection_readiness', () => probeTarget)
 
     //
     // connect to the app port
@@ -560,7 +560,7 @@
         probePath && (msg.head.path = probePath)
       )
     )
-    .muxHTTP('connection_startup', probeTarget)
+    .muxHTTP('connection_startup', () => probeTarget)
 
     //
     // connect to the app port
