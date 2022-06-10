@@ -1,4 +1,4 @@
-// version: '2022.06.07'
+// version: '2022.06.08a'
 (config => (
   (
     debugLogLevel,
@@ -256,7 +256,7 @@
     //
     .pipeline('request_in')
     .muxHTTP(
-      'connection_in', () => _inTarget
+      'connection_in'
     )
 
     //
@@ -428,7 +428,7 @@
     //
     .pipeline('request_out')
     .muxHTTP(
-      'connection_out', () => _outTarget
+      'connection_out'
     )
 
     //
