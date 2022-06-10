@@ -146,7 +146,7 @@ jobs:
         run: make go-test-coverage
       - name: Upload Coverage
         if: ${{ success() }}
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
         with:
           flags: unittests
 
@@ -240,7 +240,7 @@ jobs:
         continue-on-error: true
       - name: Upload PR test logs
         if: ${{ steps.pr_test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: pr_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
@@ -261,7 +261,7 @@ jobs:
         continue-on-error: true
       - name: Upload Push test logs
         if: ${{ steps.push_test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: push_test_logs_bucket_${{ matrix.bucket }}
           path: /tmp/test**/*
