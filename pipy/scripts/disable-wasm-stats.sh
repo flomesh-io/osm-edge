@@ -15,7 +15,7 @@ fi
 OSM_HOME=$1
 
 sed -i 's/enableWASMStats: true$/enableWASMStats: false/g' "${OSM_HOME}"/charts/osm/values.yaml
-sed -i "s/^FROM --platform=\$BUILDPLATFORM \(.*\)flomesh\/proxy-wasm-cpp-sdk/#FROM --platform=\$BUILDPLATFORM \1flomesh\/proxy-wasm-cpp-sdk/g"s "${OSM_HOME}"/dockerfiles/Dockerfile.osm-controller
+sed -i "s/^FROM --platform=\$BUILDPLATFORM \(.*\)flomesh\/proxy-wasm-cpp-sdk/#FROM --platform=\$BUILDPLATFORM \1flomesh\/proxy-wasm-cpp-sdk/g" "${OSM_HOME}"/dockerfiles/Dockerfile.osm-controller
 sed -i 's/^WORKDIR \/wasm/#WORKDIR \/wasm/g' "${OSM_HOME}"/dockerfiles/Dockerfile.osm-controller
 sed -i 's/^COPY \.\/wasm \./#COPY \.\/wasm \./g' "${OSM_HOME}"/dockerfiles/Dockerfile.osm-controller
 sed -i 's/^RUN \/build_wasm\.sh/#RUN \/build_wasm\.sh/g' "${OSM_HOME}"/dockerfiles/Dockerfile.osm-controller
