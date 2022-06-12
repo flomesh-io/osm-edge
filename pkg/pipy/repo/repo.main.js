@@ -1,4 +1,4 @@
-// version: '2022.06.10'
+// version: '2022.06.12'
 (config => (
   (
     debugLogLevel,
@@ -180,7 +180,7 @@
           ) && (
             // Load balance
             inClustersConfigs?.[
-              _inMatch.TargetClusters?.next?.().id
+              _inMatch.TargetClusters?.next?.()?.id
             ]?.next?.()
           )
         ),
@@ -244,7 +244,7 @@
           // Layer 7 load balance
           _inTarget = (
             inClustersConfigs[
-              match?.TargetClusters?.next?.().id
+              match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
 
@@ -294,7 +294,7 @@
     //
     .pipeline('connection_in')
     .connect(
-      () => _inTarget.id
+      () => _inTarget?.id
     )
 
     //
@@ -365,7 +365,7 @@
             ) && (
               // Load balance
               outClustersConfigs?.[
-                _outMatch.TargetClusters?.next?.().id
+                _outMatch.TargetClusters?.next?.()?.id
               ]?.next?.()
             )
           ),
@@ -435,7 +435,7 @@
           // Layer 7 load balance
           _outTarget = (
             outClustersConfigs[
-              match?.TargetClusters?.next?.().id
+              match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
 
@@ -495,7 +495,7 @@
     //
     .pipeline('connection_out')
     .connect(
-      () => _outTarget.id
+      () => _outTarget?.id
     )
 
     //
