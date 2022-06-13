@@ -34,10 +34,11 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 			MountPath: pipyProxyConfigPath,
 		}},
 		Resources: cfg.GetProxyResources(),
-		Command:   []string{"/docker-entrypoint.sh"},
+		Command:   []string{"pipy"},
 		Args: []string{
-			`pipy`,
-			`docker-start`,
+			fmt.Sprintf("--log-level=%s", cfg.GetSidecarLogLevel()),
+			fmt.Sprintf("--admin-port=%d", pipyAdminPort),
+			pipyRepo,
 		},
 		Env: []corev1.EnvVar{
 			{
