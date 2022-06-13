@@ -81,18 +81,6 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 					},
 				},
 			},
-			{
-				Name:  "PIPY_LOG_LEVEL",
-				Value: cfg.GetSidecarLogLevel(),
-			},
-			{
-				Name:  "PIPY_ADMIN_PORT",
-				Value: fmt.Sprintf(`%d`, pipyAdminPort),
-			},
-			{
-				Name:  "PIPY_CONFIG_FILE",
-				Value: pipyRepo,
-			},
 		},
 	}
 }
