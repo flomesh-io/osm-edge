@@ -33,12 +33,11 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 			ReadOnly:  true,
 			MountPath: pipyProxyConfigPath,
 		}},
-		Command:   []string{"/usr/local/bin/pipy"},
 		Resources: cfg.GetProxyResources(),
+		Command:   []string{"/docker-entrypoint.sh"},
 		Args: []string{
-			fmt.Sprintf("--log-level=%s", cfg.GetSidecarLogLevel()),
-			fmt.Sprintf("--admin-port=%d", pipyAdminPort),
-			pipyRepo,
+			`pipy`,
+			`docker-start`,
 		},
 		Env: []corev1.EnvVar{
 			{
@@ -80,6 +79,18 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 						FieldPath: "spec.serviceAccountName",
 					},
 				},
+			},
+			{
+				Name:  "PIPY_LOG_LEVEL",
+				Value: cfg.GetSidecarLogLevel(),
+			},
+			{
+				Name:  "PIPY_ADMIN_PORT",
+				Value: fmt.Sprintf(`%d`, pipyAdminPort),
+			},
+			{
+				Name:  "PIPY_CONFIG_FILE",
+				Value: pipyRepo,
 			},
 		},
 	}
