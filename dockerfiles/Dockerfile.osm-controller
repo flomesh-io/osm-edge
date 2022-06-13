@@ -19,3 +19,4 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 FROM gcr.io/distroless/static
 COPY --from=builder /osm/osm-controller /
+COPY pipy/docker-entrypoint.sh /
