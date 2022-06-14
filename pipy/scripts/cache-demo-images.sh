@@ -13,7 +13,6 @@ if [ -z "$2" ]; then
 fi
 
 OSM_HOME=$1
-BUILD_ARCH=$2
 
 docker pull docker.io/devilbox/mysql:mysql-8.0
 docker pull docker.io/curlimages/curl:latest
@@ -24,5 +23,5 @@ docker tag docker.io/curlimages/curl:latest localhost:5000/curlimages/curl:lates
 docker push localhost:5000/devilbox/mysql:mysql-8.0
 docker push localhost:5000/curlimages/curl:latest
 
-sed -i 's# devilbox/mysql:mysql-8.0# localhost:5000/devilbox/mysql:mysql-8.0#g' ${OSM_HOME}/demo/deploy-mysql.sh
-sed -i 's#image: curlimages/curl#image: localhost:5000/curlimages/curl#g' ${OSM_HOME}/demo/multicluster-fault-injection.sh
+sed -i 's# devilbox/mysql:mysql-8.0# localhost:5000/devilbox/mysql:mysql-8.0#g' "${OSM_HOME}"/demo/deploy-mysql.sh
+sed -i 's#image: curlimages/curl#image: localhost:5000/curlimages/curl#g' "${OSM_HOME}"/demo/multicluster-fault-injection.sh

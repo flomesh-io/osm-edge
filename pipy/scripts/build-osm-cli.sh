@@ -9,7 +9,7 @@ fi
 
 OSM_HOME=$1
 
-cd ${OSM_HOME}
+cd "${OSM_HOME}"
 rm -rf bin/osm
 rm -rf cmd/cli/chart.tgz
 make build-osm

@@ -1,7 +1,11 @@
-// version: '2022.06.08a'
+// version: '2022.06.12'
 (config => (
   (
     debugLogLevel,
+    namespace,
+    kind,
+    name,
+    pod,
     specEnableEgress,
     inTrafficMatches,
     inClustersConfigs,
@@ -12,9 +16,33 @@
     probeScheme,
     probeTarget,
     probePath,
+    metricsMap,
+    funcLogMetrics,
     funcHttpServiceRouteRules
   ) => (
     debugLogLevel = (config?.Spec?.SidecarLogLevel === 'debug'),
+    namespace = (os.env.POD_NAMESPACE || 'default').replace('-', '_'),
+    kind = (os.env.POD_KIND || 'Deployment').replace('-', '_'),
+    name = (os.env.SERVICE_ACCOUNT || '').replace('-', '_'),
+    pod = (os.env.POD_NAME || '').replace('-', '_'),
+    metricsMap = {},
+
+    //
+    // OSM metrics
+    //
+    funcLogMetrics = (http_status, d_namespace, d_kind, d_name, d_pod, stub, counterKey, histogramKey) => (
+      stub = '_source_namespace_' + namespace + '_source_kind_' + kind + '_source_name_' + name + '_source_pod_' + pod +
+      '_destination_namespace_' + d_namespace + '_destination_kind_' + d_kind + '_destination_name_' + d_name + '_destination_pod_' + d_pod,
+
+      counterKey = 'sidecar_response_code_' + http_status + stub + '_osm_request_total',
+      !metricsMap[counterKey] && (metricsMap[counterKey] = new stats.Counter(counterKey)),
+      metricsMap[counterKey].increase(),
+
+      histogramKey = 'sidecar' + stub + '_osm_request_duration_ms',
+      !metricsMap[histogramKey] && (metricsMap[histogramKey] = new stats.Histogram(histogramKey,
+        [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity])),
+      metricsMap[histogramKey].observe(Date.now() - _requestTime)
+    ),
 
     funcHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
@@ -103,15 +131,12 @@
 
     specEnableEgress = config?.Spec?.Traffic?.EnableEgress,
 
-
-
     allowedEndpoints = config?.AllowedEndpoints,
 
     // PIPY admin port
     prometheusTarget = '127.0.0.1:6060',
 
     pipy({
-      _targetCount: new stats.Counter('lbtarget_cnt', ['target']),
       _inMatch: undefined,
       _inTarget: undefined,
       _inSessionControl: null,
@@ -119,10 +144,14 @@
       _outPort: undefined,
       _outMatch: undefined,
       _outTarget: undefined,
-      _outSessionControl: null
+      _outSessionControl: null,
+      _requestTime: 0,
+      _egressTargetMap: {}
     })
 
+    //
     // inbound
+    //
     .listen(config?.Inbound?.TrafficMatches ? 15003 : 0, {
       'transparent': true,
       'closeEOF': false
@@ -132,7 +161,7 @@
       () => (
         // Find a match by destination port
         _inMatch = (
-          allowedEndpoints?.[__inbound.remoteAddress] &&
+          allowedEndpoints?.[__inbound.remoteAddress || '127.0.0.1'] &&
           inTrafficMatches?.[__inbound.destinationPort || 0]
         ),
 
@@ -151,21 +180,21 @@
           ) && (
             // Load balance
             inClustersConfigs?.[
-              _inMatch.TargetClusters?.select?.()
-            ]?.select?.()
+              _inMatch.TargetClusters?.next?.()?.id
+            ]?.next?.()
           )
-        ),
-
-        debugLogLevel && (
-          console.log('inbound _inMatch: ', _inMatch) ||
-          console.log('inbound _inTarget: ', _inTarget) ||
-          console.log('inbound protocol: ', _inMatch?.Protocol)
         ),
 
         // Session termination control
         _inSessionControl = {
           close: false
-        }
+        },
+
+        debugLogLevel && (
+          console.log('inbound _inMatch: ', _inMatch) ||
+          console.log('inbound _inTarget: ', _inTarget?.id) ||
+          console.log('inbound protocol: ', _inMatch?.Protocol)
+        )
       )
     )
     .link(
@@ -215,8 +244,8 @@
           // Layer 7 load balance
           _inTarget = (
             inClustersConfigs[
-              match?.TargetClusters?.select?.()
-            ]?.select?.()
+              match?.TargetClusters?.next?.()?.id
+            ]?.next?.()
           ),
 
           // Close sessions from any HTTP proxies
@@ -229,9 +258,8 @@
             console.log('inbound headers: ', msg.head.headers) ||
             console.log('inbound service: ', service) ||
             console.log('inbound match: ', match) ||
-            console.log('inbound _inTarget: ', _inTarget)
+            console.log('inbound _inTarget: ', _inTarget?.id)
           )
-
         ))()
       )
     )
@@ -250,21 +278,23 @@
         version: 2
       }
     )
+    .link('local_response')
 
     //
     // Multiplexing access to HTTP service
     //
     .pipeline('request_in')
     .muxHTTP(
-      'connection_in'
+      'connection_in', () => _inTarget
     )
+    .link('local_response')
 
     //
     // Connect to local service
     //
     .pipeline('connection_in')
     .connect(
-      () => _inTarget
+      () => _inTarget?.id
     )
 
     //
@@ -285,57 +315,81 @@
       new StreamEnd('ConnectionReset')
     )
 
+    //
+    // local response
+    //
+    .pipeline('local_response')
+    .handleMessageStart(
+      (msg) => (
+        ((headers) => (
+          headers = msg.head.headers,
+          headers['osm-stats-namespace'] = namespace,
+          headers['osm-stats-kind'] = kind,
+          headers['osm-stats-name'] = name,
+          headers['osm-stats-pod'] = pod
+        ))()
+      )
+    )
+
+    //
     // outbound
+    //
     .listen(config?.Outbound || config?.Spec?.Traffic?.EnableEgress ? 15001 : 0, {
       'transparent': true,
       'closeEOF': false
       // 'readTimeout': '5s'
     })
     .handleStreamStart(
-      () => (
-        // Upstream service port
-        _outPort = (__inbound.destinationPort || 0),
+      (() => (
+        (target) => (
+          // Upstream service port
+          _outPort = (__inbound.destinationPort || 0),
 
-        // Upstream service IP
-        _outIP = (__inbound.destinationAddress || '127.0.0.1'),
+          // Upstream service IP
+          _outIP = (__inbound.destinationAddress || '127.0.0.1'),
 
-        _outMatch = (outTrafficMatches && outTrafficMatches[_outPort] && (
-          // Strict matching Destination IP address
-          outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
-          // EGRESS mode - does not check the IP
-          outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
-            (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
-        )),
+          _outMatch = (outTrafficMatches && outTrafficMatches[_outPort] && (
+            // Strict matching Destination IP address
+            outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
+            // EGRESS mode - does not check the IP
+            outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
+              (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
+          )),
 
-        // Layer 4 load balance
-        _outTarget = (
-          (
-            // Allow?
-            _outMatch &&
-            _outMatch.Protocol !== 'http' && _outMatch.Protocol !== 'grpc'
-          ) && (
-            // Load balance
-            outClustersConfigs?.[
-              _outMatch.TargetClusters?.select?.()
-            ]?.select?.()
+          // Layer 4 load balance
+          _outTarget = (
+            (
+              // Allow?
+              _outMatch &&
+              _outMatch.Protocol !== 'http' && _outMatch.Protocol !== 'grpc'
+            ) && (
+              // Load balance
+              outClustersConfigs?.[
+                _outMatch.TargetClusters?.next?.()?.id
+              ]?.next?.()
+            )
+          ),
+
+          // EGRESS mode
+          !Boolean(_outTarget) && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (_outMatch?.Protocol !== 'http') && (
+            target = _outIP + ':' + _outPort,
+            !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
+              [target]: 100
+            })),
+            _outTarget = _egressTargetMap[target].next()
+          ),
+
+          _outSessionControl = {
+            close: false
+          },
+
+          debugLogLevel && (
+            console.log('outbound _outMatch: ', _outMatch) ||
+            console.log('outbound _outTarget: ', _outTarget?.id) ||
+            console.log('outbound protocol: ', _outMatch?.Protocol)
           )
-        ),
-
-        // EGRESS mode
-        !Boolean(_outTarget) && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (_outMatch?.Protocol !== 'http') && (
-          _outTarget = _outIP + ':' + _outPort
-        ),
-
-        debugLogLevel && (
-          console.log('outbound _outMatch: ', _outMatch) ||
-          console.log('outbound _outTarget: ', _outTarget) ||
-          console.log('outbound protocol: ', _outMatch?.Protocol)
-        ),
-
-        _outSessionControl = {
-          close: false
-        }
-      )
+        )
+      ))()
     )
     .link(
       'http_out', () => _outMatch?.Protocol === 'http' || _outMatch?.Protocol === 'grpc',
@@ -358,7 +412,7 @@
     .pipeline('outbound')
     .handleMessageStart(
       (msg) => (
-        ((service, route, match, headers) => (
+        ((service, route, match, target, headers) => (
           headers = msg.head.headers,
 
           service = _outMatch.HttpHostPort2Service?.[headers.host],
@@ -381,8 +435,8 @@
           // Layer 7 load balance
           _outTarget = (
             outClustersConfigs[
-              match?.TargetClusters?.select?.()
-            ]?.select?.()
+              match?.TargetClusters?.next?.()?.id
+            ]?.next?.()
           ),
 
           // Add serviceidentity for request authentication
@@ -390,11 +444,14 @@
 
           // EGRESS mode
           !_outTarget && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
-            _outTarget = _outIP + ':' + _outPort
+            target = _outIP + ':' + _outPort,
+            !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
+              [target]: 100
+            })),
+            _outTarget = _egressTargetMap[target].next()
           ),
 
-          // Loadbalancer metrics
-          _outTarget && _targetCount.withLabels(_outTarget).increase(),
+          _requestTime = Date.now(),
 
           debugLogLevel && (
             console.log('outbound path: ', msg.head.path) ||
@@ -402,7 +459,7 @@
             console.log('outbound service: ', service) ||
             console.log('outbound route: ', route) ||
             console.log('outbound match: ', match) ||
-            console.log('outbound _outTarget: ', _outTarget)
+            console.log('outbound _outTarget: ', _outTarget?.id)
           )
         ))()
       )
@@ -422,21 +479,23 @@
         version: 2
       }
     )
+    .link('upstream_response')
 
     //
     // Multiplexing access to HTTP service
     //
     .pipeline('request_out')
     .muxHTTP(
-      'connection_out'
+      'connection_out', () => _outTarget
     )
+    .link('upstream_response')
 
     //
     // Connect to upstream service
     //
     .pipeline('connection_out')
     .connect(
-      () => _outTarget
+      () => _outTarget?.id
     )
 
     //
@@ -457,7 +516,26 @@
       new StreamEnd('ConnectionReset')
     )
 
+    //
+    // upstram response
+    //
+    .pipeline('upstream_response')
+    .handleMessageStart(
+      (msg) => (
+        ((headers, d_namespace, d_kind, d_name, d_pod) => (
+          headers = msg?.head?.headers,
+          (d_namespace = headers?.['osm-stats-namespace']) && (delete headers['osm-stats-namespace']),
+          (d_kind = headers?.['osm-stats-kind']) && (delete headers['osm-stats-kind']),
+          (d_name = headers?.['osm-stats-name']) && (delete headers['osm-stats-name']),
+          (d_pod = headers?.['osm-stats-pod']) && (delete headers['osm-stats-pod']),
+          d_namespace && funcLogMetrics(msg?.head.status, d_namespace, d_kind, d_name, d_pod)
+        ))()
+      )
+    )
+
+    //
     // liveness probe
+    //
     .listen(probeScheme ? 15901 : 0)
     .link(
       'http_liveness', () => probeScheme === 'HTTP',
@@ -497,7 +575,9 @@
       new StreamEnd('ConnectionReset')
     )
 
+    //
     // readiness probe
+    //
     .listen(probeScheme ? 15902 : 0)
     .link(
       'http_readiness', () => probeScheme === 'HTTP',
@@ -537,7 +617,9 @@
       new StreamEnd('ConnectionReset')
     )
 
+    //
     // startup probe
+    //
     .listen(probeScheme ? 15903 : 0)
     .link(
       'http_startup', () => probeScheme === 'HTTP',

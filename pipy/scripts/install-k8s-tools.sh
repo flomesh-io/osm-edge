@@ -27,7 +27,7 @@ sudo apt -y update
 
 sudo apt install -y kubelet=1.23.4-00 kubeadm=1.23.4-00 kubectl=1.23.4-00
 
-sudo curl -Lo /usr/local/sbin/kind https://kind.sigs.k8s.io/dl/latest/kind-${BUILD_OS}-${BUILD_ARCH}
+sudo curl -Lo /usr/local/sbin/kind https://kind.sigs.k8s.io/dl/latest/kind-"${BUILD_OS}"-"${BUILD_ARCH}"
 sudo chmod a+x /usr/local/sbin/kind
 
 sudo snap install helm --classic

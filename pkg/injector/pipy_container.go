@@ -33,8 +33,8 @@ func getPipySidecarContainerSpec(_ *corev1.Pod, cfg configurator.Configurator, o
 			ReadOnly:  true,
 			MountPath: pipyProxyConfigPath,
 		}},
-		Command:   []string{"/usr/local/bin/pipy"},
 		Resources: cfg.GetProxyResources(),
+		Command:   []string{"pipy"},
 		Args: []string{
 			fmt.Sprintf("--log-level=%s", cfg.GetSidecarLogLevel()),
 			fmt.Sprintf("--admin-port=%d", pipyAdminPort),

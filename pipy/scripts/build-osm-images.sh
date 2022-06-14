@@ -9,5 +9,5 @@ fi
 
 OSM_HOME=$1
 
-cd ${OSM_HOME}
+cd "${OSM_HOME}"
 make docker-build
