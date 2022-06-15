@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	tassert "github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 //TODO pending
