@@ -51,13 +51,19 @@ osm:
   imagePullSecrets: []
   # -- The class of the OSM Sidecar
   sidecarClass: pipy
-  # -- Sidecar image for Linux workloads
-  sidecarImage: flomesh/pipy-nightly:latest
-  # -- Sidecar image for Windows workloads
-  sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
+  sidecarDrivers:
+    - sidecarName: pipy
+      # -- Sidecar image for Linux workloads
+      sidecarImage: flomesh/pipy:latest
+      # -- Sidecar image for Windows workloads
+      sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
+    - sidecarName: envoy
+      # -- Sidecar image for Linux workloads
+      sidecarImage: envoyproxy/envoy:latest
+      # -- Sidecar image for Windows workloads
+      sidecarWindowsImage: envoyproxy/envoy-windows:latest
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
-
   #
   # -- OSM controller parameters
   osmController:

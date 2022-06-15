@@ -59,8 +59,8 @@ var iptablesInboundStaticRules = []string{
 	"-A OSM_PROXY_INBOUND -p tcp -j OSM_PROXY_IN_REDIRECT",
 }
 
-// generateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func generateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
+// GenerateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
+func GenerateIptablesCommands(outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules

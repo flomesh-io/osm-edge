@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -24,22 +25,16 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
-	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/reconciler"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/config"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/envoy/ads"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	httpserverconstants "github.com/openservicemesh/osm/pkg/httpserver/constants"
@@ -47,12 +42,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	pipyregistry "github.com/openservicemesh/osm/pkg/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/pipy/repo"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/sidecar"
+	"github.com/openservicemesh/osm/pkg/sidecar/driver"
+	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/driver"
+	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/driver"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -89,12 +88,6 @@ var (
 	flags = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
 	log   = logger.New("osm-controller/main")
 )
-
-type xDSServer interface {
-	health.Probes
-	debugger.XDSDebugger
-	Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error
-}
 
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", constants.DefaultOSMLogLevel, "Set boot log verbosity level")
@@ -163,8 +156,6 @@ func main() {
 	}
 
 	stop := signals.RegisterExitHandlers()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	// Start the default metrics store
 	startMetricsStore()
@@ -174,6 +165,10 @@ func main() {
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
+	err = sidecar.InitDriver(cfg.GetSidecarClass())
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar driver")
+	}
 
 	k8sClient, err := k8s.NewKubernetesController(kubeClient, policyClient, meshName, stop, msgBroker)
 	if err != nil {
@@ -236,36 +231,26 @@ func main() {
 		msgBroker,
 	)
 
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
+	proxyServiceCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
 
-	// Create and start the ADS service
-	var xdsServer xDSServer
-	var debugConfig debugger.DebugConfig
+	background := driver.ControllerContext{
+		OsmNamespace: osmNamespace,
+		Configurator: cfg,
+		MeshCatalog:  meshCatalog,
+		CertManager:  certManager,
+		MsgBroker:    msgBroker,
+		Stop:         stop,
+	}
+	ctx, cancel := context.WithCancel(&background)
+	defer cancel()
 
-	if cfg.GetSidecarClass() == constants.SidecarClassPipy {
-		proxyMapper := &pipyregistry.KubeProxyServiceMapper{KubeController: k8sClient}
-		proxyRegistry := pipyregistry.NewProxyRegistry(proxyMapper, msgBroker)
-		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
-		go proxyRegistry.CacheMeshPodsHandler(stop)
-		// Create and start the ADS http service
-		xdsServer = repo.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
-		if err = xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
-		}
-		debugConfig = debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
-	} else {
-		proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-		proxyRegistry := registry.NewProxyRegistry(proxyMapper, msgBroker)
-		go proxyRegistry.ReleaseCertificateHandler(certManager, stop)
-		// Create and start the ADS gRPC service
-		xdsServer = ads.NewADSServer(meshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager, k8sClient, msgBroker)
-		if err = xdsServer.Start(ctx, cancel, constants.ADSServerPort, adsCert); err != nil {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
-		}
-		debugConfig = debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	// Create and start the sidecar proxy service
+	proxyServer, err := sidecar.Start(ctx, cancel, constants.ProxyServerPort, proxyServiceCert)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing proxy control server")
 	}
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
@@ -277,7 +262,7 @@ func main() {
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
-	funcProbes := []health.Probes{xdsServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
+	funcProbes := []health.Probes{proxyServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
 		httpserverconstants.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		httpserverconstants.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
@@ -297,6 +282,11 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
+	proxyRegistry, ok := proxyServer.(sidecar.ProxyRegistry)
+	if !ok {
+		log.Warn().Msgf("Warn %s not implemented sidecar.ProxyRegistry interface", reflect.TypeOf(proxyServer).String())
+	}
+	debugConfig := debugger.NewDebugConfig(certDebugger, proxyServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
 	go debugConfig.StartDebugServerConfigListener(stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets

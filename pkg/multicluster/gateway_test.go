@@ -7,7 +7,7 @@ import (
 
 	tassert "github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 )
 
 func TestMulticlusterHelpers(t *testing.T) {

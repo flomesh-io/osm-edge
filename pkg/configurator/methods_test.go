@@ -50,8 +50,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 					LogLevel:                      "error",
 					MaxDataPlaneConnections:       0,
 					ConfigResyncInterval:          "2m",
-					SidecarImage:                  "envoyproxy/envoy-alpine:v0.0.0",
-					InitContainerImage:            "openservicemesh/init:v0.0.0",
+					SidecarClass:                  "envoy",
+					SidecarDrivers: []configv1alpha2.SidecarDriverSpec{
+						{
+							SidecarName:        "envoy",
+							SidecarImage:       "envoyproxy/envoy-alpine:v0.0.0",
+							InitContainerImage: "openservicemesh/init:v0.0.0",
+						},
+					},
 				},
 				Traffic: configv1alpha2.TrafficSpec{
 					EnablePermissiveTrafficPolicyMode: false,
@@ -75,8 +81,14 @@ func TestCreateUpdateConfig(t *testing.T) {
 						LogLevel:                      "error",
 						MaxDataPlaneConnections:       0,
 						ConfigResyncInterval:          "2m",
-						SidecarImage:                  "envoyproxy/envoy-alpine:v0.0.0",
-						InitContainerImage:            "openservicemesh/init:v0.0.0",
+						SidecarClass:                  "envoy",
+						SidecarDrivers: []configv1alpha2.SidecarDriverSpec{
+							{
+								SidecarName:        "envoy",
+								SidecarImage:       "envoyproxy/envoy-alpine:v0.0.0",
+								InitContainerImage: "openservicemesh/init:v0.0.0",
+							},
+						},
 					},
 					Traffic: configv1alpha2.TrafficSpec{
 						EnablePermissiveTrafficPolicyMode: false,
@@ -213,7 +225,13 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
-					SidecarImage: "envoyproxy/envoy-alpine:v1.17.1",
+					SidecarClass: "envoy",
+					SidecarDrivers: []configv1alpha2.SidecarDriverSpec{
+						{
+							SidecarName:  "envoy",
+							SidecarImage: "envoyproxy/envoy-alpine:v1.17.1",
+						},
+					},
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
@@ -228,7 +246,13 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
-					SidecarImage: "envoyproxy/envoy-windows:v1.17.1",
+					SidecarClass: "envoy",
+					SidecarDrivers: []configv1alpha2.SidecarDriverSpec{
+						{
+							SidecarName:  "envoy",
+							SidecarImage: "envoyproxy/envoy-windows:v1.17.1",
+						},
+					},
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {
@@ -243,7 +267,13 @@ func TestCreateUpdateConfig(t *testing.T) {
 			},
 			updatedMeshConfigData: &configv1alpha2.MeshConfigSpec{
 				Sidecar: configv1alpha2.SidecarSpec{
-					InitContainerImage: "openservicemesh/init:v0.8.2",
+					SidecarClass: "envoy",
+					SidecarDrivers: []configv1alpha2.SidecarDriverSpec{
+						{
+							SidecarName:        "envoy",
+							InitContainerImage: "openservicemesh/init:v0.8.2",
+						},
+					},
 				},
 			},
 			checkUpdate: func(assert *tassert.Assertions, cfg Configurator) {

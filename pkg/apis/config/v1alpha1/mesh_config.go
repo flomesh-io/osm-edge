@@ -51,14 +51,8 @@ type SidecarSpec struct {
 	// SidecarClass defines the container provider used for the proxy sidecar.
 	SidecarClass string `json:"sidecarClass,omitempty"`
 
-	// SidecarImage defines the container image used for the proxy sidecar.
-	SidecarImage string `json:"sidecarImage,omitempty"`
-
-	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
-	SidecarWindowsImage string `json:"sideWindowsImage,omitempty"`
-
-	// InitContainerImage defines the container image used for the init container injected to meshed pods.
-	InitContainerImage string `json:"initContainerImage,omitempty"`
+	// SidecarDrivers defines the sidecar supported.
+	SidecarDrivers []SidecarDriverSpec `json:"sidecarDrivers,omitempty"`
 
 	// MaxDataPlaneConnections defines the maximum allowed data plane connections from a proxy sidecar to the OSM controller.
 	MaxDataPlaneConnections int `json:"maxDataPlaneConnections,omitempty"`
@@ -203,4 +197,31 @@ type FeatureFlags struct {
 
 	// EnableRetryPolicy defines if retry policy is enabled.
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`
+}
+
+// SidecarDriverSpec is the type to represent OSM's sidecar driver define.
+type SidecarDriverSpec struct {
+	// SidecarName defines the name of the sidecar driver.
+	SidecarName string `json:"sidecarName,omitempty"`
+
+	// SidecarImage defines the container image used for the proxy sidecar.
+	SidecarImage string `json:"sidecarImage,omitempty"`
+
+	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
+	SidecarWindowsImage string `json:"SidecarImageWindowsImage,omitempty"`
+
+	// InitContainerImage defines the container image used for the init container injected to meshed pods.
+	InitContainerImage string `json:"initContainerImage,omitempty"`
+
+	// DriverConfigs defines the config variables for the sidecar driver.
+	DriverConfigs []SidecarDriverConfigSpec `json:"driverConfigs,omitempty"`
+}
+
+// SidecarDriverConfigSpec is the type to represent OSM's sidecar driver configuration.
+type SidecarDriverConfigSpec struct {
+	// Name for the config variable.
+	Name string `json:"name,omitempty"`
+
+	// Value for the config variable.
+	Value string `json:"value,omitempty"`
 }

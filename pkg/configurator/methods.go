@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -137,7 +138,15 @@ func (c *client) GetSidecarClass() string {
 
 // GetSidecarImage returns the sidecar image
 func (c *client) GetSidecarImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.SidecarImage
+	image := ""
+	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+	for _, sidecarDriver := range sidecarDrivers {
+		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+			image = sidecarDriver.SidecarImage
+			break
+		}
+	}
 	if image == "" {
 		image = os.Getenv("OSM_DEFAULT_SIDECAR_IMAGE")
 	}
@@ -146,7 +155,15 @@ func (c *client) GetSidecarImage() string {
 
 // GetSidecarWindowsImage returns the sidecar windows image
 func (c *client) GetSidecarWindowsImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.SidecarWindowsImage
+	image := ""
+	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+	for _, sidecarDriver := range sidecarDrivers {
+		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+			image = sidecarDriver.SidecarWindowsImage
+			break
+		}
+	}
 	if image == "" {
 		image = os.Getenv("OSM_DEFAULT_SIDECAR_WINDOWS_IMAGE")
 	}
@@ -155,7 +172,15 @@ func (c *client) GetSidecarWindowsImage() string {
 
 // GetInitContainerImage returns the init container image
 func (c *client) GetInitContainerImage() string {
-	image := c.getMeshConfig().Spec.Sidecar.InitContainerImage
+	image := ""
+	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+	for _, sidecarDriver := range sidecarDrivers {
+		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+			image = sidecarDriver.InitContainerImage
+			break
+		}
+	}
 	if image == "" {
 		image = os.Getenv("OSM_DEFAULT_INIT_CONTAINER_IMAGE")
 	}

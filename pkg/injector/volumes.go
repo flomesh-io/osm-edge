@@ -4,8 +4,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// getVolumeSpec returns a list of volumes to add to the POD
-func getVolumeSpec(sidecarBootstrapConfigName string) []corev1.Volume {
+// GetVolumeSpec returns a list of volumes to add to the POD
+func GetVolumeSpec(sidecarBootstrapConfigName string) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: sidecarBootstrapConfigVolume,

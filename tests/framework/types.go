@@ -119,6 +119,7 @@ type InstallOSMOpts struct {
 	EnablePermissiveMode bool
 	OSMLogLevel          string
 	SidecarLogLevel      string
+	SidecarClass         string
 	EnableDebugServer    bool
 
 	SetOverrides []string
