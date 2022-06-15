@@ -24,18 +24,18 @@ var _ = OSMDescribe("Test garbage collection for unused sidecar bootstrap config
 	},
 	func() {
 		Context("Garbage Collection", func() {
-			if sidecarClass, err := Td.GetSidecarClass(Td.OsmNamespace); err == nil {
-				if strings.EqualFold(strings.ToLower(constants.SidecarClassPipy), strings.ToLower(sidecarClass)) {
-					Skip("Test is only meant to be run when using envoy sidecar")
-				}
-			}
-
 			userService := "app"
 			userReplicaSet := 1
 
 			It("Tests garbage collection", func() {
 				// Install OSM
 				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+
+				if sidecarClass, err := Td.GetSidecarClass(Td.OsmNamespace); err == nil {
+					if strings.EqualFold(strings.ToLower(constants.SidecarClassPipy), strings.ToLower(sidecarClass)) {
+						Skip("Test is only meant to be running when using envoy sidecar")
+					}
+				}
 
 				// Create NSs
 				Expect(Td.CreateNs(userService, nil)).To(Succeed())
