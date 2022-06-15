@@ -564,7 +564,12 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.ClusterOS == constants.OSWindows {
 		meshConfig, _ := Td.GetMeshConfig(Td.OsmNamespace)
 		meshConfig.Spec.FeatureFlags.EnableWASMStats = false
-		meshConfig.Spec.Sidecar.SidecarWindowsImage = SidecarOSMWindowsImage
+		meshConfig.Spec.Sidecar.SidecarDrivers = []configv1alpha2.SidecarDriverSpec{
+			{
+				SidecarName:         "envoy",
+				SidecarWindowsImage: SidecarOSMWindowsImage,
+			},
+		}
 		_, err = Td.UpdateOSMConfig(meshConfig)
 		if err != nil {
 			return err
