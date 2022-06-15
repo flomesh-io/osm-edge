@@ -59,7 +59,7 @@ osm:
       sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
     - sidecarName: envoy
       # -- Sidecar image for Linux workloads
-      sidecarImage: envoyproxy/envoy:latest
+      sidecarImage: envoyproxy/envoy:v1.19.3
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: envoyproxy/envoy-windows:latest
   # -- Curl image for control plane init container
