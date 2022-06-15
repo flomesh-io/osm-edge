@@ -93,9 +93,9 @@ func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: securityContext,
 		Ports:           getSidecarContainerPorts(injCtx.OriginalHealthProbes),
-		Command:         []string{"pipy"},
 		Resources:       injCtx.Configurator.GetProxyResources(),
 		Args: []string{
+			"pipy",
 			fmt.Sprintf("--log-level=%s", injCtx.Configurator.GetSidecarLogLevel()),
 			fmt.Sprintf("--admin-port=%d", pipyAdminPort),
 			pipyRepo,
