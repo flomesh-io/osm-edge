@@ -96,7 +96,7 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteHealthProbes", func(t *testing.T) {
 		actual := rewriteHealthProbes(pod)
-		expected := driver.NewHealthProbes(
+		expected := *driver.NewHealthProbes(
 			driver.NewHealthProbe(
 				"/b",
 				2,

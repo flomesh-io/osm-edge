@@ -1,6 +1,7 @@
 package debugger
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -12,6 +13,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/registry"
 )
+
+type dummyHandler struct{}
+
+func (h *dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+}
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
 func TestGetHandlers(t *testing.T) {
@@ -25,6 +31,21 @@ func TestGetHandlers(t *testing.T) {
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	proxyRegistry := registry.NewProxyRegistry(nil, nil)
+
+	mockProxyDebugger.EXPECT().GetDebugHandlers().Return(map[string]http.Handler{
+		"/certs":      new(dummyHandler),
+		"/xds":        new(dummyHandler),
+		"/proxy":      new(dummyHandler),
+		"/policies":   new(dummyHandler),
+		"/config":     new(dummyHandler),
+		"/namespaces": new(dummyHandler),
+		// Pprof handlers
+		"/pprof/":        new(dummyHandler),
+		"/pprof/cmdline": new(dummyHandler),
+		"/pprof/profile": new(dummyHandler),
+		"/pprof/symbol":  new(dummyHandler),
+		"/pprof/trace":   new(dummyHandler),
+	})
 
 	ds := NewDebugConfig(mockCertDebugger,
 		mockProxyDebugger,
