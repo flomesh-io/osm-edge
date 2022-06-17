@@ -212,16 +212,4 @@ type SidecarDriverSpec struct {
 
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
-
-	// DriverConfigs defines the config variables for the sidecar driver.
-	DriverConfigs []SidecarDriverConfigSpec `json:"driverConfigs,omitempty"`
-}
-
-// SidecarDriverConfigSpec is the type to represent OSM's sidecar driver configuration.
-type SidecarDriverConfigSpec struct {
-	// Name for the config variable.
-	Name string `json:"name,omitempty"`
-
-	// Value for the config variable.
-	Value string `json:"value,omitempty"`
 }
