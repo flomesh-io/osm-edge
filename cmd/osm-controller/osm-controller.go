@@ -246,9 +246,10 @@ func main() {
 	}
 	ctx, cancel := context.WithCancel(&background)
 	defer cancel()
+	background.CancelFunc = cancel
 
 	// Create and start the sidecar proxy service
-	proxyServer, err := sidecar.Start(ctx, cancel, constants.ProxyServerPort, proxyServiceCert)
+	proxyServer, err := sidecar.Start(ctx, constants.ProxyServerPort, proxyServiceCert)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing proxy control server")
 	}

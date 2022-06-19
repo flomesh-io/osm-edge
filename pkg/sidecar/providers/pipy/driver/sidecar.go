@@ -30,12 +30,13 @@ type PipySidecarDriver struct {
 }
 
 // Start is the implement for ControllerDriver.Start
-func (p PipySidecarDriver) Start(ctx context.Context, cancel context.CancelFunc, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
 	}
 	ctrlCtx := parentCtx.(*driver.ControllerContext)
+	cancel := ctrlCtx.CancelFunc
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()

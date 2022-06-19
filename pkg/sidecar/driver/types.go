@@ -17,18 +17,8 @@ import (
 
 // Driver is the interface that must be implemented by a sidecar driver.
 type Driver interface {
-	InjectorDriver
-	ControllerDriver
-}
-
-// InjectorDriver must be implemented by a sidecar driver to integrate with OSM Injector
-type InjectorDriver interface {
 	Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error)
-}
-
-// ControllerDriver must be implemented by a sidecar driver to integrate with OSM Controller
-type ControllerDriver interface {
-	Start(ctx context.Context, cancel context.CancelFunc, port int, cert *certificate.Certificate) (ProxyServer, error)
+	Start(ctx context.Context, port int, cert *certificate.Certificate) (ProxyServer, error)
 }
 
 // ProxyServer is the return of ControllerDriver.Start, provides methods for Probes and Debugger
@@ -93,5 +83,6 @@ type ControllerContext struct {
 	MeshCatalog  catalog.MeshCataloger
 	CertManager  certificate.Manager
 	MsgBroker    *messaging.Broker
+	CancelFunc   func()
 	Stop         chan struct{}
 }

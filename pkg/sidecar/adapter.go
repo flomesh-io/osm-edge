@@ -74,13 +74,13 @@ func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 }
 
 // Start is an adapter method for ControllerDriver.Start
-func Start(ctx context.Context, cancel context.CancelFunc, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
 		return nil, errors.New("sidecar: unknown driver (forgotten init?)")
 	}
-	return engineDriver.Start(ctx, cancel, port, cert)
+	return engineDriver.Start(ctx, port, cert)
 }
 
 // GetPlatformSpecificSpecComponents return the Platform Spec with SecurityContext and sidecarContainer
