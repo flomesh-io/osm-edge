@@ -26,6 +26,7 @@ var _ = OSMDescribe("Upgrade from latest",
 		const ns = "upgrade-test"
 
 		It("Tests upgrading the control plane", func() {
+			Skip("Skip upgrading the control plane")
 			if Td.InstType == NoInstall {
 				Skip("test requires fresh OSM install")
 			}
