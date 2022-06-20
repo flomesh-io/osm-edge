@@ -26,7 +26,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 			HTTPHeaderName = "podname"
 		)
 
-		var maxTestDuration = 190 * time.Second
+		var maxTestDuration = 240 * time.Second
 
 		Context("DeploymentsClientServer", func() {
 			var (
