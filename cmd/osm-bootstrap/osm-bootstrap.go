@@ -310,6 +310,7 @@ func buildDefaultMeshConfig(presetMeshConfigMap *corev1.ConfigMap) *configv1alph
 	presetMeshConfigSpec := configv1alpha2.MeshConfigSpec{}
 	err := json.Unmarshal([]byte(presetMeshConfig), &presetMeshConfigSpec)
 	if err != nil {
+		fmt.Println(presetMeshConfig)
 		log.Fatal().Err(err).Msgf("Error converting preset-mesh-config json string to meshConfig object")
 	}
 

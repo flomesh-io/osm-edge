@@ -8,6 +8,8 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
 
 func TestRewriteProbe(t *testing.T) {
@@ -94,59 +96,58 @@ func TestRewriteProbe(t *testing.T) {
 
 	t.Run("rewriteHealthProbes", func(t *testing.T) {
 		actual := rewriteHealthProbes(pod)
-		expected := healthProbes{
-			liveness: &healthProbe{
-				path:    "/b",
-				port:    2,
-				isHTTP:  true,
-				timeout: probeTimeoutDuration,
-			},
-			readiness: &healthProbe{
-				path:    "/a",
-				port:    1,
-				isHTTP:  true,
-				timeout: probeTimeoutDuration,
-			},
-			startup: &healthProbe{
-				path:    "/c",
-				port:    3,
-				isHTTP:  true,
-				timeout: probeTimeoutDuration,
-			},
-		}
+		expected := *driver.NewHealthProbes(
+			driver.NewHealthProbe(
+				"/b",
+				2,
+				true,
+				probeTimeoutDuration,
+				false),
+			driver.NewHealthProbe(
+				"/a",
+				1,
+				true,
+				probeTimeoutDuration,
+				false),
+			driver.NewHealthProbe(
+				"/c",
+				3,
+				true,
+				probeTimeoutDuration,
+				false))
 		tassert.Equal(t, expected, actual)
 	})
 
 	t.Run("rewriteLiveness", func(t *testing.T) {
 		actual := rewriteLiveness(container)
-		expected := &healthProbe{
-			path:    "/k/l/m",
-			port:    7890,
-			isHTTP:  true,
-			timeout: probeTimeoutDuration,
-		}
+		expected := driver.NewHealthProbe(
+			"/k/l/m",
+			7890,
+			true,
+			probeTimeoutDuration,
+			false)
 		tassert.Equal(t, expected, actual)
 	})
 
 	t.Run("rewriteReadiness", func(t *testing.T) {
 		actual := rewriteReadiness(container)
-		expected := &healthProbe{
-			path:    "/a/b/c",
-			port:    1234,
-			isHTTP:  true,
-			timeout: probeTimeoutDuration,
-		}
+		expected := driver.NewHealthProbe(
+			"/a/b/c",
+			1234,
+			true,
+			probeTimeoutDuration,
+			false)
 		tassert.Equal(t, expected, actual)
 	})
 
 	t.Run("rewriteStartup", func(t *testing.T) {
 		actual := rewriteStartup(container)
-		expected := &healthProbe{
-			path:    "/x/y/z",
-			port:    3456,
-			isHTTP:  true,
-			timeout: probeTimeoutDuration,
-		}
+		expected := driver.NewHealthProbe(
+			"/x/y/z",
+			3456,
+			true,
+			probeTimeoutDuration,
+			false)
 		tassert.Equal(t, expected, actual)
 	})
 
@@ -157,7 +158,7 @@ func TestRewriteProbe(t *testing.T) {
 			newPath      string
 			originalPort int32
 			newPort      int32
-			expected     *healthProbe
+			expected     *driver.HealthProbe
 		}{
 			{
 				name:     "nil",
@@ -172,36 +173,36 @@ func TestRewriteProbe(t *testing.T) {
 			{
 				name:  "getPort() error",
 				probe: makeHTTPProbe("/x/y/z", 0),
-				expected: &healthProbe{
-					path:    "/x/y/z",
-					port:    0,
-					isHTTP:  true,
-					timeout: probeTimeoutDuration,
-				},
+				expected: driver.NewHealthProbe(
+					"/x/y/z",
+					0,
+					true,
+					probeTimeoutDuration,
+					false),
 			},
 			{
 				name:    "http",
 				probe:   makeHTTPProbe("/x/y/z", 3456),
 				newPath: "/x",
 				newPort: 3465,
-				expected: &healthProbe{
-					path:    "/x/y/z",
-					port:    3456,
-					isHTTP:  true,
-					timeout: probeTimeoutDuration,
-				},
+				expected: driver.NewHealthProbe(
+					"/x/y/z",
+					3456,
+					true,
+					probeTimeoutDuration,
+					false),
 			},
 			{
 				name:    "https",
 				probe:   makeHTTPSProbe("/x/y/z", 3456),
 				newPath: "/x/y/z",
 				newPort: 3465,
-				expected: &healthProbe{
-					path:    "/x/y/z",
-					port:    3456,
-					isHTTP:  false,
-					timeout: probeTimeoutDuration,
-				},
+				expected: driver.NewHealthProbe(
+					"/x/y/z",
+					3456,
+					false,
+					probeTimeoutDuration,
+					false),
 			},
 			{
 				name:         "tcp",
@@ -209,12 +210,12 @@ func TestRewriteProbe(t *testing.T) {
 				originalPort: 3456,
 				newPath:      "/osm-healthcheck",
 				newPort:      15904,
-				expected: &healthProbe{
-					port:        3456,
-					isHTTP:      false,
-					isTCPSocket: true,
-					timeout:     probeTimeoutDuration,
-				},
+				expected: driver.NewHealthProbe(
+					"",
+					3456,
+					false,
+					probeTimeoutDuration,
+					true),
 			},
 		}
 
@@ -236,7 +237,7 @@ func TestRewriteProbe(t *testing.T) {
 					}
 					// After rewrite there should be no TCPSocket probes
 					assert.Nil(test.probe.Handler.TCPSocket)
-					if actual != nil && actual.isTCPSocket {
+					if actual != nil && actual.IsTCPSocket() {
 						expectedHeader := makeOriginalTCPPortHeader(test.originalPort)
 						assert.Contains(test.probe.Handler.HTTPGet.HTTPHeaders, expectedHeader)
 					}

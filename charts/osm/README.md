@@ -166,9 +166,13 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar |
-| osm.sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarName | string | `"pipy"` |  |
+| osm.sidecarDrivers[0].sidecarWindowsImage | string | `"flomesh/pipy-windows-nightly:latest"` | Sidecar image for Windows workloads |
+| osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[1].sidecarName | string | `"envoy"` |  |
+| osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
 | osm.sidecarLogLevel | string | `"error"` | Log level for the proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
-| osm.sidecarWindowsImage | string | `"flomesh/pipy-windows-nightly:latest"` | Sidecar image for Windows workloads |
 | osm.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | osm.tracing.enable | bool | `false` | Toggles Sidecar's tracing functionality on/off for all sidecar proxies in the mesh |
 | osm.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |

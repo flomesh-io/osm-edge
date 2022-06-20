@@ -88,7 +88,7 @@ EOF
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
-			actual := generateIptablesCommands(tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions)
+			actual := GenerateIptablesCommands(tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions)
 			a.Equal(tc.expected, actual)
 		})
 	}

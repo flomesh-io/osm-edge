@@ -63,18 +63,42 @@ spec:
                     maxDataPlaneConnections:
                       description: Max allowed data plane sidecar connections
                       type: integer
-                    sidcarClass:
+                    sidecarClass:
                       description: Class of the sidecar
                       type: string
-                    sidcarImage:
-                      description: Image for the sidecar
-                      type: string
-                    sidcarWindowsImage:
-                      description: Image for the sidecar on Windows workers
-                      type: string
-                    initContainerImage:
-                      description: Image for the init container
-                      type: string
+                      enum:
+                        - pipy
+                        - envoy
+                    sidecarDrivers:
+                      description: Drivers of sidecars supported by osm
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - sidecarName
+                        properties:
+                          sidecarName:
+                            description: Name for the sidecar
+                            type: string
+                          sidecarImage:
+                            description: Image for the sidecar
+                            type: string
+                          sidecarWindowsImage:
+                            description: Image for the sidecar on Windows workers
+                            type: string
+                          initContainerImage:
+                            description: Image for the init container
+                            type: string
+                          driverConfigs:
+                            description: Image for the sidecar
+                            type: array
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                              value:
+                                description: Value for the config variable.
+                              type: object
                     resources:
                       type: object
                       properties:
@@ -308,15 +332,36 @@ spec:
                       description: Class of the sidecar
                       type:
                         string
-                    sidecarImage:
-                      description: Image for the sidecar
-                      type: string
-                    sidecarWindowsImage:
-                      description: Image for the sidecar on Windows workers
-                      type: string
-                    initContainerImage:
-                      description: Image for the init container
-                      type: string
+                    sidecarDrivers:
+                      description: Drivers of sidecars supported by osm
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - sidecarName
+                        properties:
+                          sidecarName:
+                            description: Name for the sidecar
+                            type: string
+                          sidecarImage:
+                            description: Image for the sidecar
+                            type: string
+                          sidecarWindowsImage:
+                            description: Image for the sidecar on Windows workers
+                            type: string
+                          initContainerImage:
+                            description: Image for the init container
+                            type: string
+                          driverConfigs:
+                            description: Image for the sidecar
+                            type: array
+                            items:
+                              properties:
+                                name:
+                                  type: string
+                              value:
+                                description: Value for the config variable.
+                              type: object
                     resources:
                       type: object
                       properties:
