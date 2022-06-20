@@ -54,7 +54,7 @@ osm:
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads
-      sidecarImage: wangpf/pipy-nightly:latest
+      sidecarImage: wanpf/pipy-nightly:latest
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
     - sidecarName: envoy
