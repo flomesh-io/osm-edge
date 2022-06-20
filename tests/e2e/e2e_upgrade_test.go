@@ -26,7 +26,6 @@ var _ = OSMDescribe("Upgrade from latest",
 		const ns = "upgrade-test"
 
 		It("Tests upgrading the control plane", func() {
-			Skip("Skip upgrading the control plane")
 			if Td.InstType == NoInstall {
 				Skip("test requires fresh OSM install")
 			}
@@ -94,6 +93,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			ch, err := loader.Load(chartPath)
 			ensureNodeSelector(ch)
 			Expect(err).NotTo(HaveOccurred())
+			Skip("Skip upgrading the control plane")
 			Td.T.Log("testing upgrade from chart version", ch.Metadata.Version)
 
 			_, err = i.Run(ch, vals)
