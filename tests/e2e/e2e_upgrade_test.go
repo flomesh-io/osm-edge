@@ -179,7 +179,7 @@ var _ = OSMDescribe("Upgrade from latest",
 				Expect(err).NotTo(HaveOccurred())
 				defer prometheus.Stop()
 				cond := Td.WaitForRepeatedSuccess(func() bool {
-					expectedProxyCount := float64(2)
+					expectedProxyCount := float64(1)
 					proxies, err := prometheus.VectorQuery("osm_proxy_connect_count", time.Now())
 					if err != nil {
 						Td.T.Log("error querying prometheus:", err)
