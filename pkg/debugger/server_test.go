@@ -11,12 +11,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/registry"
 )
 
 type dummyHandler struct{}
 
-func (h *dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *dummyHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
 }
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
@@ -30,7 +29,6 @@ func TestGetHandlers(t *testing.T) {
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
-	proxyRegistry := registry.NewProxyRegistry(nil, nil)
 
 	mockProxyDebugger.EXPECT().GetDebugHandlers().Return(map[string]http.Handler{
 		"/certs":      new(dummyHandler),
@@ -48,16 +46,14 @@ func TestGetHandlers(t *testing.T) {
 	})
 
 	ds := NewDebugConfig(mockCertDebugger,
-		mockProxyDebugger,
 		mockCatalogDebugger,
-		proxyRegistry,
 		nil,
 		client,
 		mockConfig,
 		mockKubeController,
 		nil)
 
-	handlers := ds.GetHandlers()
+	handlers := ds.GetHandlers(make(map[string]http.Handler))
 
 	debugEndpoints := []string{
 		"/debug/certs",

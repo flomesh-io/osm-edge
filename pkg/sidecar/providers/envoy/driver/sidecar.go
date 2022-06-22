@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
@@ -29,7 +30,7 @@ type EnvoySidecarDriver struct {
 }
 
 // Start is the implement for ControllerDriver.Start
-func (e EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func (e EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")

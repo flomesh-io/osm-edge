@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -237,19 +236,20 @@ func main() {
 	}
 
 	background := driver.ControllerContext{
-		OsmNamespace: osmNamespace,
-		Configurator: cfg,
-		MeshCatalog:  meshCatalog,
-		CertManager:  certManager,
-		MsgBroker:    msgBroker,
-		Stop:         stop,
+		OsmNamespace:  osmNamespace,
+		Configurator:  cfg,
+		MeshCatalog:   meshCatalog,
+		CertManager:   certManager,
+		MsgBroker:     msgBroker,
+		DebugHandlers: make(map[string]http.Handler),
+		Stop:          stop,
 	}
 	ctx, cancel := context.WithCancel(&background)
 	defer cancel()
 	background.CancelFunc = cancel
 
 	// Create and start the sidecar proxy service
-	proxyServer, err := sidecar.Start(ctx, constants.ProxyServerPort, proxyServiceCert)
+	healthProbes, err := sidecar.Start(ctx, constants.ProxyServerPort, proxyServiceCert)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing proxy control server")
 	}
@@ -263,7 +263,7 @@ func main() {
 	// Initialize OSM's http service server
 	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 	// Health/Liveness probes
-	funcProbes := []health.Probes{proxyServer, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
+	funcProbes := []health.Probes{healthProbes, smi.HealthChecker{DiscoveryClient: clientset.Discovery()}}
 	httpServer.AddHandlers(map[string]http.Handler{
 		httpserverconstants.HealthReadinessPath: health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
 		httpserverconstants.HealthLivenessPath:  health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
@@ -283,12 +283,8 @@ func main() {
 
 	// Create DebugServer and start its config event listener.
 	// Listener takes care to start and stop the debug server as appropriate
-	proxyRegistry, ok := proxyServer.(sidecar.ProxyRegistry)
-	if !ok {
-		log.Warn().Msgf("Warn %s not implemented sidecar.ProxyRegistry interface", reflect.TypeOf(proxyServer).String())
-	}
-	debugConfig := debugger.NewDebugConfig(certDebugger, proxyServer, meshCatalog, proxyRegistry, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
-	go debugConfig.StartDebugServerConfigListener(stop)
+	debugConfig := debugger.NewDebugConfig(certDebugger, meshCatalog, kubeConfig, kubeClient, cfg, k8sClient, msgBroker)
+	go debugConfig.StartDebugServerConfigListener(background.DebugHandlers, stop)
 
 	// Start the k8s pod watcher that updates corresponding k8s secrets
 	go k8s.WatchAndUpdateProxyBootstrapSecret(kubeClient, msgBroker, stop)

@@ -18,18 +18,7 @@ import (
 // Driver is the interface that must be implemented by a sidecar driver.
 type Driver interface {
 	Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error)
-	Start(ctx context.Context, port int, cert *certificate.Certificate) (ProxyServer, error)
-}
-
-// ProxyServer is the return of ControllerDriver.Start, provides methods for Probes and Debugger
-type ProxyServer interface {
-	health.Probes
-	ProxyDebugger
-}
-
-// ProxyDebugger is implemented by a sidecar driver to provide handlers for integrating with OSM DebuggerServer
-type ProxyDebugger interface {
-	GetDebugHandlers() map[string]http.Handler
+	Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error)
 }
 
 // HealthProbes is to serve as an indication whether the given healthProbe has been rewritten
@@ -78,11 +67,12 @@ var ControllerCtxKey int
 type ControllerContext struct {
 	context.Context
 
-	OsmNamespace string
-	Configurator configurator.Configurator
-	MeshCatalog  catalog.MeshCataloger
-	CertManager  certificate.Manager
-	MsgBroker    *messaging.Broker
-	CancelFunc   func()
-	Stop         chan struct{}
+	OsmNamespace  string
+	Configurator  configurator.Configurator
+	MeshCatalog   catalog.MeshCataloger
+	CertManager   certificate.Manager
+	MsgBroker     *messaging.Broker
+	DebugHandlers map[string]http.Handler
+	CancelFunc    func()
+	Stop          chan struct{}
 }
