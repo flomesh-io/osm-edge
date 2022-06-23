@@ -5,6 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+MESH_NAME="${MESH_NAME:-osm}"
 TIMEOUT="${TIMEOUT:-90s}"
 
 bin/osm uninstall mesh -f --mesh-name "$MESH_NAME" --osm-namespace "$K8S_NAMESPACE" --delete-namespace -a

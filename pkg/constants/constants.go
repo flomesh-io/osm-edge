@@ -82,8 +82,8 @@ const (
 	// OSMBootstrapName is the name of the OSM Bootstrap.
 	OSMBootstrapName = "osm-bootstrap"
 
-	// ADSServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Sidecar proxies
-	ADSServerPort = 15128
+	// ProxyServerPort is the port on which the Aggregated Discovery Service (ADS) listens for new gRPC connections from Sidecar proxies
+	ProxyServerPort = 15128
 
 	// PrometheusScrapePath is the path for prometheus to scrap sidecar metrics from
 	PrometheusScrapePath = "/stats/prometheus"

@@ -1,8 +1,8 @@
 package injector
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -13,19 +13,21 @@ import (
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/sidecar"
+	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Sidecar to connect to XDS (not Sidecar-to-Sidecar connections)
-	cn := envoy.NewXDSCertCommonName(proxyUUID, envoy.KindSidecar, pod.Spec.ServiceAccountName, namespace)
+	cn := sidecar.NewCertCommonName(proxyUUID, sidecar.KindSidecar, pod.Spec.ServiceAccountName, namespace)
 	log.Debug().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
 	startTime := time.Now()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
@@ -40,39 +42,23 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		WithLabelValues().Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
-	// Create the bootstrap configuration for the Sidecar proxy for the given pod
-	sidecarBootstrapConfigName := fmt.Sprintf("sidecar-bootstrap-config-%s", proxyUUID)
-
-	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
-	// corresponding to the Sidecar bootstrap config. Such a side effect needs to be skipped
-	// when the request is a DryRun.
-	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
-	if req.DryRun != nil && *req.DryRun {
-		log.Debug().Msgf("Skipping Sidecar bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
-	} else if _, err = wh.createSidecarBootstrapConfig(sidecarBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
-		log.Error().Err(err).Msgf("Failed to create Sidecar bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-		return nil, err
-	}
-
-	// Create volume for sidecar TLS secret
-	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(sidecarBootstrapConfigName)...)
-
 	// On Windows we cannot use init containers to program HNS because it requires elevated privileges
 	// As a result we assume that the HNS redirection policies are already programmed via a CNI plugin.
 	// Skip adding the init container and only patch the pod spec with sidecar container.
 	podOS := pod.Spec.NodeSelector["kubernetes.io/os"]
-	if err := wh.verifyPrerequisites(podOS); err != nil {
+	if err = wh.verifyPrerequisites(podOS); err != nil {
 		return nil, err
 	}
 
-	err = wh.configurePodInit(podOS, pod, namespace)
+	inboundPortExclusionList, outboundPortExclusionList, outboundIPRangeInclusionList, outboundIPRangeExclusionList,
+		err := wh.configurePodPortAndIPRangeInit(podOS, pod, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	if (originalHealthProbes.liveness != nil && originalHealthProbes.liveness.isTCPSocket) ||
-		(originalHealthProbes.readiness != nil && originalHealthProbes.readiness.isTCPSocket) ||
-		(originalHealthProbes.startup != nil && originalHealthProbes.startup.isTCPSocket) {
+	if (originalHealthProbes.GetLiveness() != nil && originalHealthProbes.GetLiveness().IsTCPSocket()) ||
+		(originalHealthProbes.GetReadiness() != nil && originalHealthProbes.GetReadiness().IsTCPSocket()) ||
+		(originalHealthProbes.GetStartup() != nil && originalHealthProbes.GetStartup().IsTCPSocket()) {
 		healthcheckContainer := corev1.Container{
 			Name:            "osm-healthcheck",
 			Image:           os.Getenv("OSM_DEFAULT_HEALTHCHECK_CONTAINER_IMAGE"),
@@ -90,15 +76,6 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 			},
 		}
 		pod.Spec.Containers = append(pod.Spec.Containers, healthcheckContainer)
-	}
-
-	// Add the sidecar
-	if wh.configurator.GetSidecarClass() == constants.SidecarClassPipy {
-		sidecar := getPipySidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS, bootstrapCertificate, wh.osmNamespace)
-		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
-	} else {
-		sidecar := getSidecarSidecarContainerSpec(pod, wh.configurator, originalHealthProbes, podOS)
-		pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 	}
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
@@ -122,6 +99,50 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		pod.Labels = make(map[string]string)
 	}
 	pod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
+
+	background := driver.InjectorContext{
+		MeshName:                     wh.meshName,
+		OsmNamespace:                 wh.osmNamespace,
+		PodNamespace:                 namespace,
+		PodOS:                        podOS,
+		ProxyCommonName:              cn,
+		ProxyUUID:                    proxyUUID,
+		Configurator:                 wh.configurator,
+		BootstrapCertificate:         bootstrapCertificate,
+		ContainerPullPolicy:          wh.osmContainerPullPolicy,
+		InboundPortExclusionList:     inboundPortExclusionList,
+		OutboundPortExclusionList:    outboundPortExclusionList,
+		OutboundIPRangeInclusionList: outboundIPRangeInclusionList,
+		OutboundIPRangeExclusionList: outboundIPRangeExclusionList,
+		OriginalHealthProbes:         originalHealthProbes,
+		DryRun:                       req.DryRun != nil && *req.DryRun,
+	}
+	ctx, cancel := context.WithCancel(&background)
+	defer cancel()
+
+	secrets, err := sidecar.Patch(ctx, pod)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(secrets) > 0 {
+		for _, secret := range secrets {
+			if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secret.ObjectMeta.Name, metav1.GetOptions{}); err == nil {
+				log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, namespace)
+				existing.Data = secret.Data
+				_, err = wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, namespace)
+			_, err = wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	return json.Marshal(makePatches(req, pod))
 }
@@ -147,16 +168,16 @@ func (wh *mutatingWebhook) verifyPrerequisites(podOS string) error {
 	return nil
 }
 
-func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, namespace string) error {
+func (wh *mutatingWebhook) configurePodPortAndIPRangeInit(podOS string, pod *corev1.Pod, namespace string) ([]int, []int, []string, []string, error) {
 	if strings.EqualFold(podOS, constants.OSWindows) {
 		// No init container for Windows
-		return nil
+		return nil, nil, nil, nil, nil
 	}
 
 	// Build outbound port exclusion list
 	podOutboundPortExclusionList, err := getPortExclusionListForPod(pod, namespace, outboundPortExclusionListAnnotation)
 	if err != nil {
-		return err
+		return nil, nil, nil, nil, err
 	}
 	globalOutboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
 	outboundPortExclusionList := mergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
@@ -164,7 +185,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	// Build inbound port exclusion list
 	podInboundPortExclusionList, err := getPortExclusionListForPod(pod, namespace, inboundPortExclusionListAnnotation)
 	if err != nil {
-		return err
+		return nil, nil, nil, nil, err
 	}
 	globalInboundPortExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 	inboundPortExclusionList := mergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
@@ -172,7 +193,7 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	// Build the outbound IP range exclusion list
 	podOutboundIPRangeExclusionList, err := getOutboundIPRangeListForPod(pod, namespace, outboundIPRangeExclusionListAnnotation)
 	if err != nil {
-		return err
+		return nil, nil, nil, nil, err
 	}
 	globalOutboundIPRangeExclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeExclusionList
 	outboundIPRangeExclusionList := mergeIPRangeLists(podOutboundIPRangeExclusionList, globalOutboundIPRangeExclusionList)
@@ -180,16 +201,12 @@ func (wh *mutatingWebhook) configurePodInit(podOS string, pod *corev1.Pod, names
 	// Build the outbound IP range inclusion list
 	podOutboundIPRangeInclusionList, err := getOutboundIPRangeListForPod(pod, namespace, outboundIPRangeInclusionListAnnotation)
 	if err != nil {
-		return err
+		return nil, nil, nil, nil, err
 	}
 	globalOutboundIPRangeInclusionList := wh.configurator.GetMeshConfig().Spec.Traffic.OutboundIPRangeInclusionList
 	outboundIPRangeInclusionList := mergeIPRangeLists(podOutboundIPRangeInclusionList, globalOutboundIPRangeInclusionList)
 
-	// Add the init container to the pod spec
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.configurator, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, wh.configurator.IsPrivilegedInitContainer(), wh.osmContainerPullPolicy)
-	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
-
-	return nil
+	return inboundPortExclusionList, outboundPortExclusionList, outboundIPRangeInclusionList, outboundIPRangeExclusionList, nil
 }
 
 func makePatches(req *admissionv1.AdmissionRequest, pod *corev1.Pod) []jsonpatch.JsonPatchOperation {

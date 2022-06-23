@@ -8,9 +8,9 @@ import (
 )
 
 var _ = Describe("Test volume functions", func() {
-	Context("Test getVolumeSpec", func() {
+	Context("Test GetVolumeSpec", func() {
 		It("creates volume spec", func() {
-			actual := getVolumeSpec("-sidecar-config-")
+			actual := GetVolumeSpec("-sidecar-config-")
 			expected := []v1.Volume{{
 				Name: "sidecar-bootstrap-config-volume",
 				VolumeSource: v1.VolumeSource{

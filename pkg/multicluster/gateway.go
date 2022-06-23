@@ -4,7 +4,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/sidecar"
 )
 
 // GetMulticlusterGatewaySubjectCommonName creates a unique certificate.CommonName
@@ -12,6 +12,6 @@ import (
 // cert. The kind of Envoy (gateway) is encoded in the cert CN by convention.
 func GetMulticlusterGatewaySubjectCommonName(serviceAccount, namespace string) certificate.CommonName {
 	gatewayUID := uuid.New()
-	envoyType := envoy.KindGateway
-	return envoy.NewXDSCertCommonName(gatewayUID, envoyType, serviceAccount, namespace)
+	sidecarType := sidecar.KindGateway
+	return sidecar.NewCertCommonName(gatewayUID, sidecarType, serviceAccount, namespace)
 }

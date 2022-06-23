@@ -7,6 +7,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
 
 const (
@@ -15,82 +17,68 @@ const (
 	startupProbePort   = int32(15903)
 	healthcheckPort    = int32(15904)
 
-	livenessProbePath  = "/osm-liveness-probe"
-	readinessProbePath = "/osm-readiness-probe"
-	startupProbePath   = "/osm-startup-probe"
-	healthcheckPath    = "/osm-healthcheck"
+	// LivenessProbePath is used to know when to restart osm's services
+	LivenessProbePath = "/osm-liveness-probe"
+	// ReadinessProbePath is used to know when osm's services are ready to start
+	ReadinessProbePath = "/osm-readiness-probe"
+	// StartupProbePath is used to know when osm's services are started
+	StartupProbePath = "/osm-startup-probe"
+	// HealthcheckPath is used to know whether  osm's services are healthy
+	HealthcheckPath = "/osm-healthcheck"
 )
 
 var errNoMatchingPort = errors.New("no matching port")
 
-type healthProbe struct {
-	path    string
-	port    int32
-	timeout time.Duration
-
-	// isHTTP corresponds to an httpGet probe with a scheme of HTTP or undefined.
-	// This helps inform what kind of Sidecar config to add to the pod.
-	isHTTP bool
-
-	// isTCPSocket indicates if the probe defines a TCPSocketAction.
-	isTCPSocket bool
-}
-
-// healthProbes is to serve as an indication whether the given healthProbe has been rewritten
-type healthProbes struct {
-	liveness, readiness, startup *healthProbe
-}
-
-func rewriteHealthProbes(pod *corev1.Pod) healthProbes {
-	probes := healthProbes{}
+func rewriteHealthProbes(pod *corev1.Pod) driver.HealthProbes {
+	probes := driver.HealthProbes{}
 	for idx := range pod.Spec.Containers {
 		if probe := rewriteLiveness(&pod.Spec.Containers[idx]); probe != nil {
-			probes.liveness = probe
+			probes.SetLiveness(probe)
 		}
 		if probe := rewriteReadiness(&pod.Spec.Containers[idx]); probe != nil {
-			probes.readiness = probe
+			probes.SetReadiness(probe)
 		}
 		if probe := rewriteStartup(&pod.Spec.Containers[idx]); probe != nil {
-			probes.startup = probe
+			probes.SetStartup(probe)
 		}
 	}
 	return probes
 }
 
-func rewriteLiveness(container *corev1.Container) *healthProbe {
-	return rewriteProbe(container.LivenessProbe, "liveness", livenessProbePath, livenessProbePort, &container.Ports)
+func rewriteLiveness(container *corev1.Container) *driver.HealthProbe {
+	return rewriteProbe(container.LivenessProbe, "liveness", LivenessProbePath, livenessProbePort, &container.Ports)
 }
 
-func rewriteReadiness(container *corev1.Container) *healthProbe {
-	return rewriteProbe(container.ReadinessProbe, "readiness", readinessProbePath, readinessProbePort, &container.Ports)
+func rewriteReadiness(container *corev1.Container) *driver.HealthProbe {
+	return rewriteProbe(container.ReadinessProbe, "readiness", ReadinessProbePath, readinessProbePort, &container.Ports)
 }
 
-func rewriteStartup(container *corev1.Container) *healthProbe {
-	return rewriteProbe(container.StartupProbe, "startup", startupProbePath, startupProbePort, &container.Ports)
+func rewriteStartup(container *corev1.Container) *driver.HealthProbe {
+	return rewriteProbe(container.StartupProbe, "startup", StartupProbePath, startupProbePort, &container.Ports)
 }
 
-func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, containerPorts *[]corev1.ContainerPort) *healthProbe {
+func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, containerPorts *[]corev1.ContainerPort) *driver.HealthProbe {
 	if probe == nil {
 		return nil
 	}
 
-	originalProbe := &healthProbe{}
+	originalProbe := &driver.HealthProbe{}
 	var newPath string
 	var definedPort *intstr.IntOrString
 	if probe.HTTPGet != nil {
 		definedPort = &probe.HTTPGet.Port
-		originalProbe.isHTTP = len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
-		originalProbe.path = probe.HTTPGet.Path
-		if originalProbe.isHTTP {
+		originalProbe.SetHTTP(len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP)
+		originalProbe.SetPath(probe.HTTPGet.Path)
+		if originalProbe.IsHTTP() {
 			probe.HTTPGet.Path = path
 			newPath = probe.HTTPGet.Path
 		}
 	} else if probe.TCPSocket != nil {
 		// Transform the TCPSocket probe into a HttpGet probe
-		originalProbe.isTCPSocket = true
+		originalProbe.SetTCPSocket(true)
 		probe.HTTPGet = &corev1.HTTPGetAction{
 			Port:        probe.TCPSocket.Port,
-			Path:        healthcheckPath,
+			Path:        HealthcheckPath,
 			HTTPHeaders: []corev1.HTTPHeader{},
 		}
 		newPath = probe.HTTPGet.Path
@@ -101,21 +89,21 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		return nil
 	}
 
-	var err error
-	originalProbe.port, err = getPort(*definedPort, containerPorts)
+	probePort, err := getPort(*definedPort, containerPorts)
+	originalProbe.SetPort(probePort)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
-	if originalProbe.isTCPSocket {
-		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Tcp-Port", Value: fmt.Sprint(originalProbe.port)})
+	if originalProbe.IsTCPSocket() {
+		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Tcp-Port", Value: fmt.Sprint(originalProbe.GetPort())})
 	}
 	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
-	originalProbe.timeout = time.Duration(probe.TimeoutSeconds) * time.Second
+	originalProbe.SetTimeout(time.Duration(probe.TimeoutSeconds) * time.Second)
 
 	log.Debug().Msgf(
 		"Rewriting %s probe (:%d%s) to :%d%s",
 		probeType,
-		originalProbe.port, originalProbe.path,
+		originalProbe.GetPort(), originalProbe.GetPath(),
 		port, newPath,
 	)
 

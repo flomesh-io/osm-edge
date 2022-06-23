@@ -14,9 +14,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/bootstrap"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -51,7 +51,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 		AdminPort:        constants.SidecarAdminPort,
 		XDSClusterName:   constants.OSMControllerName,
 		XDSHost:          fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
-		XDSPort:          constants.ADSServerPort,
+		XDSPort:          constants.ProxyServerPort,
 		TrustedCA:        bootstrapCert.GetIssuingCA(),
 		CertificateChain: bootstrapCert.GetCertificateChain(),
 		PrivateKey:       bootstrapCert.GetPrivateKey(),

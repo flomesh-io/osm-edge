@@ -16,10 +16,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/rds"
-	"github.com/openservicemesh/osm/pkg/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/registry"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 

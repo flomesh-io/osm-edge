@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 )
 
 const (

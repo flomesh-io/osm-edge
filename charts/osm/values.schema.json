@@ -169,7 +169,6 @@
             "required": [
                 "image",
                 "sidecarClass",
-                "sidecarImage",
                 "curlImage",
                 "caBundleSecretName",
                 "enableDebugServer",
@@ -416,13 +415,23 @@
                         "pipy | envoy"
                     ]
                 },
-                "sidecarImage": {
-                    "$id": "#/properties/osm/properties/sidecarImage",
-                    "type": "string",
-                    "title": "The sidecarImage schema",
-                    "description": "The proxy side car image to run.",
+                "sidecarDrivers": {
+                    "$id": "#/properties/osm/properties/sidecarDrivers",
+                    "type": "array",
+                    "title": "The sidecarDriver schema",
+                    "description": "The class of the OSM Sidecar Driver.",
+                    "items": {
+                        "type": "object"
+                    },
                     "examples": [
-                        "flomesh/pipy:latest"
+                        [
+                            {
+                                "sidecarName": "pipy",
+                                "sidecarImage": "flomesh/pipy:latest",
+                                "sidecarWindowsImage": "flomesh/pipy-windows-nightly:latest",
+                                "initContainerImage": "curlimages/curl"
+                            }
+                        ]
                     ]
                 },
                 "curlImage": {
@@ -432,15 +441,6 @@
                     "description": "The curl image for control plane init containers.",
                     "examples": [
                         "curlimages/curl"
-                    ]
-                },
-                "sidecarWindowsImage": {
-                    "$id": "#/properties/osm/properties/sidecarWindowsImage",
-                    "type": "string",
-                    "title": "The sidecarWindowsImage schema",
-                    "description": "The proxy side car image to run on Windows payloads.",
-                    "examples": [
-                        "flomesh/pipy-windows-nightly:latest"
                     ]
                 },
                 "certificateProvider": {
