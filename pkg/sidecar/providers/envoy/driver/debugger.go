@@ -104,7 +104,7 @@ func (sd EnvoySidecarDriver) getSidecarConfig(pod *v1.Pod, url string) string {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Msgf("Error getting Envoy config on Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
+		log.Error().Msgf("Error getting Sidecar config on Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
 		portFwdRequest.Stop <- struct{}{}
 		return fmt.Sprintf("Error: %s", err)
 	}
@@ -127,7 +127,7 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 
 	_, _ = fmt.Fprintf(w, "<h1>%s Proxies (%d):</h1>", category, len(proxies))
 	_, _ = fmt.Fprint(w, `<table>`)
-	_, _ = fmt.Fprint(w, "<tr><td>#</td><td>Envoy's certificate CN</td><td>Connected At</td><td>How long ago</td><td>tools</td></tr>")
+	_, _ = fmt.Fprint(w, "<tr><td>#</td><td>Sidecar's certificate CN</td><td>Connected At</td><td>How long ago</td><td>tools</td></tr>")
 	for idx, cn := range commonNames {
 		ts := proxies[certificate.CommonName(cn)]
 		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="/debug/proxy?%s=%s">certs</a></td><td><a href="/debug/proxy?%s=%s">cfg</a></td></tr>`,
