@@ -37,20 +37,21 @@ func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certifica
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
 	}
-	sd.ctx = parentCtx.(*driver.ControllerContext)
-	cancel := sd.ctx.CancelFunc
-	cfg := sd.ctx.Configurator
-	certManager := sd.ctx.CertManager
-	k8sClient := sd.ctx.MeshCatalog.GetKubeController()
+	ctrlCtx := parentCtx.(*driver.ControllerContext)
+	cancel := ctrlCtx.CancelFunc
+	cfg := ctrlCtx.Configurator
+	certManager := ctrlCtx.CertManager
+	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, sd.ctx.MsgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, sd.ctx.Stop)
-	go proxyRegistry.CacheMeshPodsHandler(sd.ctx.Stop)
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
+	go proxyRegistry.ReleaseCertificateHandler(certManager, ctrlCtx.Stop)
+	go proxyRegistry.CacheMeshPodsHandler(ctrlCtx.Stop)
 	// Create and start the pipy repo http service
-	repoServer := repo.NewRepoServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
+	repoServer := repo.NewRepoServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
 
-	sd.ctx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 
 	return repoServer, repoServer.Start(ctx, cancel, port, cert)
 }

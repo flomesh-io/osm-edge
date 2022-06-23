@@ -36,20 +36,21 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
 	}
-	sd.ctx = parentCtx.(*driver.ControllerContext)
-	cancel := sd.ctx.CancelFunc
-	cfg := sd.ctx.Configurator
-	certManager := sd.ctx.CertManager
-	k8sClient := sd.ctx.MeshCatalog.GetKubeController()
+	ctrlCtx := parentCtx.(*driver.ControllerContext)
+	cancel := ctrlCtx.CancelFunc
+	cfg := ctrlCtx.Configurator
+	certManager := ctrlCtx.CertManager
+	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, sd.ctx.MsgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, sd.ctx.Stop)
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
+	go proxyRegistry.ReleaseCertificateHandler(certManager, ctrlCtx.Stop)
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
+	xdsServer := ads.NewADSServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
 
-	sd.ctx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
-	sd.ctx.DebugHandlers["/debug/xds"] = sd.getXDSHandler(xdsServer)
+	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+	ctrlCtx.DebugHandlers["/debug/xds"] = sd.getXDSHandler(xdsServer)
 
 	return xdsServer, xdsServer.Start(ctx, cancel, port, cert)
 }
