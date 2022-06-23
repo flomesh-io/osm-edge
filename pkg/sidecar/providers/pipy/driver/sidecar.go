@@ -28,31 +28,33 @@ const (
 
 // PipySidecarDriver is the pipy sidecar driver
 type PipySidecarDriver struct {
+	ctx *driver.ControllerContext
 }
 
 // Start is the implement for ControllerDriver.Start
-func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
 	}
-	ctrlCtx := parentCtx.(*driver.ControllerContext)
-	cancel := ctrlCtx.CancelFunc
-	cfg := ctrlCtx.Configurator
-	certManager := ctrlCtx.CertManager
-	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = parentCtx.(*driver.ControllerContext)
+	cancel := sd.ctx.CancelFunc
+	cfg := sd.ctx.Configurator
+	certManager := sd.ctx.CertManager
+	k8sClient := sd.ctx.MeshCatalog.GetKubeController()
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, ctrlCtx.Stop)
-	go proxyRegistry.CacheMeshPodsHandler(ctrlCtx.Stop)
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper, sd.ctx.MsgBroker)
+	go proxyRegistry.ReleaseCertificateHandler(certManager, sd.ctx.Stop)
+	go proxyRegistry.CacheMeshPodsHandler(sd.ctx.Stop)
 	// Create and start the pipy repo http service
-	repoServer := repo.NewRepoServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
+	repoServer := repo.NewRepoServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
+	sd.configDebug(proxyRegistry, repoServer)
 	return repoServer, repoServer.Start(ctx, cancel, port, cert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Injector Context")

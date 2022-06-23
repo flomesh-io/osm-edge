@@ -11,9 +11,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/ads"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/registry"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/repo"
 )
 
 const (
@@ -21,16 +21,15 @@ const (
 	proxyConfigQueryKey   = "cfg"
 )
 
-func (sd EnvoySidecarDriver) configDebug(proxyRegistry *registry.ProxyRegistry, xdsServer *ads.Server) {
+func (sd PipySidecarDriver) configDebug(proxyRegistry *registry.ProxyRegistry, _ *repo.Server) {
 	for uri, handler := range map[string]http.Handler{
 		"/debug/proxy": sd.getProxies(proxyRegistry),
-		"/debug/xds":   sd.getXDSHandler(xdsServer),
 	} {
 		sd.ctx.DebugHandlers[uri] = handler
 	}
 }
 
-func (sd EnvoySidecarDriver) getProxies(proxyRegistry *registry.ProxyRegistry) http.Handler {
+func (sd PipySidecarDriver) getProxies(proxyRegistry *registry.ProxyRegistry) http.Handler {
 	// This function is needed to convert the list of connected proxies to
 	// the type (map) required by the printProxies function.
 	listConnected := func() map[certificate.CommonName]time.Time {
@@ -53,8 +52,8 @@ func (sd EnvoySidecarDriver) getProxies(proxyRegistry *registry.ProxyRegistry) h
 	})
 }
 
-func (sd EnvoySidecarDriver) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := envoy.GetPodFromCertificate(cn, sd.ctx.MeshCatalog.GetKubeController())
+func (sd PipySidecarDriver) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
+	pod, err := pipy.GetPodFromCertificate(cn, sd.ctx.MeshCatalog.GetKubeController())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
@@ -63,8 +62,8 @@ func (sd EnvoySidecarDriver) getConfigDump(cn certificate.CommonName, w http.Res
 	_, _ = fmt.Fprintf(w, "%s", sidecarConfig)
 }
 
-func (sd EnvoySidecarDriver) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := envoy.GetPodFromCertificate(cn, sd.ctx.MeshCatalog.GetKubeController())
+func (sd PipySidecarDriver) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
+	pod, err := pipy.GetPodFromCertificate(cn, sd.ctx.MeshCatalog.GetKubeController())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
@@ -73,8 +72,8 @@ func (sd EnvoySidecarDriver) getProxy(cn certificate.CommonName, w http.Response
 	_, _ = fmt.Fprintf(w, "%s", sidecarConfig)
 }
 
-func (sd EnvoySidecarDriver) getSidecarConfig(pod *v1.Pod, url string) string {
-	log.Debug().Msgf("Getting Envoy config on Pod with UID=%s", pod.ObjectMeta.UID)
+func (sd PipySidecarDriver) getSidecarConfig(pod *v1.Pod, url string) string {
+	log.Debug().Msgf("Getting Pipy config on Pod with UID=%s", pod.ObjectMeta.UID)
 
 	minPort := 16000
 	maxPort := 18000
@@ -134,44 +133,4 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 			idx, cn, ts, time.Since(ts), specificProxyQueryKey, cn, proxyConfigQueryKey, cn)
 	}
 	_, _ = fmt.Fprint(w, `</table>`)
-}
-
-func (sd EnvoySidecarDriver) getXDSHandler(xdsServer *ads.Server) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		xdsLog := xdsServer.GetXDSLog()
-
-		var proxies []string
-		for proxyCN := range *xdsLog {
-			proxies = append(proxies, proxyCN.String())
-		}
-
-		sort.Strings(proxies)
-
-		for _, proxyCN := range proxies {
-			xdsTypeWithTimestamps := (*xdsLog)[certificate.CommonName(proxyCN)]
-			_, _ = fmt.Fprintf(w, "---[ %s\n", proxyCN)
-
-			var xdsTypes []string
-			for xdsType := range xdsTypeWithTimestamps {
-				xdsTypes = append(xdsTypes, xdsType.String())
-			}
-
-			sort.Strings(xdsTypes)
-
-			for _, xdsType := range xdsTypes {
-				timeStamps := xdsTypeWithTimestamps[envoy.TypeURI(xdsType)]
-
-				_, _ = fmt.Fprintf(w, "\t %s (%d):\n", xdsType, len(timeStamps))
-
-				sort.Slice(timeStamps, func(i, j int) bool {
-					return timeStamps[i].After(timeStamps[j])
-				})
-				for _, timeStamp := range timeStamps {
-					_, _ = fmt.Fprintf(w, "\t\t%+v (%+v ago)\n", timeStamp, time.Since(timeStamp))
-				}
-				_, _ = fmt.Fprint(w, "\n")
-			}
-			_, _ = fmt.Fprint(w, "\n")
-		}
-	})
 }
