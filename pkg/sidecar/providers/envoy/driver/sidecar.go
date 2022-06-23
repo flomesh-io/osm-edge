@@ -27,30 +27,32 @@ const (
 
 // EnvoySidecarDriver is the envoy sidecar driver
 type EnvoySidecarDriver struct {
+	ctx *driver.ControllerContext
 }
 
 // Start is the implement for ControllerDriver.Start
-func (e EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
 	}
-	ctrlCtx := parentCtx.(*driver.ControllerContext)
-	cancel := ctrlCtx.CancelFunc
-	cfg := ctrlCtx.Configurator
-	certManager := ctrlCtx.CertManager
-	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = parentCtx.(*driver.ControllerContext)
+	cancel := sd.ctx.CancelFunc
+	cfg := sd.ctx.Configurator
+	certManager := sd.ctx.CertManager
+	k8sClient := sd.ctx.MeshCatalog.GetKubeController()
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
-	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
-	go proxyRegistry.ReleaseCertificateHandler(certManager, ctrlCtx.Stop)
+	proxyRegistry := registry.NewProxyRegistry(proxyMapper, sd.ctx.MsgBroker)
+	go proxyRegistry.ReleaseCertificateHandler(certManager, sd.ctx.Stop)
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
+	xdsServer := ads.NewADSServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
+	sd.configDebug(proxyRegistry, xdsServer)
 	return xdsServer, xdsServer.Start(ctx, cancel, port, cert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (e EnvoySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd EnvoySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Injector Context")

@@ -237,6 +237,7 @@ func main() {
 
 	background := driver.ControllerContext{
 		OsmNamespace:  osmNamespace,
+		KubeConfig:    kubeConfig,
 		Configurator:  cfg,
 		MeshCatalog:   meshCatalog,
 		CertManager:   certManager,

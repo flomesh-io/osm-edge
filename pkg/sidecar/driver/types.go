@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -68,6 +69,7 @@ type ControllerContext struct {
 	context.Context
 
 	OsmNamespace  string
+	KubeConfig    *rest.Config
 	Configurator  configurator.Configurator
 	MeshCatalog   catalog.MeshCataloger
 	CertManager   certificate.Manager
