@@ -51,6 +51,15 @@ type SidecarSpec struct {
 	// SidecarClass defines the container provider used for the proxy sidecar.
 	SidecarClass string `json:"sidecarClass,omitempty"`
 
+	// SidecarImage defines the container image used for the proxy sidecar.
+	SidecarImage string `json:"sidecarImage,omitempty"`
+
+	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
+	SidecarWindowsImage string `json:"sideWindowsImage,omitempty"`
+
+	// InitContainerImage defines the container image used for the init container injected to meshed pods.
+	InitContainerImage string `json:"initContainerImage,omitempty"`
+
 	// SidecarDrivers defines the sidecar supported.
 	SidecarDrivers []SidecarDriverSpec `json:"sidecarDrivers,omitempty"`
 

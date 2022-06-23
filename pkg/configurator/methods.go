@@ -138,16 +138,18 @@ func (c *client) GetSidecarClass() string {
 
 // GetSidecarImage returns the sidecar image
 func (c *client) GetSidecarImage() string {
-	image := ""
-	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
-	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
-	for _, sidecarDriver := range sidecarDrivers {
-		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
-			image = sidecarDriver.SidecarImage
-			break
+	image := c.getMeshConfig().Spec.Sidecar.SidecarImage
+	if len(image) == 0 {
+		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+		sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+		for _, sidecarDriver := range sidecarDrivers {
+			if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+				image = sidecarDriver.SidecarImage
+				break
+			}
 		}
 	}
-	if image == "" {
+	if len(image) == 0 {
 		image = os.Getenv("OSM_DEFAULT_SIDECAR_IMAGE")
 	}
 	return image
@@ -155,16 +157,18 @@ func (c *client) GetSidecarImage() string {
 
 // GetSidecarWindowsImage returns the sidecar windows image
 func (c *client) GetSidecarWindowsImage() string {
-	image := ""
-	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
-	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
-	for _, sidecarDriver := range sidecarDrivers {
-		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
-			image = sidecarDriver.SidecarWindowsImage
-			break
+	image := c.getMeshConfig().Spec.Sidecar.SidecarWindowsImage
+	if len(image) == 0 {
+		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+		sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+		for _, sidecarDriver := range sidecarDrivers {
+			if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+				image = sidecarDriver.SidecarWindowsImage
+				break
+			}
 		}
 	}
-	if image == "" {
+	if len(image) == 0 {
 		image = os.Getenv("OSM_DEFAULT_SIDECAR_WINDOWS_IMAGE")
 	}
 	return image
@@ -172,16 +176,18 @@ func (c *client) GetSidecarWindowsImage() string {
 
 // GetInitContainerImage returns the init container image
 func (c *client) GetInitContainerImage() string {
-	image := ""
-	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
-	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
-	for _, sidecarDriver := range sidecarDrivers {
-		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
-			image = sidecarDriver.InitContainerImage
-			break
+	image := c.getMeshConfig().Spec.Sidecar.InitContainerImage
+	if len(image) == 0 {
+		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+		sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+		for _, sidecarDriver := range sidecarDrivers {
+			if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+				image = sidecarDriver.InitContainerImage
+				break
+			}
 		}
 	}
-	if image == "" {
+	if len(image) == 0 {
 		image = os.Getenv("OSM_DEFAULT_INIT_CONTAINER_IMAGE")
 	}
 	return image

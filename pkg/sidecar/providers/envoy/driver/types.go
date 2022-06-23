@@ -9,7 +9,7 @@ const (
 	sidecarBootstrapConfigVolume = "sidecar-bootstrap-config-volume"
 )
 
-var log = logger.New("sidecar-injector")
+var log = logger.New("sidecar-envoy")
 
 // Config is the type used to represent the config options for the sidecar injection
 type Config struct {

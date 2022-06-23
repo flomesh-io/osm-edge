@@ -14,8 +14,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar"
-	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
 
 var log = logger.New("debugger")
@@ -23,9 +21,7 @@ var log = logger.New("debugger")
 // DebugConfig implements the DebugServer interface.
 type DebugConfig struct {
 	certDebugger        CertificateManagerDebugger
-	proxyDebugger       driver.ProxyDebugger
 	meshCatalogDebugger MeshCatalogDebugger
-	proxyRegistry       sidecar.ProxyRegistry
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
 	kubeController      k8s.Controller

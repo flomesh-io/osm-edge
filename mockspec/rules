@@ -34,6 +34,3 @@ certificate; pkg/certificate/mock_certificate_generated.go; github.com/openservi
 
 # pkg/config
 config; pkg/config/mock_client_generated.go; github.com/openservicemesh/osm/pkg/config; Controller
-
-# pkg/sidecar/driver
-driver; pkg/sidecar/driver/mock_driver_generated.go; github.com/openservicemesh/osm/pkg/sidecar/driver; ProxyDebugger

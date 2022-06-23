@@ -69,6 +69,15 @@ spec:
                       enum:
                         - pipy
                         - envoy
+                    sidcarImage:
+                      description: Image for the sidecar
+                      type: string
+                    sidcarWindowsImage:
+                      description: Image for the sidecar on Windows workers
+                      type: string
+                    initContainerImage:
+                      description: Image for the init container
+                      type: string
                     sidecarDrivers:
                       description: Drivers of sidecars supported by osm
                       type: array
@@ -332,6 +341,15 @@ spec:
                       description: Class of the sidecar
                       type:
                         string
+                    sidecarImage:
+                      description: Image for the sidecar
+                      type: string
+                    sidecarWindowsImage:
+                      description: Image for the sidecar on Windows workers
+                      type: string
+                    initContainerImage:
+                      description: Image for the init container
+                      type: string
                     sidecarDrivers:
                       description: Drivers of sidecars supported by osm
                       type: array
