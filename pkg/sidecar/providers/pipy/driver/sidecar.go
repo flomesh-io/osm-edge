@@ -49,7 +49,9 @@ func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certifica
 	go proxyRegistry.CacheMeshPodsHandler(sd.ctx.Stop)
 	// Create and start the pipy repo http service
 	repoServer := repo.NewRepoServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
-	sd.configDebug(proxyRegistry, repoServer)
+
+	sd.ctx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+
 	return repoServer, repoServer.Start(ctx, cancel, port, cert)
 }
 

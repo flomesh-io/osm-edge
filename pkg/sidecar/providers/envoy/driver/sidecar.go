@@ -47,7 +47,10 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	go proxyRegistry.ReleaseCertificateHandler(certManager, sd.ctx.Stop)
 	// Create and start the ADS gRPC service
 	xdsServer := ads.NewADSServer(sd.ctx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), sd.ctx.OsmNamespace, cfg, certManager, k8sClient, sd.ctx.MsgBroker)
-	sd.configDebug(proxyRegistry, xdsServer)
+
+	sd.ctx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+	sd.ctx.DebugHandlers["/debug/xds"] = sd.getXDSHandler(xdsServer)
+
 	return xdsServer, xdsServer.Start(ctx, cancel, port, cert)
 }
 

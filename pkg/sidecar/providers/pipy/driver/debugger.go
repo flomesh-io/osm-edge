@@ -13,21 +13,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/repo"
 )
 
 const (
 	specificProxyQueryKey = "proxy"
 	proxyConfigQueryKey   = "cfg"
 )
-
-func (sd PipySidecarDriver) configDebug(proxyRegistry *registry.ProxyRegistry, _ *repo.Server) {
-	for uri, handler := range map[string]http.Handler{
-		"/debug/proxy": sd.getProxies(proxyRegistry),
-	} {
-		sd.ctx.DebugHandlers[uri] = handler
-	}
-}
 
 func (sd PipySidecarDriver) getProxies(proxyRegistry *registry.ProxyRegistry) http.Handler {
 	// This function is needed to convert the list of connected proxies to

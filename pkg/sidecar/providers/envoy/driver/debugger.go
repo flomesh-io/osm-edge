@@ -21,15 +21,6 @@ const (
 	proxyConfigQueryKey   = "cfg"
 )
 
-func (sd EnvoySidecarDriver) configDebug(proxyRegistry *registry.ProxyRegistry, xdsServer *ads.Server) {
-	for uri, handler := range map[string]http.Handler{
-		"/debug/proxy": sd.getProxies(proxyRegistry),
-		"/debug/xds":   sd.getXDSHandler(xdsServer),
-	} {
-		sd.ctx.DebugHandlers[uri] = handler
-	}
-}
-
 func (sd EnvoySidecarDriver) getProxies(proxyRegistry *registry.ProxyRegistry) http.Handler {
 	// This function is needed to convert the list of connected proxies to
 	// the type (map) required by the printProxies function.
