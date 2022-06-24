@@ -1,4 +1,4 @@
-package debugger
+package driver
 
 import (
 	"fmt"
@@ -6,9 +6,8 @@ import (
 	"net/url"
 	"strings"
 
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
@@ -30,12 +29,12 @@ type portForward struct {
 	Ready chan struct{}
 }
 
-func (ds DebugConfig) forwardPort(req portForward) {
+func (sd EnvoySidecarDriver) forwardPort(req portForward) {
 	log.Debug().Msgf("Start port forward to pod with UID=%s on PodPort=%d to LocalPort=%d", req.Pod.ObjectMeta.UID, req.PodPort, req.LocalPort)
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", req.Pod.Namespace, req.Pod.Name)
-	hostIP := strings.TrimLeft(ds.kubeConfig.Host, "htps:/")
+	hostIP := strings.TrimLeft(sd.ctx.KubeConfig.Host, "htps:/")
 
-	transport, upgrader, err := spdy.RoundTripperFor(ds.kubeConfig)
+	transport, upgrader, err := spdy.RoundTripperFor(sd.ctx.KubeConfig)
 	if err != nil {
 		log.Error().Err(err).Msg("error getting spdy RoundTripper")
 	}

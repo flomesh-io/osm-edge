@@ -10,6 +10,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
@@ -27,10 +28,11 @@ const (
 
 // PipySidecarDriver is the pipy sidecar driver
 type PipySidecarDriver struct {
+	ctx *driver.ControllerContext
 }
 
 // Start is the implement for ControllerDriver.Start
-func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
@@ -40,6 +42,7 @@ func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificat
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
@@ -47,11 +50,14 @@ func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificat
 	go proxyRegistry.CacheMeshPodsHandler(ctrlCtx.Stop)
 	// Create and start the pipy repo http service
 	repoServer := repo.NewRepoServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
+
+	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+
 	return repoServer, repoServer.Start(ctx, cancel, port, cert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Injector Context")
