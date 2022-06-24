@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -94,6 +95,25 @@ func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*core
 	pipyRepo := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%v/repo/%s/", constants.ProtocolHTTP,
 		constants.OSMControllerName, injCtx.OsmNamespace, constants.ProxyServerPort, injCtx.BootstrapCertificate.GetCommonName())
 
+	podControllerKind := ""
+	podControllerName := ""
+	for _, ref := range pod.GetOwnerReferences() {
+		if ref.Controller != nil && *ref.Controller {
+			podControllerKind = ref.Kind
+			podControllerName = ref.Name
+			break
+		}
+	}
+	// Assume ReplicaSets are controlled by a Deployment unless their names
+	// do not contain a hyphen. This aligns with the behavior of the
+	// Prometheus config in the OSM Helm chart.
+	if podControllerKind == "ReplicaSet" {
+		if hyp := strings.LastIndex(podControllerName, "-"); hyp >= 0 {
+			podControllerKind = "Deployment"
+			podControllerName = podControllerName[:hyp]
+		}
+	}
+
 	sidecarContainer := corev1.Container{
 		Name:            constants.SidecarContainerName,
 		Image:           containerImage,
@@ -141,6 +161,14 @@ func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*core
 				},
 			},
 			{
+				Name:  "POD_CONTROLLER_KIND",
+				Value: podControllerKind,
+			},
+			{
+				Name:  "POD_CONTROLLER_NAME",
+				Value: podControllerName,
+			},
+			{
 				Name: "SERVICE_ACCOUNT",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
@@ -149,6 +177,17 @@ func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*core
 				},
 			},
 		},
+	}
+
+	if len(injCtx.Configurator.GetTracingHost()) > 0 {
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "TRACING_ADDRESS",
+			Value: fmt.Sprintf("%s:%d", injCtx.Configurator.GetTracingHost(), injCtx.Configurator.GetTracingPort()),
+		})
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "TRACING_ENDPOINT",
+			Value: injCtx.Configurator.GetTracingEndpoint(),
+		})
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)
