@@ -1,19 +1,20 @@
 package debugger
 
 import (
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	"net/http"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 )
 
 // StartDebugServerConfigListener registers a go routine to listen to configuration and configure debug server as needed
-func (d *DebugConfig) StartDebugServerConfigListener(stop chan struct{}) {
+func (d *DebugConfig) StartDebugServerConfigListener(httpDebugHandlers map[string]http.Handler, stop chan struct{}) {
 	// This is the Debug server
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)
-	httpDebugServer.AddHandlers(d.GetHandlers())
+	httpDebugServer.AddHandlers(d.GetHandlers(httpDebugHandlers))
 
 	kubePubSub := d.msgBroker.GetKubeEventPubSub()
 	meshCfgUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())

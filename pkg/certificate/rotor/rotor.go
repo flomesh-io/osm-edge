@@ -36,12 +36,12 @@ func (r *CertRotor) checkAndRotate() {
 	for _, cert := range certs {
 		shouldRotate := cert.ShouldRotate()
 
-		//word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
-		//log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v",
-		//	cert.GetCommonName(),
-		//	word,
-		//	time.Until(cert.GetExpiration()),
-		//	certificate.RenewBeforeCertExpires)
+		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
+		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v",
+			cert.GetCommonName(),
+			word,
+			time.Until(cert.GetExpiration()),
+			certificate.RenewBeforeCertExpires)
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager

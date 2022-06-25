@@ -3,6 +3,7 @@ package driver
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
@@ -27,10 +29,11 @@ const (
 
 // PipySidecarDriver is the pipy sidecar driver
 type PipySidecarDriver struct {
+	ctx *driver.ControllerContext
 }
 
 // Start is the implement for ControllerDriver.Start
-func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
@@ -40,6 +43,7 @@ func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificat
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
@@ -47,11 +51,14 @@ func (p PipySidecarDriver) Start(ctx context.Context, port int, cert *certificat
 	go proxyRegistry.CacheMeshPodsHandler(ctrlCtx.Stop)
 	// Create and start the pipy repo http service
 	repoServer := repo.NewRepoServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
+
+	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
+
 	return repoServer, repoServer.Start(ctx, cancel, port, cert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Injector Context")
@@ -87,6 +94,25 @@ func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev
 	securityContext, containerImage := sidecar.GetPlatformSpecificSpecComponents(injCtx.Configurator, injCtx.PodOS)
 	pipyRepo := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%v/repo/%s/", constants.ProtocolHTTP,
 		constants.OSMControllerName, injCtx.OsmNamespace, constants.ProxyServerPort, injCtx.BootstrapCertificate.GetCommonName())
+
+	podControllerKind := ""
+	podControllerName := ""
+	for _, ref := range pod.GetOwnerReferences() {
+		if ref.Controller != nil && *ref.Controller {
+			podControllerKind = ref.Kind
+			podControllerName = ref.Name
+			break
+		}
+	}
+	// Assume ReplicaSets are controlled by a Deployment unless their names
+	// do not contain a hyphen. This aligns with the behavior of the
+	// Prometheus config in the OSM Helm chart.
+	if podControllerKind == "ReplicaSet" {
+		if hyp := strings.LastIndex(podControllerName, "-"); hyp >= 0 {
+			podControllerKind = "Deployment"
+			podControllerName = podControllerName[:hyp]
+		}
+	}
 
 	sidecarContainer := corev1.Container{
 		Name:            constants.SidecarContainerName,
@@ -135,6 +161,14 @@ func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev
 				},
 			},
 			{
+				Name:  "POD_CONTROLLER_KIND",
+				Value: podControllerKind,
+			},
+			{
+				Name:  "POD_CONTROLLER_NAME",
+				Value: podControllerName,
+			},
+			{
 				Name: "SERVICE_ACCOUNT",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
@@ -143,6 +177,17 @@ func (p PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev
 				},
 			},
 		},
+	}
+
+	if len(injCtx.Configurator.GetTracingHost()) > 0 {
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "TRACING_ADDRESS",
+			Value: fmt.Sprintf("%s:%d", injCtx.Configurator.GetTracingHost(), injCtx.Configurator.GetTracingPort()),
+		})
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "TRACING_ENDPOINT",
+			Value: injCtx.Configurator.GetTracingEndpoint(),
+		})
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)

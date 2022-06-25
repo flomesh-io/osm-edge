@@ -51,6 +51,11 @@ osm:
   imagePullSecrets: []
   # -- The class of the OSM Sidecar
   sidecarClass: pipy
+  # -- Sidecar image for Linux workloads
+  sidecarImage: flomesh/pipy-nightly:latest
+  # -- Sidecar image for Windows workloads
+  sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
+  # -- Sidecar drivers supported by osm
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads

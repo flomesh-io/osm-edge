@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
@@ -55,14 +56,6 @@ func Register(name string, driver driver.Driver) {
 	drivers[name] = driver
 }
 
-// Exists check the driver has been registered
-func Exists(name string) bool {
-	driversMutex.RLock()
-	defer driversMutex.RUnlock()
-	_, exists := drivers[name]
-	return exists
-}
-
 // Patch is an adapter method for InjectorDriver.Patch
 func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	driversMutex.RLock()
@@ -74,7 +67,7 @@ func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 }
 
 // Start is an adapter method for ControllerDriver.Start
-func Start(ctx context.Context, port int, cert *certificate.Certificate) (driver.ProxyServer, error) {
+func Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
