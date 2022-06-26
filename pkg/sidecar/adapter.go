@@ -35,7 +35,7 @@ func InitDriver(driverName string) error {
 	defer driversMutex.Unlock()
 	registeredDriver, ok := drivers[driverName]
 	if !ok {
-		return fmt.Errorf("sidecar: unknown driver %q (forgotten import?)", driverName)
+		return fmt.Errorf("sidecar: unknown driver %q (forgot to import?)", driverName)
 	}
 	engineDriver = registeredDriver
 	return nil
@@ -61,7 +61,7 @@ func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
-		return nil, errors.New("sidecar: unknown driver (forgotten init?)")
+		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
 	}
 	return engineDriver.Patch(ctx, pod)
 }
@@ -71,7 +71,7 @@ func Start(ctx context.Context, port int, cert *certificate.Certificate) (health
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
-		return nil, errors.New("sidecar: unknown driver (forgotten init?)")
+		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
 	}
 	return engineDriver.Start(ctx, port, cert)
 }
