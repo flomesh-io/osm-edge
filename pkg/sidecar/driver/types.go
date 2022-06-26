@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -43,6 +44,7 @@ var InjectorCtxKey int
 type InjectorContext struct {
 	context.Context
 
+	Pod                          *corev1.Pod
 	MeshName                     string
 	OsmNamespace                 string
 	PodNamespace                 string
@@ -50,6 +52,7 @@ type InjectorContext struct {
 	ProxyCommonName              certificate.CommonName
 	ProxyUUID                    uuid.UUID
 	Configurator                 configurator.Configurator
+	KubeClient                   kubernetes.Interface
 	BootstrapCertificate         *certificate.Certificate
 	ContainerPullPolicy          corev1.PullPolicy
 	InboundPortExclusionList     []int

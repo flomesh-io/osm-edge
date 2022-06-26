@@ -59,12 +59,13 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
-		return nil, errors.New("missing Injector Context")
+		return errors.New("missing Injector Context")
 	}
 	injCtx := parentCtx.(*driver.InjectorContext)
+	pod := injCtx.Pod
 
 	iptablesInitCommand := injector.GenerateIptablesCommands(injCtx.OutboundIPRangeExclusionList, injCtx.OutboundIPRangeInclusionList, injCtx.OutboundPortExclusionList, injCtx.InboundPortExclusionList)
 	enablePrivilegedInitContainer := injCtx.Configurator.IsPrivilegedInitContainer()
@@ -193,7 +194,7 @@ func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*core
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)
 
-	return nil, nil
+	return nil
 }
 
 func getSidecarContainerPorts(originalHealthProbes driver.HealthProbes) []corev1.ContainerPort {

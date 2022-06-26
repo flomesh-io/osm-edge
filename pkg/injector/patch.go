@@ -13,7 +13,6 @@ import (
 	"gomodules.xyz/jsonpatch/v2"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -101,6 +100,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	pod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
 	background := driver.InjectorContext{
+		Pod:                          pod,
 		MeshName:                     wh.meshName,
 		OsmNamespace:                 wh.osmNamespace,
 		PodNamespace:                 namespace,
@@ -108,6 +108,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		ProxyCommonName:              cn,
 		ProxyUUID:                    proxyUUID,
 		Configurator:                 wh.configurator,
+		KubeClient:                   wh.kubeClient,
 		BootstrapCertificate:         bootstrapCertificate,
 		ContainerPullPolicy:          wh.osmContainerPullPolicy,
 		InboundPortExclusionList:     inboundPortExclusionList,
@@ -120,28 +121,8 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 	ctx, cancel := context.WithCancel(&background)
 	defer cancel()
 
-	secrets, err := sidecar.Patch(ctx, pod)
-	if err != nil {
+	if err = sidecar.Patch(ctx); err != nil {
 		return nil, err
-	}
-
-	if len(secrets) > 0 {
-		for _, secret := range secrets {
-			if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secret.ObjectMeta.Name, metav1.GetOptions{}); err == nil {
-				log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, namespace)
-				existing.Data = secret.Data
-				_, err = wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, namespace)
-			_, err = wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
-			if err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return json.Marshal(makePatches(req, pod))
