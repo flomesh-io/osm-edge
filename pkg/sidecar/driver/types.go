@@ -18,8 +18,8 @@ import (
 
 // Driver is the interface that must be implemented by a sidecar driver.
 type Driver interface {
-	Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error)
-	Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error)
+	Patch(ctx context.Context) error
+	Start(ctx context.Context) (health.Probes, error)
 }
 
 // HealthProbes is to serve as an indication whether the given healthProbe has been rewritten
@@ -68,13 +68,16 @@ var ControllerCtxKey int
 type ControllerContext struct {
 	context.Context
 
-	OsmNamespace  string
-	KubeConfig    *rest.Config
-	Configurator  configurator.Configurator
-	MeshCatalog   catalog.MeshCataloger
-	CertManager   certificate.Manager
-	MsgBroker     *messaging.Broker
-	DebugHandlers map[string]http.Handler
-	CancelFunc    func()
-	Stop          chan struct{}
+	ProxyServerPort  int
+	ProxyServiceCert *certificate.Certificate
+	OsmNamespace     string
+	KubeConfig       *rest.Config
+	Configurator     configurator.Configurator
+	MeshCatalog      catalog.MeshCataloger
+	CertManager      certificate.Manager
+	MsgBroker        *messaging.Broker
+	DebugHandlers    map[string]http.Handler
+	CancelFunc       func()
+	Stop             chan struct {
+	}
 }

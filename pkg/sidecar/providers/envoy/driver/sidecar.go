@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
@@ -31,7 +30,7 @@ type EnvoySidecarDriver struct {
 }
 
 // Start is the implement for ControllerDriver.Start
-func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func (sd EnvoySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
@@ -41,6 +40,8 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	proxyServerPort := ctrlCtx.ProxyServerPort
+	proxyServiceCert := ctrlCtx.ProxyServiceCert
 	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
@@ -52,7 +53,7 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 	ctrlCtx.DebugHandlers["/debug/xds"] = sd.getXDSHandler(xdsServer)
 
-	return xdsServer, xdsServer.Start(ctx, cancel, port, cert)
+	return xdsServer, xdsServer.Start(ctx, cancel, proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch

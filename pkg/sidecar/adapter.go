@@ -57,23 +57,23 @@ func Register(name string, driver driver.Driver) {
 }
 
 // Patch is an adapter method for InjectorDriver.Patch
-func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func Patch(ctx context.Context) error {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
-		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
+		return errors.New("sidecar: unknown driver (forgot to init?)")
 	}
-	return engineDriver.Patch(ctx, pod)
+	return engineDriver.Patch(ctx)
 }
 
 // Start is an adapter method for ControllerDriver.Start
-func Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func Start(ctx context.Context) (health.Probes, error) {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
 		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
 	}
-	return engineDriver.Start(ctx, port, cert)
+	return engineDriver.Start(ctx)
 }
 
 // GetPlatformSpecificSpecComponents return the Platform Spec with SecurityContext and sidecarContainer

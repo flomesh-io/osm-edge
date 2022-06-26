@@ -236,21 +236,23 @@ func main() {
 	}
 
 	background := driver.ControllerContext{
-		OsmNamespace:  osmNamespace,
-		KubeConfig:    kubeConfig,
-		Configurator:  cfg,
-		MeshCatalog:   meshCatalog,
-		CertManager:   certManager,
-		MsgBroker:     msgBroker,
-		DebugHandlers: make(map[string]http.Handler),
-		Stop:          stop,
+		ProxyServerPort:  constants.ProxyServerPort,
+		ProxyServiceCert: proxyServiceCert,
+		OsmNamespace:     osmNamespace,
+		KubeConfig:       kubeConfig,
+		Configurator:     cfg,
+		MeshCatalog:      meshCatalog,
+		CertManager:      certManager,
+		MsgBroker:        msgBroker,
+		DebugHandlers:    make(map[string]http.Handler),
+		Stop:             stop,
 	}
 	ctx, cancel := context.WithCancel(&background)
 	defer cancel()
 	background.CancelFunc = cancel
 
 	// Create and start the sidecar proxy service
-	healthProbes, err := sidecar.Start(ctx, constants.ProxyServerPort, proxyServiceCert)
+	healthProbes, err := sidecar.Start(ctx)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing proxy control server")
 	}
