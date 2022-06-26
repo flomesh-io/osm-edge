@@ -164,7 +164,7 @@ func main() {
 	// This component will be watching the OSM MeshConfig and will make it available
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
-	err = sidecar.InitDriver(cfg.GetSidecarClass())
+	err = sidecar.InstallDriver(cfg.GetSidecarClass())
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar driver")
 	}

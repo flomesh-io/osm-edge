@@ -29,8 +29,8 @@ func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, name
 	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
 }
 
-// InitDriver is to serve as an indication of the using sidecar driver
-func InitDriver(driverName string) error {
+// InstallDriver is to serve as an indication of the using sidecar driver
+func InstallDriver(driverName string) error {
 	driversMutex.Lock()
 	defer driversMutex.Unlock()
 	registeredDriver, ok := drivers[driverName]
