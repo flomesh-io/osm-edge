@@ -17,18 +17,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// Driver is the interface that must be implemented by a sidecar driver.
+// Driver is an interface that must be implemented by a sidecar driver.
+// Patch method is invoked by osm-injector and Start method is invoked by osm-controller
 type Driver interface {
 	Patch(ctx context.Context) error
 	Start(ctx context.Context) (health.Probes, error)
 }
 
-// HealthProbes is to serve as an indication whether the given healthProbe has been rewritten
+// HealthProbes is to serve as an indication how to probe the sidecar driver's health status
 type HealthProbes struct {
 	liveness, readiness, startup *HealthProbe
 }
 
-// HealthProbe is an API endpoint to indicate the current status of the server.
+// HealthProbe is an API endpoint to indicate the current status of the sidecar driver.
 type HealthProbe struct {
 	path      string
 	port      int32
