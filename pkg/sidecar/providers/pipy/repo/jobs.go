@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
@@ -61,6 +62,21 @@ func (job *PipyConfGeneratorJob) Run() {
 		pipyConf.setEnableSidecarActiveHealthChecks(flags.EnableSidecarActiveHealthChecks)
 		pipyConf.setEnableEgress(meshConf.IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode(meshConf.IsPermissiveTrafficPolicyMode())
+	}
+
+	svcCert, err := s.certManager.IssueCertificate(certificate.CommonName(proxyIdentity), s.cfg.GetServiceCertValidityPeriod())
+	if err != nil {
+		log.Error().Err(err).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
+		return
+	}
+
+	pipyConf.Certificate = &Certificate{
+		CommonName:   svcCert.CommonName,
+		SerialNumber: svcCert.SerialNumber,
+		Expiration:   svcCert.Expiration.Unix(),
+		CertChain:    string(svcCert.CertChain),
+		PrivateKey:   string(svcCert.PrivateKey),
+		IssuingCA:    string(svcCert.IssuingCA),
 	}
 
 	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)

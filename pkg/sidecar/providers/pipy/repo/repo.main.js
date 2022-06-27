@@ -1,4 +1,4 @@
-// version: '2022.06.12'
+// version: '2022.06.26-dev'
 (config => (
   (
     debugLogLevel,
@@ -6,6 +6,37 @@
     kind,
     name,
     pod,
+
+    // {{{ metrics begin
+    serverLiveGauge,
+    activeConnectionGauge,
+    sendBytesTotalCounter,
+    receiveBytesTotalCounter,
+    upstreamResponseTotal,
+    upstreamResponseCode,
+    osmRequestDurationHist,
+    upstreamCodeCount,
+    upstreamCodeXCount,
+    upstreamCompletedCount,
+    funcInitClusterNameMetrics,
+    destroyRemoteActiveCounter, // zero - To Be Determined
+    destroyLocalActiveCounter, // zero - To Be Determined
+    connectTimeoutCounter, // zero - To Be Determined
+    pendingFailureEjectCounter, // zero - To Be Determined
+    pendingOverflowCounter, // zero - To Be Determined
+    requestTimeoutCounter, // zero - To Be Determined
+    requestReceiveResetCounter, // zero - To Be Determined
+    requestSendResetCounter, // zero - To Be Determined
+    // }}} metrics end
+
+    funcTracingHeaders,
+    funcMakeZipKinData,
+    tlsCertChain,
+    tlsPrivateKey,
+    tlsIssuingCA,
+
+    tracingAddress,
+    tracingEndpoint,
     specEnableEgress,
     inTrafficMatches,
     inClustersConfigs,
@@ -16,32 +47,113 @@
     probeScheme,
     probeTarget,
     probePath,
-    metricsMap,
-    funcLogMetrics,
     funcHttpServiceRouteRules
   ) => (
     debugLogLevel = (config?.Spec?.SidecarLogLevel === 'debug'),
-    namespace = (os.env.POD_NAMESPACE || 'default').replace('-', '_'),
-    kind = (os.env.POD_KIND || 'Deployment').replace('-', '_'),
-    name = (os.env.SERVICE_ACCOUNT || '').replace('-', '_'),
-    pod = (os.env.POD_NAME || '').replace('-', '_'),
-    metricsMap = {},
+    namespace = (os.env.POD_NAMESPACE || 'default'),
+    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+    name = (os.env.SERVICE_ACCOUNT || ''),
+    pod = (os.env.POD_NAME || ''),
+    tracingAddress = (os.env.TRACING_ADDRESS || 'jaeger.osm-system.svc.cluster.local:9411'),
+    tracingEndpoint = (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
 
-    //
-    // OSM metrics
-    //
-    funcLogMetrics = (http_status, d_namespace, d_kind, d_name, d_pod, stub, counterKey, histogramKey) => (
-      stub = '_source_namespace_' + namespace + '_source_kind_' + kind + '_source_name_' + name + '_source_pod_' + pod +
-      '_destination_namespace_' + d_namespace + '_destination_kind_' + d_kind + '_destination_name_' + d_name + '_destination_pod_' + d_pod,
+    tlsCertChain = config?.Certificate?.CertChain,
+    tlsPrivateKey = config?.Certificate?.PrivateKey,
+    tlsIssuingCA = config?.Certificate?.IssuingCA,
 
-      counterKey = 'sidecar_response_code_' + http_status + stub + '_osm_request_total',
-      !metricsMap[counterKey] && (metricsMap[counterKey] = new stats.Counter(counterKey)),
-      metricsMap[counterKey].increase(),
+    sendBytesTotalCounter = new stats.Counter('envoy_cluster_upstream_cx_tx_bytes_total', ['envoy_cluster_name']),
+    receiveBytesTotalCounter = new stats.Counter('envoy_cluster_upstream_cx_rx_bytes_total', ['envoy_cluster_name']),
+    activeConnectionGauge = new stats.Gauge('envoy_cluster_upstream_cx_active', ['envoy_cluster_name']),
+    upstreamCodeCount = new stats.Counter('envoy_cluster_external_upstream_rq', ['envoy_response_code', 'envoy_cluster_name']),
+    upstreamCodeXCount = new stats.Counter('envoy_cluster_external_upstream_rq_xx', ['envoy_response_code_class', 'envoy_cluster_name']),
+    upstreamCompletedCount = new stats.Counter('envoy_cluster_external_upstream_rq_completed', ['envoy_cluster_name']),
+    upstreamResponseTotal = new stats.Counter('envoy_cluster_upstream_rq_total',
+      ['source_namespace', 'source_workload_kind', 'source_workload_name', 'source_workload_pod', 'envoy_cluster_name']),
+    upstreamResponseCode = new stats.Counter('envoy_cluster_upstream_rq_xx',
+      ['envoy_response_code_class', 'source_namespace', 'source_workload_kind', 'source_workload_name', 'source_workload_pod', 'envoy_cluster_name']),
+    osmRequestDurationHist = new stats.Histogram('osm_request_duration_ms',
+      [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity],
+      ['source_namespace', 'source_kind', 'source_name', 'source_pod', 'destination_namespace', 'destination_kind', 'destination_name', 'destination_pod']),
+    serverLiveGauge = new stats.Gauge('envoy_server_live'),
+    serverLiveGauge.increase(),
+    // {{{ TBD begin
+    destroyRemoteActiveCounter = new stats.Counter('envoy_cluster_upstream_cx_destroy_remote_with_active_rq', ['envoy_cluster_name']),
+    destroyLocalActiveCounter = new stats.Counter('envoy_cluster_upstream_cx_destroy_local_with_active_rq', ['envoy_cluster_name']),
+    connectTimeoutCounter = new stats.Counter('envoy_cluster_upstream_cx_connect_timeout', ['envoy_cluster_name']),
+    pendingFailureEjectCounter = new stats.Counter('envoy_cluster_upstream_rq_pending_failure_eject', ['envoy_cluster_name']),
+    pendingOverflowCounter = new stats.Counter('envoy_cluster_upstream_rq_pending_overflow', ['envoy_cluster_name']),
+    requestTimeoutCounter = new stats.Counter('envoy_cluster_upstream_rq_timeout', ['envoy_cluster_name']),
+    requestReceiveResetCounter = new stats.Counter('envoy_cluster_upstream_rq_rx_reset', ['envoy_cluster_name']),
+    requestSendResetCounter = new stats.Counter('envoy_cluster_upstream_rq_tx_reset', ['envoy_cluster_name']),
+    // }}} TBD end
 
-      histogramKey = 'sidecar' + stub + '_osm_request_duration_ms',
-      !metricsMap[histogramKey] && (metricsMap[histogramKey] = new stats.Histogram(histogramKey,
-        [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity])),
-      metricsMap[histogramKey].observe(Date.now() - _requestTime)
+    funcInitClusterNameMetrics = (clusterName) => (
+      upstreamResponseTotal.withLabels(namespace, kind, name, pod, clusterName).zero(),
+      upstreamResponseCode.withLabels('5', namespace, kind, name, pod, clusterName).zero(),
+      activeConnectionGauge.withLabels(clusterName).zero(),
+      receiveBytesTotalCounter.withLabels(clusterName).zero(),
+      sendBytesTotalCounter.withLabels(clusterName).zero(),
+
+      connectTimeoutCounter.withLabels(clusterName).zero(),
+      destroyLocalActiveCounter.withLabels(clusterName).zero(),
+      destroyRemoteActiveCounter.withLabels(clusterName).zero(),
+      pendingFailureEjectCounter.withLabels(clusterName).zero(),
+      pendingOverflowCounter.withLabels(clusterName).zero(),
+      requestTimeoutCounter.withLabels(clusterName).zero(),
+      requestReceiveResetCounter.withLabels(clusterName).zero(),
+      requestSendResetCounter.withLabels(clusterName).zero()
+    ),
+
+    funcTracingHeaders = (headers, proto, uuid, id) => (
+      uuid = algo.uuid(),
+      id = algo.hash(uuid),
+      proto && (headers['x-forwarded-proto'] = proto),
+      headers['x-b3-spanid'] &&
+      (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) &&
+      (headers['x-b3-spanid'] = id),
+      !headers['x-b3-traceid'] &&
+      (headers['x-b3-traceid'] = id) &&
+      (headers['x-b3-spanid'] = id) &&
+      (headers['x-b3-sampled'] = '1'),
+      !headers['x-request-id'] && (headers['x-request-id'] = uuid),
+      headers['osm-stats-namespace'] = namespace,
+      headers['osm-stats-kind'] = kind,
+      headers['osm-stats-name'] = name,
+      headers['osm-stats-pod'] = pod
+    ),
+
+    funcMakeZipKinData = (msg, headers, clusterName, kind, shared, data) => (
+      data = {
+        'traceId': headers?.['x-b3-traceid'] && headers['x-b3-traceid'].toString(),
+        'id': headers?.['x-b3-spanid'] && headers['x-b3-spanid'].toString(),
+        'name': headers.host,
+        'timestamp': Date.now() * 1000,
+        'localEndpoint': {
+          'port': 0,
+          'ipv4': os.env.POD_IP || '',
+          'serviceName': name,
+        },
+        'tags': {
+          'component': 'proxy',
+          'http.url': headers?.['x-forwarded-proto'] + '://' + headers.host + msg.head.path,
+          'http.method': msg.head.method,
+          'node_id': os.env.POD_UID || '',
+          'http.protocol': msg.head.protocol,
+          'guid:x-request-id': headers?.['x-request-id'],
+          'user_agent': headers?.['user-agent'],
+          'upstream_cluster': clusterName
+        },
+        'annotations': []
+      },
+      headers['x-b3-parentspanid'] && (data['parentId'] = headers['x-b3-parentspanid']),
+      data['kind'] = kind,
+      shared && (data['shared'] = shared),
+      data.tags['request_size'] = '0',
+      data.tags['response_size'] = '0',
+      data.tags['http.status_code'] = '000',
+      data.tags['peer.address'] = '',
+      data['duration'] = 0,
+      data
     ),
 
     funcHttpServiceRouteRules = json => (
@@ -50,10 +162,10 @@
           name,
           Object.entries(rule).map(
             ([path, condition]) => ({
-              Path_: path, // for debug
+              Path_: path, // for debugLogLevel
               Path: new RegExp(path), // HTTP request path
               Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
-              Headers_: condition?.Headers, // for debug
+              Headers_: condition?.Headers, // for debugLogLevel
               Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
               AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
               TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(condition.TargetClusters) // Loadbalancer for services
@@ -71,7 +183,7 @@
             Port: match.Port,
             Protocol: match.Protocol,
             HttpHostPort2Service: match.HttpHostPort2Service,
-            SourceIPRanges_: match?.SourceIPRanges, // for debug
+            SourceIPRanges_: match?.SourceIPRanges, // for debugLogLevel
             SourceIPRanges: match.SourceIPRanges && match.SourceIPRanges.map(e => new Netmask(e)),
             TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(match.TargetClusters),
             HttpServiceRouteRules: match.HttpServiceRouteRules && funcHttpServiceRouteRules(match.HttpServiceRouteRules),
@@ -85,7 +197,7 @@
       Object.entries(
         config.Inbound.ClustersConfigs).map(
         ([k, v]) => [
-          k, (new algo.RoundRobinLoadBalancer(v))
+          k, (funcInitClusterNameMetrics(k), new algo.RoundRobinLoadBalancer(v))
         ]
       )
     ),
@@ -118,7 +230,7 @@
     outClustersConfigs = config?.Outbound?.ClustersConfigs && Object.fromEntries(
       Object.entries(config.Outbound.ClustersConfigs).map(
         ([k, v]) => [
-          k, (new algo.RoundRobinLoadBalancer(v))
+          k, (funcInitClusterNameMetrics(k), new algo.RoundRobinLoadBalancer(v))
         ]
       )
     ),
@@ -145,8 +257,13 @@
       _outMatch: undefined,
       _outTarget: undefined,
       _outSessionControl: null,
-      _requestTime: 0,
-      _egressTargetMap: {}
+
+      _outRequestTime: 0,
+      _egressTargetMap: {},
+      _localClusterName: undefined,
+      _upstreamClusterName: undefined,
+      _inZipkinData: null,
+      _outZipkinData: null
     })
 
     //
@@ -157,6 +274,18 @@
       'closeEOF': false
       // 'readTimeout': '5s'
     })
+    .acceptTLS(
+      'inbound_tls_offloaded', {
+        certificate: {
+          cert: new crypto.Certificate(tlsCertChain),
+          key: new crypto.PrivateKey(tlsPrivateKey),
+        },
+        trusted: [
+          new crypto.Certificate(tlsIssuingCA),
+        ]
+      }
+    )
+    .pipeline('inbound_tls_offloaded')
     .handleStreamStart(
       () => (
         // Find a match by destination port
@@ -180,7 +309,7 @@
           ) && (
             // Load balance
             inClustersConfigs?.[
-              _inMatch.TargetClusters?.next?.()?.id
+              _localClusterName = _inMatch.TargetClusters?.next?.()?.id
             ]?.next?.()
           )
         ),
@@ -244,7 +373,7 @@
           // Layer 7 load balance
           _inTarget = (
             inClustersConfigs[
-              match?.TargetClusters?.next?.()?.id
+              _localClusterName = match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
 
@@ -252,6 +381,9 @@
           !_inTarget && headers['x-forwarded-for'] && (
             _inSessionControl.close = true
           ),
+
+          // Initialize ZipKin tracing data
+          //// _inZipkinData = funcMakeZipKinData(msg, headers, _localClusterName, 'SERVER', true),
 
           debugLogLevel && (
             console.log('inbound path: ', msg.head.path) ||
@@ -293,8 +425,34 @@
     // Connect to local service
     //
     .pipeline('connection_in')
+    .handleData(
+      (data) => (
+        sendBytesTotalCounter.withLabels(_localClusterName).increase(data.size),
+        _inZipkinData && (_inZipkinData.tags['request_size'] = data.size.toString())
+      )
+    )
+    .handleStreamStart(
+      () => (
+        activeConnectionGauge.withLabels(_localClusterName).increase()
+      )
+    )
+    .handleStreamEnd(
+      () => (
+        activeConnectionGauge.withLabels(_localClusterName).decrease()
+      )
+    )
     .connect(
       () => _inTarget?.id
+    )
+    .handleData(
+      (data) => (
+        receiveBytesTotalCounter.withLabels(_localClusterName).increase(data.size),
+        _inZipkinData && (() => (
+          _inZipkinData['duration'] = Date.now() * 1000 - _inZipkinData['timestamp'],
+          _inZipkinData.tags['response_size'] = data.size.toString(),
+          _inZipkinData.tags['peer.address'] = _inTarget.id
+        ))()
+      )
     )
 
     //
@@ -322,14 +480,43 @@
     .handleMessageStart(
       (msg) => (
         ((headers) => (
-          headers = msg.head.headers,
-          headers['osm-stats-namespace'] = namespace,
-          headers['osm-stats-kind'] = kind,
-          headers['osm-stats-name'] = name,
-          headers['osm-stats-pod'] = pod
+          (headers = msg?.head?.headers) && (() => (
+            headers['osm-stats-namespace'] = namespace,
+            headers['osm-stats-kind'] = kind,
+            headers['osm-stats-name'] = name,
+            headers['osm-stats-pod'] = pod,
+
+            upstreamResponseTotal.withLabels(namespace, kind, name, pod, _localClusterName).increase(),
+            upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase(),
+
+            _inZipkinData && (_inZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()),
+            debugLogLevel && console.log('_inZipkinData: ', _inZipkinData)
+          ))()
         ))()
       )
     )
+    .link('log_local_response', () => Boolean(_inZipkinData), '')
+
+    //
+    // sub-pipeline
+    //
+    .pipeline('log_local_response')
+    .fork('fork_local_response')
+
+    //
+    // jaeger tracing for inbound
+    //
+    .pipeline('fork_local_response')
+    .decompressHTTP()
+    .replaceMessage(
+      '4k',
+      () => (
+        new Message(
+          JSON.encode([_inZipkinData]).push('\n')
+        )
+      )
+    )
+    .merge('send_tracing', () => '')
 
     //
     // outbound
@@ -365,7 +552,7 @@
             ) && (
               // Load balance
               outClustersConfigs?.[
-                _outMatch.TargetClusters?.next?.()?.id
+                _upstreamClusterName = _outMatch.TargetClusters?.next?.()?.id
               ]?.next?.()
             )
           ),
@@ -373,6 +560,7 @@
           // EGRESS mode
           !Boolean(_outTarget) && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (_outMatch?.Protocol !== 'http') && (
             target = _outIP + ':' + _outPort,
+            _upstreamClusterName = target,
             !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
               [target]: 100
             })),
@@ -435,23 +623,30 @@
           // Layer 7 load balance
           _outTarget = (
             outClustersConfigs[
-              match?.TargetClusters?.next?.()?.id
+              _upstreamClusterName = match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
 
           // Add serviceidentity for request authentication
           _outTarget && (headers['serviceidentity'] = _outMatch.ServiceIdentity),
 
+          // Add x-b3 tracing Headers
+          _outTarget && funcTracingHeaders(headers, _outMatch?.Protocol),
+
+          // Initialize ZipKin tracing data
+          //// _outZipkinData = funcMakeZipKinData(msg, headers, _upstreamClusterName, 'CLIENT', false),
+
           // EGRESS mode
           !_outTarget && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
             target = _outIP + ':' + _outPort,
+            _upstreamClusterName = target,
             !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
               [target]: 100
             })),
             _outTarget = _egressTargetMap[target].next()
           ),
 
-          _requestTime = Date.now(),
+          _outRequestTime = Date.now(),
 
           debugLogLevel && (
             console.log('outbound path: ', msg.head.path) ||
@@ -494,8 +689,46 @@
     // Connect to upstream service
     //
     .pipeline('connection_out')
+    .handleData(
+      (data) => (
+        sendBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size),
+        _outZipkinData && (_outZipkinData.tags['request_size'] = data.size.toString())
+      )
+    )
+    .handleStreamStart(
+      () => (
+        activeConnectionGauge.withLabels(_upstreamClusterName).increase()
+      )
+    )
+    .handleStreamEnd(
+      () => (
+        activeConnectionGauge.withLabels(_upstreamClusterName).decrease()
+      )
+    )
+    .connectTLS(
+      'upstream_connect', {
+        certificate: {
+          cert: new crypto.Certificate(tlsCertChain),
+          key: new crypto.PrivateKey(tlsPrivateKey),
+        },
+        trusted: [
+          new crypto.Certificate(tlsIssuingCA),
+        ]
+      }
+    )
+    .pipeline('upstream_connect')
     .connect(
       () => _outTarget?.id
+    )
+    .handleData(
+      (data) => (
+        receiveBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size),
+        _outZipkinData && (() => (
+          _outZipkinData['duration'] = Date.now() * 1000 - _outZipkinData['timestamp'],
+          _outZipkinData.tags['response_size'] = data.size.toString(),
+          _outZipkinData.tags['peer.address'] = _outTarget.id
+        ))()
+      )
     )
 
     //
@@ -528,9 +761,62 @@
           (d_kind = headers?.['osm-stats-kind']) && (delete headers['osm-stats-kind']),
           (d_name = headers?.['osm-stats-name']) && (delete headers['osm-stats-name']),
           (d_pod = headers?.['osm-stats-pod']) && (delete headers['osm-stats-pod']),
-          d_namespace && funcLogMetrics(msg?.head.status, d_namespace, d_kind, d_name, d_pod)
+
+          d_namespace && osmRequestDurationHist.withLabels(namespace, kind, name, pod, d_namespace, d_kind, d_name, d_pod).observe(Date.now() - _outRequestTime),
+          upstreamCompletedCount.withLabels(_upstreamClusterName).increase(),
+          msg?.head?.status && upstreamCodeCount.withLabels(msg.head.status, _upstreamClusterName).increase(),
+          msg?.head?.status && upstreamCodeXCount.withLabels(msg.head.status.toString().charAt(0), _upstreamClusterName).increase(),
+
+          upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
+          msg?.head?.status && upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
+
+          _outZipkinData && (_outZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()),
+          debugLogLevel && console.log('_outZipkinData: ', _outZipkinData)
         ))()
       )
+    )
+    .link('log_upstream_response', () => Boolean(_outZipkinData), '')
+
+    //
+    // sub-pipeline
+    //
+    .pipeline('log_upstream_response')
+    .fork('fork_upstream_response')
+
+    //
+    // jaeger tracing for outbound
+    //
+    .pipeline('fork_upstream_response')
+    .decompressHTTP()
+    .replaceMessage(
+      '4k',
+      () => (
+        new Message(
+          JSON.encode([_outZipkinData]).push('\n')
+        )
+      )
+    )
+    .merge('send_tracing', () => '')
+
+    //
+    // send zipkin data to jaeger
+    //
+    .pipeline('send_tracing')
+    .replaceMessageStart(
+      () => new MessageStart({
+        method: 'POST',
+        path: tracingEndpoint,
+        headers: {
+          'Host': tracingAddress,
+          'Content-Type': 'application/json',
+        }
+      })
+    )
+    .encodeHTTPRequest()
+    .connect(
+      () => tracingAddress, {
+        bufferLimit: '8m',
+      }
     )
 
     //
@@ -685,6 +971,9 @@
     .pipeline('connection_prometheus')
     .connect(() => prometheusTarget)
 
+    //
+    // PIPY configuration file
+    //
     .listen(15000)
     .serveHTTP(
       msg =>

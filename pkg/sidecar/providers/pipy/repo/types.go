@@ -223,9 +223,29 @@ type MeshConfigSpec struct {
 	}
 }
 
+// Certificate represents an x509 certificate.
+type Certificate struct {
+	// The CommonName of the certificate
+	CommonName certificate.CommonName
+
+	// The serial number of the certificate
+	SerialNumber certificate.SerialNumber
+
+	// When the cert expires
+	Expiration int64
+
+	// PEM encoded Certificate and Key (byte arrays)
+	CertChain  string
+	PrivateKey string
+
+	// Certificate authority signing this certificate
+	IssuingCA string
+}
+
 // PipyConf is a policy used by pipy sidecar
 type PipyConf struct {
 	Spec              MeshConfigSpec
+	Certificate       *Certificate
 	Inbound           *InboundTrafficPolicy  `json:"Inbound"`
 	Outbound          *OutboundTrafficPolicy `json:"Outbound"`
 	AllowedEndpoints  map[string]string      `json:"AllowedEndpoints"`
