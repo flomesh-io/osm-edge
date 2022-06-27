@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -16,18 +17,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 )
 
-// Driver is the interface that must be implemented by a sidecar driver.
+// Driver is an interface that must be implemented by a sidecar driver.
+// Patch method is invoked by osm-injector and Start method is invoked by osm-controller
 type Driver interface {
-	Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error)
-	Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error)
+	Patch(ctx context.Context) error
+	Start(ctx context.Context) (health.Probes, error)
 }
 
-// HealthProbes is to serve as an indication whether the given healthProbe has been rewritten
+// HealthProbes is to serve as an indication how to probe the sidecar driver's health status
 type HealthProbes struct {
 	liveness, readiness, startup *HealthProbe
 }
 
-// HealthProbe is an API endpoint to indicate the current status of the server.
+// HealthProbe is an API endpoint to indicate the current status of the sidecar driver.
 type HealthProbe struct {
 	path      string
 	port      int32
@@ -43,6 +45,7 @@ var InjectorCtxKey int
 type InjectorContext struct {
 	context.Context
 
+	Pod                          *corev1.Pod
 	MeshName                     string
 	OsmNamespace                 string
 	PodNamespace                 string
@@ -50,6 +53,7 @@ type InjectorContext struct {
 	ProxyCommonName              certificate.CommonName
 	ProxyUUID                    uuid.UUID
 	Configurator                 configurator.Configurator
+	KubeClient                   kubernetes.Interface
 	BootstrapCertificate         *certificate.Certificate
 	ContainerPullPolicy          corev1.PullPolicy
 	InboundPortExclusionList     []int
@@ -68,13 +72,16 @@ var ControllerCtxKey int
 type ControllerContext struct {
 	context.Context
 
-	OsmNamespace  string
-	KubeConfig    *rest.Config
-	Configurator  configurator.Configurator
-	MeshCatalog   catalog.MeshCataloger
-	CertManager   certificate.Manager
-	MsgBroker     *messaging.Broker
-	DebugHandlers map[string]http.Handler
-	CancelFunc    func()
-	Stop          chan struct{}
+	ProxyServerPort  int
+	ProxyServiceCert *certificate.Certificate
+	OsmNamespace     string
+	KubeConfig       *rest.Config
+	Configurator     configurator.Configurator
+	MeshCatalog      catalog.MeshCataloger
+	CertManager      certificate.Manager
+	MsgBroker        *messaging.Broker
+	DebugHandlers    map[string]http.Handler
+	CancelFunc       func()
+	Stop             chan struct {
+	}
 }

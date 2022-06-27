@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
@@ -31,7 +31,7 @@ type EnvoySidecarDriver struct {
 }
 
 // Start is the implement for ControllerDriver.Start
-func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func (sd EnvoySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
@@ -41,6 +41,8 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	proxyServerPort := ctrlCtx.ProxyServerPort
+	proxyServiceCert := ctrlCtx.ProxyServiceCert
 	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
@@ -52,18 +54,20 @@ func (sd EnvoySidecarDriver) Start(ctx context.Context, port int, cert *certific
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 	ctrlCtx.DebugHandlers["/debug/xds"] = sd.getXDSHandler(xdsServer)
 
-	return xdsServer, xdsServer.Start(ctx, cancel, port, cert)
+	return xdsServer, xdsServer.Start(ctx, cancel, proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (sd EnvoySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd EnvoySidecarDriver) Patch(ctx context.Context) error {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
-		return nil, errors.New("missing Injector Context")
+		return errors.New("missing Injector Context")
 	}
 	injCtx := parentCtx.(*driver.InjectorContext)
+	kubeClient := injCtx.KubeClient
+	podNamespace := injCtx.PodNamespace
+	pod := injCtx.Pod
 
-	var secrets []*corev1.Secret
 	// Create the bootstrap configuration for the Sidecar proxy for the given pod
 	sidecarBootstrapConfigName := fmt.Sprintf("sidecar-bootstrap-config-%s", injCtx.ProxyUUID)
 
@@ -75,9 +79,22 @@ func (sd EnvoySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*cor
 		log.Debug().Msgf("Skipping Sidecar bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, injCtx.PodNamespace)
 	} else if secret, err := createSidecarBootstrapConfig(*injCtx, sidecarBootstrapConfigName); err != nil {
 		log.Error().Err(err).Msgf("Failed to create Sidecar bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, injCtx.PodNamespace, injCtx.ProxyCommonName)
-		return nil, err
+		return err
 	} else {
-		secrets = append(secrets, secret)
+		if secret != nil {
+			if existing, err := kubeClient.CoreV1().Secrets(podNamespace).Get(context.Background(), secret.ObjectMeta.Name, metav1.GetOptions{}); err == nil {
+				log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, podNamespace)
+				existing.Data = secret.Data
+				if _, err = kubeClient.CoreV1().Secrets(podNamespace).Update(context.Background(), existing, metav1.UpdateOptions{}); err != nil {
+					return err
+				}
+			}
+
+			log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, podNamespace)
+			if _, err = kubeClient.CoreV1().Secrets(podNamespace).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Create volume for sidecar TLS secret
@@ -175,5 +192,5 @@ func (sd EnvoySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*cor
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)
 
-	return secrets, nil
+	return nil
 }

@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/injector"
@@ -33,7 +32,7 @@ type PipySidecarDriver struct {
 }
 
 // Start is the implement for ControllerDriver.Start
-func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 	parentCtx := ctx.Value(&driver.ControllerCtxKey)
 	if parentCtx == nil {
 		return nil, errors.New("missing Controller Context")
@@ -43,6 +42,8 @@ func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certifica
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
+	proxyServerPort := ctrlCtx.ProxyServerPort
+	proxyServiceCert := ctrlCtx.ProxyServiceCert
 	sd.ctx = ctrlCtx
 
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
@@ -54,16 +55,17 @@ func (sd PipySidecarDriver) Start(ctx context.Context, port int, cert *certifica
 
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 
-	return repoServer, repoServer.Start(ctx, cancel, port, cert)
+	return repoServer, repoServer.Start(ctx, cancel, proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
-func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 	parentCtx := ctx.Value(&driver.InjectorCtxKey)
 	if parentCtx == nil {
-		return nil, errors.New("missing Injector Context")
+		return errors.New("missing Injector Context")
 	}
 	injCtx := parentCtx.(*driver.InjectorContext)
+	pod := injCtx.Pod
 
 	iptablesInitCommand := injector.GenerateIptablesCommands(injCtx.OutboundIPRangeExclusionList, injCtx.OutboundIPRangeInclusionList, injCtx.OutboundPortExclusionList, injCtx.InboundPortExclusionList)
 	enablePrivilegedInitContainer := injCtx.Configurator.IsPrivilegedInitContainer()
@@ -192,7 +194,7 @@ func (sd PipySidecarDriver) Patch(ctx context.Context, pod *corev1.Pod) ([]*core
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)
 
-	return nil, nil
+	return nil
 }
 
 func getSidecarContainerPorts(originalHealthProbes driver.HealthProbes) []corev1.ContainerPort {

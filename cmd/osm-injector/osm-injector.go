@@ -161,7 +161,7 @@ func main() {
 
 	// Initialize Configurator to retrieve mesh specific config
 	cfg := configurator.NewConfigurator(configClientset.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmMeshConfigName, msgBroker)
-	err = sidecar.InitDriver(cfg.GetSidecarClass())
+	err = sidecar.InstallDriver(cfg.GetSidecarClass())
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar driver")
 	}

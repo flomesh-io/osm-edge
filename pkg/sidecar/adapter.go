@@ -29,13 +29,13 @@ func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, name
 	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
 }
 
-// InitDriver is to serve as an indication of the using sidecar driver
-func InitDriver(driverName string) error {
+// InstallDriver is to serve as an indication of the using sidecar driver
+func InstallDriver(driverName string) error {
 	driversMutex.Lock()
 	defer driversMutex.Unlock()
 	registeredDriver, ok := drivers[driverName]
 	if !ok {
-		return fmt.Errorf("sidecar: unknown driver %q (forgotten import?)", driverName)
+		return fmt.Errorf("sidecar: unknown driver %q (forgot to import?)", driverName)
 	}
 	engineDriver = registeredDriver
 	return nil
@@ -57,23 +57,23 @@ func Register(name string, driver driver.Driver) {
 }
 
 // Patch is an adapter method for InjectorDriver.Patch
-func Patch(ctx context.Context, pod *corev1.Pod) ([]*corev1.Secret, error) {
+func Patch(ctx context.Context) error {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
-		return nil, errors.New("sidecar: unknown driver (forgotten init?)")
+		return errors.New("sidecar: unknown driver (forgot to init?)")
 	}
-	return engineDriver.Patch(ctx, pod)
+	return engineDriver.Patch(ctx)
 }
 
 // Start is an adapter method for ControllerDriver.Start
-func Start(ctx context.Context, port int, cert *certificate.Certificate) (health.Probes, error) {
+func Start(ctx context.Context) (health.Probes, error) {
 	driversMutex.RLock()
 	defer driversMutex.RUnlock()
 	if engineDriver == nil {
-		return nil, errors.New("sidecar: unknown driver (forgotten init?)")
+		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
 	}
-	return engineDriver.Start(ctx, port, cert)
+	return engineDriver.Start(ctx)
 }
 
 // GetPlatformSpecificSpecComponents return the Platform Spec with SecurityContext and sidecarContainer
