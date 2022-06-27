@@ -166,8 +166,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar |
-| osm.sidecarDrivers | list | `[{"sidecarImage":"flomesh/pipy:latest","sidecarName":"pipy","sidecarWindowsImage":"flomesh/pipy-windows-nightly:latest"},{"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm |
-| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers | list | `[{"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy","sidecarWindowsImage":"flomesh/pipy-windows-nightly:latest"},{"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[0].sidecarWindowsImage | string | `"flomesh/pipy-windows-nightly:latest"` | Sidecar image for Windows workloads |
 | osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
