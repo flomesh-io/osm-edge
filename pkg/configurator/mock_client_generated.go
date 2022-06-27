@@ -220,6 +220,20 @@ func (mr *MockConfiguratorMockRecorder) GetSidecarClass() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarClass", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarClass))
 }
 
+// GetSidecarDisabledMTLS mocks base method.
+func (m *MockConfigurator) GetSidecarDisabledMTLS() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarDisabledMTLS")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// GetSidecarDisabledMTLS indicates an expected call of GetSidecarDisabledMTLS.
+func (mr *MockConfiguratorMockRecorder) GetSidecarDisabledMTLS() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarDisabledMTLS", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarDisabledMTLS))
+}
+
 // GetSidecarImage mocks base method.
 func (m *MockConfigurator) GetSidecarImage() string {
 	m.ctrl.T.Helper()

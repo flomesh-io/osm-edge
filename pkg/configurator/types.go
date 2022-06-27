@@ -78,6 +78,9 @@ type Configurator interface {
 	// GetInitContainerImage returns the init container image
 	GetInitContainerImage() string
 
+	// GetSidecarDisabledMTLS returns the status of mTLS
+	GetSidecarDisabledMTLS() bool
+
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 

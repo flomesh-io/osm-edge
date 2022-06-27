@@ -193,6 +193,20 @@ func (c *client) GetInitContainerImage() string {
 	return image
 }
 
+// GetSidecarDisabledMTLS returns the status of mTLS
+func (c *client) GetSidecarDisabledMTLS() bool {
+	disabledMTLS := false
+	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+	for _, sidecarDriver := range sidecarDrivers {
+		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+			disabledMTLS = sidecarDriver.SidecarDisabledMTLS
+			break
+		}
+	}
+	return disabledMTLS
+}
+
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getMeshConfig().Spec.Certificate.ServiceCertValidityDuration
