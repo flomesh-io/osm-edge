@@ -1,4 +1,4 @@
-// version: '2022.06.26-dev'
+// version: '2022.06.27-rc3'
 (config => (
   (
     debugLogLevel,
@@ -34,6 +34,9 @@
     tlsCertChain,
     tlsPrivateKey,
     tlsIssuingCA,
+
+    dummyCertChain = "-----BEGIN CERTIFICATE-----\nMIIF6TCCA9GgAwIBAgIUeYOjHvAoHPyuNLHp2mJRlipnZ58wDQYJKoZIhvcNAQEL\nBQAwgYMxCzAJBgNVBAYTAkNOMQswCQYDVQQIDAJHRDELMAkGA1UEBwwCR1oxEDAO\nBgNVBAoMB2Zsb21lc2gxEDAOBgNVBAsMB2Zsb21lc2gxEzARBgNVBAMMCmZsb21l\nc2guaW8xITAfBgkqhkiG9w0BCQEWEnBlbmdmZWlAZmxvbWVzaC5pbzAeFw0yMjA2\nMjUwMDQxMjJaFw0yMzA2MjUwMDQxMjJaMIGDMQswCQYDVQQGEwJDTjELMAkGA1UE\nCAwCR0QxCzAJBgNVBAcMAkdaMRAwDgYDVQQKDAdmbG9tZXNoMRAwDgYDVQQLDAdm\nbG9tZXNoMRMwEQYDVQQDDApmbG9tZXNoLmlvMSEwHwYJKoZIhvcNAQkBFhJwZW5n\nZmVpQGZsb21lc2guaW8wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQDr\nixCdP0xnmA+Vv+dI2eNut+Kz+ErFcheVK5fk1l2NIScNlE2FFbRg0tSnhl1hRuPy\nMLHW55pM2omhpNIC5bkEO5SvPyr3W0vPzWdE+V7mgHW4yvNX9Abm1CREG/pGrKd0\nBI6NkQfqpnhf1DInu8j2WOcdPoYpxk1Rta9wvNEG8WdxbtJMBN6kp3G6wdgdjQ8M\nmBVj+WcLayOTu+ObYeLdf02EkkQ3D8ptESczUis8lhesjAUHvzlTTlqixoo/v/Ix\nGxQjiNlNCIw4pocnp5Ltq764XNTnZHRIE7PaMSiOTBox2crfgeFwT2d88UkUWapp\ntBx5gI6f2xMvjmCG3ZSWGxc5L9WLb6o8raiINl5A5EH5MEx3J7R5WL95MAP+3XKC\n6ep+XvHOZhMYSLiMcGI+0oSZzxh6pvhWg4Kh8wRfPUhNrkMC2p6KZp7kUH1d8QmV\n8BK9aDS+YdD+eXaqdDuSsuS30hL7TqsYMStN1VhuwBUa73geSm0eii6OgIQNs7EM\ncWQsbGJRelBOlM6FYnLCFiya0RB6zaDVGxOZAT8NQL/s41+NCehM+n7RbjIxO0Mi\nPJ6xqyClZhaeGB9kkgAgM3n0FwlimcRwGikRKOhGN7OIJVdt8TUuNOJlmuGB06cs\nx4Ubypv9CAdaNF1c/wnWS3mWorqQvEWPXZOm9CLJIwIDAQABo1MwUTAdBgNVHQ4E\nFgQURFHQ4tZAjO1jxo7E5Y+jnsEoLmcwHwYDVR0jBBgwFoAURFHQ4tZAjO1jxo7E\n5Y+jnsEoLmcwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAgEAa63l\neWJZaKhbXl9emi61kND2gX09jjiDdFt6WJH+UeAQ7lNVFki7LRCpa20BECamcLSL\nUbmUqmg5gdywJ6Tkx9UQA8HFk7klNEp1Yer+dL2iP5aSPl5/kGtPY/O1m0ERD65K\n/mL89piqLG2QRTh4YkGj1PkU1Gu5KHe2HPBxicSqxEF9r3/gBysLa1lN2Q92ht3a\nUZqLuvTUOl0+rOldO5sA1u0OiAn3a5lnqTCVHUWLXyGCU6iKvuS7jsYCeSLEqNIc\nWYvsRzs99mW4Vz4Imm7Wo+9ZOWvDlqJc4Hd3OKdwC0UoKMRGsQtHSFu4wCC+oGyl\nhkp9P1bYwahSpjQbRE9Ac6Q8P8VNwSquPMdFPrIZ8e7UqcTHKydSRSHRwDqnA8b6\nAuzR25uNnwdC7PEfcC65GmqSuKhJFAjUyJcPSbtOxoGGZ4H1ju3taLZFn3xacxF6\niQ6Izhu89+rT+3Ijl8Hk5tWN5EqxLfHx0bzolHj8++zRxOqIxSEVtCdGNWRKF7Cx\nROGIFi4aNk07o6sjd0bMDPDNcKB/L1quRbKJ8geG0iUtiFAOB5vueq9FGw0hV/k1\n0k7iQvvZp7rBJByY3bRR6yg6DwQHgz0APW2DnRDHydqevExe9BJe5Jw9FIUnWO8D\nPCIiU5QthEGPPoerlJc/2P8F0VvBdnkwO8Wy/3A=\n-----END CERTIFICATE-----\n",
+    dummyPrivateKey = "-----BEGIN PRIVATE KEY-----\n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\nE4QvevN7kg40ZiPcrYVGtYsFslf5Ayc=\n-----END PRIVATE KEY-----\n",
 
     tracingAddress,
     tracingEndpoint,
@@ -150,7 +153,7 @@
       shared && (data['shared'] = shared),
       data.tags['request_size'] = '0',
       data.tags['response_size'] = '0',
-      data.tags['http.status_code'] = '000',
+      data.tags['http.status_code'] = '502',
       data.tags['peer.address'] = '',
       data['duration'] = 0,
       data
@@ -252,11 +255,13 @@
       _inMatch: undefined,
       _inTarget: undefined,
       _inSessionControl: null,
+      _service: undefined,
       _outIP: undefined,
       _outPort: undefined,
       _outMatch: undefined,
       _outTarget: undefined,
       _outSessionControl: null,
+      _egressMode: null,
 
       _outRequestTime: 0,
       _egressTargetMap: {},
@@ -274,18 +279,6 @@
       'closeEOF': false
       // 'readTimeout': '5s'
     })
-    .acceptTLS(
-      'inbound_tls_offloaded', {
-        certificate: {
-          cert: new crypto.Certificate(tlsCertChain),
-          key: new crypto.PrivateKey(tlsPrivateKey),
-        },
-        trusted: [
-          new crypto.Certificate(tlsIssuingCA),
-        ]
-      }
-    )
-    .pipeline('inbound_tls_offloaded')
     .handleStreamStart(
       () => (
         // Find a match by destination port
@@ -299,6 +292,9 @@
         _inMatch.AllowedEndpoints[__inbound.remoteAddress] === undefined && (
           _inMatch = null
         ),
+
+        // INGRESS mode
+        _service = _inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)),
 
         // Layer 4 load balance
         _inTarget = (
@@ -322,10 +318,28 @@
         debugLogLevel && (
           console.log('inbound _inMatch: ', _inMatch) ||
           console.log('inbound _inTarget: ', _inTarget?.id) ||
-          console.log('inbound protocol: ', _inMatch?.Protocol)
+          console.log('inbound protocol: ', _inMatch?.Protocol) ||
+          console.log('inbound acceptTLS: ', Boolean(tlsCertChain))
         )
       )
     )
+
+    .link('inbound_tls', () => Boolean(tlsCertChain) && !Boolean(_service),
+      'inbound_tls_offloaded')
+    .pipeline('inbound_tls')
+    .acceptTLS(
+      'inbound_tls_offloaded', {
+        certificate: {
+          cert: new crypto.Certificate(tlsCertChain || dummyCertChain),
+          key: new crypto.PrivateKey(tlsPrivateKey || dummyPrivateKey),
+        },
+        trusted: [
+          new crypto.Certificate(tlsIssuingCA || dummyCertChain),
+        ]
+      }
+    )
+    .pipeline('inbound_tls_offloaded')
+
     .link(
       'http_in', () => _inMatch?.Protocol === 'http' || _inMatch?.Protocol === 'grpc',
       'connection_in', () => Boolean(_inTarget),
@@ -350,13 +364,13 @@
         ((service, match, headers) => (
           headers = msg.head.headers,
 
+          // INGRESS mode
+          // When found in SourceIPRanges, service is '*'
+          _service && (service = '*'),
+
           // Find the service
-          service = (
-            // When found in SourceIPRanges, service is '*'
-            (_inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)) && '*') ||
-            // When serviceidentity is present, service is headers.host
-            (headers.serviceidentity && _inMatch?.HttpHostPort2Service?.[headers.host])
-          ),
+          // When serviceidentity is present, service is headers.host
+          !service && (service = (headers.serviceidentity && _inMatch?.HttpHostPort2Service?.[headers.host])),
 
           // Find a match by the service's route rules
           match = _inMatch.HttpServiceRouteRules?.[service]?.find?.(o => (
@@ -539,7 +553,7 @@
             // Strict matching Destination IP address
             outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
             // EGRESS mode - does not check the IP
-            outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
+            (_egressMode = true) && outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
               (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
           )),
 
@@ -564,7 +578,8 @@
             !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
               [target]: 100
             })),
-            _outTarget = _egressTargetMap[target].next()
+            _outTarget = _egressTargetMap[target].next(),
+            _egressMode = true
           ),
 
           _outSessionControl = {
@@ -643,7 +658,8 @@
             !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
               [target]: 100
             })),
-            _outTarget = _egressTargetMap[target].next()
+            _outTarget = _egressTargetMap[target].next(),
+            _egressMode = true
           ),
 
           _outRequestTime = Date.now(),
@@ -705,14 +721,16 @@
         activeConnectionGauge.withLabels(_upstreamClusterName).decrease()
       )
     )
+    .link('tls_upstream_connect', () => (Boolean(tlsCertChain) && !Boolean(_egressMode)), 'upstream_connect')
+    .pipeline('tls_upstream_connect')
     .connectTLS(
       'upstream_connect', {
         certificate: {
-          cert: new crypto.Certificate(tlsCertChain),
-          key: new crypto.PrivateKey(tlsPrivateKey),
+          cert: new crypto.Certificate(tlsCertChain || dummyCertChain),
+          key: new crypto.PrivateKey(tlsPrivateKey || dummyPrivateKey),
         },
         trusted: [
-          new crypto.Certificate(tlsIssuingCA),
+          new crypto.Certificate(tlsIssuingCA || dummyCertChain),
         ]
       }
     )
@@ -770,7 +788,7 @@
           upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
           msg?.head?.status && upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
 
-          _outZipkinData && (_outZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()),
+          _outZipkinData && msg?.head?.status && (_outZipkinData.tags['http.status_code'] = msg.head.status.toString()),
           debugLogLevel && console.log('_outZipkinData: ', _outZipkinData)
         ))()
       )
@@ -978,6 +996,11 @@
     .serveHTTP(
       msg =>
       http.File.from('pipy.json').toMessage(msg.head.headers['accept-encoding'])
+    )
+
+    .listen(14011)
+    .serveHTTP(
+      new Message('Hi, there!\n')
     )
 
   )
