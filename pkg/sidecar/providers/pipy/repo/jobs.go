@@ -73,7 +73,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	pipyConf.Certificate = &Certificate{
 		CommonName:   svcCert.CommonName,
 		SerialNumber: svcCert.SerialNumber,
-		Expiration:   svcCert.Expiration.Unix(),
+		Expiration:   svcCert.Expiration.Format("2006-01-02 15:04:05"),
 		CertChain:    string(svcCert.CertChain),
 		PrivateKey:   string(svcCert.PrivateKey),
 		IssuingCA:    string(svcCert.IssuingCA),

@@ -232,7 +232,7 @@ type Certificate struct {
 	SerialNumber certificate.SerialNumber
 
 	// When the cert expires
-	Expiration int64
+	Expiration string
 
 	// PEM encoded Certificate and Key (byte arrays)
 	CertChain  string
