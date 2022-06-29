@@ -98,16 +98,9 @@ spec:
                           initContainerImage:
                             description: Image for the init container
                             type: string
-                          driverConfigs:
-                            description: Image for the sidecar
-                            type: array
-                            items:
-                              properties:
-                                name:
-                                  type: string
-                              value:
-                                description: Value for the config variable.
-                              type: object
+                          sidecarDisabledMTLS:
+                            description: Disabled mTLS
+                            type: boolean
                     resources:
                       type: object
                       properties:
@@ -370,16 +363,9 @@ spec:
                           initContainerImage:
                             description: Image for the init container
                             type: string
-                          driverConfigs:
-                            description: Image for the sidecar
-                            type: array
-                            items:
-                              properties:
-                                name:
-                                  type: string
-                              value:
-                                description: Value for the config variable.
-                              type: object
+                          sidecarDisabledMTLS:
+                            description: Disabled mTLS
+                            type: boolean
                     resources:
                       type: object
                       properties:

@@ -50,9 +50,9 @@ func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connected
 
 	newJob := func() *PipyConfGeneratorJob {
 		return &PipyConfGeneratorJob{
-			proxy:     proxy,
-			xdsServer: s,
-			done:      make(chan struct{}),
+			proxy:      proxy,
+			repoServer: s,
+			done:       make(chan struct{}),
 		}
 	}
 	wg.Done()

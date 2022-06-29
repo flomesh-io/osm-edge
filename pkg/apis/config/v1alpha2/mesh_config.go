@@ -237,4 +237,7 @@ type SidecarDriverSpec struct {
 
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
+
+	// SidecarDisabledMTLS defines if mTLS are disabled.
+	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
 }

@@ -150,7 +150,7 @@ func (r *Repo) handlePipyPolicyJSONRequest(w http.ResponseWriter, req *http.Requ
 func (r *Repo) handlePipyCodebaseLayoutRequest(w http.ResponseWriter, req *http.Request,
 	connectedProxy *ConnectedProxy, pipyConf *PipyConf, latestRepoCodebaseV string,
 	certCommonName certificate.CommonName) {
-	etag := refreshPipyConf(connectedProxy.proxy, pipyConf)
+	etag := refreshPipyConf(r.server, connectedProxy.proxy, pipyConf)
 	if len(etag) == 0 {
 		etag = latestRepoCodebaseV
 	}
@@ -170,9 +170,9 @@ func (r *Repo) getCodebaseStatus(w http.ResponseWriter, req *http.Request, conne
 	if !codebaseReady {
 		newJob := func() *PipyConfGeneratorJob {
 			return &PipyConfGeneratorJob{
-				proxy:     connectedProxy.proxy,
-				xdsServer: r.server,
-				done:      make(chan struct{}),
+				proxy:      connectedProxy.proxy,
+				repoServer: r.server,
+				done:       make(chan struct{}),
 			}
 		}
 		<-r.server.workqueues.AddJob(newJob())
