@@ -38,6 +38,9 @@ func (job *PipyConfGeneratorJob) Run() {
 	s := job.repoServer
 	proxy := job.proxy
 
+	proxy.Lock()
+	defer proxy.Unlock()
+
 	proxyIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
@@ -109,7 +112,7 @@ func (job *PipyConfGeneratorJob) Run() {
 		pipyConf.Certificate = nil
 	}
 
-	pipyConf.copyAllowedEndpoints()
+	pipyConf.copyAllowedEndpoints(s.proxyRegistry)
 
 	if !proxy.HasInitedProbes {
 		job.publishSidecarConf(s.repoClient, proxy, pipyConf)

@@ -5,8 +5,10 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )
 
@@ -91,13 +93,14 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 	}
 }
 
-func (p *PipyConf) copyAllowedEndpoints() {
+func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) {
 	p.AllowedEndpoints = make(map[string]string)
-	registry.CachedMeshPodsLock.RLock()
-	for k, v := range registry.CachedMeshPods {
-		p.AllowedEndpoints[k] = v
-	}
-	registry.CachedMeshPodsLock.RUnlock()
+	proxyRegistry.PodCNtoProxy.Range(func(cnIface, propsIface interface{}) bool {
+		cn := cnIface.(certificate.CommonName)
+		proxy := propsIface.(*pipy.Proxy)
+		p.AllowedEndpoints[proxy.PodIP] = cn.String()
+		return true // continue the iteration
+	})
 	if p.Inbound == nil {
 		return
 	}

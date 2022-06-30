@@ -10,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -28,8 +27,8 @@ type Server struct {
 	cfg            configurator.Configurator
 	certManager    certificate.Manager
 	ready          bool
-	workqueues     *workerpool.WorkerPool
-	kubecontroller k8s.Controller
+	workQueues     *workerpool.WorkerPool
+	kubeController k8s.Controller
 
 	// When snapshot cache is enabled, we (currently) don't keep track of proxy information, however different
 	// config versions have to be provided to the cache as we keep adding snapshots. The following map
@@ -40,15 +39,6 @@ type Server struct {
 	msgBroker *messaging.Broker
 
 	repoClient *client.PipyRepoClient
-
-	connectedProxies sync.Map
-}
-
-// ConnectedProxy is the proxy object of connected pipy sidecar
-type ConnectedProxy struct {
-	proxy     *pipy.Proxy
-	initError error
-	quit      chan struct{}
 }
 
 // Protocol is a string wrapper type

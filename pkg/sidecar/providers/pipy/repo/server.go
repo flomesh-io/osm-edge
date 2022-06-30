@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/sidecar"
+	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -38,19 +39,19 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 		osmNamespace:   osmNamespace,
 		cfg:            cfg,
 		certManager:    certManager,
-		workqueues:     workerpool.NewWorkerPool(workerPoolSize),
-		kubecontroller: kubecontroller,
+		workQueues:     workerpool.NewWorkerPool(workerPoolSize),
+		kubeController: kubecontroller,
 		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
 		msgBroker:      msgBroker,
-		repoClient:     client.NewRepoClient("127.0.0.1:6060"),
+		repoClient:     client.NewRepoClient(fmt.Sprintf("127.0.0.1:%d", cfg.GetProxyServerPort())),
 	}
 
 	return &server
 }
 
 // Start starts the codebase push server
-func (s *Server) Start(_ context.Context, cancel context.CancelFunc, port uint32, _ *certificate.Certificate) error {
+func (s *Server) Start(ctrlCtx *driver.ControllerContext, proxyRegistry *registry.ProxyRegistry, _ uint32, _ *certificate.Certificate) error {
 	// wait until pipy repo is up
 	err := wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
 		if s.repoClient.IsRepoUp() {
@@ -70,7 +71,19 @@ func (s *Server) Start(_ context.Context, cancel context.CancelFunc, port uint32
 			Items: []client.BatchItem{
 				{
 					Filename: "main.js",
-					Content:  codebasePluginSource,
+					Content:  codebaseMainJS,
+				},
+				{
+					Filename: "config.js",
+					Content:  codebaseConfigJS,
+				},
+				{
+					Filename: "metrics.js",
+					Content:  codebaseMetricsJS,
+				},
+				{
+					Filename: "pipy.json",
+					Content:  codebasePipyJSON,
 				},
 			},
 		},
@@ -80,7 +93,7 @@ func (s *Server) Start(_ context.Context, cancel context.CancelFunc, port uint32
 	}
 
 	// Start broadcast listener thread
-	go s.broadcastListener()
+	go s.broadcastListener(proxyRegistry, ctrlCtx.Stop)
 
 	s.ready = true
 

@@ -2,11 +2,9 @@ package registry
 
 import (
 	"sync"
-	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
 var log = logger.New("proxy-registry")
@@ -16,21 +14,14 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	connectedProxies sync.Map
+	// Maintain a mapping of pod CN to Proxy of the Sidecar on the given pod
+	PodCNtoProxy sync.Map
 
 	// Maintain a mapping of pod UID to CN of the Sidecar on the given pod
-	podUIDToCN sync.Map
+	PodUIDToCN sync.Map
 
 	// Maintain a mapping of pod UID to certificate SerialNumber of the Sidecar on the given pod
-	podUIDToCertificateSerialNumber sync.Map
+	PodUIDToCertificateSerialNumber sync.Map
 
 	msgBroker *messaging.Broker
-}
-
-type connectedProxy struct {
-	// Proxy which connected to the XDS control plane
-	proxy *pipy.Proxy
-
-	// When the proxy connected to the XDS control plane
-	connectedAt time.Time
 }

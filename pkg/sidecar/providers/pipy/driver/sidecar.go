@@ -39,7 +39,6 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 		return nil, errors.New("missing Controller Context")
 	}
 	ctrlCtx := parentCtx.(*driver.ControllerContext)
-	cancel := ctrlCtx.CancelFunc
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
@@ -55,7 +54,7 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 
-	return repoServer, repoServer.Start(ctx, cancel, proxyServerPort, proxyServiceCert)
+	return repoServer, repoServer.Start(ctrlCtx, proxyRegistry, proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch

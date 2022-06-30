@@ -2,7 +2,6 @@ package repo
 
 import (
 	"strings"
-	"sync"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -15,29 +14,25 @@ import (
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
-func (s *Server) informTrafficPolicies(wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
+func (s *Server) informTrafficPolicies(proxy *pipy.Proxy) error {
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
-		connectedProxy.initError = errTooManyConnections
 		return errTooManyConnections
 	}
 
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
-	proxy := connectedProxy.proxy
-
-	if connectedProxy.initError = s.recordPodMetadata(proxy); connectedProxy.initError == errServiceAccountMismatch {
+	if initError := s.recordPodMetadata(proxy); initError == errServiceAccountMismatch {
 		// Service Account mismatch
-		log.Error().Err(connectedProxy.initError).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
-		return connectedProxy.initError
+		log.Error().Err(initError).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
+		return initError
 	}
 
 	s.proxyRegistry.RegisterProxy(proxy)
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
-	defer s.unregisterProxy(proxy)
 
-	connectedProxy.quit = make(chan struct{})
+	proxy.Quit = make(chan bool)
 	// Subscribe to both broadcast and proxy UUID specific events
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
 	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String(), messaging.GetPubSubTopicForProxyUUID(proxy.UUID.String()))
@@ -55,11 +50,10 @@ func (s *Server) informTrafficPolicies(wg *sync.WaitGroup, connectedProxy *Conne
 			done:       make(chan struct{}),
 		}
 	}
-	wg.Done()
 
 	for {
 		select {
-		case <-connectedProxy.quit:
+		case <-proxy.Quit:
 			log.Info().Str("proxy", proxy.String()).Msgf("Pipy Restful session closed")
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
@@ -69,7 +63,7 @@ func (s *Server) informTrafficPolicies(wg *sync.WaitGroup, connectedProxy *Conne
 
 			// Queue a full configuration update
 			// Do not send SDS, let sidecar figure out what certs does it want.
-			<-s.workqueues.AddJob(newJob())
+			<-s.workQueues.AddJob(newJob())
 
 		case certRotateMsg := <-certRotateChan:
 			cert := certRotateMsg.(events.PubSubMessage).NewObj.(*certificate.Certificate)
@@ -80,7 +74,7 @@ func (s *Server) informTrafficPolicies(wg *sync.WaitGroup, connectedProxy *Conne
 
 				// Empty DiscoveryRequest should create the SDS specific request
 				// Prepare to queue the SDS proxy response job on the worker pool
-				<-s.workqueues.AddJob(newJob())
+				<-s.workQueues.AddJob(newJob())
 			}
 		}
 	}
@@ -115,7 +109,7 @@ func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
 		return nil
 	}
 
-	pod, err := pipy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubecontroller)
+	pod, err := pipy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubeController)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 		return nil
