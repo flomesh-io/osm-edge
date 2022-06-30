@@ -15,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
-func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
+func (s *Server) informTrafficPolicies(wg *sync.WaitGroup, connectedProxy *ConnectedProxy) error {
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		connectedProxy.initError = errTooManyConnections
@@ -35,7 +35,7 @@ func (s *Server) informTrafficPolicies(repo *Repo, wg *sync.WaitGroup, connected
 	s.proxyRegistry.RegisterProxy(proxy)
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
-	defer repo.unregisterProxy(proxy)
+	defer s.unregisterProxy(proxy)
 
 	connectedProxy.quit = make(chan struct{})
 	// Subscribe to both broadcast and proxy UUID specific events

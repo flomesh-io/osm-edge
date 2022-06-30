@@ -98,6 +98,11 @@ spec:
                           initContainerImage:
                             description: Image for the init container
                             type: string
+                          proxyServerPort:
+                            description: Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+                            type: integer
+                            minimum: 1
+                            maximum: 65535
                           sidecarDisabledMTLS:
                             description: Disabled mTLS
                             type: boolean
@@ -363,6 +368,11 @@ spec:
                           initContainerImage:
                             description: Image for the init container
                             type: string
+                          proxyServerPort:
+                            description: Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+                            type: integer
+                            minimum: 1
+                            maximum: 65535
                           sidecarDisabledMTLS:
                             description: Disabled mTLS
                             type: boolean

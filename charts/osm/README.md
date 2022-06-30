@@ -69,7 +69,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.certmanager.issuerGroup | string | `"cert-manager.io"` | cert-manager issuer group |
 | osm.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | osm.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
-| osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
+| osm.configResyncInterval | string | `"600s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
@@ -166,10 +166,12 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar |
-| osm.sidecarDrivers | list | `[{"sidecarDisabledMTLS":false,"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy","sidecarWindowsImage":"flomesh/pipy-windows-nightly:latest"},{"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm |
+| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarDisabledMTLS":false,"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy","sidecarWindowsImage":"flomesh/pipy-windows-nightly:latest"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm |
+| osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
 | osm.sidecarDrivers[0].sidecarDisabledMTLS | bool | `false` | Disabled or enable MTLS |
 | osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[0].sidecarWindowsImage | string | `"flomesh/pipy-windows-nightly:latest"` | Sidecar image for Windows workloads |
+| osm.sidecarDrivers[1].proxyServerPort | int | `15128` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
 | osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
 | osm.sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |

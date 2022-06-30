@@ -4,9 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
@@ -26,8 +23,6 @@ type ProxyRegistry struct {
 
 	// Maintain a mapping of pod UID to certificate SerialNumber of the Sidecar on the given pod
 	podUIDToCertificateSerialNumber sync.Map
-
-	releaseCertificateCallback func(podUID types.UID, endpointCN certificate.CommonName)
 
 	msgBroker *messaging.Broker
 }

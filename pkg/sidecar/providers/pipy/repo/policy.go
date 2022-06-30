@@ -94,7 +94,6 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 func (p *PipyConf) copyAllowedEndpoints() {
 	p.AllowedEndpoints = make(map[string]string)
 	registry.CachedMeshPodsLock.RLock()
-	p.allowedEndpointsV = registry.CachedMeshPodsV
 	for k, v := range registry.CachedMeshPods {
 		p.AllowedEndpoints[k] = v
 	}

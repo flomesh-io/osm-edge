@@ -2,9 +2,7 @@ package pipy
 
 import (
 	"fmt"
-	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,21 +23,14 @@ type Proxy struct {
 	// UUID of the proxy
 	uuid.UUID
 
-	// The Serial Number of the certificate used for Sidecar to XDS communication.
-	xDSCertificateSerialNumber certificate.SerialNumber
-
-	net.Addr
+	// IP of the pod
+	PodIP string
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
 
-	codebaseReady       bool
-	latestRepoResources map[RepoResource]*RepoResourceV
-	latestRepoCodebaseV string
-	reportRepoCodebaseV string
-
-	codebaseLock sync.RWMutex
-	codebaseConf interface{}
+	// The Serial Number of the certificate used for Sidecar.
+	CertificateSerialNumber certificate.SerialNumber
 
 	// hash is based on CommonName
 	hash uint64
@@ -56,26 +47,12 @@ type Proxy struct {
 	ProxyIdentity identity.ServiceIdentity
 	MeshConf      *configurator.Configurator
 	SidecarCert   *certificate.Certificate
-}
 
-// GetCodebase return codebaseConf, codebaseETag, codebaseStatus
-func (p *Proxy) GetCodebase() (interface{}, string, bool) {
-	p.codebaseLock.RLock()
-	defer p.codebaseLock.RUnlock()
-	return p.codebaseConf, p.latestRepoCodebaseV, p.codebaseReady
-}
-
-// SetCodebase set codebaseConf, codebaseETag, codebaseStatus
-func (p *Proxy) SetCodebase(codebaseConf interface{}, latestRepoCodebaseV string, codebaseReady bool) {
-	p.codebaseLock.Lock()
-	defer p.codebaseLock.Unlock()
-	p.codebaseConf = codebaseConf
-	p.latestRepoCodebaseV = latestRepoCodebaseV
-	p.codebaseReady = codebaseReady
+	HasInitedProbes bool
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
+	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.CertificateSerialNumber, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Sidecar proxy is installed
@@ -156,7 +133,7 @@ func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
 
 // GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Sidecar proxy.
 func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
-	return p.xDSCertificateSerialNumber
+	return p.CertificateSerialNumber
 }
 
 // GetHash returns the proxy hash based on its xDSCertificateCommonName
@@ -164,42 +141,18 @@ func (p *Proxy) GetHash() uint64 {
 	return p.hash
 }
 
-// GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
-func (p *Proxy) GetConnectedAt() time.Time {
-	return p.connectedAt
-}
-
-// GetIP returns the IP address of the Sidecar proxy connected to xDS.
-func (p *Proxy) GetIP() net.Addr {
-	return p.Addr
-}
-
-// GetLatestRepoResources return latest repo resources
-func (p *Proxy) GetLatestRepoResources(repoResource RepoResource) (*RepoResourceV, bool) {
-	repoResourceV, ok := p.latestRepoResources[repoResource]
-	return repoResourceV, ok
-}
-
-// SetLatestRepoResources set latest repo resources
-func (p *Proxy) SetLatestRepoResources(repoResource RepoResource, resource *RepoResourceV) {
-	if hashcode, err := utils.HashFromString(resource.Content); err == nil {
-		resource.Version = fmt.Sprintf("%d", hashcode)
-	}
-	p.latestRepoResources[repoResource] = resource
-}
-
-// SetReportRepoCodebaseV record the version of sidecar
-func (p *Proxy) SetReportRepoCodebaseV(reportRepoCodebaseV string) {
-	p.reportRepoCodebaseV = reportRepoCodebaseV
-}
-
 // Kind return the proxy's kind
 func (p *Proxy) Kind() ProxyKind {
 	return p.kind
 }
 
-// NewProxy creates a new instance of an Sidecar proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
+// GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
+func (p *Proxy) GetConnectedAt() time.Time {
+	return p.connectedAt
+}
+
+// NewProxy creates a new instance of an Sidecar proxy connected to the servers.
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, podIP string) (*Proxy, error) {
 	// Get CommonName hash for this proxy
 	hash, err := utils.HashFromString(certCommonName.String())
 	if err != nil {
@@ -212,22 +165,17 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	}
 
 	return &Proxy{
-		certificateCommonName:      certCommonName,
-		xDSCertificateSerialNumber: certSerialNumber,
-		UUID:                       cnMeta.ProxyUUID,
-
-		Addr: ip,
-
-		connectedAt: time.Now(),
-		hash:        hash,
-
-		latestRepoResources: make(map[RepoResource]*RepoResourceV),
-
-		kind: cnMeta.ProxyKind,
+		certificateCommonName:   certCommonName,
+		CertificateSerialNumber: certSerialNumber,
+		UUID:                    cnMeta.ProxyUUID,
+		PodIP:                   podIP,
+		connectedAt:             time.Now(),
+		hash:                    hash,
+		kind:                    cnMeta.ProxyKind,
 	}, nil
 }
 
-// NewXDSCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
-func NewXDSCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
+// NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
+func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
 	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
 }

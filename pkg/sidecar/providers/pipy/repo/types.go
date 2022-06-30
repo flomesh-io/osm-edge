@@ -2,7 +2,6 @@ package repo
 
 import (
 	"sync"
-	"time"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -12,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
@@ -39,29 +39,16 @@ type Server struct {
 
 	msgBroker *messaging.Broker
 
-	getCodebase func(ccName string) interface{}
-}
+	repoClient *client.PipyRepoClient
 
-// Repo pipy repo server wrapper
-type Repo struct {
-	server           *Server
 	connectedProxies sync.Map
 }
 
 // ConnectedProxy is the proxy object of connected pipy sidecar
 type ConnectedProxy struct {
-	proxy        *pipy.Proxy
-	connectedAt  time.Time
-	lastReportAt time.Time
-	initError    error
-	quit         chan struct{}
-}
-
-// PipyReport is data reported by pipy sidecar
-type PipyReport struct {
-	Timestamp uint64 `json:"timestamp"`
-	UUID      string `json:"uuid"`
-	Version   string `json:"version"`
+	proxy     *pipy.Proxy
+	initError error
+	quit      chan struct{}
 }
 
 // Protocol is a string wrapper type
@@ -244,11 +231,9 @@ type Certificate struct {
 
 // PipyConf is a policy used by pipy sidecar
 type PipyConf struct {
-	Spec              MeshConfigSpec
-	Certificate       *Certificate
-	Inbound           *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound          *OutboundTrafficPolicy `json:"Outbound"`
-	AllowedEndpoints  map[string]string      `json:"AllowedEndpoints"`
-	allowedEndpointsV uint64
-	bytes             []byte
+	Spec             MeshConfigSpec
+	Certificate      *Certificate
+	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
+	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
 }

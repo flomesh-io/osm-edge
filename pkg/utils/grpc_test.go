@@ -23,7 +23,7 @@ func TestNewGrpc(t *testing.T) {
 
 	type newGrpcTest struct {
 		serverType    string
-		port          int
+		port          uint32
 		certPem       []byte
 		expectedError bool
 	}
@@ -56,7 +56,7 @@ func TestGrpcServe(t *testing.T) {
 	assert.Nil(err)
 
 	serverType := "ADS"
-	port := 9999
+	port := uint32(9999)
 	grpcServer, lis, err := NewGrpc(serverType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	assert.Nil(err)
 

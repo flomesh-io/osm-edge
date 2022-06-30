@@ -111,7 +111,7 @@ func createSidecarBootstrapConfig(ctx driver.InjectorContext, sidecarBootstrapCo
 		Key:      ctx.BootstrapCertificate.GetPrivateKey(),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, ctx.OsmNamespace),
-		XDSPort: constants.ProxyServerPort,
+		XDSPort: ctx.Configurator.GetProxyServerPort(),
 
 		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
 		// defined on the Pod Spec.

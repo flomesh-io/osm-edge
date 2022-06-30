@@ -21,6 +21,7 @@ docker pull docker.io/envoyproxy/envoy:v1.19.3
 docker pull docker.io/projectcontour/contour:v1.18.0
 docker pull docker.io/flomesh/pipy:latest
 docker pull docker.io/flomesh/pipy-nightly:latest
+docker pull docker.io/flomesh/pipy-repo:latest
 docker pull docker.io/flomesh/proxy-wasm-cpp-sdk:v2
 docker pull docker.io/prom/prometheus:v2.18.1
 docker pull docker.io/grafana/grafana:8.2.2
@@ -36,6 +37,7 @@ docker tag docker.io/envoyproxy/envoy:v1.19.3 localhost:5000/envoyproxy/envoy:v1
 docker tag docker.io/projectcontour/contour:v1.18.0 localhost:5000/projectcontour/contour:v1.18.0
 docker tag docker.io/flomesh/pipy:latest localhost:5000/flomesh/pipy:latest
 docker tag docker.io/flomesh/pipy-nightly:latest localhost:5000/flomesh/pipy-nightly:latest
+docker tag docker.io/flomesh/pipy-repo:latest localhost:5000/flomesh/pipy-repo:latest
 docker tag docker.io/flomesh/proxy-wasm-cpp-sdk:v2 localhost:5000/flomesh/proxy-wasm-cpp-sdk:v2
 docker tag docker.io/prom/prometheus:v2.18.1 localhost:5000/prom/prometheus:v2.18.1
 docker tag docker.io/grafana/grafana:8.2.2 localhost:5000/grafana/grafana:8.2.2
@@ -51,6 +53,7 @@ docker push localhost:5000/envoyproxy/envoy:v1.19.3
 docker push localhost:5000/projectcontour/contour:v1.18.0
 docker push localhost:5000/flomesh/pipy:latest
 docker push localhost:5000/flomesh/pipy-nightly:latest
+docker push localhost:5000/flomesh/pipy-repo:latest
 docker push localhost:5000/flomesh/proxy-wasm-cpp-sdk:v2
 docker push localhost:5000/prom/prometheus:v2.18.1
 docker push localhost:5000/grafana/grafana:8.2.2
@@ -75,3 +78,4 @@ sed -i 's#image: prom/prometheus:v2.18.1#image: localhost:5000/prom/prometheus:v
 sed -i 's#image: grafana/grafana:8.2.2#image: localhost:5000/grafana/grafana:8.2.2#g' "${OSM_HOME}"/charts/osm/values.yaml
 sed -i 's#rendererImage: grafana/grafana-image-renderer:3.2.1#rendererImage: localhost:5000/grafana/grafana-image-renderer:3.2.1#g' "${OSM_HOME}"/charts/osm/values.yaml
 sed -i 's#image: jaegertracing/all-in-one#image: localhost:5000/jaegertracing/all-in-one#g' "${OSM_HOME}"/charts/osm/values.yaml
+sed -i 's#image: "flomesh/pipy-repo:latest"#image: "localhost:5000/flomesh/pipy-repo:latest"#g' "${OSM_HOME}"/charts/osm/templates/osm-deployment.yaml

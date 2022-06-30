@@ -62,6 +62,8 @@ osm:
       sidecarImage: flomesh/pipy-nightly:latest
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
+      # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+      proxyServerPort: 6060
       # -- Disabled or enable MTLS
       sidecarDisabledMTLS: false
     - sidecarName: envoy
@@ -69,6 +71,8 @@ osm:
       sidecarImage: envoyproxy/envoy:v1.19.3
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: envoyproxy/envoy-windows:latest
+      # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+      proxyServerPort: 15128
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
   #
@@ -223,7 +227,7 @@ osm:
   maxDataPlaneConnections: 0
 
    # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
-  configResyncInterval: "0s"
+  configResyncInterval: "600s"
 
   # -- Controller log verbosity
   controllerLogLevel: info

@@ -8,9 +8,20 @@ metadata:
     app: osm-controller
 spec:
   ports:
+    {{- range .Values.osm.sidecarDrivers }}
+    {{- if eq .sidecarName $.Values.osm.sidecarClass }}
+    {{- if eq .sidecarName "pipy" }}
+    - name: pipy-admin-port
+      port: {{ .proxyServerPort }}
+      targetPort: {{ .proxyServerPort }}
+    {{- end }}
+    {{- if eq .sidecarName "envoy" }}
     - name: ads-port
-      port: 15128
-      targetPort: 15128
+      port: {{ .proxyServerPort }}
+      targetPort: {{ .proxyServerPort }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
     - name: debug-port
       port: 9092
       targetPort: 9092
