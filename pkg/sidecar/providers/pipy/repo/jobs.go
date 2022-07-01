@@ -3,10 +3,6 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
-	"k8s.io/apimachinery/pkg/util/wait"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -139,13 +135,8 @@ func (job *PipyConfGeneratorJob) Run() {
 	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
 		outboundTrafficPolicy)
 	if len(outboundDependClusters) > 0 {
-		err = wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
-			ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-				outboundTrafficPolicy, outboundDependClusters)
-			return ready, nil
-		})
-		if err != nil {
-			log.Error().Err(err).Str("proxy", proxy.String())
+		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+			outboundTrafficPolicy, outboundDependClusters); !ready {
 			return
 		}
 	}
@@ -159,13 +150,8 @@ func (job *PipyConfGeneratorJob) Run() {
 		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
 			egressTrafficPolicy)
 		if len(egressDependClusters) > 0 {
-			err = wait.PollImmediate(1*time.Second, 10*time.Second, func() (bool, error) {
-				ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-					egressTrafficPolicy, egressDependClusters)
-				return ready, nil
-			})
-			if err != nil {
-				log.Error().Err(err).Str("proxy", proxy.String())
+			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+				egressTrafficPolicy, egressDependClusters); !ready {
 				return
 			}
 		}
@@ -173,18 +159,11 @@ func (job *PipyConfGeneratorJob) Run() {
 
 	pipyConf.rebalanceOutboundClusters()
 
-	err = wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
-		ready := pipyConf.copyAllowedEndpoints(s.proxyRegistry)
-		job.publishSidecarConf(s.repoClient, proxy, pipyConf)
-		return ready, nil
-	})
-	if err != nil {
-		log.Error().Err(err).Str("proxy", proxy.String())
-	}
+	pipyConf.copyAllowedEndpoints(s.proxyRegistry)
+	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
 }
 
 func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxy *pipy.Proxy, pipyConf *PipyConf) {
-	fmt.Println("publishSidecarConf:", proxy.GetCertificateCommonName())
 	if bytes, jsonErr := json.MarshalIndent(pipyConf, "", " "); jsonErr == nil {
 		err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
 		if err != nil {

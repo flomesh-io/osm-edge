@@ -93,8 +93,7 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 	}
 }
 
-func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) bool {
-	success := true
+func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) {
 	p.AllowedEndpoints = make(map[string]string)
 	proxyRegistry.PodCNtoProxy.Range(func(cnIface, propsIface interface{}) bool {
 		cn := cnIface.(certificate.CommonName)
@@ -104,16 +103,13 @@ func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) b
 		} else {
 			p.AllowedEndpoints[proxy.PodIP] = cn.String()
 		}
-		if len(proxy.PodIP) == 0 {
-			success = false
-		}
 		return true // continue the iteration
 	})
 	if p.Inbound == nil {
-		return success
+		return
 	}
 	if len(p.Inbound.TrafficMatches) == 0 {
-		return success
+		return
 	}
 	for _, trafficMatch := range p.Inbound.TrafficMatches {
 		if len(trafficMatch.SourceIPRanges) == 0 {
@@ -124,7 +120,6 @@ func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) b
 			p.AllowedEndpoints[ingressIP] = "Ingress Controller"
 		}
 	}
-	return success
 }
 
 func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange) {
