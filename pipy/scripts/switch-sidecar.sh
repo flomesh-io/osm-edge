@@ -21,6 +21,10 @@ OSM_HOME=$1
 BUILD_ARCH=$2
 SIDECAR=$3
 
+
+"${OSM_HOME}"/pipy/scripts/change_metrics_labels.sh "${OSM_HOME}" "${BUILD_ARCH}" "${SIDECAR}"
+
+
 if [[ "${SIDECAR}" == "pipy" ]]; then
   sed -i 's#sidecarClass:.*#sidecarClass: pipy#g' "${OSM_HOME}"/charts/osm/values.yaml
 
