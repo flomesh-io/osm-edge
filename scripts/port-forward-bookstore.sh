@@ -11,5 +11,5 @@ if [ -z "$backend" ]; then
 fi
 
 POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk 'NR==1{print $1}')"
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" 15000:15000
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" 15000:15000 --address 0.0.0.0
 
