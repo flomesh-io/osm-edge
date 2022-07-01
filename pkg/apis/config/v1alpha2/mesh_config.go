@@ -241,6 +241,6 @@ type SidecarDriverSpec struct {
 	// ProxyServerPort is the port on which the Discovery Service listens for new connections from Sidecars
 	ProxyServerPort uint32 `json:"proxyServerPort"`
 
-	// SidecarDisabledMTLS defines if mTLS are disabled.
+	// SidecarDisabledMTLS defines whether mTLS is disabled.
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
 }

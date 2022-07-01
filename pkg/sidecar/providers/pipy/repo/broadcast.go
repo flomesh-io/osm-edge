@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,7 +16,7 @@ import (
 
 // Routine which fulfills listening to proxy broadcasts
 func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <-chan struct{}) {
-	// Register for proxy config updates broadcasted by the message broker
+	// Register for proxy config updates broadcast by the message broker
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
 	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
@@ -32,7 +31,6 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 					done:       make(chan struct{}),
 				}
 			}
-			fmt.Println("broadcastListener newJob:", proxy.GetCertificateSerialNumber())
 			<-s.workQueues.AddJob(newJob())
 		}
 		<-proxyUpdateChan
