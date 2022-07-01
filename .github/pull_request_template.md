@@ -50,4 +50,4 @@ Please answer the following questions with yes/no.
 
 2. Is this a breaking change?
 
-3. Has documentation corresponding to this change been updated in the [osm-docs](https://github.com/openservicemesh/osm-docs) repo (if applicable)?
+3. Has documentation corresponding to this change been updated in the [osm-edge-docs](https://github.com/flomesh-io/osm-docs/) repo (if applicable)?
