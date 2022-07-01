@@ -1,6 +1,6 @@
 ---
 name: Improvement / Feature Request
-about: Suggest an enhancement for the OSM project
+about: Suggest an enhancement for the osm-edge project
 title: ''
 labels: improvement / feature request
 assignees: ''
