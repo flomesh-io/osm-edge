@@ -1,8 +1,9 @@
 (
-  (config = JSON.decode(pipy.load('pipy.json')), metrics) => (
+  (metrics) => (
 
     metrics = {
 
+      logZipkin: null,
       tracingAddress: os.env.TRACING_ADDRESS,
       tracingEndpoint: (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
 
@@ -33,6 +34,19 @@
       // }}} TBD end
 
     },
+
+    metrics.tracingAddress &&
+    (metrics.logZipkin = new logging.JSONLogger('zipkin').toHTTP('http://' + metrics.tracingAddress + metrics.tracingEndpoint, {
+      batch: {
+        prefix: '[',
+        postfix: ']',
+        separator: ','
+      },
+      headers: {
+        'Host': metrics.tracingAddress,
+        'Content-Type': 'application/json',
+      }
+    }).log),
 
     metrics.funcInitClusterNameMetrics = (namespace, kind, name, pod, clusterName) => (
       metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, clusterName).zero(),

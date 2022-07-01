@@ -1,26 +1,25 @@
-// version: '2022.06.30-rc3'
-((
-  {
-    config,
-    debugLogLevel,
-    namespace,
-    kind,
-    name,
-    pod,
-    tlsCertChain,
-    tlsPrivateKey,
-    tlsIssuingCA,
-    specEnableEgress,
-    inTrafficMatches,
-    inClustersConfigs,
-    outTrafficMatches,
-    outClustersConfigs,
-    allowedEndpoints,
-    prometheusTarget,
-    probeScheme,
-    probeTarget,
-    probePath
-  } = pipy.solve('config.js'),
+// version: '2022.07.01'
+(({
+  config,
+  debugLogLevel,
+  namespace,
+  kind,
+  name,
+  pod,
+  tlsCertChain,
+  tlsPrivateKey,
+  tlsIssuingCA,
+  specEnableEgress,
+  inTrafficMatches,
+  inClustersConfigs,
+  outTrafficMatches,
+  outClustersConfigs,
+  allowedEndpoints,
+  prometheusTarget,
+  probeScheme,
+  probeTarget,
+  probePath
+} = pipy.solve('config.js'),
   metrics = pipy.solve('metrics.js')
 ) => (
 
@@ -172,7 +171,7 @@
           ),
 
           // Initialize ZipKin tracing data
-          metrics.tracingAddress &&
+          metrics.logZipkin &&
           (_inZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true)),
 
           debugLogLevel && (
@@ -209,26 +208,12 @@
             headers['osm-stats-pod'] = pod,
             metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _localClusterName).increase(),
             metrics.upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase(),
-            _inZipkinData && (_inZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()),
+            _inZipkinData && (_inZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()) &&
+            metrics.logZipkin(_inZipkinData),
             debugLogLevel && console.log('_inZipkinData: ', _inZipkinData)
           ))()
         ))()
       )
-    )
-    .branch(
-      () => Boolean(_inZipkinData), $ => $
-        .fork().to($ => $
-          .replaceMessage(
-            '4k',
-            () => (
-              new Message(
-                JSON.encode([_inZipkinData]).push('\n')
-              )
-            )
-          )
-          .merge('send-tracing', () => '')
-        ),
-      () => true, $ => $
     )
 
     //
@@ -381,7 +366,7 @@
           _outTarget && metrics.funcTracingHeaders(namespace, kind, name, pod, headers, _outMatch?.Protocol),
 
           // Initialize ZipKin tracing data
-          metrics.tracingAddress &&
+          metrics.logZipkin &&
           (_outZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false)),
 
           // EGRESS mode
@@ -436,25 +421,11 @@
           msg?.head?.status && metrics.upstreamCodeXCount.withLabels(msg.head.status.toString().charAt(0), _upstreamClusterName).increase(),
           metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
           msg?.head?.status && metrics.upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
-          _outZipkinData && msg?.head?.status && (_outZipkinData.tags['http.status_code'] = msg.head.status.toString()),
+          _outZipkinData && msg?.head?.status && (_outZipkinData.tags['http.status_code'] = msg.head.status.toString()) &&
+          metrics.logZipkin(_outZipkinData),
           debugLogLevel && console.log('_outZipkinData: ', _outZipkinData)
         ))()
       )
-    )
-    .branch(
-      () => Boolean(_outZipkinData), $ => $
-        .fork().to($ => $
-          .replaceMessage(
-            '4k',
-            () => (
-              new Message(
-                JSON.encode([_outZipkinData]).push('\n')
-              )
-            )
-          )
-          .merge('send-tracing', () => '')
-        ),
-      () => true, $ => $
     )
 
     //
@@ -503,27 +474,6 @@
           _outZipkinData.tags['peer.address'] = _outTarget.id
         ))()
       )
-    )
-
-    //
-    // send zipkin data to jaeger
-    //
-    .pipeline('send-tracing')
-    .replaceMessageStart(
-      () => new MessageStart({
-        method: 'POST',
-        path: metrics.tracingEndpoint,
-        headers: {
-          'Host': metrics.tracingAddress,
-          'Content-Type': 'application/json',
-        }
-      })
-    )
-    .encodeHTTPRequest()
-    .connect(
-      () => metrics.tracingAddress, {
-      bufferLimit: '8m',
-    }
     )
 
     //
