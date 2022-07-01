@@ -34,8 +34,7 @@ type Proxy struct {
 	CertificateSerialNumber certificate.SerialNumber
 
 	// hash is based on CommonName
-	hash  uint64
-	mutex sync.RWMutex
+	hash uint64
 
 	// kind is the proxy's kind (ex. sidecar, gateway)
 	kind ProxyKind
@@ -51,18 +50,8 @@ type Proxy struct {
 	SidecarCert   *certificate.Certificate
 
 	HasInitedProbes bool
+	Mutex           sync.RWMutex
 	Quit            chan bool
-}
-
-// Lock locks rw for writing.
-func (p *Proxy) Lock() {
-	p.mutex.Lock()
-}
-
-// Unlock unlocks rw for writing. It is a run-time error if rw is
-// not locked for writing on entry to Unlock.
-func (p *Proxy) Unlock() {
-	p.mutex.Unlock()
 }
 
 func (p *Proxy) String() string {

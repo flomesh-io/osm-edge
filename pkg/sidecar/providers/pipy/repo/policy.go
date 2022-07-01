@@ -93,19 +93,27 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 	}
 }
 
-func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) {
+func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) bool {
+	success := true
 	p.AllowedEndpoints = make(map[string]string)
 	proxyRegistry.PodCNtoProxy.Range(func(cnIface, propsIface interface{}) bool {
 		cn := cnIface.(certificate.CommonName)
 		proxy := propsIface.(*pipy.Proxy)
-		p.AllowedEndpoints[proxy.PodIP] = cn.String()
+		if proxy.HasPodMetadata() {
+			p.AllowedEndpoints[proxy.PodIP] = fmt.Sprintf("%s.%s", proxy.PodMetadata.Name, proxy.PodMetadata.Namespace)
+		} else {
+			p.AllowedEndpoints[proxy.PodIP] = cn.String()
+		}
+		if len(proxy.PodIP) == 0 {
+			success = false
+		}
 		return true // continue the iteration
 	})
 	if p.Inbound == nil {
-		return
+		return success
 	}
 	if len(p.Inbound.TrafficMatches) == 0 {
-		return
+		return success
 	}
 	for _, trafficMatch := range p.Inbound.TrafficMatches {
 		if len(trafficMatch.SourceIPRanges) == 0 {
@@ -116,6 +124,7 @@ func (p *PipyConf) copyAllowedEndpoints(proxyRegistry *registry.ProxyRegistry) {
 			p.AllowedEndpoints[ingressIP] = "Ingress Controller"
 		}
 	}
+	return success
 }
 
 func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange) {

@@ -60,7 +60,6 @@ func (s *Server) informTrafficPolicies(proxy *pipy.Proxy) error {
 
 		case <-proxyUpdateChan:
 			log.Info().Str("proxy", proxy.String()).Msg("Broadcast update received")
-
 			// Queue a full configuration update
 			// Do not send SDS, let sidecar figure out what certs does it want.
 			<-s.workQueues.AddJob(newJob())

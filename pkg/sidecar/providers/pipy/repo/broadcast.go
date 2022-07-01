@@ -1,16 +1,16 @@
 package repo
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
-	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )
@@ -22,74 +22,27 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
-	kubePubSub := s.msgBroker.GetKubeEventPubSub()
-	podUpdatedChan := kubePubSub.Sub(announcements.PodUpdated.String())
-	defer s.msgBroker.Unsub(kubePubSub, podUpdatedChan)
-
-	podDeleteChan := kubePubSub.Sub(announcements.PodDeleted.String())
-	defer s.msgBroker.Unsub(kubePubSub, podDeleteChan)
-
-	s.fireExistPods()
-
 	for {
-		select {
-		case <-stop:
-			return
-
-		case podDeletedMsg := <-podDeleteChan:
-			subMessage, castOk := podDeletedMsg.(events.PubSubMessage)
-			if !castOk {
-				log.Error().Msgf("Error casting to events.PubSubMessage, got type %T", subMessage)
-				continue
-			}
-
-			// guaranteed can only be a PodDeleted event
-			deletedPodObj, castOk := subMessage.OldObj.(*corev1.Pod)
-			if !castOk {
-				log.Error().Msgf("Error casting to *corev1.Pod, got type %T", deletedPodObj)
-				continue
-			}
-			podUID := deletedPodObj.GetObjectMeta().GetUID()
-			proxyRegistry.PodUIDToCertificateSerialNumber.Delete(podUID)
-			if podCN, ok := proxyRegistry.PodUIDToCN.LoadAndDelete(podUID); ok {
-				endpointCN := podCN.(certificate.CommonName)
-				if podProxy, ok := proxyRegistry.PodCNtoProxy.LoadAndDelete(endpointCN); ok {
-					proxy := podProxy.(*pipy.Proxy)
-					proxy.Quit <- true
+		proxies := s.fireExistProxies()
+		for _, proxy := range proxies {
+			newJob := func() *PipyConfGeneratorJob {
+				return &PipyConfGeneratorJob{
+					proxy:      proxy,
+					repoServer: s,
+					done:       make(chan struct{}),
 				}
-				log.Warn().Msgf("Pod with UID %s found in proxy registry; releasing certificate %s", podUID, endpointCN)
-			} else {
-				log.Warn().Msgf("Pod with UID %s not found in proxy registry", podUID)
 			}
-
-		case podUpdatedMsg := <-podUpdatedChan:
-			subMessage, castOk := podUpdatedMsg.(events.PubSubMessage)
-			if !castOk {
-				log.Error().Msgf("Error casting to events.PubSubMessage, got type %T", subMessage)
-				continue
-			}
-
-			// guaranteed can only be a PodUpdated event
-			updatedPodObj, castOk := subMessage.NewObj.(*corev1.Pod)
-			if !castOk {
-				log.Error().Msgf("Error casting to *corev1.Pod, got type %T", updatedPodObj)
-				continue
-			}
-			proxy, err := GetProxyFromPod(updatedPodObj)
-			if err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
-					Msgf("Could not get proxy from pod %s/%s", updatedPodObj.Namespace, updatedPodObj.Name)
-				continue
-			}
-			s.fireUpdatedPod(proxyRegistry, proxy, updatedPodObj)
-
-		case <-proxyUpdateChan:
-			s.fireExistPods()
+			fmt.Println("broadcastListener newJob:", proxy.GetCertificateSerialNumber())
+			<-s.workQueues.AddJob(newJob())
 		}
+		<-proxyUpdateChan
+		// Wait for an informer synchronization period
+		time.Sleep(time.Second * 5)
 	}
 }
 
-func (s *Server) fireExistPods() {
+func (s *Server) fireExistProxies() []*pipy.Proxy {
+	var allProxies []*pipy.Proxy
 	allPods := s.kubeController.ListPods()
 	for _, pod := range allPods {
 		proxy, err := GetProxyFromPod(pod)
@@ -99,31 +52,27 @@ func (s *Server) fireExistPods() {
 			continue
 		}
 		s.fireUpdatedPod(s.proxyRegistry, proxy, pod)
+		allProxies = append(allProxies, proxy)
 	}
+	return allProxies
 }
 
 func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, updatedPodObj *v1.Pod) {
 	if podProxy, ok := proxyRegistry.PodCNtoProxy.Load(proxy.GetCertificateCommonName()); !ok {
-		s.firedProxy(proxy)
+		s.informProxy(proxy)
 	} else {
 		proxy = podProxy.(*pipy.Proxy)
+		if err := s.recordPodMetadata(proxy); err != nil {
+			log.Err(err)
+		}
 	}
 
 	if proxy.PodIP != updatedPodObj.Status.PodIP {
 		proxy.PodIP = updatedPodObj.Status.PodIP
 	}
-
-	newJob := func() *PipyConfGeneratorJob {
-		return &PipyConfGeneratorJob{
-			proxy:      proxy,
-			repoServer: s,
-			done:       make(chan struct{}),
-		}
-	}
-	<-s.workQueues.AddJob(newJob())
 }
 
-func (s *Server) firedProxy(proxy *pipy.Proxy) {
+func (s *Server) informProxy(proxy *pipy.Proxy) {
 	go func() {
 		if aggregatedErr := s.informTrafficPolicies(proxy); aggregatedErr != nil {
 			log.Error().Err(aggregatedErr).Msgf("Pipy Aggregated Traffic Policies Error.")
