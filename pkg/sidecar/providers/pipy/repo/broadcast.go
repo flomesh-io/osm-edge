@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,21 +22,38 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
 	defer s.msgBroker.Unsub(proxyUpdatePubSub, proxyUpdateChan)
 
+	// Wait for two informer synchronization periods
+	slidingTimer := time.NewTimer(time.Second * 20)
+	defer slidingTimer.Stop()
+
+	reconfirm := false
+
 	for {
-		proxies := s.fireExistProxies()
-		for _, proxy := range proxies {
-			newJob := func() *PipyConfGeneratorJob {
-				return &PipyConfGeneratorJob{
-					proxy:      proxy,
-					repoServer: s,
-					done:       make(chan struct{}),
+		select {
+		case <-proxyUpdateChan:
+			fmt.Println("proxyUpdateChan")
+			// Wait for an informer synchronization period
+			slidingTimer.Reset(time.Second * 5)
+			// Avoid data omission
+			reconfirm = true
+
+		case <-slidingTimer.C:
+			proxies := s.fireExistProxies()
+			for _, proxy := range proxies {
+				newJob := func() *PipyConfGeneratorJob {
+					return &PipyConfGeneratorJob{
+						proxy:      proxy,
+						repoServer: s,
+						done:       make(chan struct{}),
+					}
 				}
+				<-s.workQueues.AddJob(newJob())
 			}
-			<-s.workQueues.AddJob(newJob())
+			if reconfirm {
+				reconfirm = false
+				slidingTimer.Reset(time.Second * 10)
+			}
 		}
-		<-proxyUpdateChan
-		// Wait for an informer synchronization period
-		time.Sleep(time.Second * 5)
 	}
 }
 
@@ -43,6 +61,7 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 	var allProxies []*pipy.Proxy
 	allPods := s.kubeController.ListPods()
 	for _, pod := range allPods {
+		fmt.Println(pod.Namespace, pod.Name, pod.Status.PodIP)
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
