@@ -3,6 +3,8 @@ package repo
 import (
 	"sync"
 
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -194,9 +196,9 @@ type MeshConfigSpec struct {
 	Traffic         TrafficSpec
 	FeatureFlags    FeatureFlags
 	Probes          struct {
-		ReadinessProbes []interface{}
-		LivenessProbes  []interface{}
-		StartupProbes   []interface{}
+		ReadinessProbes []v1.Probe
+		LivenessProbes  []v1.Probe
+		StartupProbes   []v1.Probe
 	}
 }
 

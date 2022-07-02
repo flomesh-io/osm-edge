@@ -2,6 +2,7 @@ package repo
 
 import (
 	"strings"
+	"sync"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -14,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
-func (s *Server) informTrafficPolicies(proxy *pipy.Proxy) error {
+func (s *Server) informTrafficPolicies(proxy *pipy.Proxy, wg *sync.WaitGroup) error {
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		return errTooManyConnections
@@ -50,6 +51,8 @@ func (s *Server) informTrafficPolicies(proxy *pipy.Proxy) error {
 			done:       make(chan struct{}),
 		}
 	}
+
+	wg.Done()
 
 	for {
 		select {
@@ -108,43 +111,49 @@ func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
 		return nil
 	}
 
-	pod, err := pipy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubeController)
-	if err != nil {
-		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
-		return nil
-	}
-
-	workloadKind := ""
-	workloadName := ""
-	for _, ref := range pod.GetOwnerReferences() {
-		if ref.Controller != nil && *ref.Controller {
-			workloadKind = ref.Kind
-			workloadName = ref.Name
-			break
+	if p.PodMetadata == nil {
+		pod, err := pipy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubeController)
+		if err != nil {
+			log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
+			return nil
 		}
-	}
 
-	p.PodMetadata = &pipy.PodMetadata{
-		UID:       string(pod.UID),
-		Name:      pod.Name,
-		Namespace: pod.Namespace,
-		ServiceAccount: identity.K8sServiceAccount{
+		workloadKind := ""
+		workloadName := ""
+		for _, ref := range pod.GetOwnerReferences() {
+			if ref.Controller != nil && *ref.Controller {
+				workloadKind = ref.Kind
+				workloadName = ref.Name
+				break
+			}
+		}
+
+		p.PodMetadata = &pipy.PodMetadata{
+			UID:       string(pod.UID),
+			Name:      pod.Name,
 			Namespace: pod.Namespace,
-			Name:      pod.Spec.ServiceAccountName,
-		},
-		WorkloadKind: workloadKind,
-		WorkloadName: workloadName,
-	}
+			ServiceAccount: identity.K8sServiceAccount{
+				Namespace: pod.Namespace,
+				Name:      pod.Spec.ServiceAccountName,
+			},
+			WorkloadKind: workloadKind,
+			WorkloadName: workloadName,
+		}
 
-	for idx := range pod.Spec.Containers {
-		if pod.Spec.Containers[idx].ReadinessProbe != nil {
-			p.PodMetadata.ReadinessProbes = append(p.PodMetadata.ReadinessProbes, pod.Spec.Containers[idx].ReadinessProbe)
+		for idx := range pod.Spec.Containers {
+			if pod.Spec.Containers[idx].ReadinessProbe != nil {
+				p.PodMetadata.ReadinessProbes = append(p.PodMetadata.ReadinessProbes, pod.Spec.Containers[idx].ReadinessProbe)
+			}
+			if pod.Spec.Containers[idx].LivenessProbe != nil {
+				p.PodMetadata.LivenessProbes = append(p.PodMetadata.LivenessProbes, pod.Spec.Containers[idx].LivenessProbe)
+			}
+			if pod.Spec.Containers[idx].StartupProbe != nil {
+				p.PodMetadata.StartupProbes = append(p.PodMetadata.StartupProbes, pod.Spec.Containers[idx].StartupProbe)
+			}
 		}
-		if pod.Spec.Containers[idx].LivenessProbe != nil {
-			p.PodMetadata.LivenessProbes = append(p.PodMetadata.LivenessProbes, pod.Spec.Containers[idx].LivenessProbe)
-		}
-		if pod.Spec.Containers[idx].StartupProbe != nil {
-			p.PodMetadata.StartupProbes = append(p.PodMetadata.StartupProbes, pod.Spec.Containers[idx].StartupProbe)
+
+		if len(pod.Status.PodIP) > 0 {
+			p.PodIP = pod.Status.PodIP
 		}
 	}
 
@@ -152,7 +161,7 @@ func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
 	cn := p.GetCertificateCommonName()
 	certSA, err := pipy.GetServiceIdentityFromProxyCertificate(cn)
 	if err != nil {
-		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
+		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from certificate with CommonName=%s", cn)
 		return err
 	}
 

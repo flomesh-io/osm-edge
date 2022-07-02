@@ -58,17 +58,17 @@ func (job *PipyConfGeneratorJob) Run() {
 	if proxy.PodMetadata != nil {
 		if len(proxy.PodMetadata.StartupProbes) > 0 {
 			for idx := range proxy.PodMetadata.StartupProbes {
-				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, proxy.PodMetadata.StartupProbes[idx])
+				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, *proxy.PodMetadata.StartupProbes[idx])
 			}
 		}
 		if len(proxy.PodMetadata.LivenessProbes) > 0 {
 			for idx := range proxy.PodMetadata.LivenessProbes {
-				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, proxy.PodMetadata.LivenessProbes[idx])
+				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, *proxy.PodMetadata.LivenessProbes[idx])
 			}
 		}
 		if len(proxy.PodMetadata.ReadinessProbes) > 0 {
 			for idx := range proxy.PodMetadata.ReadinessProbes {
-				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, proxy.PodMetadata.ReadinessProbes[idx])
+				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, *proxy.PodMetadata.ReadinessProbes[idx])
 			}
 		}
 	}

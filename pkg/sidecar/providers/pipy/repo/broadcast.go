@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +31,6 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 	for {
 		select {
 		case <-proxyUpdateChan:
-			fmt.Println("proxyUpdateChan")
 			// Wait for an informer synchronization period
 			slidingTimer.Reset(time.Second * 5)
 			// Avoid data omission
@@ -40,6 +39,13 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 		case <-slidingTimer.C:
 			proxies := s.fireExistProxies()
 			for _, proxy := range proxies {
+				if proxy.PodMetadata == nil {
+					if recordErr := s.recordPodMetadata(proxy); recordErr == errServiceAccountMismatch {
+						// Service Account mismatch
+						log.Error().Err(recordErr).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
+						continue
+					}
+				}
 				newJob := func() *PipyConfGeneratorJob {
 					return &PipyConfGeneratorJob{
 						proxy:      proxy,
@@ -61,7 +67,6 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 	var allProxies []*pipy.Proxy
 	allPods := s.kubeController.ListPods()
 	for _, pod := range allPods {
-		fmt.Println(pod.Namespace, pod.Name, pod.Status.PodIP)
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
 			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
@@ -79,22 +84,18 @@ func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pi
 		s.informProxy(proxy)
 	} else {
 		proxy = podProxy.(*pipy.Proxy)
-		if err := s.recordPodMetadata(proxy); err != nil {
-			log.Err(err)
-		}
-	}
-
-	if proxy.PodIP != updatedPodObj.Status.PodIP {
-		proxy.PodIP = updatedPodObj.Status.PodIP
 	}
 }
 
 func (s *Server) informProxy(proxy *pipy.Proxy) {
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
-		if aggregatedErr := s.informTrafficPolicies(proxy); aggregatedErr != nil {
+		if aggregatedErr := s.informTrafficPolicies(proxy, &wg); aggregatedErr != nil {
 			log.Error().Err(aggregatedErr).Msgf("Pipy Aggregated Traffic Policies Error.")
 		}
 	}()
+	wg.Wait()
 }
 
 // GetProxyFromPod infers and creates a Proxy data structure from a Pod.
