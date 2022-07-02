@@ -13,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/sidecar"
-	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -51,7 +50,7 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 }
 
 // Start starts the codebase push server
-func (s *Server) Start(ctrlCtx *driver.ControllerContext, proxyRegistry *registry.ProxyRegistry, _ uint32, _ *certificate.Certificate) error {
+func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	// wait until pipy repo is up
 	err := wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
 		if s.repoClient.IsRepoUp() {
@@ -93,7 +92,7 @@ func (s *Server) Start(ctrlCtx *driver.ControllerContext, proxyRegistry *registr
 	}
 
 	// Start broadcast listener thread
-	go s.broadcastListener(proxyRegistry, ctrlCtx.Stop)
+	go s.broadcastListener()
 
 	s.ready = true
 

@@ -3,6 +3,7 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -108,7 +109,7 @@ func (job *PipyConfGeneratorJob) Run() {
 		pipyConf.Certificate = nil
 	}
 
-	pipyConf.copyAllowedEndpoints(s.proxyRegistry)
+	pipyConf.copyAllowedEndpoints(s.kubeController)
 
 	if !proxy.HasInitedProbes {
 		job.publishSidecarConf(s.repoClient, proxy, pipyConf)
@@ -137,12 +138,18 @@ func (job *PipyConfGeneratorJob) Run() {
 	if len(outboundDependClusters) > 0 {
 		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
 			outboundTrafficPolicy, outboundDependClusters); !ready {
+			if s.retryJob != nil {
+				s.retryJob()
+			}
 			return
 		}
 	}
 
 	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
 	if egressErr != nil {
+		if s.retryJob != nil {
+			s.retryJob()
+		}
 		return
 	}
 
@@ -152,6 +159,9 @@ func (job *PipyConfGeneratorJob) Run() {
 		if len(egressDependClusters) > 0 {
 			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
 				egressTrafficPolicy, egressDependClusters); !ready {
+				if s.retryJob != nil {
+					s.retryJob()
+				}
 				return
 			}
 		}
@@ -159,7 +169,13 @@ func (job *PipyConfGeneratorJob) Run() {
 
 	pipyConf.rebalanceOutboundClusters()
 
-	pipyConf.copyAllowedEndpoints(s.proxyRegistry)
+	ready := pipyConf.copyAllowedEndpoints(s.kubeController)
+	if !ready {
+		if s.retryJob != nil {
+			s.retryJob()
+		}
+	}
+
 	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
 }
 

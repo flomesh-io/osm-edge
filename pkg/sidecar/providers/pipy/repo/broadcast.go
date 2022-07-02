@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 )
 
 // Routine which fulfills listening to proxy broadcasts
-func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <-chan struct{}) {
+func (s *Server) broadcastListener() {
 	// Register for proxy config updates broadcast by the message broker
 	proxyUpdatePubSub := s.msgBroker.GetProxyUpdatePubSub()
 	proxyUpdateChan := proxyUpdatePubSub.Sub(announcements.ProxyUpdate.String())
@@ -25,6 +26,10 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 	// Wait for two informer synchronization periods
 	slidingTimer := time.NewTimer(time.Second * 20)
 	defer slidingTimer.Stop()
+
+	s.retryJob = func() {
+		slidingTimer.Reset(time.Second * 10)
+	}
 
 	reconfirm := false
 
@@ -37,14 +42,18 @@ func (s *Server) broadcastListener(proxyRegistry *registry.ProxyRegistry, stop <
 			reconfirm = true
 
 		case <-slidingTimer.C:
+			fmt.Println("RefreshAllProxiesJson:", time.Now().Format("2006-01-02 15:04:05"))
 			proxies := s.fireExistProxies()
 			for _, proxy := range proxies {
 				if proxy.PodMetadata == nil {
-					if recordErr := s.recordPodMetadata(proxy); recordErr == errServiceAccountMismatch {
-						// Service Account mismatch
-						log.Error().Err(recordErr).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
+					if err := s.recordPodMetadata(proxy); err != nil {
+						slidingTimer.Reset(time.Second * 10)
 						continue
 					}
+				}
+				if proxy.PodMetadata == nil || len(proxy.PodIP) == 0 {
+					slidingTimer.Reset(time.Second * 10)
+					continue
 				}
 				newJob := func() *PipyConfGeneratorJob {
 					return &PipyConfGeneratorJob{
@@ -73,13 +82,13 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 				Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
 			continue
 		}
-		s.fireUpdatedPod(s.proxyRegistry, proxy, pod)
+		s.fireUpdatedPod(s.proxyRegistry, proxy)
 		allProxies = append(allProxies, proxy)
 	}
 	return allProxies
 }
 
-func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, updatedPodObj *v1.Pod) {
+func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) {
 	if podProxy, ok := proxyRegistry.PodCNtoProxy.Load(proxy.GetCertificateCommonName()); !ok {
 		s.informProxy(proxy)
 	} else {

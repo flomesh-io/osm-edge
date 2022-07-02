@@ -54,7 +54,7 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 
-	return repoServer, repoServer.Start(ctrlCtx, proxyRegistry, proxyServerPort, proxyServiceCert)
+	return repoServer, repoServer.Start(proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch

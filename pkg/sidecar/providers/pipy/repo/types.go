@@ -41,6 +41,8 @@ type Server struct {
 	msgBroker *messaging.Broker
 
 	repoClient *client.PipyRepoClient
+
+	retryJob func()
 }
 
 // Protocol is a string wrapper type
