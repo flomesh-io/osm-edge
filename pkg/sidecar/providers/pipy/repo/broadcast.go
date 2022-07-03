@@ -31,7 +31,7 @@ func (s *Server) broadcastListener() {
 		slidingTimer.Reset(time.Second * 10)
 	}
 
-	reconfirm := false
+	reconfirm := true
 
 	for {
 		select {
