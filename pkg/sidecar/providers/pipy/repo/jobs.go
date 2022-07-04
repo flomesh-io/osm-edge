@@ -7,6 +7,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
@@ -57,24 +59,113 @@ func (job *PipyConfGeneratorJob) Run() {
 	cataloger := s.catalog
 	pipyConf := new(PipyConf)
 
-	if proxy.PodMetadata != nil {
-		if len(proxy.PodMetadata.StartupProbes) > 0 {
-			for idx := range proxy.PodMetadata.StartupProbes {
-				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, *proxy.PodMetadata.StartupProbes[idx])
-			}
+	probes(proxy, pipyConf)
+	features(s, proxy, pipyConf, proxyIdentity)
+	certs(proxy, pipyConf)
+
+	inbound(cataloger, proxyIdentity, proxyServices, pipyConf)
+
+	if !outbound(cataloger, proxyIdentity, pipyConf, proxy, s) {
+		return
+	}
+
+	if !egress(cataloger, proxyIdentity, s, pipyConf, proxy) {
+		return
+	}
+
+	balance(pipyConf)
+	endpoints(pipyConf, s)
+	job.publishSidecarConf(s.repoClient, s.proxyRegistry, proxy, pipyConf)
+}
+
+func endpoints(pipyConf *PipyConf, s *Server) {
+	ready := pipyConf.copyAllowedEndpoints(s.kubeController)
+	if !ready {
+		if s.retryJob != nil {
+			s.retryJob()
 		}
-		if len(proxy.PodMetadata.LivenessProbes) > 0 {
-			for idx := range proxy.PodMetadata.LivenessProbes {
-				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, *proxy.PodMetadata.LivenessProbes[idx])
-			}
+	}
+}
+
+func balance(pipyConf *PipyConf) {
+	pipyConf.rebalanceOutboundClusters()
+}
+
+func egress(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
+	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
+	if egressErr != nil {
+		if s.retryJob != nil {
+			s.retryJob()
 		}
-		if len(proxy.PodMetadata.ReadinessProbes) > 0 {
-			for idx := range proxy.PodMetadata.ReadinessProbes {
-				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, *proxy.PodMetadata.ReadinessProbes[idx])
+		return false
+	}
+
+	if egressTrafficPolicy != nil {
+		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+			egressTrafficPolicy)
+		if len(egressDependClusters) > 0 {
+			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+				egressTrafficPolicy, egressDependClusters); !ready {
+				if s.retryJob != nil {
+					s.retryJob()
+				}
+				return false
 			}
 		}
 	}
+	return true
+}
 
+func outbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
+	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
+	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+		outboundTrafficPolicy)
+	if len(outboundDependClusters) > 0 {
+		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+			outboundTrafficPolicy, outboundDependClusters); !ready {
+			if s.retryJob != nil {
+				s.retryJob()
+			}
+			return false
+		}
+	}
+	return true
+}
+
+func inbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf) {
+	// Build inbound mesh route configurations. These route configurations allow
+	// the services associated with this proxy to accept traffic from downstream
+	// clients on allowed routes.
+	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
+	generatePipyInboundTrafficPolicy(cataloger, proxyIdentity, pipyConf, inboundTrafficPolicy)
+	if len(proxyServices) > 0 {
+		for _, svc := range proxyServices {
+			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
+				if ingressTrafficPolicy != nil {
+					generatePipyIngressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+						ingressTrafficPolicy)
+				}
+			}
+		}
+	}
+}
+
+func certs(proxy *pipy.Proxy, pipyConf *PipyConf) {
+	if proxy.SidecarCert != nil {
+		pipyConf.Certificate = &Certificate{
+			CommonName:   proxy.SidecarCert.CommonName,
+			SerialNumber: proxy.SidecarCert.SerialNumber,
+			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
+			CertChain:    string(proxy.SidecarCert.CertChain),
+			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
+			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
+		}
+	} else {
+		pipyConf.Certificate = nil
+	}
+}
+
+func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity identity.ServiceIdentity) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
 		proxy.MeshConf = meshConf
@@ -97,80 +188,26 @@ func (job *PipyConfGeneratorJob) Run() {
 			proxy.SidecarCert = nil
 		}
 	}
-	if proxy.SidecarCert != nil {
-		pipyConf.Certificate = &Certificate{
-			CommonName:   proxy.SidecarCert.CommonName,
-			SerialNumber: proxy.SidecarCert.SerialNumber,
-			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
-			CertChain:    string(proxy.SidecarCert.CertChain),
-			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
-			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
-		}
-	} else {
-		pipyConf.Certificate = nil
-	}
+}
 
-	// Build inbound mesh route configurations. These route configurations allow
-	// the services associated with this proxy to accept traffic from downstream
-	// clients on allowed routes.
-	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, proxyIdentity, pipyConf, inboundTrafficPolicy)
-	if len(proxyServices) > 0 {
-		for _, svc := range proxyServices {
-			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
-				if ingressTrafficPolicy != nil {
-					generatePipyIngressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-						ingressTrafficPolicy)
-				}
+func probes(proxy *pipy.Proxy, pipyConf *PipyConf) {
+	if proxy.PodMetadata != nil {
+		if len(proxy.PodMetadata.StartupProbes) > 0 {
+			for idx := range proxy.PodMetadata.StartupProbes {
+				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, *proxy.PodMetadata.StartupProbes[idx])
+			}
+		}
+		if len(proxy.PodMetadata.LivenessProbes) > 0 {
+			for idx := range proxy.PodMetadata.LivenessProbes {
+				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, *proxy.PodMetadata.LivenessProbes[idx])
+			}
+		}
+		if len(proxy.PodMetadata.ReadinessProbes) > 0 {
+			for idx := range proxy.PodMetadata.ReadinessProbes {
+				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, *proxy.PodMetadata.ReadinessProbes[idx])
 			}
 		}
 	}
-
-	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
-	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-		outboundTrafficPolicy)
-	if len(outboundDependClusters) > 0 {
-		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-			outboundTrafficPolicy, outboundDependClusters); !ready {
-			if s.retryJob != nil {
-				s.retryJob()
-			}
-			return
-		}
-	}
-
-	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
-	if egressErr != nil {
-		if s.retryJob != nil {
-			s.retryJob()
-		}
-		return
-	}
-
-	if egressTrafficPolicy != nil {
-		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-			egressTrafficPolicy)
-		if len(egressDependClusters) > 0 {
-			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-				egressTrafficPolicy, egressDependClusters); !ready {
-				if s.retryJob != nil {
-					s.retryJob()
-				}
-				return
-			}
-		}
-	}
-
-	pipyConf.rebalanceOutboundClusters()
-
-	ready := pipyConf.copyAllowedEndpoints(s.kubeController)
-	if !ready {
-		if s.retryJob != nil {
-			s.retryJob()
-		}
-	}
-
-	job.publishSidecarConf(s.repoClient, s.proxyRegistry, proxy, pipyConf)
 }
 
 func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, pipyConf *PipyConf) {

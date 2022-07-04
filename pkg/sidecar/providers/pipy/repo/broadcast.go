@@ -89,10 +89,8 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 }
 
 func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) {
-	if podProxy, ok := proxyRegistry.PodCNtoProxy.Load(proxy.GetCertificateCommonName()); !ok {
+	if _, ok := proxyRegistry.PodCNtoProxy.Load(proxy.GetCertificateCommonName()); !ok {
 		s.informProxy(proxy)
-	} else {
-		proxy = podProxy.(*pipy.Proxy)
 	}
 }
 
