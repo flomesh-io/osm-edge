@@ -17,6 +17,9 @@ type ProxyRegistry struct {
 	// Maintain a mapping of pod CN to Proxy of the Sidecar on the given pod
 	PodCNtoProxy sync.Map
 
+	// Maintain a mapping of pod CN to Pipy Repo Codebase ETag
+	PodCNtoETag sync.Map
+
 	// Maintain a mapping of pod UID to CN of the Sidecar on the given pod
 	PodUIDToCN sync.Map
 

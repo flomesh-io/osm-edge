@@ -49,9 +49,8 @@ type Proxy struct {
 	MeshConf      *configurator.Configurator
 	SidecarCert   *certificate.Certificate
 
-	HasInitedProbes bool
-	Mutex           sync.RWMutex
-	Quit            chan bool
+	Mutex sync.RWMutex
+	Quit  chan bool
 }
 
 func (p *Proxy) String() string {

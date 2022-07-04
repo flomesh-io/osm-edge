@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )
 
 // PipyConfGeneratorJob is the job to generate pipy policy json
@@ -109,13 +110,6 @@ func (job *PipyConfGeneratorJob) Run() {
 		pipyConf.Certificate = nil
 	}
 
-	pipyConf.copyAllowedEndpoints(s.kubeController)
-
-	if !proxy.HasInitedProbes {
-		job.publishSidecarConf(s.repoClient, proxy, pipyConf)
-		proxy.HasInitedProbes = true
-	}
-
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
@@ -176,28 +170,36 @@ func (job *PipyConfGeneratorJob) Run() {
 		}
 	}
 
-	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
+	job.publishSidecarConf(s.repoClient, s.proxyRegistry, proxy, pipyConf)
 }
 
-func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxy *pipy.Proxy, pipyConf *PipyConf) {
+func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, pipyConf *PipyConf) {
 	if bytes, jsonErr := json.MarshalIndent(pipyConf, "", " "); jsonErr == nil {
-		err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
-		if err != nil {
-			log.Error().Err(err)
-		} else {
-			err = repoClient.Batch([]client.Batch{
-				{
-					Basepath: fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()),
-					Items: []client.BatchItem{
-						{
-							Filename: "pipy.json",
-							Content:  bytes,
+		codebasePreV := int64(0)
+		certCommonName := proxy.GetCertificateCommonName()
+		if etag, ok := proxyRegistry.PodCNtoETag.Load(certCommonName); ok {
+			codebasePreV = etag.(int64)
+		}
+		codebaseCurV := hash(bytes)
+		if codebaseCurV != codebasePreV {
+			err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
+			if err == nil {
+				err = repoClient.Batch([]client.Batch{
+					{
+						Basepath: fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()),
+						Items: []client.BatchItem{
+							{
+								Filename: "pipy.json",
+								Content:  bytes,
+							},
 						},
 					},
-				},
-			})
+				})
+			}
 			if err != nil {
 				log.Error().Err(err)
+			} else {
+				proxyRegistry.PodCNtoETag.Store(certCommonName, codebaseCurV)
 			}
 		}
 	}
