@@ -30,6 +30,8 @@ var _ = OSMDescribe("Upgrade from latest",
 				Skip("test requires fresh OSM install")
 			}
 
+			Skip("Coming soon ...")
+
 			if _, err := exec.LookPath("kubectl"); err != nil {
 				Td.T.Fatal("\"kubectl\" command required and not found on PATH")
 			}
