@@ -23,7 +23,6 @@ spec:
       {{- end }}
       serviceAccountName: jaeger
       nodeSelector:
-        kubernetes.io/arch: {{ .Values.osm.nodeSelector.arch }}
         kubernetes.io/os: {{ .Values.osm.nodeSelector.os }}
       containers:
       - name: jaeger

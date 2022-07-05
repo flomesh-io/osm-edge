@@ -19,7 +19,6 @@ spec:
     spec:
       serviceAccountName: {{ .Release.Name }}
       nodeSelector:
-        kubernetes.io/arch: {{ .Values.osm.nodeSelector.arch }}
         kubernetes.io/os: {{ .Values.osm.nodeSelector.os }}
       initContainers:
         - name: osm-multicluster-gateway-init
