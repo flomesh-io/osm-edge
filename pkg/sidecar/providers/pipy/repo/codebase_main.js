@@ -1,4 +1,4 @@
-// version: '2022.07.01'
+// version: '2022.07.05'
 (({
   config,
   debugLogLevel,
@@ -31,7 +31,7 @@
     _inTarget: null,
     _inSessionControl: null,
     _ingressMode: null,
-    _inZipkinData: null,
+    _inZipkinStruct: {},
     _localClusterName: null,
     _outIP: null,
     _outPort: null,
@@ -39,7 +39,7 @@
     _outTarget: null,
     _outSessionControl: null,
     _egressMode: null,
-    _outZipkinData: null,
+    _outZipkinStruct: {},
     _upstreamClusterName: null,
     _outRequestTime: 0,
     _egressTargetMap: {}
@@ -49,52 +49,53 @@
     // inbound
     //
     .listen(config?.Inbound?.TrafficMatches ? 15003 : 0, {
-      'transparent': true,
-      'closeEOF': false
-      // 'readTimeout': '5s'
+      'transparent': true
     })
-    .handleStreamStart(
+    .onStart(
       () => (
-        // Find a match by destination port
-        _inMatch = (
-          allowedEndpoints?.[__inbound.remoteAddress || '127.0.0.1'] &&
-          inTrafficMatches?.[__inbound.destinationPort || 0]
-        ),
+        (() => (
+          // Find a match by destination port
+          _inMatch = (
+            allowedEndpoints?.[__inbound.remoteAddress || '127.0.0.1'] &&
+            inTrafficMatches?.[__inbound.destinationPort || 0]
+          ),
 
-        // Check client address against the whitelist
-        _inMatch?.AllowedEndpoints &&
-        _inMatch.AllowedEndpoints[__inbound.remoteAddress] === undefined && (
-          _inMatch = null
-        ),
+          // Check client address against the whitelist
+          _inMatch?.AllowedEndpoints &&
+          _inMatch.AllowedEndpoints[__inbound.remoteAddress] === undefined && (
+            _inMatch = null
+          ),
 
-        // INGRESS mode
-        _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)),
+          // INGRESS mode
+          _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)),
 
-        // Layer 4 load balance
-        _inTarget = (
-          (
-            // Allow?
-            _inMatch &&
-            _inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc'
-          ) && (
-            // Load balance
-            inClustersConfigs?.[
-              _localClusterName = _inMatch.TargetClusters?.next?.()?.id
-            ]?.next?.()
+          // Layer 4 load balance
+          _inTarget = (
+            (
+              // Allow?
+              _inMatch &&
+              _inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc'
+            ) && (
+              // Load balance
+              inClustersConfigs?.[
+                _localClusterName = _inMatch.TargetClusters?.next?.()?.id
+              ]?.next?.()
+            )
+          ),
+
+          // Session termination control
+          _inSessionControl = {
+            close: false
+          },
+
+          debugLogLevel && (
+            console.log('inbound _inMatch: ', _inMatch) ||
+            console.log('inbound _inTarget: ', _inTarget?.id) ||
+            console.log('inbound protocol: ', _inMatch?.Protocol) ||
+            console.log('inbound acceptTLS: ', Boolean(tlsCertChain))
           )
-        ),
-
-        // Session termination control
-        _inSessionControl = {
-          close: false
-        },
-
-        debugLogLevel && (
-          console.log('inbound _inMatch: ', _inMatch) ||
-          console.log('inbound _inTarget: ', _inTarget?.id) ||
-          console.log('inbound protocol: ', _inMatch?.Protocol) ||
-          console.log('inbound acceptTLS: ', Boolean(tlsCertChain))
-        )
+        ))(),
+        _inTarget && _inMatch?.Protocol !== 'http' && _inMatch?.Protocol !== 'grpc' ? new Data : null
       )
     )
     .branch(
@@ -108,7 +109,7 @@
             new crypto.Certificate(tlsIssuingCA),
           ]
         }).to('recv-inbound-tcp'),
-      () => true, 'recv-inbound-tcp'
+      'recv-inbound-tcp'
     )
 
     //
@@ -123,7 +124,7 @@
           ).link('recv-inbound-http')
         ),
       () => Boolean(_inTarget), 'send-inbound-tcp',
-      () => true, $ => $
+      $ => $
         .replaceStreamStart(
           new StreamEnd('ConnectionReset')
         )
@@ -171,8 +172,11 @@
           ),
 
           // Initialize ZipKin tracing data
-          metrics.logZipkin &&
-          (_inZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true)),
+          metrics.logZipkin && (() => (
+            _inZipkinStruct.data = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true),
+            _inZipkinStruct.requestSize = 0,
+            _inZipkinStruct.responseSize = 0
+          ))(),
 
           debugLogLevel && (
             console.log('inbound path: ', msg.head.path) ||
@@ -191,7 +195,7 @@
         }),
       () => Boolean(_inTarget), $ => $
         .muxHTTP('send-inbound-tcp', () => _inTarget),
-      () => true, $ => $
+      $ => $
         .replaceMessage(
           new Message({
             status: 403
@@ -208,9 +212,17 @@
             headers['osm-stats-pod'] = pod,
             metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _localClusterName).increase(),
             metrics.upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase(),
-            _inZipkinData && (_inZipkinData.tags['http.status_code'] = msg?.head?.status?.toString()) &&
-            metrics.logZipkin(_inZipkinData),
-            debugLogLevel && console.log('_inZipkinData: ', _inZipkinData)
+
+            _inZipkinStruct.data && (() => (
+              _inZipkinStruct.data.tags['peer.address'] = _inTarget?.id,
+              _inZipkinStruct.data.tags['http.status_code'] = msg?.head?.status?.toString(),
+              _inZipkinStruct.data.tags['request_size'] = _inZipkinStruct.requestSize.toString(),
+              _inZipkinStruct.data.tags['response_size'] = _inZipkinStruct.responseSize.toString(),
+              _inZipkinStruct.data['duration'] = Date.now() * 1000 - _inZipkinStruct.data['timestamp'],
+              metrics.logZipkin(_inZipkinStruct.data)
+            ))(),
+
+            debugLogLevel && console.log('_inZipkinStruct : ', _inZipkinStruct.data)
           ))()
         ))()
       )
@@ -220,20 +232,20 @@
     // Connect to local service
     //
     .pipeline('send-inbound-tcp')
-    .handleData(
-      (data) => (
-        metrics.sendBytesTotalCounter.withLabels(_localClusterName).increase(data.size),
-        _inZipkinData && (_inZipkinData.tags['request_size'] = data.size.toString())
-      )
-    )
-    .handleStreamStart(
+    .onStart(
       () => (
         metrics.activeConnectionGauge.withLabels(_localClusterName).increase()
       )
     )
-    .handleStreamEnd(
+    .onEnd(
       () => (
         metrics.activeConnectionGauge.withLabels(_localClusterName).decrease()
+      )
+    )
+    .handleData(
+      (data) => (
+        _inZipkinStruct.requestSize += data.size,
+        metrics.sendBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
       )
     )
     .connect(
@@ -241,12 +253,8 @@
     )
     .handleData(
       (data) => (
-        metrics.receiveBytesTotalCounter.withLabels(_localClusterName).increase(data.size),
-        _inZipkinData && (() => (
-          _inZipkinData['duration'] = Date.now() * 1000 - _inZipkinData['timestamp'],
-          _inZipkinData.tags['response_size'] = data.size.toString(),
-          _inZipkinData.tags['peer.address'] = _inTarget.id
-        ))()
+        _inZipkinStruct.responseSize += data.size,
+        metrics.receiveBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
       )
     )
 
@@ -254,13 +262,11 @@
     // outbound
     //
     .listen(config?.Outbound || config?.Spec?.Traffic?.EnableEgress ? 15001 : 0, {
-      'transparent': true,
-      'closeEOF': false
-      // 'readTimeout': '5s'
+      'transparent': true
     })
-    .handleStreamStart(
-      (() => (
-        (target) => (
+    .onStart(
+      () => (
+        ((target) => (
           // Upstream service port
           _outPort = (__inbound.destinationPort || 0),
 
@@ -309,8 +315,9 @@
             console.log('outbound _outTarget: ', _outTarget?.id) ||
             console.log('outbound protocol: ', _outMatch?.Protocol)
           )
-        )
-      ))()
+        ))(),
+        _outTarget && _outMatch?.Protocol !== 'http' && _outMatch?.Protocol !== 'grpc' ? new Data : null
+      )
     )
     .branch(
       () => _outMatch?.Protocol === 'http' || _outMatch?.Protocol === 'grpc', $ => $
@@ -320,7 +327,7 @@
           ).link('recv-outbound-http')
         ),
       () => Boolean(_outTarget), 'send-outbound-tcp',
-      () => true, $ => $
+      $ => $
         .replaceStreamStart(
           new StreamEnd('ConnectionReset')
         )
@@ -366,8 +373,11 @@
           _outTarget && metrics.funcTracingHeaders(namespace, kind, name, pod, headers, _outMatch?.Protocol),
 
           // Initialize ZipKin tracing data
-          metrics.logZipkin &&
-          (_outZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false)),
+          metrics.logZipkin && (() => (
+            _outZipkinStruct.data = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false),
+            _outZipkinStruct.requestSize = 0,
+            _outZipkinStruct.responseSize = 0
+          ))(),
 
           // EGRESS mode
           !_outTarget && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
@@ -400,7 +410,7 @@
         }),
       () => Boolean(_outTarget), $ => $
         .muxHTTP('send-outbound-tcp', () => _outTarget),
-      () => true, $ => $
+      $ => $
         .replaceMessage(
           new Message({
             status: 403
@@ -421,9 +431,17 @@
           msg?.head?.status && metrics.upstreamCodeXCount.withLabels(msg.head.status.toString().charAt(0), _upstreamClusterName).increase(),
           metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
           msg?.head?.status && metrics.upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
-          _outZipkinData && msg?.head?.status && (_outZipkinData.tags['http.status_code'] = msg.head.status.toString()) &&
-          metrics.logZipkin(_outZipkinData),
-          debugLogLevel && console.log('_outZipkinData: ', _outZipkinData)
+
+          _outZipkinStruct.data && (() => (
+            _outZipkinStruct.data.tags['peer.address'] = _outTarget?.id,
+            _outZipkinStruct.data.tags['http.status_code'] = msg?.head?.status?.toString(),
+            _outZipkinStruct.data.tags['request_size'] = _outZipkinStruct.requestSize.toString(),
+            _outZipkinStruct.data.tags['response_size'] = _outZipkinStruct.responseSize.toString(),
+            _outZipkinStruct.data['duration'] = Date.now() * 1000 - _outZipkinStruct.data['timestamp'],
+            metrics.logZipkin(_outZipkinStruct.data)
+          ))(),
+
+          debugLogLevel && console.log('_outZipkinStruct : ', _outZipkinStruct.data)
         ))()
       )
     )
@@ -432,20 +450,20 @@
     // Connect to upstream service
     //
     .pipeline('send-outbound-tcp')
-    .handleData(
-      (data) => (
-        metrics.sendBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size),
-        _outZipkinData && (_outZipkinData.tags['request_size'] = data.size.toString())
-      )
-    )
-    .handleStreamStart(
+    .onStart(
       () => (
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase()
       )
     )
-    .handleStreamEnd(
+    .onEnd(
       () => (
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).decrease()
+      )
+    )
+    .handleData(
+      (data) => (
+        _outZipkinStruct.requestSize += data.size,
+        metrics.sendBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
       )
     )
     .branch(
@@ -461,18 +479,13 @@
         }).to($ => $
           .connect(() => _outTarget?.id)
         ),
-      () => true, ($ => $
+      $ => $
         .connect(() => _outTarget?.id)
-    )
     )
     .handleData(
       (data) => (
-        metrics.receiveBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size),
-        _outZipkinData && (() => (
-          _outZipkinData['duration'] = Date.now() * 1000 - _outZipkinData['timestamp'],
-          _outZipkinData.tags['response_size'] = data.size.toString(),
-          _outZipkinData.tags['peer.address'] = _outTarget.id
-        ))()
+        _outZipkinStruct.responseSize += data.size,
+        metrics.receiveBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
       )
     )
 
@@ -495,7 +508,7 @@
         ),
       () => Boolean(probeTarget), $ => $
         .connect(() => probeTarget),
-      () => true, $ => $
+      $ => $
         .replaceStreamStart(
           new StreamEnd('ConnectionReset')
         )
@@ -520,7 +533,7 @@
         ),
       () => Boolean(probeTarget), $ => $
         .connect(() => probeTarget),
-      () => true, $ => $
+      $ => $
         .replaceStreamStart(
           new StreamEnd('ConnectionReset')
         )
@@ -545,7 +558,7 @@
         ),
       () => Boolean(probeTarget), $ => $
         .connect(() => probeTarget),
-      () => true, $ => $
+      $ => $
         .replaceStreamStart(
           new StreamEnd('ConnectionReset')
         )
