@@ -14,20 +14,32 @@ var (
 	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
 
-func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) {
-	p.Spec.SidecarLogLevel = sidecarLogLevel
+func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) (update bool) {
+	if update = !strings.EqualFold(p.Spec.SidecarLogLevel, sidecarLogLevel); update {
+		p.Spec.SidecarLogLevel = sidecarLogLevel
+	}
+	return
 }
 
-func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) {
-	p.Spec.FeatureFlags.EnableSidecarActiveHealthChecks = enableSidecarActiveHealthChecks
+func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) (update bool) {
+	if update = p.Spec.FeatureFlags.EnableSidecarActiveHealthChecks != enableSidecarActiveHealthChecks; update {
+		p.Spec.FeatureFlags.EnableSidecarActiveHealthChecks = enableSidecarActiveHealthChecks
+	}
+	return
 }
 
-func (p *PipyConf) setEnableEgress(enableEgress bool) {
-	p.Spec.Traffic.EnableEgress = enableEgress
+func (p *PipyConf) setEnableEgress(enableEgress bool) (update bool) {
+	if update = p.Spec.Traffic.EnableEgress != enableEgress; update {
+		p.Spec.Traffic.EnableEgress = enableEgress
+	}
+	return
 }
 
-func (p *PipyConf) setEnablePermissiveTrafficPolicyMode(enablePermissiveTrafficPolicyMode bool) {
-	p.Spec.Traffic.enablePermissiveTrafficPolicyMode = enablePermissiveTrafficPolicyMode
+func (p *PipyConf) setEnablePermissiveTrafficPolicyMode(enablePermissiveTrafficPolicyMode bool) (update bool) {
+	if update = p.Spec.Traffic.enablePermissiveTrafficPolicyMode != enablePermissiveTrafficPolicyMode; update {
+		p.Spec.Traffic.enablePermissiveTrafficPolicyMode = enablePermissiveTrafficPolicyMode
+	}
+	return
 }
 
 func (p *PipyConf) isPermissiveTrafficPolicyMode() bool {

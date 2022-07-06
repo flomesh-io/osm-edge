@@ -40,9 +40,9 @@ func (s *Server) allPodUpdater() {
 
 		// Queue update for this proxy/pod
 		job := PipyConfGeneratorJob{
-			proxy:     proxy,
-			xdsServer: s,
-			done:      make(chan struct{}),
+			proxy:      proxy,
+			repoServer: s,
+			done:       make(chan struct{}),
 		}
 		s.workqueues.AddJob(&job)
 	}

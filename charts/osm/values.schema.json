@@ -447,7 +447,8 @@
                                 "sidecarName": "pipy",
                                 "sidecarImage": "flomesh/pipy:latest",
                                 "sidecarWindowsImage": "flomesh/pipy-windows-nightly:latest",
-                                "initContainerImage": "curlimages/curl"
+                                "initContainerImage": "curlimages/curl",
+                                "sidecarDisabledMTLS": false
                             }
                         ]
                     ]

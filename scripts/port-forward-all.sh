@@ -8,6 +8,7 @@
 ./scripts/port-forward-osm-debug.sh &
 ./scripts/port-forward-grafana.sh &
 ./scripts/port-forward-jaeger.sh &
+./scripts/port-forward-prometheus.sh &
 
 wait
 

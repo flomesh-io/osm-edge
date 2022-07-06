@@ -62,6 +62,8 @@ osm:
       sidecarImage: flomesh/pipy-nightly:latest
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
+      # -- Disabled or enable MTLS
+      sidecarDisabledMTLS: false
     - sidecarName: envoy
       # -- Sidecar image for Linux workloads
       sidecarImage: envoyproxy/envoy:v1.19.3

@@ -11,6 +11,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -51,6 +52,10 @@ type Proxy struct {
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
 	// eventually be set when the metadata arrives via the xDS protocol.
 	PodMetadata *PodMetadata
+
+	ProxyIdentity identity.ServiceIdentity
+	MeshConf      *configurator.Configurator
+	SidecarCert   *certificate.Certificate
 }
 
 // GetCodebase return codebaseConf, codebaseETag, codebaseStatus

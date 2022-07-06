@@ -18,4 +18,4 @@ fi
 BOOKSTOREv2_LOCAL_PORT="${BOOKSTOREv2_LOCAL_PORT:-8082}"
 POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk 'NR==1{print $1}')"
 
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" "$BOOKSTOREv2_LOCAL_PORT":14001
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" "$BOOKSTOREv2_LOCAL_PORT":14001 --address 0.0.0.0

@@ -4,7 +4,7 @@ Use the checklist below to ensure your release PR is complete before marking it 
 
 -->
 
-- [ ] I have cherry-picked any changes [labelled](https://github.com/openservicemesh/osm/labels) `needs-cherry-pick-vX.Y.Z`
+- [ ] I have cherry-picked any changes [labelled](https://github.com/flomesh-io/osm-edge/labels) `needs-cherry-pick-vX.Y.Z`
 - [ ] I have made all of the following version and patch updates:
   1. Updated the container image tag in charts/osm/values.yaml
   2. Updated the chart **and** app version in charts/osm/Chart.yaml
