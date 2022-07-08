@@ -45,8 +45,6 @@ func testK8sVersion(version string) {
 	It("Tests HTTP traffic for client pod -> server pod", func() {
 		if Td.InstType != KindCluster {
 			Skip("Test is only meant to be run when installing a Kind cluster")
-		} else {
-			Skip("Coming soon ...")
 		}
 
 		// Install OSM
