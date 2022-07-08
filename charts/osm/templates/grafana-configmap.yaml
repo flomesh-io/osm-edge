@@ -70,16 +70,40 @@ metadata:
     app: osm-grafana
 data:
   osm-pod.json: |
-{{ .Files.Get "grafana/dashboards/osm-pod-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-pod-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-pod-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
   osm-workload.json: |
-{{ .Files.Get "grafana/dashboards/osm-workload-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-workload-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-workload-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
   osm-service-to-service.json: |
-{{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
   osm-data-plane-container.json: |
-{{ .Files.Get "grafana/dashboards/osm-data-plane-performance.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-data-plane-performance.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-data-plane-performance.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
   osm-workload-to-workload.json: |
-{{ .Files.Get "grafana/dashboards/osm-workload-to-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
-
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-workload-to-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-workload-to-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
 ---
 
 apiVersion: v1
@@ -92,10 +116,19 @@ metadata:
     app: osm-grafana
 data:
   osm-control-plane.json: |
-{{ .Files.Get "grafana/dashboards/osm-control-plane.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-control-plane.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-control-plane.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+{{- end }}
   osm-mesh-sidecar-details.json: |
-{{ .Files.Get "grafana/dashboards/osm-mesh-sidecar-details.json" | replace "${DS_PROMETHEUS}" "Prometheus" | replace "${CONTROL_PLANE_NAMESPACE}" (include "osm.namespace" .) | indent 4 }}
-
+{{- if eq .Values.osm.sidecarClass "pipy" }}
+{{ .Files.Get "grafana/pipy/dashboards/osm-mesh-sidecar-details.json" | replace "${DS_PROMETHEUS}" "Prometheus" | replace "${CONTROL_PLANE_NAMESPACE}" (include "osm.namespace" .) | indent 4 }}
+{{- end }}
+{{- if eq .Values.osm.sidecarClass "envoy" }}
+{{ .Files.Get "grafana/envoy/dashboards/osm-mesh-sidecar-details.json" | replace "${DS_PROMETHEUS}" "Prometheus" | replace "${CONTROL_PLANE_NAMESPACE}" (include "osm.namespace" .) | indent 4 }}
+{{- end }}
 ---
 
 apiVersion: v1

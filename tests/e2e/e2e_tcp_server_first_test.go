@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -29,6 +30,12 @@ var _ = OSMDescribe("TCP server-first traffic",
 			installOpts := Td.GetOSMInstallOpts()
 			installOpts.EnablePermissiveMode = true
 			Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+			if sidecarClass, err := Td.GetSidecarClass(Td.OsmNamespace); err == nil {
+				if strings.EqualFold(strings.ToLower(constants.SidecarClassPipy), strings.ToLower(sidecarClass)) {
+					Skip("Test is only meant to be running when using envoy sidecar")
+				}
+			}
 
 			// Create Test NS
 			for _, n := range ns {

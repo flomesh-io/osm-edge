@@ -27,7 +27,7 @@ CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
-ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
+ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-false}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_RECONCILER="${ENABLE_RECONCILER:-false}"
 DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
@@ -36,7 +36,7 @@ TRACING_ADDRESS="${TRACING_ADDRESS:-jaeger.${K8S_NAMESPACE}.svc.cluster.local}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
-SIDECAR_LOG_LEVEL="${SIDECAR_LOG_LEVEL:-debug}"
+SIDECAR_LOG_LEVEL="${SIDECAR_LOG_LEVEL:-error}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
 USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
@@ -119,7 +119,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
-      --set=osm.controllerLogLevel="trace" \
+      --set=osm.controllerLogLevel="warn" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
@@ -143,7 +143,7 @@ else
       --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
-      --set=osm.controllerLogLevel="trace" \
+      --set=osm.controllerLogLevel="warn" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

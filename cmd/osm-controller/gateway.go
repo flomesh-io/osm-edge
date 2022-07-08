@@ -25,7 +25,7 @@ const (
 	bootstrapConfigKey         = "bootstrap.yaml"
 )
 
-func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace string) error {
+func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace string, port uint32) error {
 	secret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.Background(), gatewayBootstrapSecretName, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("Error fetching OSM gateway's bootstrap config %s/%s", osmNamespace, gatewayBootstrapSecretName)
@@ -51,7 +51,7 @@ func bootstrapOSMMulticlusterGateway(kubeClient kubernetes.Interface, certManage
 		AdminPort:        constants.SidecarAdminPort,
 		XDSClusterName:   constants.OSMControllerName,
 		XDSHost:          fmt.Sprintf("%s.%s.svc.%s", constants.OSMControllerName, osmNamespace, identity.ClusterLocalTrustDomain),
-		XDSPort:          constants.ProxyServerPort,
+		XDSPort:          port,
 		TrustedCA:        bootstrapCert.GetIssuingCA(),
 		CertificateChain: bootstrapCert.GetCertificateChain(),
 		PrivateKey:       bootstrapCert.GetPrivateKey(),

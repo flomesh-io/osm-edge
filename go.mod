@@ -80,6 +80,8 @@ require (
 	honnef.co/go/tools v0.1.1 // indirect
 )
 
+require github.com/go-resty/resty/v2 v2.7.0
+
 require (
 	4d63.com/gochecknoglobals v0.0.0-20201008074935-acfc0b28355a // indirect
 	cloud.google.com/go v0.81.0 // indirect

@@ -8,11 +8,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/openservicemesh/osm/tests/framework"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/openservicemesh/osm/pkg/constants"
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment server",
@@ -26,7 +26,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 			HTTPHeaderName = "podname"
 		)
 
-		var maxTestDuration = 300 * time.Second
+		var maxTestDuration = 180 * time.Second
 
 		Context("DeploymentsClientServer", func() {
 			var (
@@ -50,6 +50,11 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 			It("Tests HTTP traffic from multiple client deployments to a server deployment", func() {
 				// Install OSM
 				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
+
+				sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
+				if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
+					Skip("Pipy doesn't support WASM extension")
+				}
 
 				// Server NS
 				Expect(Td.CreateNs(destApp, nil)).To(Succeed())

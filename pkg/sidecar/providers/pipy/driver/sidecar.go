@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -38,7 +39,6 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 		return nil, errors.New("missing Controller Context")
 	}
 	ctrlCtx := parentCtx.(*driver.ControllerContext)
-	cancel := ctrlCtx.CancelFunc
 	cfg := ctrlCtx.Configurator
 	certManager := ctrlCtx.CertManager
 	k8sClient := ctrlCtx.MeshCatalog.GetKubeController()
@@ -49,13 +49,12 @@ func (sd PipySidecarDriver) Start(ctx context.Context) (health.Probes, error) {
 	proxyMapper := &registry.KubeProxyServiceMapper{KubeController: k8sClient}
 	proxyRegistry := registry.NewProxyRegistry(proxyMapper, ctrlCtx.MsgBroker)
 	go proxyRegistry.ReleaseCertificateHandler(certManager, ctrlCtx.Stop)
-	go proxyRegistry.CacheMeshPodsHandler(ctrlCtx.Stop)
 	// Create and start the pipy repo http service
 	repoServer := repo.NewRepoServer(ctrlCtx.MeshCatalog, proxyRegistry, cfg.IsDebugServerEnabled(), ctrlCtx.OsmNamespace, cfg, certManager, k8sClient, ctrlCtx.MsgBroker)
 
 	ctrlCtx.DebugHandlers["/debug/proxy"] = sd.getProxies(proxyRegistry)
 
-	return repoServer, repoServer.Start(ctx, cancel, proxyServerPort, proxyServiceCert)
+	return repoServer, repoServer.Start(proxyServerPort, proxyServiceCert)
 }
 
 // Patch is the implement for InjectorDriver.Patch
@@ -65,7 +64,41 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 		return errors.New("missing Injector Context")
 	}
 	injCtx := parentCtx.(*driver.InjectorContext)
+	kubeClient := injCtx.KubeClient
+	podNamespace := injCtx.PodNamespace
 	pod := injCtx.Pod
+
+	// Create the bootstrap configuration for the Sidecar proxy for the given pod
+	sidecarBootstrapConfigName := fmt.Sprintf("sidecar-bootstrap-config-%s", injCtx.ProxyUUID)
+
+	// The webhook has a side effect (making out-of-band changes) of creating k8s secret
+	// corresponding to the Sidecar bootstrap config. Such a side effect needs to be skipped
+	// when the request is a DryRun.
+	// Ref: https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#side-effects
+	if injCtx.DryRun {
+		log.Debug().Msgf("Skipping Sidecar bootstrap config creation for dry-run request: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, injCtx.PodNamespace)
+	} else if secret, err := createSidecarBootstrapConfig(*injCtx, sidecarBootstrapConfigName); err != nil {
+		log.Error().Err(err).Msgf("Failed to create Sidecar bootstrap config for pod: service-account=%s, namespace=%s, certificate CN=%s", pod.Spec.ServiceAccountName, injCtx.PodNamespace, injCtx.ProxyCommonName)
+		return err
+	} else {
+		if secret != nil {
+			if existing, err := kubeClient.CoreV1().Secrets(podNamespace).Get(context.Background(), secret.ObjectMeta.Name, metav1.GetOptions{}); err == nil {
+				log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, podNamespace)
+				existing.Data = secret.Data
+				if _, err = kubeClient.CoreV1().Secrets(podNamespace).Update(context.Background(), existing, metav1.UpdateOptions{}); err != nil {
+					return err
+				}
+			}
+
+			log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", secret.ObjectMeta.Name, podNamespace)
+			if _, err = kubeClient.CoreV1().Secrets(podNamespace).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
+				return err
+			}
+		}
+	}
+
+	// Create volume for sidecar TLS secret
+	pod.Spec.Volumes = append(pod.Spec.Volumes, injector.GetVolumeSpec(sidecarBootstrapConfigName)...)
 
 	iptablesInitCommand := injector.GenerateIptablesCommands(injCtx.OutboundIPRangeExclusionList, injCtx.OutboundIPRangeInclusionList, injCtx.OutboundPortExclusionList, injCtx.InboundPortExclusionList)
 	enablePrivilegedInitContainer := injCtx.Configurator.IsPrivilegedInitContainer()
@@ -94,9 +127,9 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 
 	// cluster ID will be used as an identifier to the tracing sink
 	securityContext, containerImage := sidecar.GetPlatformSpecificSpecComponents(injCtx.Configurator, injCtx.PodOS)
-	pipyRepo := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%v/repo/%s/", constants.ProtocolHTTP,
-		constants.OSMControllerName, injCtx.OsmNamespace, constants.ProxyServerPort, injCtx.BootstrapCertificate.GetCommonName())
-
+	pipyRepo := fmt.Sprintf("%s://%s.%s.svc.cluster.local:%v/repo/osm-edge-sidecar/%s/", constants.ProtocolHTTP,
+		constants.OSMControllerName, injCtx.OsmNamespace, 6060, injCtx.BootstrapCertificate.GetCommonName())
+	//constants.ProxyServerPort
 	podControllerKind := ""
 	podControllerName := ""
 	for _, ref := range pod.GetOwnerReferences() {
@@ -181,15 +214,19 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 		},
 	}
 
-	if len(injCtx.Configurator.GetTracingHost()) > 0 {
-		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
-			Name:  "TRACING_ADDRESS",
-			Value: fmt.Sprintf("%s:%d", injCtx.Configurator.GetTracingHost(), injCtx.Configurator.GetTracingPort()),
-		})
-		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
-			Name:  "TRACING_ENDPOINT",
-			Value: injCtx.Configurator.GetTracingEndpoint(),
-		})
+	if injCtx.Configurator.IsTracingEnabled() {
+		if len(injCtx.Configurator.GetTracingHost()) > 0 && injCtx.Configurator.GetTracingPort() > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "TRACING_ADDRESS",
+				Value: fmt.Sprintf("%s:%d", injCtx.Configurator.GetTracingHost(), injCtx.Configurator.GetTracingPort()),
+			})
+		}
+		if len(injCtx.Configurator.GetTracingEndpoint()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "TRACING_ENDPOINT",
+				Value: injCtx.Configurator.GetTracingEndpoint(),
+			})
+		}
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)
