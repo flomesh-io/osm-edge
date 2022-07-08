@@ -78,6 +78,9 @@ type Configurator interface {
 	// GetInitContainerImage returns the init container image
 	GetInitContainerImage() string
 
+	// GetProxyServerPort returns the port on which the Discovery Service listens for new connections from Sidecars
+	GetProxyServerPort() uint32
+
 	// GetSidecarDisabledMTLS returns the status of mTLS
 	GetSidecarDisabledMTLS() bool
 

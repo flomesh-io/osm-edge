@@ -148,7 +148,7 @@ var _ = Describe("Test ADS response functions", func() {
 		metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.ProxyResponseSendSuccessCount)
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 
@@ -227,7 +227,7 @@ var _ = Describe("Test ADS response functions", func() {
 		}).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, proxyRegistry, true, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
+			s := NewADSServer(mc, proxyRegistry, tests.Namespace, mockConfigurator, mockCertManager, kubectrlMock, nil)
 
 			Expect(s).ToNot(BeNil())
 

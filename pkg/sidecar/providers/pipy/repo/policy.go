@@ -7,7 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
 var (
@@ -91,19 +91,25 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 	}
 }
 
-func (p *PipyConf) copyAllowedEndpoints() {
+func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller) bool {
+	ready := true
 	p.AllowedEndpoints = make(map[string]string)
-	registry.CachedMeshPodsLock.RLock()
-	p.allowedEndpointsV = registry.CachedMeshPodsV
-	for k, v := range registry.CachedMeshPods {
-		p.AllowedEndpoints[k] = v
+	allPods := kubeController.ListPods()
+	for _, pod := range allPods {
+		proxy, err := GetProxyFromPod(pod)
+		if err != nil {
+			continue
+		}
+		p.AllowedEndpoints[proxy.PodIP] = fmt.Sprintf("%s.%s", pod.Namespace, pod.Name)
+		if len(proxy.PodIP) == 0 {
+			ready = false
+		}
 	}
-	registry.CachedMeshPodsLock.RUnlock()
 	if p.Inbound == nil {
-		return
+		return ready
 	}
 	if len(p.Inbound.TrafficMatches) == 0 {
-		return
+		return ready
 	}
 	for _, trafficMatch := range p.Inbound.TrafficMatches {
 		if len(trafficMatch.SourceIPRanges) == 0 {
@@ -114,6 +120,7 @@ func (p *PipyConf) copyAllowedEndpoints() {
 			p.AllowedEndpoints[ingressIP] = "Ingress Controller"
 		}
 	}
+	return ready
 }
 
 func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange) {

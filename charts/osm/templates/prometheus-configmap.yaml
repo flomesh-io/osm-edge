@@ -54,9 +54,16 @@ data:
         kubernetes_sd_configs:
         - role: pod
         metric_relabel_configs:
+        {{- if eq .Values.osm.sidecarClass "pipy" }}
         - source_labels: [__name__]
-          regex: '(envoy_server_live|envoy_cluster_health_check_.*|envoy_cluster_upstream_rq_xx|envoy_cluster_upstream_cx_active|envoy_cluster_upstream_cx_tx_bytes_total|envoy_cluster_upstream_cx_rx_bytes_total|envoy_cluster_upstream_rq_total|envoy_cluster_upstream_cx_destroy_remote_with_active_rq|envoy_cluster_upstream_cx_connect_timeout|envoy_cluster_upstream_cx_destroy_local_with_active_rq|envoy_cluster_upstream_rq_pending_failure_eject|envoy_cluster_upstream_rq_pending_overflow|envoy_cluster_upstream_rq_timeout|envoy_cluster_upstream_rq_rx_reset|^osm.*)'
+          regex: '(sidecar_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|^osm.*)'
           action: keep
+        {{- end }}
+        {{- if eq .Values.osm.sidecarClass "envoy" }}
+        - source_labels: [__name__]
+          regex: '(envoy_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|^osm.*)'
+          action: keep
+        {{- end }}
         relabel_configs:
         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
           action: keep
@@ -129,6 +136,48 @@ data:
           replacement: $1:$2
           target_label: __address__
         metric_relabel_configs:
+        {{- if eq .Values.osm.sidecarClass "pipy" }}
+        - source_labels: [__name__]
+          regex: 'sidecar_.*osm_request_(total|duration_ms_(bucket|count|sum))'
+          action: keep
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_(\d{3})_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: response_code
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_(.*)_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: source_namespace
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_(.*)_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: source_kind
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_(.*)_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: source_name
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_(.*)_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: source_pod
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_(.*)_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: destination_namespace
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_(.*)_destination_name_.*_destination_pod_.*_osm_request_total
+          target_label: destination_kind
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_(.*)_destination_pod_.*_osm_request_total
+          target_label: destination_name
+        - source_labels: [__name__]
+          action: replace
+          regex: sidecar_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_(.*)_osm_request_total
+          target_label: destination_pod
+        {{- end }}
+        {{- if eq .Values.osm.sidecarClass "envoy" }}
         - source_labels: [__name__]
           regex: 'envoy_.*osm_request_(total|duration_ms_(bucket|count|sum))'
           action: keep
@@ -168,6 +217,7 @@ data:
           action: replace
           regex: envoy_response_code_\d{3}_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_(.*)_osm_request_total
           target_label: destination_pod
+        {{- end }}
         - source_labels: [__name__]
           action: replace
           regex: .*(osm_request_total)

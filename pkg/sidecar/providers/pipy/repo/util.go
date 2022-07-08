@@ -3,6 +3,7 @@ package repo
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {
@@ -526,4 +528,11 @@ func getEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdenti
 		return mc.ListEndpointsForServiceIdentity(proxyIdentity)
 	}
 	return nil
+}
+
+func hash(bytes []byte) int64 {
+	if hashCode, err := utils.HashFromString(string(bytes)); err == nil {
+		return int64(hashCode)
+	}
+	return int64(time.Now().Nanosecond())
 }

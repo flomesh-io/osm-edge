@@ -36,7 +36,7 @@ const (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, enableDebug bool, osmNamespace string,
+func NewADSServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, osmNamespace string,
 	cfg configurator.Configurator, certManager certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
 	server := Server{
 		catalog:       meshCatalog,
@@ -72,7 +72,7 @@ func (s *Server) withXdsLogMutex(f func()) {
 }
 
 // Start starts the ADS server
-func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert *certificate.Certificate) error {
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port uint32, adsCert *certificate.Certificate) error {
 	grpcServer, lis, err := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrStartingADSServer)).

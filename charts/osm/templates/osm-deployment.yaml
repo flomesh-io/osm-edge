@@ -62,14 +62,36 @@ spec:
           image: {{ .Values.osm.curlImage }}
           command: ["curl", "http://osm-bootstrap.{{ include "osm.namespace" . }}.svc.cluster.local:9095/healthz", "--connect-timeout", "2", "--retry", "50", "--retry-connrefused", "--retry-delay", "5"]
       containers:
+        {{- range .Values.osm.sidecarDrivers }}
+        {{- if eq .sidecarName $.Values.osm.sidecarClass }}
+        {{- if eq .sidecarName "pipy" }}
+        - name: osm-pipy-repo
+          image: "flomesh/pipy-repo-nightly:latest"
+          imagePullPolicy: {{ $.Values.osm.image.pullPolicy }}
+          ports:
+            - name: "pipy-admin-port"
+              containerPort: {{ .proxyServerPort }}
+          command: ['pipy']
+          args: [
+              "--admin-port={{ .proxyServerPort }}",
+          ]
+        {{- end }}
+        {{- end }}
+        {{- end }}
         - name: osm-controller
           image: "{{ include "osmController.image" . }}"
           imagePullPolicy: {{ .Values.osm.image.pullPolicy }}
           ports:
             - name: "admin-port"
               containerPort: 15000
+            {{- range .Values.osm.sidecarDrivers }}
+            {{- if eq .sidecarName $.Values.osm.sidecarClass }}
+            {{- if eq .sidecarName "envoy" }}
             - name: "ads-port"
-              containerPort: 15128
+              containerPort: {{ .proxyServerPort }}
+            {{- end }}
+            {{- end }}
+            {{- end }}
             - name: "metrics"
               containerPort: 9091
           command: ['/osm-controller']

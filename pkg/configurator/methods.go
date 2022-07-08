@@ -193,6 +193,18 @@ func (c *client) GetInitContainerImage() string {
 	return image
 }
 
+// GetProxyServerPort returns the port on which the Discovery Service listens for new connections from Sidecars
+func (c *client) GetProxyServerPort() uint32 {
+	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
+	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
+	for _, sidecarDriver := range sidecarDrivers {
+		if strings.EqualFold(strings.ToLower(sidecarClass), strings.ToLower(sidecarDriver.SidecarName)) {
+			return sidecarDriver.ProxyServerPort
+		}
+	}
+	return constants.ProxyServerPort
+}
+
 // GetSidecarDisabledMTLS returns the status of mTLS
 func (c *client) GetSidecarDisabledMTLS() bool {
 	disabledMTLS := false
