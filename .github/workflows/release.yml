@@ -140,8 +140,6 @@ jobs:
     needs: version
     env:
       VERSION: ${{ needs.version.outputs.version }}
-      BUILD_DATE: "$(date +%Y-%m-%d-%H:%M)"
-      GIT_SHA: "$(git rev-parse HEAD)"
       BUILD_DATE_VAR: 'github.com/openservicemesh/osm/pkg/version.BuildDate'
       BUILD_VERSION_VAR: 'github.com/openservicemesh/osm/pkg/version.Version'
       BUILD_GITCOMMIT_VAR: 'github.com/openservicemesh/osm/pkg/version.GitCommit'
@@ -177,6 +175,11 @@ jobs:
             type=sha,format=long
           flavor: |
             latest=auto
+
+      - name: Get Build Info
+        run: |
+          echo "BUILD_DATE=$(date +%Y-%m-%d-%H:%M)" >> $GITHUB_ENV
+          echo "GIT_SHAGIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Build and Push - ${{ matrix.id }}
         uses: docker/build-push-action@v3.0.0
