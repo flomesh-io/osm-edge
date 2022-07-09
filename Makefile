@@ -168,7 +168,7 @@ docker-build-osm-edge-injector:
 
 .PHONY: docker-build-osm-edge-crds
 docker-build-osm-edge-crds:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-crds ./cmd/osm-bootstrap/crds
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-crds .
 
 .PHONY: docker-build-osm-edge-bootstrap
 docker-build-osm-edge-bootstrap:

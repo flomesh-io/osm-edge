@@ -135,9 +135,16 @@ jobs:
           asset_content_type: text/plain
 
   images:
-    name: OSM Edge Docker Images
+    name: Docker Images
     runs-on: ubuntu-latest
     needs: version
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
+      GIT_SHA: '$$(git rev-parse HEAD)'
+      BUILD_DATE_VAR: 'github.com/openservicemesh/osm/pkg/version.BuildDate'
+      BUILD_VERSION_VAR: 'github.com/openservicemesh/osm/pkg/version.Version'
+      BUILD_GITCOMMIT_VAR: 'github.com/openservicemesh/osm/pkg/version.GitCommit'
     strategy:
       matrix:
         id: [ "sidecar-init", "controller", "injector", "crds", "bootstrap", "preinstall", "healthcheck" ]
@@ -179,12 +186,13 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             GO_VERSION=1.17
+            LDFLAGS="-X ${{ env.BUILD_DATE_VAR }}=${{ env.BUILD_DATE }} -X ${{ env.BUILD_VERSION_VAR }}=${{ env.VERSION }} -X ${{ env.BUILD_GITCOMMIT_VAR }}=${{ env.GIT_SHA }} -s -w"
           push: ${{ (github.event_name != 'pull_request' && (startsWith(github.ref, 'refs/tags/v') || github.ref == format('refs/heads/{0}', github.event.repository.default_branch) )) }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
 
   demo-images:
-    name: OSM Edge Demo Docker Images
+    name: Demo Docker Images
     runs-on: ubuntu-latest
     needs: version
     strategy:
