@@ -172,8 +172,8 @@ jobs:
         with:
           images: flomesh/osm-edge-${{ matrix.id }}
           tags: |
-            type=semver,pattern={{major}}.{{minor}}-${{ env.BUILD }}
-            type=semver,pattern={{major}}.{{minor}}.{{patch}}-${{ env.BUILD }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ env.BUILD }}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},suffix=-${{ env.BUILD }}
             type=sha,format=long
           flavor: |
             latest=auto
@@ -223,8 +223,8 @@ jobs:
         with:
           images: flomesh/osm-edge-demo-${{ matrix.id }}
           tags: |
-            type=semver,pattern={{major}}.{{minor}}-${{ env.BUILD }}
-            type=semver,pattern={{major}}.{{minor}}.{{patch}}-${{ env.BUILD }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ env.BUILD }}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}},suffix=-${{ env.BUILD }}
             type=sha,format=long
           flavor: |
             latest=auto
