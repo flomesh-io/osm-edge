@@ -19,8 +19,18 @@
       prometheusTarget: null,
       probeScheme: null,
       probeTarget: null,
-      probePath: null
+      probePath: null,
+      funcShuffle: null
     },
+
+    global.funcShuffle = (arg, out, sort) => (
+      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
+      global.debugLogLevel && console.log('funcShuffle LB in : ', arg),
+      out = Object.fromEntries(sort(sort(Object.entries(arg)))),
+      global.debugLogLevel && console.log('funcShuffle LB out : ', out),
+
+      out
+    ),
 
     global.funcHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
@@ -34,7 +44,7 @@
               Headers_: condition?.Headers, // for debugLogLevel
               Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
               AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
-              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(condition.TargetClusters) // Loadbalancer for services
+              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
             })
           )
         ]
@@ -51,7 +61,7 @@
             HttpHostPort2Service: match.HttpHostPort2Service,
             SourceIPRanges_: match?.SourceIPRanges, // for debugLogLevel
             SourceIPRanges: match.SourceIPRanges && match.SourceIPRanges.map(e => new Netmask(e)),
-            TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(match.TargetClusters),
+            TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(match.TargetClusters)),
             HttpServiceRouteRules: match.HttpServiceRouteRules && global.funcHttpServiceRouteRules(match.HttpServiceRouteRules),
             ProbeTarget: (match.Protocol === 'http') && (!global.probeTarget || !match.SourceIPRanges) && (global.probeTarget = '127.0.0.1:' + port)
           })
@@ -63,7 +73,7 @@
       Object.entries(
         config.Inbound.ClustersConfigs).map(
           ([k, v]) => [
-            k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(v))
+            k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(global.funcShuffle(v)))
           ]
         )
     ),
@@ -81,7 +91,7 @@
                 ServiceIdentity: o.ServiceIdentity,
                 AllowedEgressTraffic: o.AllowedEgressTraffic,
                 HttpHostPort2Service: o.HttpHostPort2Service,
-                TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(o.TargetClusters),
+                TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
                 DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
                 HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcHttpServiceRouteRules(o.HttpServiceRouteRules)
               })
@@ -96,7 +106,7 @@
     global.outClustersConfigs = config?.Outbound?.ClustersConfigs && Object.fromEntries(
       Object.entries(config.Outbound.ClustersConfigs).map(
         ([k, v]) => [
-          k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(v))
+          k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(global.funcShuffle(v)))
         ]
       )
     ),
