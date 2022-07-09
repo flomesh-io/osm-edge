@@ -36,18 +36,18 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: v1.1.0-f5h1
-    created: "2022-07-09T12:15:14.80521072Z"
+    created: "2022-07-09T12:57:24.934652179Z"
     dependencies:
     - condition: contour.enabled
       name: contour
       repository: https://charts.bitnami.com/bitnami
       version: 8.0.4
     description: A Helm chart to install the osm-edge control plane on Kubernetes
-    digest: 726e39a60b177df947dcaa0e1cabdb6b53ee5946f012c2dcbaba1a79f624118b
+    digest: 5e3eebfb1712509f41633358c47d524a6af16256cfa9b1b2cf03943040038eb2
     kubeVersion: '>= 1.19.0-0'
     name: osm-edge
     type: application
     urls:
     - https://flomesh-io.github.io/osm-edge/osm-edge-v1.1.0-f5h1.tgz
     version: v1.1.0-f5h1
-generated: "2022-07-09T12:15:14.794104123Z"
+generated: "2022-07-09T12:57:24.924713204Z"
