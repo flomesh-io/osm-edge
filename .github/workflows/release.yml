@@ -2,7 +2,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*-f5h*"
 
 jobs:
   version:
@@ -11,10 +11,12 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
+      - id: raw
+        run: echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}')"
       - id: version
-        run: |
-          echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}' | tr '+' '-')"
-          echo "::set-output name=build::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}' | tr '+' '-' | cut -d '-' -f 2)"
+        run: echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}' | tr '+' '-')"
+      - id: build
+        run: echo "::set-output name=build::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}' | tr '+' '-' | cut -d '-' -f 2)"
 
   binaries:
     name: Binaries
@@ -22,6 +24,7 @@ jobs:
     needs: version
     env:
       VERSION: ${{ needs.version.outputs.version }}
+      RAW_VERSION: ${{ needs.raw.outputs.version }}
       BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -49,7 +52,7 @@ jobs:
         run: |
           make release-artifacts
       - name: Generate Release Notes
-        run: scripts/release-notes.sh $VERSION > release-notes.md
+        run: scripts/release-notes.sh $RAW_VERSION > release-notes.md
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
@@ -141,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: version
     env:
-      BUILD: ${{ needs.version.outputs.build }}
+      BUILD: ${{ needs.build.outputs.build }}
     strategy:
       matrix:
         id: [ "sidecar-init", "controller", "injector", "crds", "bootstrap", "preinstall", "healthcheck" ]
@@ -192,7 +195,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: version
     env:
-      BUILD: ${{ needs.version.outputs.build }}
+      BUILD: ${{ needs.build.outputs.build }}
     strategy:
       matrix:
         id: [ "bookbuyer", "bookthief", "bookstore", "bookwarehouse", "tcp-echo-server", "tcp-client" ]
