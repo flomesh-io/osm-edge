@@ -156,31 +156,31 @@ docker-build-demo: $(DOCKER_DEMO_TARGETS)
 
 .PHONY: docker-build-osm-edge-sidecar-init
 docker-build-osm-edge-sidecar-init:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-sidecar-init:$(CTR_TAG) - < dockerfiles/Dockerfile.osm-sidecar-init
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-sidecar-init:$(CTR_TAG) - < dockerfiles/Dockerfile.osm-edge-sidecar-init
 
 .PHONY: docker-build-osm-edge-controller
 docker-build-osm-edge-controller:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-controller --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-osm-edge-injector
 docker-build-osm-edge-injector:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-injector --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-osm-edge-crds
 docker-build-osm-edge-crds:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-crds ./cmd/osm-bootstrap/crds
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-crds:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-crds ./cmd/osm-bootstrap/crds
 
 .PHONY: docker-build-osm-edge-bootstrap
 docker-build-osm-edge-bootstrap:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-bootstrap --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-bootstrap:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-bootstrap --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-osm-edge-preinstall
 docker-build-osm-edge-preinstall:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-preinstall --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-preinstall:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-preinstall --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
 .PHONY: docker-build-osm-edge-healthcheck
 docker-build-osm-edge-healthcheck:
-	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
 OSM_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
