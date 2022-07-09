@@ -140,8 +140,8 @@ jobs:
     needs: version
     env:
       VERSION: ${{ needs.version.outputs.version }}
-      BUILD_DATE: '$$(date +%Y-%m-%d-%H:%M)'
-      GIT_SHA: '$$(git rev-parse HEAD)'
+      BUILD_DATE: "$(date +%Y-%m-%d-%H:%M)"
+      GIT_SHA: "$(git rev-parse HEAD)"
       BUILD_DATE_VAR: 'github.com/openservicemesh/osm/pkg/version.BuildDate'
       BUILD_VERSION_VAR: 'github.com/openservicemesh/osm/pkg/version.Version'
       BUILD_GITCOMMIT_VAR: 'github.com/openservicemesh/osm/pkg/version.GitCommit'
