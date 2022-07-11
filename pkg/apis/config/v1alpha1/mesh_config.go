@@ -217,7 +217,7 @@ type SidecarDriverSpec struct {
 	SidecarImage string `json:"sidecarImage,omitempty"`
 
 	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
-	SidecarWindowsImage string `json:"SidecarImageWindowsImage,omitempty"`
+	SidecarWindowsImage string `json:"sidecarImageWindowsImage,omitempty"`
 
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
