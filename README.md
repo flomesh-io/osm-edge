@@ -117,7 +117,7 @@ After installing OSM, [onboard a microservice application](https://osm-docs.flom
 
 ### Quick Start
 
-Refer to [Quick Start](https://osm-edge-docs.flomesh.io/docs/quickstart/) guide for step-by-step guide on how to start quickly.
+Refer to [Quick Start](https://osm-docs.flomesh.io/docs/quickstart/) guide for step-by-step guide on how to start quickly.
 
 ### OSM Usage Patterns
 
