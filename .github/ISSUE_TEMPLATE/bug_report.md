@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug encountered while operating OSM
+about: Report a bug encountered while operating osm-edge
 title: ''
 labels: bug
 assignees: ''
@@ -40,7 +40,7 @@ Be sure to not include any sensitive information. Sensitive information should _
 
 **Steps to reproduce the bug (as precisely as possible)**:
 
-**How was OSM installed?**:
+**How was osm-edge installed?**:
 
 **Anything else we need to know?**:
 
@@ -51,7 +51,7 @@ Use `osm support bug-report --app-namespaces <ns1>,<ns2> --app-deployments <ns1>
 -->
 
 **Environment**:
-- OSM version (use `osm version`):
+- osm-edge version (use `osm version`):
 - Kubernetes version (use `kubectl version`):
 - Size of cluster (number of worker nodes in the cluster):
 - Others:

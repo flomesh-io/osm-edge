@@ -192,6 +192,20 @@ func (mr *MockConfiguratorMockRecorder) GetProxyResources() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyResources", reflect.TypeOf((*MockConfigurator)(nil).GetProxyResources))
 }
 
+// GetProxyServerPort mocks base method.
+func (m *MockConfigurator) GetProxyServerPort() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProxyServerPort")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
+// GetProxyServerPort indicates an expected call of GetProxyServerPort.
+func (mr *MockConfiguratorMockRecorder) GetProxyServerPort() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyServerPort", reflect.TypeOf((*MockConfigurator)(nil).GetProxyServerPort))
+}
+
 // GetServiceCertValidityPeriod mocks base method.
 func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 	m.ctrl.T.Helper()

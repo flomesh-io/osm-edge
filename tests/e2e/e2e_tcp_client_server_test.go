@@ -11,6 +11,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
@@ -43,6 +44,12 @@ func testTCPTraffic(permissiveMode bool) {
 		installOpts := Td.GetOSMInstallOpts()
 		installOpts.EnablePermissiveMode = permissiveMode
 		Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+		if sidecarClass, err := Td.GetSidecarClass(Td.OsmNamespace); err == nil {
+			if strings.EqualFold(strings.ToLower(constants.SidecarClassPipy), strings.ToLower(sidecarClass)) {
+				Skip("Test is only meant to be running when using envoy sidecar")
+			}
+		}
 
 		// Load TCP server image
 		Expect(Td.LoadImagesToKind([]string{"osm-edge-demo-tcp-echo-server"})).To(Succeed())

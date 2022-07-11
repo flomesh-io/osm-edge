@@ -189,7 +189,7 @@ func main() {
 
 	if cfg.GetFeatureFlags().EnableMulticlusterMode {
 		log.Info().Msgf("Bootstrapping OSM multicluster gateway")
-		if err := bootstrapOSMMulticlusterGateway(kubeClient, certManager, osmNamespace); err != nil {
+		if err := bootstrapOSMMulticlusterGateway(kubeClient, certManager, osmNamespace, cfg.GetProxyServerPort()); err != nil {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
 				"Error bootstraping OSM multicluster gateway")
 		}
@@ -236,7 +236,7 @@ func main() {
 	}
 
 	background := driver.ControllerContext{
-		ProxyServerPort:  constants.ProxyServerPort,
+		ProxyServerPort:  cfg.GetProxyServerPort(),
 		ProxyServiceCert: proxyServiceCert,
 		OsmNamespace:     osmNamespace,
 		KubeConfig:       kubeConfig,

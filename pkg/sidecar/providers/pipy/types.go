@@ -20,12 +20,3 @@ const (
 	// KindGateway implies the proxy is a gateway
 	KindGateway ProxyKind = "gateway"
 )
-
-// RepoResource is the type used to define the pipy repo resource
-type RepoResource string
-
-// RepoResourceV is the type to define RepoResource with version
-type RepoResourceV struct {
-	Content string
-	Version string
-}

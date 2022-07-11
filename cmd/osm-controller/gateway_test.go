@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func TestBootstrapOSMMulticlusterGateway(t *testing.T) {
@@ -140,7 +141,7 @@ static_resources:
 				assert.Nil(err)
 			}
 
-			actual := bootstrapOSMMulticlusterGateway(fakeClient, fakeCertManager, testNs)
+			actual := bootstrapOSMMulticlusterGateway(fakeClient, fakeCertManager, testNs, constants.ProxyServerPort)
 			assert.Equal(tc.expectError, actual != nil)
 		})
 	}

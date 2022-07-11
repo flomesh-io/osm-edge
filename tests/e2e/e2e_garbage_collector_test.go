@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -30,12 +29,6 @@ var _ = OSMDescribe("Test garbage collection for unused sidecar bootstrap config
 			It("Tests garbage collection", func() {
 				// Install OSM
 				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
-
-				if sidecarClass, err := Td.GetSidecarClass(Td.OsmNamespace); err == nil {
-					if strings.EqualFold(strings.ToLower(constants.SidecarClassPipy), strings.ToLower(sidecarClass)) {
-						Skip("Test is only meant to be running when using envoy sidecar")
-					}
-				}
 
 				// Create NSs
 				Expect(Td.CreateNs(userService, nil)).To(Succeed())

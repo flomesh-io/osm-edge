@@ -1,4 +1,4 @@
-# Default values for osm.
+# Default values for osm-edge.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
@@ -49,26 +49,22 @@ osm:
 
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
-  # -- The class of the OSM Sidecar
+  # -- The class of the OSM Sidecar Driver
   sidecarClass: pipy
-  # -- Sidecar image for Linux workloads
-  sidecarImage: flomesh/pipy-nightly:latest
-  # -- Sidecar image for Windows workloads
-  sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
-  # -- Sidecar drivers supported by osm
+  # -- Sidecar drivers supported by osm-edge
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads
       sidecarImage: flomesh/pipy-nightly:latest
-      # -- Sidecar image for Windows workloads
-      sidecarWindowsImage: flomesh/pipy-windows-nightly:latest
-      # -- Disabled or enable MTLS
-      sidecarDisabledMTLS: false
+      # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+      proxyServerPort: 6060
     - sidecarName: envoy
       # -- Sidecar image for Linux workloads
       sidecarImage: envoyproxy/envoy:v1.19.3
       # -- Sidecar image for Windows workloads
       sidecarWindowsImage: envoyproxy/envoy-windows:latest
+      # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
+      proxyServerPort: 15128
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
   #

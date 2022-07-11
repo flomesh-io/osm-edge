@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -11,7 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
@@ -28,8 +30,8 @@ type Server struct {
 	cfg            configurator.Configurator
 	certManager    certificate.Manager
 	ready          bool
-	workqueues     *workerpool.WorkerPool
-	kubecontroller k8s.Controller
+	workQueues     *workerpool.WorkerPool
+	kubeController k8s.Controller
 
 	// When snapshot cache is enabled, we (currently) don't keep track of proxy information, however different
 	// config versions have to be provided to the cache as we keep adding snapshots. The following map
@@ -39,29 +41,9 @@ type Server struct {
 
 	msgBroker *messaging.Broker
 
-	getCodebase func(ccName string) interface{}
-}
+	repoClient *client.PipyRepoClient
 
-// Repo pipy repo server wrapper
-type Repo struct {
-	server           *Server
-	connectedProxies sync.Map
-}
-
-// ConnectedProxy is the proxy object of connected pipy sidecar
-type ConnectedProxy struct {
-	proxy        *pipy.Proxy
-	connectedAt  time.Time
-	lastReportAt time.Time
-	initError    error
-	quit         chan struct{}
-}
-
-// PipyReport is data reported by pipy sidecar
-type PipyReport struct {
-	Timestamp uint64 `json:"timestamp"`
-	UUID      string `json:"uuid"`
-	Version   string `json:"version"`
+	retryJob func()
 }
 
 // Protocol is a string wrapper type
@@ -217,9 +199,9 @@ type MeshConfigSpec struct {
 	Traffic         TrafficSpec
 	FeatureFlags    FeatureFlags
 	Probes          struct {
-		ReadinessProbes []interface{}
-		LivenessProbes  []interface{}
-		StartupProbes   []interface{}
+		ReadinessProbes []v1.Probe
+		LivenessProbes  []v1.Probe
+		StartupProbes   []v1.Probe
 	}
 }
 
@@ -244,11 +226,10 @@ type Certificate struct {
 
 // PipyConf is a policy used by pipy sidecar
 type PipyConf struct {
-	Spec              MeshConfigSpec
-	Certificate       *Certificate
-	Inbound           *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound          *OutboundTrafficPolicy `json:"Outbound"`
-	AllowedEndpoints  map[string]string      `json:"AllowedEndpoints"`
-	allowedEndpointsV uint64
-	bytes             []byte
+	Ts               time.Time
+	Spec             MeshConfigSpec
+	Certificate      *Certificate
+	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
+	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
 }

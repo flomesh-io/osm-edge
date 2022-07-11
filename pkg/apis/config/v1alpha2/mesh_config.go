@@ -238,6 +238,9 @@ type SidecarDriverSpec struct {
 	// InitContainerImage defines the container image used for the init container injected to meshed pods.
 	InitContainerImage string `json:"initContainerImage,omitempty"`
 
-	// SidecarDisabledMTLS defines if mTLS are disabled.
+	// ProxyServerPort is the port on which the Discovery Service listens for new connections from Sidecars
+	ProxyServerPort uint32 `json:"proxyServerPort"`
+
+	// SidecarDisabledMTLS defines whether mTLS is disabled.
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
 }

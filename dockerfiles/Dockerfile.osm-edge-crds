@@ -6,5 +6,5 @@ RUN wget https://dl.k8s.io/release/v1.22.2/bin/$TARGETPLATFORM/kubectl -O /bin/k
     chmod +x /bin/kubectl
 FROM busybox:1.33
 COPY --from=builder /bin/kubectl /bin
-COPY * /osm-crds/
+COPY ./cmd/osm-bootstrap/crds/* /osm-crds/
 ENTRYPOINT ["/bin/kubectl"]

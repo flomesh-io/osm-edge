@@ -1,16 +1,18 @@
 package repo
 
 import (
-	"fmt"
-
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // PipyConfGeneratorJob is the job to generate pipy policy json
@@ -37,6 +39,9 @@ func (job *PipyConfGeneratorJob) Run() {
 	s := job.repoServer
 	proxy := job.proxy
 
+	proxy.Mutex.Lock()
+	defer proxy.Mutex.Unlock()
+
 	proxyIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
@@ -55,6 +60,113 @@ func (job *PipyConfGeneratorJob) Run() {
 	cataloger := s.catalog
 	pipyConf := new(PipyConf)
 
+	probes(proxy, pipyConf)
+	features(s, proxy, pipyConf, proxyIdentity)
+	certs(proxy, pipyConf)
+
+	inbound(cataloger, proxyIdentity, proxyServices, pipyConf)
+
+	if !outbound(cataloger, proxyIdentity, pipyConf, proxy, s) {
+		return
+	}
+
+	if !egress(cataloger, proxyIdentity, s, pipyConf, proxy) {
+		return
+	}
+
+	balance(pipyConf)
+	endpoints(pipyConf, s)
+	job.publishSidecarConf(s.repoClient, s.proxyRegistry, proxy, pipyConf)
+}
+
+func endpoints(pipyConf *PipyConf, s *Server) {
+	ready := pipyConf.copyAllowedEndpoints(s.kubeController)
+	if !ready {
+		if s.retryJob != nil {
+			s.retryJob()
+		}
+	}
+}
+
+func balance(pipyConf *PipyConf) {
+	pipyConf.rebalanceOutboundClusters()
+}
+
+func egress(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
+	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
+	if egressErr != nil {
+		if s.retryJob != nil {
+			s.retryJob()
+		}
+		return false
+	}
+
+	if egressTrafficPolicy != nil {
+		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+			egressTrafficPolicy)
+		if len(egressDependClusters) > 0 {
+			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+				egressTrafficPolicy, egressDependClusters); !ready {
+				if s.retryJob != nil {
+					s.retryJob()
+				}
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func outbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
+	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
+	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+		outboundTrafficPolicy)
+	if len(outboundDependClusters) > 0 {
+		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+			outboundTrafficPolicy, outboundDependClusters); !ready {
+			if s.retryJob != nil {
+				s.retryJob()
+			}
+			return false
+		}
+	}
+	return true
+}
+
+func inbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf) {
+	// Build inbound mesh route configurations. These route configurations allow
+	// the services associated with this proxy to accept traffic from downstream
+	// clients on allowed routes.
+	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
+	generatePipyInboundTrafficPolicy(cataloger, proxyIdentity, pipyConf, inboundTrafficPolicy)
+	if len(proxyServices) > 0 {
+		for _, svc := range proxyServices {
+			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
+				if ingressTrafficPolicy != nil {
+					generatePipyIngressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+						ingressTrafficPolicy)
+				}
+			}
+		}
+	}
+}
+
+func certs(proxy *pipy.Proxy, pipyConf *PipyConf) {
+	if proxy.SidecarCert != nil {
+		pipyConf.Certificate = &Certificate{
+			CommonName:   proxy.SidecarCert.CommonName,
+			SerialNumber: proxy.SidecarCert.SerialNumber,
+			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
+			CertChain:    string(proxy.SidecarCert.CertChain),
+			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
+			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
+		}
+	} else {
+		pipyConf.Certificate = nil
+	}
+}
+
+func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity identity.ServiceIdentity) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
 		proxy.MeshConf = meshConf
@@ -77,88 +189,58 @@ func (job *PipyConfGeneratorJob) Run() {
 			proxy.SidecarCert = nil
 		}
 	}
-	if proxy.SidecarCert != nil {
-		pipyConf.Certificate = &Certificate{
-			CommonName:   proxy.SidecarCert.CommonName,
-			SerialNumber: proxy.SidecarCert.SerialNumber,
-			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
-			CertChain:    string(proxy.SidecarCert.CertChain),
-			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
-			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
-		}
-	} else {
-		pipyConf.Certificate = nil
-	}
+}
 
-	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
-	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-		outboundTrafficPolicy)
-	if len(outboundDependClusters) > 0 {
-		outboundDependClustersReady := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-			outboundTrafficPolicy, outboundDependClusters)
-		if !outboundDependClustersReady {
-			return
-		}
-	}
-
-	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
-	if egressErr != nil {
-		return
-	}
-
-	if egressTrafficPolicy != nil {
-		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-			egressTrafficPolicy)
-		if len(egressDependClusters) > 0 {
-			egressDependClustersReady := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
-				egressTrafficPolicy, egressDependClusters)
-			if !egressDependClustersReady {
-				return
-			}
-		}
-	}
-	// Build inbound mesh route configurations. These route configurations allow
-	// the services associated with this proxy to accept traffic from downstream
-	// clients on allowed routes.
-	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, proxyIdentity, pipyConf, inboundTrafficPolicy)
-
-	if len(proxyServices) > 0 {
-		for _, svc := range proxyServices {
-			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
-				if ingressTrafficPolicy != nil {
-					generatePipyIngressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
-						ingressTrafficPolicy)
-				}
-			}
-		}
-	}
-
+func probes(proxy *pipy.Proxy, pipyConf *PipyConf) {
 	if proxy.PodMetadata != nil {
 		if len(proxy.PodMetadata.StartupProbes) > 0 {
 			for idx := range proxy.PodMetadata.StartupProbes {
-				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, proxy.PodMetadata.StartupProbes[idx])
+				pipyConf.Spec.Probes.StartupProbes = append(pipyConf.Spec.Probes.StartupProbes, *proxy.PodMetadata.StartupProbes[idx])
 			}
 		}
 		if len(proxy.PodMetadata.LivenessProbes) > 0 {
 			for idx := range proxy.PodMetadata.LivenessProbes {
-				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, proxy.PodMetadata.LivenessProbes[idx])
+				pipyConf.Spec.Probes.LivenessProbes = append(pipyConf.Spec.Probes.LivenessProbes, *proxy.PodMetadata.LivenessProbes[idx])
 			}
 		}
 		if len(proxy.PodMetadata.ReadinessProbes) > 0 {
 			for idx := range proxy.PodMetadata.ReadinessProbes {
-				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, proxy.PodMetadata.ReadinessProbes[idx])
+				pipyConf.Spec.Probes.ReadinessProbes = append(pipyConf.Spec.Probes.ReadinessProbes, *proxy.PodMetadata.ReadinessProbes[idx])
 			}
 		}
 	}
+}
 
-	pipyConf.rebalanceOutboundClusters()
-	pipyConf.copyAllowedEndpoints()
-
+func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, pipyConf *PipyConf) {
 	if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
-		if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
-			pipyConf.bytes = bytes
-			proxy.SetCodebase(pipyConf, fmt.Sprintf("%d", hashCode), true)
+		codebasePreV := int64(0)
+		certCommonName := proxy.GetCertificateCommonName()
+		if etag, ok := proxyRegistry.PodCNtoETag.Load(certCommonName); ok {
+			codebasePreV = etag.(int64)
+		}
+		codebaseCurV := hash(bytes)
+		if codebaseCurV != codebasePreV {
+			err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
+			if err == nil {
+				pipyConf.Ts = time.Now()
+				bytes, _ = json.MarshalIndent(pipyConf, "", " ")
+				err = repoClient.Batch([]client.Batch{
+					{
+						Basepath: fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()),
+						Items: []client.BatchItem{
+							{
+								Filename: "pipy.json",
+								Content:  bytes,
+							},
+						},
+					},
+				})
+			}
+			if err != nil {
+				log.Error().Err(err)
+			} else {
+				proxyRegistry.PodCNtoETag.Store(certCommonName, codebaseCurV)
+			}
 		}
 	}
 }
@@ -173,71 +255,4 @@ func (job *PipyConfGeneratorJob) Hash() uint64 {
 	// Uses proxy hash to always serialize work for the same proxy to the same worker,
 	// this avoid out-of-order mishandling of sidecar updates by multiple workers
 	return job.proxy.GetHash()
-}
-
-func refreshPipyConf(server *Server, proxy *pipy.Proxy, pipyConf *PipyConf) string {
-	changed := false
-	if proxy.MeshConf != nil {
-		if pipyConf.setSidecarLogLevel((*proxy.MeshConf).GetSidecarLogLevel()) {
-			changed = true
-		}
-		if pipyConf.setEnableSidecarActiveHealthChecks((*proxy.MeshConf).GetFeatureFlags().EnableSidecarActiveHealthChecks) {
-			changed = true
-		}
-		if pipyConf.setEnableEgress((*proxy.MeshConf).IsEgressEnabled()) {
-			changed = true
-		}
-		if pipyConf.setEnablePermissiveTrafficPolicyMode((*proxy.MeshConf).IsPermissiveTrafficPolicyMode()) {
-			changed = true
-		}
-		if !(*proxy.MeshConf).GetSidecarDisabledMTLS() {
-			if proxy.SidecarCert == nil || proxy.SidecarCert.ShouldRotate() {
-				changed = true
-				pipyConf.Certificate = nil
-				sidecarCert, certErr := server.certManager.IssueCertificate(certificate.CommonName(proxy.ProxyIdentity), server.cfg.GetServiceCertValidityPeriod())
-				if certErr != nil {
-					log.Error().Err(certErr).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
-					proxy.SidecarCert = nil
-				} else {
-					proxy.SidecarCert = sidecarCert
-				}
-			}
-		} else {
-			proxy.SidecarCert = nil
-		}
-	}
-
-	if proxy.SidecarCert != nil {
-		if pipyConf.Certificate == nil {
-			changed = true
-		}
-		pipyConf.Certificate = &Certificate{
-			CommonName:   proxy.SidecarCert.CommonName,
-			SerialNumber: proxy.SidecarCert.SerialNumber,
-			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
-			CertChain:    string(proxy.SidecarCert.CertChain),
-			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
-			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
-		}
-	} else {
-		if pipyConf.Certificate != nil {
-			changed = true
-		}
-		pipyConf.Certificate = nil
-	}
-
-	if changed || pipyConf.allowedEndpointsV != registry.CachedMeshPodsV {
-		prevAllowedEndpointsV := pipyConf.allowedEndpointsV
-		pipyConf.copyAllowedEndpoints()
-		if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
-			if hashCode, hashErr := utils.HashFromString(string(bytes)); hashErr == nil {
-				pipyConf.bytes = bytes
-				etag := fmt.Sprintf("%d", hashCode)
-				proxy.SetCodebase(pipyConf, etag, true)
-				return etag
-			}
-		}
-		pipyConf.allowedEndpointsV = prevAllowedEndpointsV
-	}
-	return ""
 }

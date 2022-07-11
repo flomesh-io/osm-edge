@@ -72,7 +72,7 @@ var ControllerCtxKey int
 type ControllerContext struct {
 	context.Context
 
-	ProxyServerPort  int
+	ProxyServerPort  uint32
 	ProxyServiceCert *certificate.Certificate
 	OsmNamespace     string
 	KubeConfig       *rest.Config

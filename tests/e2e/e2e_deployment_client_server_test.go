@@ -8,11 +8,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	. "github.com/openservicemesh/osm/tests/framework"
-
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment server",
@@ -26,7 +25,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 			HTTPHeaderName = "podname"
 		)
 
-		var maxTestDuration = 300 * time.Second
+		var maxTestDuration = 180 * time.Second
 
 		Context("DeploymentsClientServer", func() {
 			var (

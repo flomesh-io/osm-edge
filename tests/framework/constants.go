@@ -33,7 +33,7 @@ const (
 	defaultSidecarLogLevel = "debug"
 
 	// default OSM loglevel
-	defaultOSMLogLevel = "trace"
+	defaultOSMLogLevel = "warn"
 
 	// Test folder base default value
 	testFolderBase = "/tmp"
