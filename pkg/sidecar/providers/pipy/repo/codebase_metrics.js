@@ -53,7 +53,7 @@
 
     metrics.funcTracingHeaders = (namespace, kind, name, pod, headers, proto, uuid, id) => (
       uuid = algo.uuid(),
-      id = algo.hash(uuid),
+      id = uuid.substring(0, 18).replaceAll('-', ''),
       proto && (headers['x-forwarded-proto'] = proto),
       headers['x-b3-spanid'] &&
       (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) &&
