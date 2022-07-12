@@ -32,8 +32,6 @@ var _ = OSMDescribe("Upgrade from latest",
 
 			if _, err := exec.LookPath("kubectl"); err != nil {
 				Td.T.Fatal("\"kubectl\" command required and not found on PATH")
-			} else {
-				Skip("Coming soon ...")
 			}
 
 			helmCfg := &action.Configuration{}
@@ -90,7 +88,7 @@ var _ = OSMDescribe("Upgrade from latest",
 				},
 			}
 
-			chartPath, err := i.LocateChart("osm", helmEnv)
+			chartPath, err := i.LocateChart("osm-edge", helmEnv)
 			Expect(err).NotTo(HaveOccurred())
 			ch, err := loader.Load(chartPath)
 			ensureNodeSelector(ch)

@@ -1,12 +1,15 @@
 #!/bin/bash
 
+# shellcheck disable=SC1091
+source .env
+
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-false}"
 DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
 DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 
 ./scripts/port-forward-bookbuyer-ui.sh &
-./scripts/port-forward-bookstore-ui.sh &
+#./scripts/port-forward-bookstore-ui.sh &
 ./scripts/port-forward-bookstore-ui-v2.sh &
 ./scripts/port-forward-bookstore-ui-v1.sh &
 ./scripts/port-forward-bookthief-ui.sh &
