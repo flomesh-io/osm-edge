@@ -66,9 +66,9 @@
       }
     ]
   },
-  "title": "OSM Mesh and Envoy Details",
+  "title": "OSM Mesh and Pipy Details",
   "description": "Compatible with OSM v1.0.0. This dashboard lets you view the performance and behavior of OSM’s control plane.",
-  "uid": "OSMMeshAndEnvoyDetails",
+  "uid": "OSMMeshAndPipyDetails",
   "version": 4,
   "editable": true,
   "gnetId": null,

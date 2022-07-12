@@ -18,6 +18,9 @@ var _ = OSMDescribe("Test HTTP traffic for different k8s versions",
 		Bucket: 6,
 	},
 	func() {
+		Context("Version v1.24.2", func() {
+			testK8sVersion("v1.24.2")
+		})
 		Context("Version v1.23.6", func() {
 			testK8sVersion("v1.23.6")
 		})
