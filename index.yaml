@@ -2,7 +2,7 @@ apiVersion: v1
 entries:
   osm-edge:
   - apiVersion: v2
-    appVersion: v1.1.0
+    appVersion: 1.1.0
     created: "2022-07-09T16:00:18.097365548Z"
     dependencies:
     - condition: contour.enabled
@@ -15,6 +15,6 @@ entries:
     name: osm-edge
     type: application
     urls:
-    - https://flomesh-io.github.io/osm-edge/osm-edge-v1.1.0.tgz
-    version: v1.1.0
+    - https://flomesh-io.github.io/osm-edge/osm-edge-1.1.0.tgz
+    version: 1.1.0
 generated: "2022-07-09T16:00:18.08701887Z"
