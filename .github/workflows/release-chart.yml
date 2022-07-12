@@ -12,7 +12,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - id: version
-        run: echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}')"
+        run: echo "::set-output name=version::$(sed 's#^refs/tags/\(.*\)#\1#' <<< '${{ github.ref }}' | cut -c 2-)"
 
   release:
     runs-on: ubuntu-latest
