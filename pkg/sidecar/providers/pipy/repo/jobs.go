@@ -42,13 +42,12 @@ func (job *PipyConfGeneratorJob) Run() {
 	proxy.Mutex.Lock()
 	defer proxy.Mutex.Unlock()
 
-	proxyIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
+	serviceIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingServiceIdentity)).
 			Msgf("Error looking up Service Account for Sidecar with serial number=%q", proxy.GetCertificateSerialNumber())
 		return
 	}
-	proxy.ProxyIdentity = proxyIdentity
 
 	proxyServices, err := s.proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
@@ -62,15 +61,15 @@ func (job *PipyConfGeneratorJob) Run() {
 
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
-	certs(s, proxy, pipyConf, proxyIdentity)
+	certs(s, proxy, pipyConf, serviceIdentity)
 
-	inbound(cataloger, proxyIdentity, proxyServices, pipyConf)
+	inbound(cataloger, serviceIdentity, proxyServices, pipyConf)
 
-	if !outbound(cataloger, proxyIdentity, pipyConf, proxy, s) {
+	if !outbound(cataloger, serviceIdentity, pipyConf, proxy, s) {
 		return
 	}
 
-	if !egress(cataloger, proxyIdentity, s, pipyConf, proxy) {
+	if !egress(cataloger, serviceIdentity, s, pipyConf, proxy) {
 		return
 	}
 
@@ -92,8 +91,8 @@ func balance(pipyConf *PipyConf) {
 	pipyConf.rebalanceOutboundClusters()
 }
 
-func egress(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
-	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(proxyIdentity)
+func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
+	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(serviceIdentity)
 	if egressErr != nil {
 		if s.retryJob != nil {
 			s.retryJob()
@@ -102,10 +101,10 @@ func egress(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdent
 	}
 
 	if egressTrafficPolicy != nil {
-		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+		egressDependClusters := generatePipyEgressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
 			egressTrafficPolicy)
 		if len(egressDependClusters) > 0 {
-			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 				egressTrafficPolicy, egressDependClusters); !ready {
 				if s.retryJob != nil {
 					s.retryJob()
@@ -117,12 +116,12 @@ func egress(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdent
 	return true
 }
 
-func outbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
-	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(proxyIdentity)
-	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
+	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(serviceIdentity)
+	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
 		outboundTrafficPolicy)
 	if len(outboundDependClusters) > 0 {
-		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, proxyIdentity, pipyConf,
+		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 			outboundTrafficPolicy, outboundDependClusters); !ready {
 			if s.retryJob != nil {
 				s.retryJob()
@@ -133,17 +132,17 @@ func outbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIde
 	return true
 }
 
-func inbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf) {
+func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf) {
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
-	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(proxyIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, proxyIdentity, pipyConf, inboundTrafficPolicy)
+	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(serviceIdentity, proxyServices)
+	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy)
 	if len(proxyServices) > 0 {
 		for _, svc := range proxyServices {
 			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
 				if ingressTrafficPolicy != nil {
-					generatePipyIngressTrafficRoutePolicy(cataloger, proxyIdentity, pipyConf,
+					generatePipyIngressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
 						ingressTrafficPolicy)
 				}
 			}
@@ -151,13 +150,13 @@ func inbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIden
 	}
 }
 
-func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity identity.ServiceIdentity) {
+func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, serviceIdentity identity.ServiceIdentity) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
 		if !(*meshConf).GetSidecarDisabledMTLS() {
 			if proxy.SidecarCert == nil {
 				pipyConf.Certificate = nil
-				sidecarCert, certErr := s.certManager.GetCertificate(certificate.CommonName(proxyIdentity))
+				sidecarCert, certErr := s.certManager.GetCertificate(certificate.CommonName(serviceIdentity))
 				if certErr != nil {
 					log.Error().Err(certErr).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 					proxy.SidecarCert = nil
@@ -174,7 +173,7 @@ func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity ident
 				expirationDuration := (aliveDuration + certValidityPeriod/2).Round(certValidityPeriod)
 				certExpiration := ct.Add(expirationDuration)
 				certValidityPeriod = certExpiration.Sub(now)
-				sidecarCert, certErr := s.certManager.IssueCertificate(certificate.CommonName(proxyIdentity), certValidityPeriod)
+				sidecarCert, certErr := s.certManager.IssueCertificate(certificate.CommonName(serviceIdentity), certValidityPeriod)
 				if certErr != nil {
 					log.Error().Err(certErr).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 					proxy.SidecarCert = nil
@@ -239,7 +238,8 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		}
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
-			err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
+			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName())
+			err := repoClient.DeriveCodebase(codebase, osmCodebase)
 			if err == nil {
 				ts := time.Now()
 				pipyConf.Ts = &ts
@@ -252,7 +252,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 				bytes, _ = json.MarshalIndent(pipyConf, "", " ")
 				err = repoClient.Batch(codebaseCurV, []client.Batch{
 					{
-						Basepath: fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()),
+						Basepath: codebase,
 						Items: []client.BatchItem{
 							{
 								Filename: "pipy.json",

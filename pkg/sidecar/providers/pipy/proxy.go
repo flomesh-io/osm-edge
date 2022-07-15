@@ -45,9 +45,8 @@ type Proxy struct {
 	// eventually be set when the metadata arrives via the xDS protocol.
 	PodMetadata *PodMetadata
 
-	ProxyIdentity identity.ServiceIdentity
-	MeshConf      *configurator.Configurator
-	SidecarCert   *certificate.Certificate
+	MeshConf    *configurator.Configurator
+	SidecarCert *certificate.Certificate
 
 	Mutex sync.RWMutex
 	Quit  chan bool
