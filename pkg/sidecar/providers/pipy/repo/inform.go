@@ -136,6 +136,7 @@ func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
 				Namespace: pod.Namespace,
 				Name:      pod.Spec.ServiceAccountName,
 			},
+			CreationTime: pod.GetCreationTimestamp().Time,
 			WorkloadKind: workloadKind,
 			WorkloadName: workloadName,
 		}

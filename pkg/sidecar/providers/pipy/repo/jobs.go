@@ -61,8 +61,8 @@ func (job *PipyConfGeneratorJob) Run() {
 	pipyConf := new(PipyConf)
 
 	probes(proxy, pipyConf)
-	features(s, proxy, pipyConf, proxyIdentity)
-	certs(proxy, pipyConf)
+	features(s, proxy, pipyConf)
+	certs(s, proxy, pipyConf, proxyIdentity)
 
 	inbound(cataloger, proxyIdentity, proxyServices, pipyConf)
 
@@ -151,33 +151,13 @@ func inbound(cataloger catalog.MeshCataloger, proxyIdentity identity.ServiceIden
 	}
 }
 
-func certs(proxy *pipy.Proxy, pipyConf *PipyConf) {
-	if proxy.SidecarCert != nil {
-		pipyConf.Certificate = &Certificate{
-			CommonName:   proxy.SidecarCert.CommonName,
-			SerialNumber: proxy.SidecarCert.SerialNumber,
-			Expiration:   proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
-			CertChain:    string(proxy.SidecarCert.CertChain),
-			PrivateKey:   string(proxy.SidecarCert.PrivateKey),
-			IssuingCA:    string(proxy.SidecarCert.IssuingCA),
-		}
-	} else {
-		pipyConf.Certificate = nil
-	}
-}
-
-func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity identity.ServiceIdentity) {
+func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity identity.ServiceIdentity) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
-		proxy.MeshConf = meshConf
-		pipyConf.setSidecarLogLevel((*meshConf).GetSidecarLogLevel())
-		pipyConf.setEnableSidecarActiveHealthChecks((*meshConf).GetFeatureFlags().EnableSidecarActiveHealthChecks)
-		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
-		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
 		if !(*meshConf).GetSidecarDisabledMTLS() {
-			if proxy.SidecarCert == nil || proxy.SidecarCert.ShouldRotate() {
+			if proxy.SidecarCert == nil {
 				pipyConf.Certificate = nil
-				sidecarCert, certErr := s.certManager.IssueCertificate(certificate.CommonName(proxyIdentity), s.cfg.GetServiceCertValidityPeriod())
+				sidecarCert, certErr := s.certManager.GetCertificate(certificate.CommonName(proxyIdentity))
 				if certErr != nil {
 					log.Error().Err(certErr).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
 					proxy.SidecarCert = nil
@@ -185,9 +165,38 @@ func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyIdentity id
 					proxy.SidecarCert = sidecarCert
 				}
 			}
+			if proxy.SidecarCert == nil || proxy.SidecarCert.ShouldRotate() {
+				pipyConf.Certificate = nil
+				ct := proxy.PodMetadata.CreationTime
+				now := time.Now()
+				certValidityPeriod := s.cfg.GetServiceCertValidityPeriod()
+				aliveDuration := now.Sub(ct)
+				expirationDuration := (aliveDuration + certValidityPeriod/2).Round(certValidityPeriod)
+				certExpiration := ct.Add(expirationDuration)
+				certValidityPeriod = certExpiration.Sub(now)
+				sidecarCert, certErr := s.certManager.IssueCertificate(certificate.CommonName(proxyIdentity), certValidityPeriod)
+				if certErr != nil {
+					log.Error().Err(certErr).Str("proxy", proxy.String()).Msgf("Error issuing a certificate for proxy")
+					proxy.SidecarCert = nil
+				} else {
+					sidecarCert.Expiration = certExpiration
+					proxy.SidecarCert = sidecarCert
+				}
+			}
 		} else {
 			proxy.SidecarCert = nil
 		}
+	}
+}
+
+func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
+	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
+		meshConf := mc.GetConfigurator()
+		proxy.MeshConf = meshConf
+		pipyConf.setSidecarLogLevel((*meshConf).GetSidecarLogLevel())
+		pipyConf.setEnableSidecarActiveHealthChecks((*meshConf).GetFeatureFlags().EnableSidecarActiveHealthChecks)
+		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
+		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
 	}
 }
 
@@ -212,19 +221,36 @@ func probes(proxy *pipy.Proxy, pipyConf *PipyConf) {
 }
 
 func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, pipyConf *PipyConf) {
-	if bytes, jsonErr := json.Marshal(pipyConf); jsonErr == nil {
-		codebasePreV := int64(0)
+	pipyConf.Ts = nil
+	pipyConf.Version = 0
+	pipyConf.Certificate = nil
+	if proxy.SidecarCert != nil {
+		pipyConf.Certificate = &Certificate{
+			Expiration: proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
+		}
+	}
+	bytes, jsonErr := json.Marshal(pipyConf)
+
+	if jsonErr == nil {
+		codebasePreV := uint64(0)
 		certCommonName := proxy.GetCertificateCommonName()
 		if etag, ok := proxyRegistry.PodCNtoETag.Load(certCommonName); ok {
-			codebasePreV = etag.(int64)
+			codebasePreV = etag.(uint64)
 		}
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			err := repoClient.DeriveCodebase(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()), osmCodebase)
 			if err == nil {
-				pipyConf.Ts = time.Now()
+				ts := time.Now()
+				pipyConf.Ts = &ts
+				pipyConf.Version = codebaseCurV
+				if proxy.SidecarCert != nil {
+					pipyConf.Certificate.CertChain = string(proxy.SidecarCert.CertChain)
+					pipyConf.Certificate.PrivateKey = string(proxy.SidecarCert.PrivateKey)
+					pipyConf.Certificate.IssuingCA = string(proxy.SidecarCert.IssuingCA)
+				}
 				bytes, _ = json.MarshalIndent(pipyConf, "", " ")
-				err = repoClient.Batch([]client.Batch{
+				err = repoClient.Batch(codebaseCurV, []client.Batch{
 					{
 						Basepath: fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCertificateCommonName()),
 						Items: []client.BatchItem{

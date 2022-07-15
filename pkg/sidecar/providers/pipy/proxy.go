@@ -65,6 +65,7 @@ type PodMetadata struct {
 	Namespace       string
 	IP              string
 	ServiceAccount  identity.K8sServiceAccount
+	CreationTime    time.Time
 	Cluster         string
 	SidecarNodeID   string
 	WorkloadKind    string
