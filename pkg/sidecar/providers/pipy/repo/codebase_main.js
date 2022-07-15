@@ -1,4 +1,4 @@
-// version: '2022.07.07'
+// version: '2022.07.14'
 ((
   {
     config,
@@ -311,7 +311,7 @@
           ),
 
           // EGRESS mode
-          !Boolean(_outTarget) && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (_outMatch?.Protocol !== 'http') && (
+          !Boolean(_outTarget) && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (_outMatch?.Protocol !== 'http' && _outMatch?.Protocol !== 'grpc') && (
             target = _outIP + ':' + _outPort,
             _upstreamClusterName = target,
             !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
