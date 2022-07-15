@@ -221,7 +221,7 @@ func probes(proxy *pipy.Proxy, pipyConf *PipyConf) {
 
 func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy, pipyConf *PipyConf) {
 	pipyConf.Ts = nil
-	pipyConf.Version = 0
+	pipyConf.Version = nil
 	pipyConf.Certificate = nil
 	if proxy.SidecarCert != nil {
 		pipyConf.Certificate = &Certificate{
@@ -243,7 +243,8 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 			if err == nil {
 				ts := time.Now()
 				pipyConf.Ts = &ts
-				pipyConf.Version = codebaseCurV
+				version := fmt.Sprintf("%d", codebaseCurV)
+				pipyConf.Version = &version
 				if proxy.SidecarCert != nil {
 					pipyConf.Certificate.CertChain = string(proxy.SidecarCert.CertChain)
 					pipyConf.Certificate.PrivateKey = string(proxy.SidecarCert.PrivateKey)

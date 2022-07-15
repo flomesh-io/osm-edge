@@ -221,7 +221,7 @@ type Certificate struct {
 // PipyConf is a policy used by pipy sidecar
 type PipyConf struct {
 	Ts               *time.Time
-	Version          uint64
+	Version          *string
 	Spec             MeshConfigSpec
 	Certificate      *Certificate
 	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
