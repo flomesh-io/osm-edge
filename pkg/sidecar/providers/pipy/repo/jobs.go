@@ -194,7 +194,7 @@ func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 		proxy.MeshConf = meshConf
 		pipyConf.setSidecarLogLevel((*meshConf).GetMeshConfig().Spec.Sidecar.LogLevel)
 		pipyConf.setEnableSidecarActiveHealthChecks((*meshConf).GetFeatureFlags().EnableSidecarActiveHealthChecks)
-		pipyConf.setEnableEgress((*meshConf).GetFeatureFlags().EnableEgressPolicy)
+		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
 	}
 }
