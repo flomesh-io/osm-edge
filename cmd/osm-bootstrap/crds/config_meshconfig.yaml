@@ -69,10 +69,10 @@ spec:
                       enum:
                         - pipy
                         - envoy
-                    sidcarImage:
+                    sidecarImage:
                       description: Image for the sidecar
                       type: string
-                    sidcarWindowsImage:
+                    sidecarWindowsImage:
                       description: Image for the sidecar on Windows workers
                       type: string
                     initContainerImage:

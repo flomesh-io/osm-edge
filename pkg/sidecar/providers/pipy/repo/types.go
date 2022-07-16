@@ -207,12 +207,6 @@ type MeshConfigSpec struct {
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
-	// The CommonName of the certificate
-	CommonName certificate.CommonName
-
-	// The serial number of the certificate
-	SerialNumber certificate.SerialNumber
-
 	// When the cert expires
 	Expiration string
 
@@ -226,7 +220,8 @@ type Certificate struct {
 
 // PipyConf is a policy used by pipy sidecar
 type PipyConf struct {
-	Ts               time.Time
+	Ts               *time.Time
+	Version          *string
 	Spec             MeshConfigSpec
 	Certificate      *Certificate
 	Inbound          *InboundTrafficPolicy  `json:"Inbound"`

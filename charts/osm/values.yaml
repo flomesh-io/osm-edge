@@ -51,6 +51,8 @@ osm:
   imagePullSecrets: []
   # -- The class of the OSM Sidecar Driver
   sidecarClass: pipy
+  # -- Sidecar image for Linux workloads
+  sidecarImage: ""
   # -- Sidecar drivers supported by osm-edge
   sidecarDrivers:
     - sidecarName: pipy

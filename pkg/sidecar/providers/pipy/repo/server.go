@@ -64,7 +64,7 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 		log.Error().Err(err)
 	}
 
-	err = s.repoClient.Batch([]client.Batch{
+	err = s.repoClient.Batch(0, []client.Batch{
 		{
 			Basepath: osmCodebase,
 			Items: []client.BatchItem{

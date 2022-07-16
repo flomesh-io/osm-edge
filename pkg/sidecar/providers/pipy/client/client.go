@@ -86,10 +86,10 @@ func (p *PipyRepoClient) get(path string) (*Codebase, error) {
 	return resp.Result().(*Codebase), nil
 }
 
-func (p *PipyRepoClient) createCodebase(path string) (*Codebase, error) {
+func (p *PipyRepoClient) createCodebase(version uint64, path string) (*Codebase, error) {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Version: 1}).
+		SetBody(Codebase{Version: version}).
 		Post(path)
 
 	if err != nil {
@@ -176,7 +176,7 @@ func (p *PipyRepoClient) Delete(path string) {
 }
 
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
-func (p *PipyRepoClient) commit(path string, version int64) error {
+func (p *PipyRepoClient) commit(path string, version uint64) error {
 	resp, err := p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version + 1}).
@@ -198,7 +198,7 @@ func (p *PipyRepoClient) commit(path string, version int64) error {
 }
 
 // Batch submits multiple resources at once
-func (p *PipyRepoClient) Batch(batches []Batch) error {
+func (p *PipyRepoClient) Batch(version uint64, batches []Batch) error {
 	if len(batches) == 0 {
 		return nil
 	}
@@ -206,14 +206,14 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 	for _, batch := range batches {
 		// 1. batch.Basepath, if not exists, create it
 		log.Info().Msgf("batch.Basepath = %q", batch.Basepath)
-		var codebaseV int64
+		var codebaseV uint64
 		exists, codebase := p.isCodebaseExists(batch.Basepath)
 		if exists {
 			// just get the version of codebase
-			codebaseV = codebase.Version
+			codebaseV = uint64(codebase.Version)
 		} else {
 			log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
-			result, err := p.createCodebase(batch.Basepath)
+			result, err := p.createCodebase(version, batch.Basepath)
 			if err != nil {
 				log.Err(err).Msgf("Not able to create the codebase %q", batch.Basepath)
 				return err
@@ -237,12 +237,6 @@ func (p *PipyRepoClient) Batch(batches []Batch) error {
 
 		// 3. commit the repo, so that changes can take effect
 		log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
-		// NOT a valid version, ignore committing
-		if codebaseV == -1 {
-			err := fmt.Errorf("%d is not a valid version", codebaseV)
-			log.Err(err)
-			return err
-		}
 		if err := p.commit(batch.Basepath, codebaseV); err != nil {
 			log.Err(err).Msgf("Error happened while committing the codebase %q", batch.Basepath)
 			return err
