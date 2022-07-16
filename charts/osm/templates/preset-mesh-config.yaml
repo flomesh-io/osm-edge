@@ -12,6 +12,7 @@ data:
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
         "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}},
         "sidecarClass": {{.Values.osm.sidecarClass | mustToJson }},
+        "sidecarImage": {{.Values.osm.sidecarImage | mustToJson }},
         "sidecarDrivers": {{.Values.osm.sidecarDrivers | mustToJson }}
       },
       "traffic": {
