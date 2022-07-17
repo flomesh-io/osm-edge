@@ -62,19 +62,12 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf, serviceIdentity)
-
 	inbound(cataloger, serviceIdentity, proxyServices, pipyConf)
-
-	if !outbound(cataloger, serviceIdentity, pipyConf, proxy, s) {
-		return
-	}
-
-	if !egress(cataloger, serviceIdentity, s, pipyConf, proxy) {
-		return
-	}
-
+	outbound(cataloger, serviceIdentity, pipyConf, proxy, s)
+	egress(cataloger, serviceIdentity, s, pipyConf, proxy)
 	balance(pipyConf)
 	endpoints(pipyConf, s)
+
 	job.publishSidecarConf(s.repoClient, s.proxyRegistry, proxy, pipyConf)
 }
 

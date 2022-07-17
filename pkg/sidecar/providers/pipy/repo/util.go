@@ -275,17 +275,20 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 	proxyIdentity identity.ServiceIdentity,
 	pipyConf *PipyConf, outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy,
 	dependClusters map[service.ClusterName]service.WeightedCluster) bool {
+	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
 		clusterConfig := getMeshClusterConfigs(outboundPolicy.ClustersConfigs, cluster.ClusterName)
 		if clusterConfig == nil {
-			return false
-		}
-		upstreamEndpoints := getUpstreamEndpoints(meshCatalog, proxyIdentity, cluster.ClusterName)
-		if len(upstreamEndpoints) == 0 {
-			return false
+			ready = false
+			continue
 		}
 		clusterConfigs := otp.newClusterConfigs(ClusterName(cluster.ClusterName.String()))
+		upstreamEndpoints := getUpstreamEndpoints(meshCatalog, proxyIdentity, cluster.ClusterName)
+		if len(upstreamEndpoints) == 0 {
+			ready = false
+			continue
+		}
 		for _, upstreamEndpoint := range upstreamEndpoints {
 			address := Address(upstreamEndpoint.IP.String())
 			port := Port(clusterConfig.Service.Port)
@@ -293,8 +296,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 			clusterConfigs.addWeightedEndpoint(address, port, weight)
 		}
 	}
-
-	return true
+	return ready
 }
 
 func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
@@ -370,11 +372,13 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 }
 
 func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*service.WeightedCluster) bool {
+	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
 		clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, cluster.ClusterName)
 		if clusterConfig == nil {
-			return false
+			ready = false
+			continue
 		}
 		clusterConfigs := otp.newClusterConfigs(ClusterName(cluster.ClusterName.String()))
 		address := Address(clusterConfig.Name)
@@ -382,8 +386,7 @@ func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Pro
 		weight := Weight(constants.ClusterWeightAcceptAll)
 		clusterConfigs.addWeightedEndpoint(address, port, weight)
 	}
-
-	return true
+	return ready
 }
 
 func getInboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.InboundTrafficPolicy,
