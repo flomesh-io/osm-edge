@@ -1,6 +1,10 @@
 // version: '2022.07.18'
 (
-  (config = JSON.decode(pipy.load('pipy.json')), metrics = pipy.solve('metrics.js'), global) => (
+  (config = JSON.decode(pipy.load('pipy.json')),
+    metrics = pipy.solve('metrics.js'),
+    codeMessage = pipy.solve('codes.js'),
+    global
+  ) => (
 
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
@@ -21,7 +25,8 @@
       probeScheme: null,
       probeTarget: null,
       probePath: null,
-      funcShuffle: null
+      funcShuffle: null,
+      codeMessage: codeMessage
     },
 
     global.funcShuffle = (arg, out, sort) => (
@@ -34,7 +39,7 @@
 
       out ? out : {}
     ),
-    
+
     global.funcHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
         ([name, rule]) => [

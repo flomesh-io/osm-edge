@@ -81,6 +81,10 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebaseMetricsJS,
 				},
 				{
+					Filename: "codes.js",
+					Content:  codebaseCodesJS,
+				},
+				{
 					Filename: "pipy.json",
 					Content:  codebasePipyJSON,
 				},
