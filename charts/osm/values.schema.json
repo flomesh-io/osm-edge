@@ -463,6 +463,15 @@
                         "curlimages/curl"
                     ]
                 },
+                "pipyRepoImage": {
+                    "$id": "#/properties/osm/properties/pipyRepoImage",
+                    "type": "string",
+                    "title": "The pipyRepoImage schema",
+                    "description": "The Pipy repo image for Pipy sidecar's proxy control plane container.",
+                    "examples": [
+                        "flomesh/pipy-repo-nightly"
+                    ]
+                },
                 "certificateProvider": {
                     "$id": "#/properties/osm/properties/certificateProvider",
                     "type": "object",

@@ -1,4 +1,4 @@
-// version: '2022.07.14'
+// version: '2022.07.18'
 ((
   {
     config,
@@ -21,7 +21,8 @@
     probeTarget,
     probePath,
     logZipkin,
-    metrics
+    metrics,
+    codeMessage
   } = pipy.solve('config.js')
 ) => (
 
@@ -376,10 +377,19 @@
 
           // Layer 7 load balance
           _outTarget = (
-            outClustersConfigs[
+            outClustersConfigs?.[
               _upstreamClusterName = match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
+
+          // no HttpHostPort2Service
+          _outMatch && !service && console.log(codeMessage('NoService'), headers?.host),
+
+          // no TargetClusters
+          match && service && !_upstreamClusterName && console.log(codeMessage('NoRoute'), service),
+
+          // no ClustersConfigs
+          match && _upstreamClusterName && !_outTarget && console.log(codeMessage('NoEndpoint'), _upstreamClusterName),
 
           // Add serviceidentity for request authentication
           _outTarget && (headers['serviceidentity'] = _outMatch.ServiceIdentity),
@@ -605,4 +615,3 @@
     )
 
 ))()
-

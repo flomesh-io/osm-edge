@@ -69,6 +69,8 @@ osm:
       proxyServerPort: 15128
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
+  # -- Pipy repo image for Pipy sidecar's proxy control plane container
+  pipyRepoImage: flomesh/pipy-repo-nightly:latest
   #
   # -- OSM controller parameters
   osmController:

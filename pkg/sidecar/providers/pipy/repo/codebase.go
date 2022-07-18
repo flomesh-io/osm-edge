@@ -13,5 +13,8 @@ var codebaseConfigJS []byte
 //go:embed codebase_metrics.js
 var codebaseMetricsJS []byte
 
+//go:embed codebase_codes.js
+var codebaseCodesJS []byte
+
 //go:embed codebase_pipy.json
 var codebasePipyJSON []byte
