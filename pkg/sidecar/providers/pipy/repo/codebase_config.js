@@ -1,3 +1,4 @@
+// version: '2022.07.18'
 (
   (config = JSON.decode(pipy.load('pipy.json')), metrics = pipy.solve('metrics.js'), global) => (
 
@@ -24,14 +25,16 @@
     },
 
     global.funcShuffle = (arg, out, sort) => (
-      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
-      global.debugLogLevel && console.log('funcShuffle LB in : ', arg),
-      out = Object.fromEntries(sort(sort(Object.entries(arg)))),
-      global.debugLogLevel && console.log('funcShuffle LB out : ', out),
+      arg && (() => (
+        sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
+        global.debugLogLevel && console.log('funcShuffle LB in : ', arg),
+        out = Object.fromEntries(sort(sort(Object.entries(arg)))),
+        global.debugLogLevel && console.log('funcShuffle LB out : ', out)
+      ))(),
 
-      out
+      out ? out : {}
     ),
-
+    
     global.funcHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
         ([name, rule]) => [

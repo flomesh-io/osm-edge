@@ -1,4 +1,4 @@
-// version: '2022.07.14'
+// version: '2022.07.18'
 ((
   {
     config,
@@ -376,7 +376,7 @@
 
           // Layer 7 load balance
           _outTarget = (
-            outClustersConfigs[
+            outClustersConfigs?.[
               _upstreamClusterName = match?.TargetClusters?.next?.()?.id
             ]?.next?.()
           ),
@@ -605,4 +605,3 @@
     )
 
 ))()
-
