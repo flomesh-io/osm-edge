@@ -390,3 +390,9 @@ contour:
 smi:
   # -- Enables validation of SMI Traffic Target
   validateTrafficTarget: true
+
+#
+# -- FSM configuration
+fsm:
+  # -- Enables deployment of fsm control plane and gateway
+  enabled: false

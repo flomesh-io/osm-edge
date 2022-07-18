@@ -62,6 +62,7 @@ The following table lists the configurable parameters of the osm chart and their
 | contour.contour | object | `{"image":{"registry":"docker.io","repository":"projectcontour/contour","tag":"v1.18.0"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
 | contour.sidecar | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-alpine","tag":"v1.19.3"}}` | Contour sidecar edge proxy configuration |
+| fsm.enabled | bool | `false` | Enables deployment of fsm control plane and gateway |
 | osm.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
 | osm.certificateProvider.certKeyBitSize | int | `2048` | Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS |
 | osm.certificateProvider.kind | string | `"tresor"` | The Certificate manager type: `tresor`, `vault` or `cert-manager` |

@@ -5,7 +5,8 @@
     "required": [
         "osm",
         "contour",
-        "smi"
+        "smi",
+        "fsm"
     ],
     "definitions": {
         "containerResources": {
@@ -1447,6 +1448,20 @@
                     "$id": "#/properties/contour/validateTrafficTarget",
                     "title": "Validate Traffic Target",
                     "description": "Enables validation of SMI Traffic Target",
+                    "type": "boolean"
+                }
+            }
+        },
+        "fsm": {
+            "$id": "#/properties/fsm",
+            "type": "object",
+            "title": "Flomesh Service Mesh",
+            "description": "Flomesh Service Mesh configuration",
+            "properties": {
+                "enabled": {
+                    "$id": "#/properties/fsm/enabled",
+                    "title": "Enable FSM",
+                    "description": "Enables Flomesh Service Mesh",
                     "type": "boolean"
                 }
             }
