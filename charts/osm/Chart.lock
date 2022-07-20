@@ -4,6 +4,6 @@ dependencies:
   version: 8.0.4
 - name: fsm
   repository: https://charts.flomesh.io
-  version: 0.1.1
-digest: sha256:048d2a2395b4cc79c2360d11e4f47a503e9231c6fed2f91b139e3ee69aaa0042
-generated: "2022-07-18T17:06:45.205893+08:00"
+  version: 0.1.2
+digest: sha256:a7b23c977d493d9e10e106ff5f95ea2a454e7e78eda42f8e89499298267176ac
+generated: "2022-07-20T17:29:50.209646+08:00"
