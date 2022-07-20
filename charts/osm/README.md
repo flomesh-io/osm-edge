@@ -161,16 +161,16 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundIPRangeInclusionList | list | `[]` | Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
-| osm.pipyRepoImage | string | `"flomesh/pipy:0.50.0-18"` | Pipy repo image for Pipy sidecar's proxy control plane container |
+| osm.pipyRepoImage | string | `"flomesh/pipy:0.50.0-25"` | Pipy repo image for Pipy sidecar's proxy control plane container |
 | osm.prometheus.image | string | `"prom/prometheus:v2.18.1"` | Image used for Prometheus |
 | osm.prometheus.port | int | `7070` | Prometheus service's port |
 | osm.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
-| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy:0.50.0-18","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
+| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy:0.50.0-25","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
 | osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
-| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:0.50.0-18"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:0.50.0-25"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].proxyServerPort | int | `15128` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
 | osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
