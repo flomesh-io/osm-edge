@@ -126,8 +126,9 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", healthPort),
-		Handler: healthMux,
+		Addr:              fmt.Sprintf(":%d", healthPort),
+		Handler:           healthMux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	go func() {

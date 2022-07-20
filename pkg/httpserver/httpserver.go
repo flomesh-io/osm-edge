@@ -36,8 +36,9 @@ func NewHTTPServer(port uint16) *HTTPServer {
 	return &HTTPServer{
 		started: false,
 		server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", port),
-			Handler: serverMux,
+			Addr:              fmt.Sprintf(":%d", port),
+			Handler:           serverMux,
+			ReadHeaderTimeout: time.Second * 10,
 		},
 		httpServeMux: serverMux,
 		port:         port,
@@ -98,8 +99,9 @@ func (s *HTTPServer) Stop() error {
 	// Free and reset the server, so it can be started again
 	s.started = false
 	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
-		Handler: s.httpServeMux,
+		Addr:              fmt.Sprintf(":%d", s.port),
+		Handler:           s.httpServeMux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	return nil
