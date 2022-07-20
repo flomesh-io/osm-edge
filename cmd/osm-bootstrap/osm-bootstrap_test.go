@@ -19,7 +19,7 @@ import (
 
 var testNamespace = "test-namespace"
 
-var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
+var testMeshConfig = &configv1alpha2.MeshConfig{
 	ObjectMeta: metav1.ObjectMeta{
 		Namespace: testNamespace,
 		Name:      meshConfigName,
@@ -27,7 +27,7 @@ var testMeshConfig *configv1alpha2.MeshConfig = &configv1alpha2.MeshConfig{
 	Spec: configv1alpha2.MeshConfigSpec{},
 }
 
-var testPresetMeshConfigMap *corev1.ConfigMap = &corev1.ConfigMap{
+var testPresetMeshConfigMap = &corev1.ConfigMap{
 	TypeMeta: metav1.TypeMeta{
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
