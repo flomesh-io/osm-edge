@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 	apiv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -95,8 +96,9 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	}
 
 	webhookServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", crdWh.config.ListenPort),
-		Handler: webhookMux,
+		Addr:              fmt.Sprintf(":%d", crdWh.config.ListenPort),
+		Handler:           webhookMux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	log.Info().Msgf("Starting conversion webhook server on port: %v", crdWh.config.ListenPort)
@@ -124,8 +126,9 @@ func (crdWh *crdConversionWebhook) run(stop <-chan struct{}) {
 	healthMux.Handle(webhookHealthPath, metricsstore.AddHTTPMetrics(http.HandlerFunc(healthHandler)))
 
 	healthServer := &http.Server{
-		Addr:    fmt.Sprintf(":%d", healthPort),
-		Handler: healthMux,
+		Addr:              fmt.Sprintf(":%d", healthPort),
+		Handler:           healthMux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	go func() {

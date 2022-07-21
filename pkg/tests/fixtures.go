@@ -544,7 +544,7 @@ var (
 	}
 
 	// WildCardRouteMatch is HTTPRouteMatch with wildcard path and method
-	WildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
+	WildCardRouteMatch = trafficpolicy.HTTPRouteMatch{
 		Path:          constants.RegexMatchAll,
 		PathMatchType: trafficpolicy.PathMatchRegex,
 		Methods:       []string{constants.WildcardHTTPMethod},

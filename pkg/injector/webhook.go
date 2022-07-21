@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
@@ -92,8 +93,9 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 	mux.Handle(webhookCreatePod, metricsstore.AddHTTPMetrics(http.HandlerFunc(wh.podCreationHandler)))
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", wh.config.ListenPort),
+		Handler:           mux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", wh.config.ListenPort)

@@ -97,7 +97,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient versio
 			return nil
 		}
 
-		var podRet []*corev1.Pod = []*corev1.Pod{}
+		var podRet = []*corev1.Pod{}
 		for idx := range vv.Items {
 			podRet = append(podRet, &vv.Items[idx])
 		}

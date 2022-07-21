@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -154,8 +155,9 @@ func (s *validatingWebhookServer) run(port int, cert *certificate.Certificate, s
 	mux.HandleFunc(HealthAPIPath, healthHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", port),
+		Handler:           mux,
+		ReadHeaderTimeout: time.Second * 10,
 	}
 
 	log.Info().Msgf("Starting resource validator webhook server on port: %v", port)
