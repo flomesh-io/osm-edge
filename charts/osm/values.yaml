@@ -398,3 +398,4 @@ smi:
 fsm:
   # -- Enables deployment of fsm control plane and gateway
   enabled: false
+  namespace: flomesh

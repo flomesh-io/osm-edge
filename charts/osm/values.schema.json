@@ -1472,6 +1472,13 @@
                     "title": "Enable FSM",
                     "description": "Enables Flomesh Service Mesh",
                     "type": "boolean"
+                },
+                "namespace": {
+                    "$id": "#/properties/fsm/namespace",
+                    "title": "Namespace of fms",
+                    "description": "The namespace which fsm will be installed into",
+                    "type": "string",
+                    "default": "namespace"
                 }
             }
         }

@@ -6,6 +6,8 @@ import (
 	_ "embed" // required to embed resources
 	"fmt"
 	"io"
+	corev1 "k8s.io/api/core/v1"
+	k8sApiErrors "k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/pkg/errors"
@@ -121,6 +123,8 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
+	i.applyFsmNamespace(values)
+
 	installClient := helm.NewInstall(config)
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
@@ -145,6 +149,42 @@ func (i *installCmd) run(config *helm.Configuration) error {
 
 	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
 	return nil
+}
+
+func (i *installCmd) applyFsmNamespace(values map[string]interface{}) {
+	fsm := values["fsm"].(map[string]interface{})
+	fsmEnabled := fsm["enabled"].(bool)
+
+	if fsmEnabled {
+		if i.enforceSingleMesh {
+			fsmNamespace := fsm["namespace"].(string)
+			_, err := i.clientSet.CoreV1().
+				Namespaces().
+				Get(context.TODO(), fsmNamespace, metav1.GetOptions{})
+
+			if err != nil {
+				if k8sApiErrors.IsNotFound(err) {
+					_, err := i.clientSet.CoreV1().
+						Namespaces().
+						Create(
+							context.TODO(),
+							&corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: fsmNamespace}},
+							metav1.CreateOptions{},
+						)
+
+					if err != nil {
+						fmt.Fprintf(i.out, "Failed create FSM namespace [%s] error:\n%s", fsmNamespace, err)
+					}
+
+					fmt.Fprintf(i.out, "FSM namespace [%s] is created successfully.", fsmNamespace)
+				} else {
+					fmt.Fprintf(i.out, "Get FSM namespace [%s] error:\n%s", fsmNamespace, err)
+				}
+			}
+		} else {
+			fmt.Fprintf(i.out, "FSM requires OSM enforceSingleMesh to be true.")
+		}
+	}
 }
 
 func (i *installCmd) loadOSMChart() error {
