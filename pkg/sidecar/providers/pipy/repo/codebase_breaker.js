@@ -1,9 +1,9 @@
-// version: '2022.07.28a'
+// version: '2022.08.12'
 (
   serviceName = '',
   maxConnections = 10,
-  maxRequestsPerConnection = 10,
-  maxPendingRequests = 10,
+  maxRequestsPerConnection = 10, // unimplement
+  maxPendingRequests = 10, // unimplement
   statTimeWindow = 15, // 15s
   slowTimeThreshold = 3, // 3s
   slowAmountThreshold = 10,
@@ -61,10 +61,6 @@
       !lastDegraded && degraded && degradedQuota.consume(1)
     ),
 
-    exceedMaxConnections = () => (
-      tcpConnections >= maxConnections ? console.log('=== [circuit_breaker] === (exceedMaxConnections)', serviceName, tcpConnections, maxConnections) || true : false
-    ),
-
     {
       increase: () => (
         ++total
@@ -73,7 +69,7 @@
       block: () => (
         degraded && (degradedQuota.consume(1) == 1) && (lastDegraded = degraded = false),
         degraded && console.log('=== [circuit_breaker] === (block)', serviceName, degraded),
-        degraded || exceedMaxConnections()
+        degraded
       ),
 
       checkSlow: seconds => (
@@ -87,18 +83,19 @@
       sample: () => (
         (total > 0) && (() => (
           lastDegraded = degraded,
-          (slowAmount / total >= slowRatioThreshold) && (samplingSlowQuota.consume(1) != 1) && (degraded = true),
-          (errorAmount / total >= errorRatioThreshold) && (samplingErrorQuota.consume(1) != 1) && (degraded = true),
+          (total >= slowAmountThreshold) && (slowAmount / total >= slowRatioThreshold) && (samplingSlowQuota.consume(1) != 1) && (degraded = true),
+          (total >= errorAmountThreshold) && (errorAmount / total >= errorRatioThreshold) && (samplingErrorQuota.consume(1) != 1) && (degraded = true),
           !lastDegraded && degraded && degradedQuota.consume(1),
-          total = slowAmount = errorAmount = 0,
-          degraded && console.log('=== [circuit_breaker] === (timer)', serviceName, degraded)
+          degraded && console.log('=== [circuit_breaker] === (timer) total/slowAmount/errorAmount', serviceName, degraded, total, slowAmount, errorAmount),
+          total = slowAmount = errorAmount = 0
         ))()
       ),
 
       message: () => (
-        new Message({
-          status: degradedStatusCode
-        }, degradedResponseContent)
+        [
+          new Message({ status: degradedStatusCode }, degradedResponseContent),
+          new StreamEnd
+        ]
       ),
 
       incConnections: () => (
@@ -107,6 +104,10 @@
 
       decConnections: () => (
         --tcpConnections
+      ),
+
+      exceedMaxConnections: () => (
+        tcpConnections > maxConnections ? console.log('=== [circuit_breaker] === (exceedMaxConnections)', serviceName, tcpConnections, maxConnections) || true : false
       ),
 
       serviceName: () => serviceName,
