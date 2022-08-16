@@ -40,7 +40,6 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 
 	podName := "app"
 	namespace := "app"
-	sidecarBootstrapConfigVolume := "sidecar-bootstrap-config-volume"
 	podUUID := uuid.New().String()
 	podUID := uuid.New().String()
 	secretName := fmt.Sprintf("sidecar-bootstrap-config-%s", podUUID)
@@ -57,18 +56,6 @@ func TestWatchAndUpdateProxyBootstrapSecret(t *testing.T) {
 			Namespace: namespace,
 			Labels:    map[string]string{constants.SidecarUniqueIDLabelName: podUUID},
 			UID:       types.UID(podUID),
-		},
-		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: sidecarBootstrapConfigVolume,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: secretName,
-						},
-					},
-				},
-			},
 		},
 	}
 

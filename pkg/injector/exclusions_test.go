@@ -1,9 +1,9 @@
 package injector
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,15 +19,15 @@ func TestGetPortExclusionListForPod(t *testing.T) {
 	}{
 		{
 			name:          "contains outbound port exclusion list annotation",
-			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, 7070"},
-			forAnnotation: outboundPortExclusionListAnnotation,
+			podAnnotation: map[string]string{OutboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: OutboundPortExclusionListAnnotation,
 			expectedError: nil,
 			expectedPorts: []int{6060, 7070},
 		},
 		{
 			name:          "contains inbound port exclusion list annotation",
-			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, 7070"},
-			forAnnotation: inboundPortExclusionListAnnotation,
+			podAnnotation: map[string]string{InboundPortExclusionListAnnotation: "6060, 7070"},
+			forAnnotation: InboundPortExclusionListAnnotation,
 			expectedError: nil,
 			expectedPorts: []int{6060, 7070},
 		},
@@ -40,16 +40,16 @@ func TestGetPortExclusionListForPod(t *testing.T) {
 		},
 		{
 			name:          "contains outbound port exclusion list annontation but invalid port",
-			podAnnotation: map[string]string{outboundPortExclusionListAnnotation: "6060, -7070"},
-			forAnnotation: outboundPortExclusionListAnnotation,
-			expectedError: errors.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", outboundPortExclusionListAnnotation),
+			podAnnotation: map[string]string{OutboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: OutboundPortExclusionListAnnotation,
+			expectedError: fmt.Errorf("invalid port value '%s' specified for annotation '%s'", "-7070", OutboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 		{
 			name:          "contains inbound port exclusion list annontation but invalid port",
-			podAnnotation: map[string]string{inboundPortExclusionListAnnotation: "6060, -7070"},
-			forAnnotation: inboundPortExclusionListAnnotation,
-			expectedError: errors.Errorf("Invalid port value '%s' specified for annotation '%s'", "-7070", inboundPortExclusionListAnnotation),
+			podAnnotation: map[string]string{InboundPortExclusionListAnnotation: "6060, -7070"},
+			forAnnotation: InboundPortExclusionListAnnotation,
+			expectedError: fmt.Errorf("invalid port value '%s' specified for annotation '%s'", "-7070", InboundPortExclusionListAnnotation),
 			expectedPorts: nil,
 		},
 	}
@@ -68,7 +68,7 @@ func TestGetPortExclusionListForPod(t *testing.T) {
 				},
 			}
 
-			ports, err := getPortExclusionListForPod(pod, "test", tc.forAnnotation)
+			ports, err := GetPortExclusionListForPod(pod, tc.forAnnotation)
 			if tc.expectedError != nil {
 				a.EqualError(tc.expectedError, err.Error())
 			} else {
@@ -122,7 +122,7 @@ func TestMergePortExclusionLists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := mergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
+			actual := MergePortExclusionLists(tc.podOutboundPortExclusionList, tc.globalOutboundPortExclusionList)
 			a.ElementsMatch(tc.expectedOutboundPortExclusionList, actual)
 		})
 	}
@@ -138,37 +138,37 @@ func TestGetOutboundIPRangeListForPod(t *testing.T) {
 	}{
 		{
 			name:             "valid exclusion annotation",
-			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
-			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			podAnnotation:    map[string]string{OutboundIPRangeExclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
+			forAnnotation:    OutboundIPRangeExclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: []string{"10.0.0.0/8", "2.2.2.2/32"},
 		},
 		{
 			name:             "no exclusion annotation",
 			podAnnotation:    nil,
-			forAnnotation:    outboundIPRangeExclusionListAnnotation,
+			forAnnotation:    OutboundIPRangeExclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: nil,
 		},
 		{
 			name:             "valid inclusion annotation",
-			podAnnotation:    map[string]string{outboundIPRangeInclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
-			forAnnotation:    outboundIPRangeInclusionListAnnotation,
+			podAnnotation:    map[string]string{OutboundIPRangeInclusionListAnnotation: "10.0.0.0/8, 2.2.2.2/32"},
+			forAnnotation:    OutboundIPRangeInclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: []string{"10.0.0.0/8", "2.2.2.2/32"},
 		},
 		{
 			name:             "no inclusion annotation",
 			podAnnotation:    nil,
-			forAnnotation:    outboundIPRangeInclusionListAnnotation,
+			forAnnotation:    OutboundIPRangeInclusionListAnnotation,
 			expectedError:    nil,
 			expectedIPRanges: nil,
 		},
 		{
 			name:             "invalid annotation",
-			podAnnotation:    map[string]string{outboundIPRangeExclusionListAnnotation: "foobar"},
-			forAnnotation:    outboundIPRangeExclusionListAnnotation,
-			expectedError:    errors.Errorf("Invalid IP range 'foobar' specified for annotation '%s'", outboundIPRangeExclusionListAnnotation),
+			podAnnotation:    map[string]string{OutboundIPRangeExclusionListAnnotation: "foobar"},
+			forAnnotation:    OutboundIPRangeExclusionListAnnotation,
+			expectedError:    fmt.Errorf("invalid IP range 'foobar' specified for annotation '%s'", OutboundIPRangeExclusionListAnnotation),
 			expectedIPRanges: nil,
 		},
 	}
@@ -187,7 +187,7 @@ func TestGetOutboundIPRangeListForPod(t *testing.T) {
 				},
 			}
 
-			ipRanges, err := getOutboundIPRangeListForPod(pod, "test", tc.forAnnotation)
+			ipRanges, err := GetOutboundIPRangeListForPod(pod, tc.forAnnotation)
 			if tc.expectedError != nil {
 				a.EqualError(tc.expectedError, err.Error())
 			} else {
@@ -217,7 +217,7 @@ func TestMergeIPRangeLists(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := mergeIPRangeLists(tc.podSpecific, tc.global)
+			actual := MergeIPRangeLists(tc.podSpecific, tc.global)
 			a.ElementsMatch(tc.expected, actual)
 		})
 	}

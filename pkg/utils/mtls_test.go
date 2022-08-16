@@ -2,12 +2,13 @@ package utils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
+
 	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -15,7 +16,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -29,14 +30,15 @@ func TestSetupMutualTLS(t *testing.T) {
 		expectedError string
 	}
 
-	certManager := tresor.NewFake(nil)
-	adsCert, err := certManager.GetRootCertificate()
-	assert.Nil(err)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	adsCert, err := certManager.IssueCertificate("fake-ads", certificate.Internal)
+
+	assert.NoError(err)
 
 	serverType := "ADS"
 	goodCertPem := adsCert.GetCertificateChain()
 	goodKeyPem := adsCert.GetPrivateKey()
-	goodCA := adsCert.GetIssuingCA()
+	goodCA := adsCert.GetTrustedCAs()
 	var emptyByteArray []byte
 
 	setupMutualTLStests := []setupMutualTLStest{
@@ -62,28 +64,23 @@ func TestValidateClient(t *testing.T) {
 
 	type validateClientTest struct {
 		ctx           context.Context
-		commonNames   map[string]interface{}
 		expectedError error
 	}
 
-	certManager := tresor.NewFake(nil)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
-	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
+	certManager := tresorFake.NewFake(nil, 1*time.Hour)
+	cnPrefix := fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace)
+	certPEM, _ := certManager.IssueCertificate(cnPrefix, certificate.Internal)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
-	goodCommonNameMapping := map[string]interface{}{string(cn): cn}
-	badCommonNameMapping := map[string]interface{}{"apple": "pear"}
-
 	validateClientTests := []validateClientTest{
-		{context.Background(), nil, status.Error(codes.Unauthenticated, "no peer found")},
-		{peer.NewContext(context.TODO(), &peer.Peer{}), nil, status.Error(codes.Unauthenticated, "unexpected peer transport credentials")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: credentials.TLSInfo{}}), nil, status.Error(codes.Unauthenticated, "could not verify peer certificate")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), badCommonNameMapping, status.Error(codes.Unauthenticated, "disallowed subject common name")},
-		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), goodCommonNameMapping, nil},
+		{context.Background(), status.Error(codes.Unauthenticated, "no peer found")},
+		{peer.NewContext(context.TODO(), &peer.Peer{}), status.Error(codes.Unauthenticated, "unexpected peer transport credentials")},
+		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: credentials.TLSInfo{}}), status.Error(codes.Unauthenticated, "could not verify peer certificate")},
+		{peer.NewContext(context.TODO(), &peer.Peer{AuthInfo: tests.NewMockAuthInfo(cert)}), nil},
 	}
 
 	for _, vct := range validateClientTests {
-		certCN, certSerialNumber, err := ValidateClient(vct.ctx, vct.commonNames)
+		certCN, certSerialNumber, err := ValidateClient(vct.ctx)
 		if err != nil {
 			assert.Equal(certCN, certificate.CommonName(""))
 			assert.Equal(certSerialNumber, certificate.SerialNumber(""))

@@ -7,8 +7,6 @@ source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
 KUBE_CONTEXT=$(kubectl config current-context)
-KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
-KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
@@ -77,9 +75,6 @@ spec:
         version: $VERSION
     spec:
       serviceAccountName: bookstore
-      nodeSelector:
-        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
-        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
         - image: "${CTR_REGISTRY}/osm-edge-demo-bookstore:${CTR_TAG}"
           imagePullPolicy: Always

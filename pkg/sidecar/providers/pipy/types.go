@@ -3,20 +3,31 @@
 package pipy
 
 import (
-	"github.com/openservicemesh/osm/pkg/logger"
+	"net"
 )
 
-var (
-	log = logger.New("flomesh-pipy")
-)
+// NetAddr represents a network end point address.
+//
+// The two methods Network and String conventionally return strings
+// that can be passed as the arguments to Dial, but the exact form
+// and meaning of the strings is up to the implementation.
+type NetAddr struct {
+	address string
+}
 
-// ProxyKind is the type used to define the proxy's kind
-type ProxyKind string
+// Network implements net.Addr interface
+func (a *NetAddr) Network() string {
+	return "tcp"
+}
 
-const (
-	// KindSidecar implies the proxy is a sidecar
-	KindSidecar ProxyKind = "sidecar"
+// String form of address (for example, "192.0.2.1:25", "[2001:db8::1]:80")
+func (a *NetAddr) String() string {
+	return a.address
+}
 
-	// KindGateway implies the proxy is a gateway
-	KindGateway ProxyKind = "gateway"
-)
+// NewNetAddress creates a new net.Addr
+func NewNetAddress(address string) net.Addr {
+	return &NetAddr{
+		address: address,
+	}
+}

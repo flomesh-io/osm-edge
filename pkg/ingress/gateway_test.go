@@ -16,8 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -101,7 +100,7 @@ func TestProvisionIngressGatewayCert(t *testing.T) {
 
 			fakeClient := fake.NewSimpleClientset()
 			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-			fakeCertProvider := tresor.NewFake(msgBroker)
+			fakeCertProvider := tresorFake.NewFake(msgBroker, 1*time.Hour)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -190,7 +189,7 @@ func TestCreateAndStoreGatewayCert(t *testing.T) {
 			a := assert.New(t)
 
 			fakeClient := fake.NewSimpleClientset()
-			fakeCertProvider := tresor.NewFake(nil)
+			fakeCertProvider := tresorFake.NewFake(nil, 1*time.Hour)
 
 			c := client{
 				kubeClient:   fakeClient,
@@ -324,9 +323,18 @@ func TestHandleCertificateChange(t *testing.T) {
 
 			msgBroker := messaging.NewBroker(stop)
 
-			fakeClient := fake.NewSimpleClientset()
-			fakeCertManager := tresor.NewFake(msgBroker)
+			validityDuration := 1 * time.Hour
+			if tc.previousCertSpec != nil {
+				validityDuration, _ = time.ParseDuration(tc.previousCertSpec.ValidityDuration)
+			}
+			certValidityDuration := &validityDuration
+			getCertValidityDuration := func() time.Duration {
+				return *certValidityDuration
+			}
 
+			fakeCertManager := tresorFake.NewFakeWithValidityDuration(getCertValidityDuration, msgBroker, 5*time.Second)
+
+			fakeClient := fake.NewSimpleClientset()
 			c := client{
 				kubeClient:   fakeClient,
 				certProvider: fakeCertManager,
@@ -344,6 +352,9 @@ func TestHandleCertificateChange(t *testing.T) {
 			}
 
 			if tc.updatedMeshConfig != nil {
+				if tc.updatedMeshConfig.Spec.Certificate.IngressGateway != nil {
+					*certValidityDuration, _ = time.ParseDuration(tc.updatedMeshConfig.Spec.Certificate.IngressGateway.ValidityDuration)
+				}
 				msgBroker.GetKubeEventPubSub().Pub(events.PubSubMessage{
 					Kind:   announcements.MeshConfigUpdated,
 					NewObj: tc.updatedMeshConfig,
@@ -355,11 +366,7 @@ func TestHandleCertificateChange(t *testing.T) {
 			if !tc.expectSecretToExist {
 				a.Eventually(func() bool {
 					_, secretNotFoundErr := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
-
-					certCN := certificate.CommonName(tc.previousCertSpec.SubjectAltNames[0])
-					_, certNotFoundErr := c.certProvider.GetCertificate(certCN)
-
-					return secretNotFoundErr != nil && certNotFoundErr != nil
+					return secretNotFoundErr != nil
 				}, maxSecretPollTime, secretPollInterval, "Secret found, unexpected!")
 				return
 			}
@@ -375,9 +382,6 @@ func TestHandleCertificateChange(t *testing.T) {
 				// original secret
 				originalSecret, err := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
 				a.Nil(err)
-
-				// Start the certificate rotor
-				rotor.New(fakeCertManager).Start(5 * time.Second)
 
 				a.Eventually(func() bool {
 					rotatedSecret, err := fakeClient.CoreV1().Secrets(testSecret.Namespace).Get(context.TODO(), testSecret.Name, metav1.GetOptions{})
@@ -401,11 +405,10 @@ func secretIsForSAN(secret *corev1.Secret, san string) bool {
 		return false
 	}
 
-	cert, err := tresor.NewCertificateFromPEM(pemCert, pemKey)
+	cert, err := certificate.NewFromPEM(pemCert, pemKey)
 	if err != nil {
 		log.Error().Err(err).Msg("Error getting certificate from PEM")
 		return false
 	}
-
 	return cert.GetCommonName().String() == san
 }

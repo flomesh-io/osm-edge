@@ -1,30 +1,30 @@
 package injector
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	// outboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
-	outboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
+	// OutboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
+	OutboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
 
-	// inboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
-	inboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
+	// InboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
+	InboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
 
-	// outboundIPRangeExclusionListAnnotation is the annotation used for outbound IP range exclusions
-	outboundIPRangeExclusionListAnnotation = "openservicemesh.io/outbound-ip-range-exclusion-list"
+	// OutboundIPRangeExclusionListAnnotation is the annotation used for outbound IP range exclusions
+	OutboundIPRangeExclusionListAnnotation = "openservicemesh.io/outbound-ip-range-exclusion-list"
 
-	// outboundIPRangeInclusionListAnnotation is the annotation used for outbound IP range inclusions
-	outboundIPRangeInclusionListAnnotation = "openservicemesh.io/outbound-ip-range-inclusion-list"
+	// OutboundIPRangeInclusionListAnnotation is the annotation used for outbound IP range inclusions
+	OutboundIPRangeInclusionListAnnotation = "openservicemesh.io/outbound-ip-range-inclusion-list"
 )
 
-// getPortExclusionListForPod gets a list of ports to exclude from sidecar traffic interception for the given
+// GetPortExclusionListForPod gets a list of ports to exclude from sidecar traffic interception for the given
 // pod and annotation kind.
 //
 // Ports are excluded from sidecar interception when the pod is explicitly annotated with a single or
@@ -33,7 +33,7 @@ const (
 // The kind of exclusion (inbound vs outbound) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether ports need to be excluded from outbound sidecar interception.
-func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation string) ([]int, error) {
+func GetPortExclusionListForPod(pod *corev1.Pod, annotation string) ([]int, error) {
 	var ports []int
 
 	portsToExcludeStr, ok := pod.Annotations[annotation]
@@ -48,7 +48,7 @@ func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation st
 		portStr := strings.TrimSpace(portStr)
 		portVal, err := strconv.Atoi(portStr)
 		if err != nil || portVal <= 0 {
-			return nil, errors.Errorf("Invalid port value '%s' specified for annotation '%s'", portStr, annotation)
+			return nil, fmt.Errorf("Invalid port value '%s' specified for annotation '%s'", portStr, annotation)
 		}
 		ports = append(ports, portVal)
 	}
@@ -56,8 +56,8 @@ func getPortExclusionListForPod(pod *corev1.Pod, namespace string, annotation st
 	return ports, nil
 }
 
-// mergePortExclusionLists merges the pod specific and global port exclusion lists
-func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionList []int) []int {
+// MergePortExclusionLists merges the pod specific and global port exclusion lists
+func MergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionList []int) []int {
 	portExclusionListMap := mapset.NewSet()
 	var portExclusionListMerged []int
 
@@ -78,7 +78,7 @@ func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionLi
 	return portExclusionListMerged
 }
 
-// getOutboundIPRangeListForPod returns a list of IP ranges to include/exclude from sidecar traffic interception for the given
+// GetOutboundIPRangeListForPod returns a list of IP ranges to include/exclude from sidecar traffic interception for the given
 // pod and annotation kind.
 //
 // IP ranges are included/excluded from sidecar interception when the pod is explicitly annotated with a single or
@@ -87,7 +87,7 @@ func mergePortExclusionLists(podSpecificPortExclusionList, globalPortExclusionLi
 // The kind of exclusion (inclusion vs exclusion) is determined by the specified annotation.
 //
 // The function returns an error when it is unable to determine whether IP ranges need to be excluded from outbound sidecar interception.
-func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation string) ([]string, error) {
+func GetOutboundIPRangeListForPod(pod *corev1.Pod, annotation string) ([]string, error) {
 	ipRangeExclusionsStr, ok := pod.Annotations[annotation]
 	if !ok {
 		// No port exclusion annotation specified
@@ -100,7 +100,7 @@ func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation 
 	for _, ip := range strings.Split(ipRangeExclusionsStr, ",") {
 		ip := strings.TrimSpace(ip)
 		if _, _, err := net.ParseCIDR(ip); err != nil {
-			return nil, errors.Errorf("Invalid IP range '%s' specified for annotation '%s'", ip, annotation)
+			return nil, fmt.Errorf("Invalid IP range '%s' specified for annotation '%s'", ip, annotation)
 		}
 		ipRanges = append(ipRanges, ip)
 	}
@@ -108,8 +108,8 @@ func getOutboundIPRangeListForPod(pod *corev1.Pod, namespace string, annotation 
 	return ipRanges, nil
 }
 
-// mergeIPRangeLists merges the pod specific and global IP range (exclusion/inclusion) lists
-func mergeIPRangeLists(podSpecific, global []string) []string {
+// MergeIPRangeLists merges the pod specific and global IP range (exclusion/inclusion) lists
+func MergeIPRangeLists(podSpecific, global []string) []string {
 	ipSet := mapset.NewSet()
 	var ipRanges []string
 

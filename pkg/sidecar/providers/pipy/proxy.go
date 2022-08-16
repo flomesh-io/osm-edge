@@ -2,6 +2,7 @@ package pipy
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -12,32 +13,26 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/sidecar"
 )
 
-// Proxy is a representation of an Sidecar proxy connected to the xDS server.
+// Proxy is a representation of an Sidecar proxy .
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	// The Subject Common Name of the certificate used for Sidecar to communication.
-	certificateCommonName certificate.CommonName
 
 	// UUID of the proxy
 	uuid.UUID
 
-	// IP of the pod
-	PodIP string
+	Identity identity.ServiceIdentity
+
+	net.Addr
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
 
-	// The Serial Number of the certificate used for Sidecar.
-	CertificateSerialNumber certificate.SerialNumber
-
-	// hash is based on CommonName
-	hash uint64
-
 	// kind is the proxy's kind (ex. sidecar, gateway)
-	kind ProxyKind
+	kind models.ProxyKind
 
 	// Records metadata around the Kubernetes Pod on which this Sidecar Proxy is installed.
 	// This could be nil if the Sidecar is not operating in a Kubernetes cluster (VM for example)
@@ -48,12 +43,15 @@ type Proxy struct {
 	MeshConf    *configurator.Configurator
 	SidecarCert *certificate.Certificate
 
-	Mutex sync.RWMutex
+	// The version of Pipy Repo Codebase
+	ETag uint64
+
+	Mutex *sync.RWMutex
 	Quit  chan bool
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.CertificateSerialNumber, p.PodMetadataString())
+	return fmt.Sprintf("[ProxyUUID=%s], [Pod metadata=%s]", p.UUID, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Sidecar proxy is installed
@@ -128,24 +126,19 @@ func (p *Proxy) PodMetadataString() string {
 	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
 }
 
-// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Sidecar proxy connected to xDS.
-func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
-	return p.certificateCommonName
+// GetName returns a unique name for this proxy based on the identity and uuid.
+func (p *Proxy) GetName() string {
+	return fmt.Sprintf("%s:%s", p.Identity.String(), p.UUID.String())
 }
 
-// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Sidecar proxy.
-func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
-	return p.CertificateSerialNumber
+// GetUUID returns UUID.
+func (p *Proxy) GetUUID() uuid.UUID {
+	return p.UUID
 }
 
-// GetHash returns the proxy hash based on its xDSCertificateCommonName
-func (p *Proxy) GetHash() uint64 {
-	return p.hash
-}
-
-// Kind return the proxy's kind
-func (p *Proxy) Kind() ProxyKind {
-	return p.kind
+// GetIdentity returns ServiceIdentity.
+func (p *Proxy) GetIdentity() identity.ServiceIdentity {
+	return p.Identity
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
@@ -153,31 +146,39 @@ func (p *Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
 }
 
-// NewProxy creates a new instance of an Sidecar proxy connected to the servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, podIP string) (*Proxy, error) {
-	// Get CommonName hash for this proxy
-	hash, err := utils.HashFromString(certCommonName.String())
-	if err != nil {
-		log.Warn().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
-	}
-
-	cnMeta, err := getCertificateCommonNameMeta(certCommonName)
-	if err != nil {
-		return nil, ErrInvalidCertificateCN
-	}
-
-	return &Proxy{
-		certificateCommonName:   certCommonName,
-		CertificateSerialNumber: certSerialNumber,
-		UUID:                    cnMeta.ProxyUUID,
-		PodIP:                   podIP,
-		connectedAt:             time.Now(),
-		hash:                    hash,
-		kind:                    cnMeta.ProxyKind,
-	}, nil
+// GetIP returns the address of the proxy connected.
+func (p *Proxy) GetIP() net.Addr {
+	return p.Addr
 }
 
-// NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
-func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
+// GetAddr returns the IP address of the proxy connected.
+func (p *Proxy) GetAddr() string {
+	if p.Addr == nil {
+		return ""
+	}
+	return p.Addr.String()
+}
+
+// Kind return the proxy's kind
+func (p *Proxy) Kind() models.ProxyKind {
+	return p.kind
+}
+
+// GetCNPrefix returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>
+func (p *Proxy) GetCNPrefix() string {
+	return sidecar.GetCertCNPrefix(p, models.KindSidecar)
+}
+
+// NewProxy creates a new instance of an Sidecar proxy connected to the servers.
+func NewProxy(kind models.ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
+	return &Proxy{
+		// Identity is of the form <name>.<namespace>.cluster.local
+		Identity:    svcIdentity,
+		UUID:        uuid,
+		Addr:        ip,
+		connectedAt: time.Now(),
+		kind:        kind,
+		Mutex:       new(sync.RWMutex),
+	}
 }

@@ -16,11 +16,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -39,12 +39,14 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 		It("works as expected", func() {
 			proxyUUID := uuid.New()
 
-			pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName,
+			podName := "pod-name"
+			podName2 := "pod-name-2"
+			pod := tests.NewPodFixture(tests.Namespace, podName, tests.BookstoreServiceAccountName,
 				map[string]string{
 					constants.SidecarUniqueIDLabelName: proxyUUID.String(),
 					constants.AppLabel:                 tests.SelectorValue})
 			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookstoreServiceAccountName))
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&pod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{pod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -52,7 +54,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc1 := tests.NewServiceFixture(svcName, tests.Namespace, selector)
 
 			svcName2 := uuid.New().String()
-			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector)
+			svc2 := tests.HeadlessSvc(tests.NewServiceFixture(svcName2, tests.Namespace, selector))
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc1, svc2}).Times(1)
 
 			expectedSvc1 := service.MeshService{
@@ -64,18 +66,55 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			expectedSvc2 := service.MeshService{
 				Namespace: tests.Namespace,
-				Name:      svcName2,
+				Name:      fmt.Sprintf("%s.%s", podName, svcName2),
 				Port:      tests.ServicePort,
 				Protocol:  "http",
 			}
+
 			expectedList := []service.MeshService{expectedSvc1, expectedSvc2}
 
-			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil).Times(2)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      expectedSvc1.Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP: "8.8.8.8", // pod IP
+							},
+							{
+								IP: "8.8.8.9", // pod2 IP
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
 
-			certCommonName := sidecar.NewCertCommonName(proxyUUID, sidecar.KindSidecar, tests.BookstoreServiceAccountName, tests.Namespace)
-			certSerialNumber := certificate.SerialNumber("123456")
-			proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      expectedSvc2.Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP:       "8.8.8.9", // pod IP
+								Hostname: podName,
+							},
+							{
+								IP:       "8.8.8.9", // pod2 IP
+								Hostname: podName2,
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
+
+			proxy := envoy.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, tests.Namespace), nil)
+			mockKubeController.EXPECT().GetPodForProxy(proxy).Return(pod, nil).Times(1)
 			meshServices, err := proxyRegistry.ListProxyServices(proxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -93,7 +132,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			newPod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 			newPod.Labels[constants.SidecarUniqueIDLabelName] = proxyUUID.String()
 
-			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{&newPod}).Times(1)
+			mockKubeController.EXPECT().ListPods().Return([]*v1.Pod{newPod}).Times(1)
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -101,10 +140,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			svc := tests.NewServiceFixture(svcName, namespace, selector)
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{svc}).Times(1)
 
-			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s", proxyUUID, envoy.KindSidecar, tests.BookstoreServiceAccountName, namespace))
-			certSerialNumber := certificate.SerialNumber("123456")
-			newProxy, err := envoy.NewProxy(podCN, certSerialNumber, nil)
-			Expect(err).ToNot(HaveOccurred())
+			newProxy := envoy.NewProxy(models.KindSidecar, proxyUUID, identity.New(tests.BookstoreServiceAccountName, namespace), nil)
 
 			expected := service.MeshService{
 				Namespace: namespace,
@@ -115,6 +151,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			expectedList := []service.MeshService{expected}
 			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(nil, nil)
 
+			mockKubeController.EXPECT().GetPodForProxy(newProxy).Return(newPod, nil).Times(1)
+			// Subdomain gets called in the ListProxyServices
 			meshServices, err := proxyRegistry.ListProxyServices(newProxy)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -129,6 +167,8 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 			var serviceNames []string
 			var services []*v1.Service = []*v1.Service{}
+			svc2Name := "svc-name-2-headless"
+			podName := "pod-name"
 
 			{
 				// Create a service
@@ -140,18 +180,49 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 			}
 
 			{
-				// Create a second service
-				svc2Name := "svc-name-2"
-				service := tests.NewServiceFixture(svc2Name, namespace, selectors)
+				// Create a second (headless) service
+				service := tests.HeadlessSvc(tests.NewServiceFixture(svc2Name, namespace, selectors))
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				serviceNames = append(serviceNames, service.Name)
+				serviceNames = append(serviceNames, fmt.Sprintf("%s.%s", podName, service.Name))
 			}
 
-			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
+			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, tests.PodLabels)
 			mockKubeController.EXPECT().ListServices().Return(services)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+					Name:      service1Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP: "8.8.8.8",
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
+
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: tests.Namespace,
+					Name:      svc2Name,
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP:       "8.8.8.8",
+								Hostname: pod.Name,
+							},
+						},
+					},
+				},
+			}, nil).Times(1)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(2))
 
 			actualNames := []string{actualSvcs[0].Name, actualSvcs[1].Name}
@@ -170,7 +241,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 
@@ -193,7 +264,7 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 
 			mockKubeController.EXPECT().ListServices().Return([]*v1.Service{service})
 			pod := tests.NewPodFixture(namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
-			actualSvcs := listServicesForPod(&pod, mockKubeController)
+			actualSvcs := listServicesForPod(pod, mockKubeController)
 			Expect(len(actualSvcs)).To(Equal(0))
 		})
 	})
@@ -224,258 +295,13 @@ var _ = Describe("Test Proxy-Service mapping", func() {
 	})
 })
 
-func TestListPodsForService(t *testing.T) {
-	tests := []struct {
-		name         string
-		service      *v1.Service
-		existingPods []*v1.Pod
-		expected     []v1.Pod
-	}{
-		{
-			name: "no existing pods",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: nil,
-			expected:     nil,
-		},
-		{
-			name: "match only pod",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"some": "labels",
-							"that": "match",
-							"a":    "selector",
-						},
-					},
-				},
-			},
-			expected: []v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"some": "labels",
-							"that": "match",
-							"a":    "selector",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "match pod except for namespace",
-			service: &v1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "svc",
-				},
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pod",
-						Namespace: "pod",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name: "empty service selector",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: nil,
-		},
-		{
-			name: "match several pods",
-			service: &v1.Service{
-				Spec: v1.ServiceSpec{
-					Selector: map[string]string{
-						"a": "selector",
-					},
-				},
-			},
-			existingPods: []*v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod1",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod2",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "pod3",
-						Labels: map[string]string{},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod4",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-			expected: []v1.Pod{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod1",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod2",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod4",
-						Labels: map[string]string{
-							"a": "selector",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			ctrl := gomock.NewController(t)
-			kubeController := k8s.NewMockController(ctrl)
-			if test.service != nil && len(test.service.Spec.Selector) != 0 {
-				kubeController.EXPECT().ListPods().Return(test.existingPods).Times(1)
-			}
-
-			actual := listPodsForService(test.service, kubeController)
-			tassert.Equal(t, test.expected, actual)
-		})
-	}
-}
-
-func TestGetCertCommonNameForPod(t *testing.T) {
-	tests := []struct {
-		name      string
-		pod       v1.Pod
-		shouldErr bool
-	}{
-		{
-			name: "valid CN",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels: map[string]string{
-						constants.SidecarUniqueIDLabelName: uuid.New().String(),
-					},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: false,
-		},
-		{
-			name: "invalid UID",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels: map[string]string{
-						constants.SidecarUniqueIDLabelName: uuid.New().String() + "-not-valid",
-					},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: true,
-		},
-		{
-			name: "no UID",
-			pod: v1.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "ns",
-					Labels:    map[string]string{},
-				},
-				Spec: v1.PodSpec{
-					ServiceAccountName: "svcacc",
-				},
-			},
-			shouldErr: true,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			assert := tassert.New(t)
-			cn, err := getCertCommonNameForPod(test.pod)
-			if test.shouldErr {
-				assert.Empty(cn)
-				assert.Error(err)
-			} else {
-				assert.NotEmpty(cn)
-				assert.NoError(err)
-			}
-		})
-	}
-}
-
 func TestKubernetesServicesToMeshServices(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		k8sServices          []v1.Service
+		k8sEndpoints         v1.Endpoints
 		expectedMeshServices []service.MeshService
+		subdomainFilter      string
 	}{
 		{
 			name: "k8s services to mesh services",
@@ -486,6 +312,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 						Name:      "s1",
 					},
 					Spec: v1.ServiceSpec{
+						ClusterIP: "10.0.0.1",
 						Ports: []v1.ServicePort{{
 							Name: "p1",
 							Port: 80,
@@ -498,6 +325,7 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 						Name:      "s2",
 					},
 					Spec: v1.ServiceSpec{
+						ClusterIP: "10.0.0.1",
 						Ports: []v1.ServicePort{{
 							Name: "p2",
 							Port: 80,
@@ -520,6 +348,52 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "k8s services to mesh services (subdomain filter)",
+			k8sServices: []v1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "s1-headless",
+					},
+					Spec: v1.ServiceSpec{
+						Ports: []v1.ServicePort{{
+							Name: "p1",
+							Port: 80,
+						}},
+					},
+				},
+			},
+			k8sEndpoints: v1.Endpoints{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "s1-headless",
+					Namespace: "ns1",
+				},
+				Subsets: []v1.EndpointSubset{
+					{
+						Addresses: []v1.EndpointAddress{
+							{
+								IP:       "8.8.8.8",
+								Hostname: "pod-0",
+							},
+							{
+								IP:       "8.8.8.8",
+								Hostname: "pod-1",
+							},
+						},
+					},
+				},
+			},
+			subdomainFilter: "pod-1",
+			expectedMeshServices: []service.MeshService{
+				{
+					Namespace: "ns1",
+					Name:      "pod-1.s1-headless",
+					Protocol:  "http",
+					Port:      80,
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -529,9 +403,9 @@ func TestKubernetesServicesToMeshServices(t *testing.T) {
 			defer mockCtrl.Finish()
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
-			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&v1.Endpoints{}, nil).Times(len(tc.k8sServices))
+			mockKubeController.EXPECT().GetEndpoints(gomock.Any()).Return(&tc.k8sEndpoints, nil).Times(len(tc.k8sServices))
 
-			actual := kubernetesServicesToMeshServices(mockKubeController, tc.k8sServices)
+			actual := kubernetesServicesToMeshServices(mockKubeController, tc.k8sServices, tc.subdomainFilter)
 			assert.ElementsMatch(tc.expectedMeshServices, actual)
 		})
 	}

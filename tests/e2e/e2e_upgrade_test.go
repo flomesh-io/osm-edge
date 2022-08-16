@@ -91,7 +91,6 @@ var _ = OSMDescribe("Upgrade from latest",
 			chartPath, err := i.LocateChart("osm-edge", helmEnv)
 			Expect(err).NotTo(HaveOccurred())
 			ch, err := loader.Load(chartPath)
-			ensureNodeSelector(ch)
 			Expect(err).NotTo(HaveOccurred())
 			Td.T.Log("testing upgrade from chart version", ch.Metadata.Version)
 
