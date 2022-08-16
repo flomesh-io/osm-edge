@@ -15,39 +15,34 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-const (
-	// singeIPPrefixLen is the IP prefix length for a single IP address
-	singeIPPrefixLen = "/32"
-)
-
-// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
-// Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
-// or Kubernetes Ingress API.
-func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
-	if !mc.configurator.GetFeatureFlags().EnableIngressBackendPolicy {
+// GetAccessControlTrafficPolicy returns the access control traffic policy for the given mesh service
+// Depending on if the AccessControl API is enabled, the policies will be generated either from the AccessControl
+// or Kubernetes AccessControl API.
+func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*trafficpolicy.AccessControlTrafficPolicy, error) {
+	if !mc.configurator.GetFeatureFlags().EnableAccessControlPolicy {
 		return nil, nil
 	}
 
-	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
-	if ingressBackendPolicy == nil {
-		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
+	aclPolicy := mc.policyController.GetAccessControlPolicy(svc)
+	if aclPolicy == nil {
+		log.Trace().Msgf("Did not find AccessControl policy for service %s", svc)
 		return nil, nil
 	}
 
 	// The status field will be updated after the policy is processed.
 	// Note: The original pointer returned by cache.Store must not be modified for thread safety.
-	ingressBackendWithStatus := *ingressBackendPolicy
+	aclWithStatus := *aclPolicy
 
 	var trafficRoutingRules []*trafficpolicy.Rule
 	sourceServiceIdentities := mapset.NewSet()
-	var trafficMatches []*trafficpolicy.IngressTrafficMatch
-	for _, backend := range ingressBackendPolicy.Spec.Backends {
+	var trafficMatches []*trafficpolicy.AccessControlTrafficMatch
+	for _, backend := range aclPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
 			continue
 		}
 
-		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
+		trafficMatch := &trafficpolicy.AccessControlTrafficMatch{
+			Name:                     service.AccessControlTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,
@@ -56,7 +51,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 
 		var sourceIPRanges []string
 		sourceIPSet := mapset.NewSet() // Used to avoid duplicate IP ranges
-		for _, source := range ingressBackendPolicy.Spec.Sources {
+		for _, source := range aclPolicy.Spec.Sources {
 			switch source.Kind {
 			case policyV1alpha1.KindService:
 				sourceMeshSvc := service.MeshService{
@@ -65,15 +60,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				}
 				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
-					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
+					aclWithStatus.Status = policyV1alpha1.AccessControlStatus{
 						CurrentStatus: "error",
 						Reason:        fmt.Sprintf("endpoints not found for service %s/%s", source.Namespace, source.Name),
 					}
-					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
-						log.Error().Err(err).Msg("Error updating status for IngressBackend")
+					if _, err := mc.kubeController.UpdateStatus(&aclWithStatus); err != nil {
+						log.Error().Err(err).Msg("Error updating status for AccessControl")
 					}
-					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
-						source.Namespace, source.Name, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
+					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the AccessControl %s/%s",
+						source.Namespace, source.Name, aclPolicy.Namespace, aclPolicy.Name)
 				}
 
 				for _, ep := range endpoints {
@@ -87,8 +82,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				if _, _, err := net.ParseCIDR(source.Name); err != nil {
 					// This should not happen because the validating webhook will prevent it. This check has
 					// been added as a safety net to prevent invalid configs.
-					log.Error().Err(err).Msgf("Invalid IP address range specified in IngressBackend %s/%s: %s",
-						ingressBackendPolicy.Namespace, ingressBackendPolicy.Name, source.Name)
+					log.Error().Err(err).Msgf("Invalid IP address range specified in AccessControl %s/%s: %s",
+						aclPolicy.Namespace, aclPolicy.Name, source.Name)
 					continue
 				}
 				sourceIPRanges = append(sourceIPRanges, source.Name)
@@ -104,8 +99,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			}
 		}
 
-		// If this ingress is corresponding to an HTTP port, wildcard the downstream's identity
-		// because the identity cannot be verified for HTTP traffic. HTTP based ingress can
+		// If this acl is corresponding to an HTTP port, wildcard the downstream's identity
+		// because the identity cannot be verified for HTTP traffic. HTTP based acl can
 		// restrict downstreams based on their endpoint's IP address.
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
 			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
@@ -115,47 +110,53 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		trafficMatches = append(trafficMatches, trafficMatch)
 
 		// Build the routing rule for this backend and source combination.
-		// Currently IngressBackend only supports a wildcard HTTP route. The
+		// Currently AccessControl only supports a wildcard HTTP route. The
 		// 'Matches' field in the spec can be used to extend this to perform
 		// stricter enforcement.
 		backendCluster := service.WeightedCluster{
 			ClusterName: service.ClusterName(svc.SidecarLocalClusterName()),
 			Weight:      constants.ClusterWeightAcceptAll,
 		}
-		routingRule := &trafficpolicy.Rule{
-			Route: trafficpolicy.RouteWeightedClusters{
-				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
-				WeightedClusters: mapset.NewSet(backendCluster),
-			},
-			AllowedServiceIdentities: sourceServiceIdentities,
+		protocol := strings.ToLower(trafficMatch.Protocol)
+		if protocol == constants.ProtocolHTTP || protocol == constants.ProtocolGRPC {
+			routingRule := &trafficpolicy.Rule{
+				Route: trafficpolicy.RouteWeightedClusters{
+					HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
+					WeightedClusters: mapset.NewSet(backendCluster),
+				},
+				AllowedServiceIdentities: sourceServiceIdentities,
+			}
+			trafficRoutingRules = append(trafficRoutingRules, routingRule)
 		}
-		trafficRoutingRules = append(trafficRoutingRules, routingRule)
 	}
 
 	if len(trafficMatches) == 0 {
-		// Since no trafficMatches exist for this IngressBackend config, it implies that the given
-		// MeshService does not map to this IngressBackend config.
-		log.Debug().Msgf("No ingress traffic matches exist for MeshService %s, no ingress config required", svc.SidecarLocalClusterName())
+		// Since no trafficMatches exist for this AccessControl config, it implies that the given
+		// MeshService does not map to this AccessControl config.
+		log.Debug().Msgf("No acl traffic matches exist for MeshService %s, no acl config required", svc.SidecarLocalClusterName())
 		return nil, nil
 	}
 
-	ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
+	aclWithStatus.Status = policyV1alpha1.AccessControlStatus{
 		CurrentStatus: "committed",
 		Reason:        "successfully committed by the system",
 	}
-	if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
-		log.Error().Err(err).Msg("Error updating status for IngressBackend")
+	if _, err := mc.kubeController.UpdateStatus(&aclWithStatus); err != nil {
+		log.Error().Err(err).Msg("Error updating status for AccessControl")
 	}
 
 	// Create an inbound traffic policy from the routing rules
-	// TODO(#3779): Implement HTTP route matching from IngressBackend.Spec.Matches
-	httpRoutePolicy := &trafficpolicy.InboundTrafficPolicy{
-		Name:      fmt.Sprintf("%s_from_%s", svc, ingressBackendPolicy.Name),
-		Hostnames: []string{"*"},
-		Rules:     trafficRoutingRules,
+	// TODO(#3779): Implement HTTP route matching from AccessControl.Spec.Matches
+	var httpRoutePolicy *trafficpolicy.InboundTrafficPolicy
+	if trafficRoutingRules != nil {
+		httpRoutePolicy = &trafficpolicy.InboundTrafficPolicy{
+			Name:      fmt.Sprintf("%s_from_%s", svc, aclPolicy.Name),
+			Hostnames: []string{"*"},
+			Rules:     trafficRoutingRules,
+		}
 	}
 
-	return &trafficpolicy.IngressTrafficPolicy{
+	return &trafficpolicy.AccessControlTrafficPolicy{
 		TrafficMatches:    trafficMatches,
 		HTTPRoutePolicies: []*trafficpolicy.InboundTrafficPolicy{httpRoutePolicy},
 	}, nil

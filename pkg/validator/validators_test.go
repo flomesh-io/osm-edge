@@ -802,6 +802,789 @@ func TestIngressBackendValidator(t *testing.T) {
 	}
 }
 
+func TestAccessControlValidator(t *testing.T) {
+	testCases := []struct {
+		name         string
+		input        *admissionv1.AdmissionRequest
+		expResp      *admissionv1.AdmissionResponse
+		expErrStr    string
+		existingAcls []*policyv1alpha1.AccessControl
+	}{
+		{
+			name: "AccessControl with valid protocol succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl with invalid protocol errors",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "invalid"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Expected 'port.protocol' to be 'http' or 'https', got: invalid",
+		},
+		{
+			name: "AccessControl with valid TLS config succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": true
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl with invalid mTLS config false",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": false
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "HTTPS acl with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source",
+		},
+		{
+			name: "AccessControl with valid mTLS config succeeds",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "https",
+									"port": {
+										"number": 80,
+										"protocol": "https"
+									},
+									"tls": {
+										"skipClientCertificateValidation": false
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "AuthenticatedPrincipal",
+									"name": "client.ns.cluster.local"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl with valid source IPRange",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "IPRange",
+									"name": "10.0.0.0/10"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl with invalid source IPRange errors",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "IPRange",
+									"name": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got 'invalid'",
+		},
+		{
+			name: "AccessControl with valid source kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"name": "foo",
+									"namespace": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl with invalid source name for kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"namespace": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.name' not specified for source kind Service",
+		},
+		{
+			name: "AccessControl with invalid source namespace for kind Service",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "IngressBackend",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "Service",
+									"name": "bar"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.namespace' not specified for source kind Service",
+		},
+		{
+			name: "AccessControl with invalid source name for kind AuthenticatedPrincipal",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "AuthenticatedPrincipal",
+									"name": ""
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "'source.name' not specified for source kind AuthenticatedPrincipal",
+		},
+		{
+			name: "AccessControl with invalid source kind",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
+		},
+		{
+			name: "AccessControl with invalid source kind",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							],
+							"sources": [
+								{
+									"kind": "invalid"
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Invalid 'source.kind' value specified. Must be one of: Service, AuthenticatedPrincipal, IPRange",
+		},
+		{
+			name: "AccessControl has duplicate backends",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								},
+								{
+									"name": "test",
+									"port": {
+										"number": 80
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "Duplicate backends detected with service name: test and port: 80",
+		},
+		{
+			name: "success: AccessControl has duplicate backend names but different ports",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								},
+								{
+									"name": "test",
+									"port": {
+										"number": 8080,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "AccessControl conflicts with existing AccessControl backends",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingAcls: []*policyv1alpha1.AccessControl{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "AccessControl",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-2",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.AccessControlSpec{
+						Backends: []policyv1alpha1.AccessControlBackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "error: duplicate backends detected\n[+] AccessControl default/test-1 conflicts with default/test-2:\nBackend test specified in test-1 and test-2 conflicts\n\n",
+		},
+		{
+			name: "success: AccessControl conflicts with existing AccessControl backends on different ports",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingAcls: []*policyv1alpha1.AccessControl{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "AccessControl",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-2",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.AccessControlSpec{
+						Backends: []policyv1alpha1.AccessControlBackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   8080,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+		{
+			name: "success: AccessControl doesn't error on update",
+			input: &admissionv1.AdmissionRequest{
+				Kind: metav1.GroupVersionKind{
+					Group:   "v1alpha1",
+					Version: "policy.openservicemesh.io",
+					Kind:    "AccessControl",
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(`
+					{
+						"apiVersion": "v1alpha1",
+						"kind": "AccessControl",
+						"metadata": {
+							"name": "test-1",
+							"namespace": "default"
+						},
+						"spec": {
+							"backends": [
+								{
+									"name": "test",
+									"port": {
+										"number": 80,
+										"protocol": "http"
+									}
+								}
+							]
+						}
+					}
+					`),
+				},
+			},
+			existingAcls: []*policyv1alpha1.AccessControl{
+				{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "AccessControl",
+						APIVersion: "v1alpha1",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "default",
+					},
+					Spec: policyv1alpha1.AccessControlSpec{
+						Backends: []policyv1alpha1.AccessControlBackendSpec{
+							{
+								Name: "test",
+								Port: policyv1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+					},
+				},
+			},
+			expResp:   nil,
+			expErrStr: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert := tassert.New(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			stop := make(chan struct{})
+			defer close(stop)
+			broker := messaging.NewBroker(stop)
+
+			objects := make([]runtime.Object, len(tc.existingAcls))
+			for i := range tc.existingAcls {
+				objects[i] = tc.existingAcls[i]
+			}
+
+			// TODO: Get rid of this (it's only used for namespace monitor verification)
+			k8sController := k8s.NewMockController(mockCtrl)
+			if len(objects) > 0 {
+				k8sController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true)
+			}
+
+			fakeClient := fakePolicyClientset.NewSimpleClientset(objects...)
+			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
+			assert.NoError(err)
+
+			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			pv := &policyValidator{
+				policyClient: policyClient,
+			}
+
+			// Block until we start getting acl updates
+			// We only do this because the informerCollection doesn't have the
+			// policy client's msgBroker eventhandler registered when it initially runs
+			// and that leads to a race condition in tests
+			if len(objects) > 0 {
+				events := broker.GetKubeEventPubSub().Sub(announcements.AccessControlAdded.String())
+				<-events
+			}
+
+			resp, err := pv.ingressBackendValidator(tc.input)
+			assert.Equal(tc.expResp, resp)
+			if tc.expErrStr == "" {
+				// we expect a nil error
+				assert.Nil(err)
+			}
+			if err != nil {
+				assert.Equal(tc.expErrStr, err.Error())
+			}
+		})
+	}
+}
+
 func TestEgressValidator(t *testing.T) {
 	testCases := []struct {
 		name      string

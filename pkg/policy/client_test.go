@@ -343,6 +343,197 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 	}
 }
 
+func TestGetAccessControlPolicy(t *testing.T) {
+	testCases := []struct {
+		name         string
+		allResources []*policyV1alpha1.AccessControl
+		backend      service.MeshService
+		expectedACL  *policyV1alpha1.AccessControl
+	}{
+		{
+			name:         "AccessControl policy not found",
+			allResources: nil,
+			backend:      service.MeshService{Name: "backend1", Namespace: "test"},
+			expectedACL:  nil,
+		},
+		{
+			name: "AccessControl policy found",
+			allResources: []*policyV1alpha1.AccessControl{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend3", // does not match the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
+			expectedACL: &policyV1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyV1alpha1.AccessControlSpec{
+					Backends: []policyV1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+						{
+							Name: "backend2",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "AccessControl policy namespace does not match MeshService.Namespace",
+			allResources: []*policyV1alpha1.AccessControl{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend2", // does not match the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend:     service.MeshService{Name: "backend1", Namespace: "test-1"}, // Namespace does not match IngressBackend.Namespace
+			expectedACL: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, acl := range tc.allResources {
+				_ = c.informers.Add(informers.InformerKeyAccessControl, acl, t)
+			}
+
+			actual := c.GetAccessControlPolicy(tc.backend)
+			a.Equal(tc.expectedACL, actual)
+		})
+	}
+}
+
 func TestListRetryPolicy(t *testing.T) {
 	var thresholdUintVal uint32 = 3
 	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}

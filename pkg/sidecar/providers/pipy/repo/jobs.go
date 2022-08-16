@@ -131,6 +131,12 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 						ingressTrafficPolicy)
 				}
 			}
+			if aclTrafficPolicy, aclErr := cataloger.GetAccessControlTrafficPolicy(svc); aclErr == nil {
+				if aclTrafficPolicy != nil {
+					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
+						aclTrafficPolicy)
+				}
+			}
 		}
 	}
 }

@@ -93,6 +93,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | osm.enableReconciler | bool | `false` | Enable reconciler for OSM's CRDs and mutating webhook |
 | osm.enforceSingleMesh | bool | `true` | Enforce only deploying one mesh in the cluster |
+| osm.featureFlags.enableAccessControlPolicy | bool | `false` | Enables OSM's AccessControl policy API. When enabled, OSM will use the AccessControl API allow access control traffic to mesh backends |
 | osm.featureFlags.enableAsyncProxyServiceMapping | bool | `false` | Enable async proxy-service mapping |
 | osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced |
 | osm.featureFlags.enableIngressBackendPolicy | bool | `true` | Enables OSM's IngressBackend policy API. When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends |

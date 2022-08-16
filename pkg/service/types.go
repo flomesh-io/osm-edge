@@ -121,6 +121,16 @@ func IngressTrafficMatchName(name, namespace string, targetPort uint16, protocol
 	return fmt.Sprintf("ingress_%s/%s_%d_%s", namespace, name, targetPort, protocol)
 }
 
+// AccessControlTrafficMatchName returns the acl traffic match name
+func (ms MeshService) AccessControlTrafficMatchName() string {
+	return AccessControlTrafficMatchName(ms.Namespace, ms.Name, ms.TargetPort, ms.Protocol)
+}
+
+// AccessControlTrafficMatchName returns the acl traffic match name
+func AccessControlTrafficMatchName(name, namespace string, targetPort uint16, protocol string) string {
+	return fmt.Sprintf("acl_%s/%s_%d_%s", namespace, name, targetPort, protocol)
+}
+
 // ClusterName is a type for a service name
 type ClusterName string
 

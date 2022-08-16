@@ -166,6 +166,15 @@ const (
 	// IngressBackendUpdated is the type of announcement emitted when we observe an update to ingressbackends.policy.openservicemesh.io
 	IngressBackendUpdated Kind = "ingressbackend-updated"
 
+	// AccessControlAdded is the type of announcement emitted when we observe an addition of accesscontrols.policy.openservicemesh.io
+	AccessControlAdded Kind = "accesscontrol-added"
+
+	// AccessControlDeleted the type of announcement emitted when we observe a deletion of accesscontrols.policy.openservicemesh.io
+	AccessControlDeleted Kind = "accesscontrol-deleted"
+
+	// AccessControlUpdated is the type of announcement emitted when we observe an update to accesscontrols.policy.openservicemesh.io
+	AccessControlUpdated Kind = "accesscontrol-updated"
+
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
 

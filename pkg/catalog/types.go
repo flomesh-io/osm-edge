@@ -58,6 +58,9 @@ type MeshCataloger interface {
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
+	// GetAccessControlTrafficPolicy returns the access control traffic policy for the given mesh service
+	GetAccessControlTrafficPolicy(service.MeshService) (*trafficpolicy.AccessControlTrafficPolicy, error)
+
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 

@@ -1021,6 +1021,7 @@
                         "enableEgressPolicy",
                         "enableAsyncProxyServiceMapping",
                         "enableIngressBackendPolicy",
+                        "enableAccessControlPolicy",
                         "enableSidecarActiveHealthChecks",
                         "enableSnapshotCacheMode",
                         "enableRetryPolicy",
@@ -1059,6 +1060,15 @@
                             "type": "boolean",
                             "title": "Enable OSM to use the IngressBackend API",
                             "description": "Enable OSM to use the IngressBackend API for allowing ingress to mesh backends",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableAccessControlPolicy": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableAccessControlPolicy",
+                            "type": "boolean",
+                            "title": "Enable OSM to use the AccessControl API",
+                            "description": "Enable OSM to use the AccessControl API for allowing access control traffic to mesh backends",
                             "examples": [
                                 true
                             ]

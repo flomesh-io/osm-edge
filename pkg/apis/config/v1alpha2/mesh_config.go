@@ -231,6 +231,10 @@ type FeatureFlags struct {
 	// service mesh backends.
 	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy"`
 
+	// EnableAccessControlPolicy defines if OSM will use the AccessControl API to allow access control traffic to
+	// service mesh backends.
+	EnableAccessControlPolicy bool `json:"enableAccessControlPolicy"`
+
 	// EnableSidecarActiveHealthChecks defines if OSM will Sidecar active health
 	// checks between services allowed to communicate.
 	EnableSidecarActiveHealthChecks bool `json:"enableSidecarActiveHealthChecks"`

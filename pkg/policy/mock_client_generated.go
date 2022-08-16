@@ -36,6 +36,20 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
+// GetAccessControlPolicy mocks base method.
+func (m *MockController) GetAccessControlPolicy(arg0 service.MeshService) *v1alpha1.AccessControl {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccessControlPolicy", arg0)
+	ret0, _ := ret[0].(*v1alpha1.AccessControl)
+	return ret0
+}
+
+// GetAccessControlPolicy indicates an expected call of GetAccessControlPolicy.
+func (mr *MockControllerMockRecorder) GetAccessControlPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessControlPolicy", reflect.TypeOf((*MockController)(nil).GetAccessControlPolicy), arg0)
+}
+
 // GetIngressBackendPolicy mocks base method.
 func (m *MockController) GetIngressBackendPolicy(arg0 service.MeshService) *v1alpha1.IngressBackend {
 	m.ctrl.T.Helper()

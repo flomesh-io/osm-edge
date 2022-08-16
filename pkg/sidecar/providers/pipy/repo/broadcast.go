@@ -10,7 +10,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
@@ -107,8 +106,6 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 	for _, pod := range allPods {
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
-				Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
 			continue
 		}
 		s.fireUpdatedPod(s.proxyRegistry, proxy)

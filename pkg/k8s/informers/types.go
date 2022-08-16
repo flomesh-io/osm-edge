@@ -44,6 +44,8 @@ const (
 	InformerKeyUpstreamTrafficSetting InformerKey = "UpstreamTrafficSetting"
 	// InformerKeyRetry is the InformerKey for a Retry informer
 	InformerKeyRetry InformerKey = "Retry"
+	// InformerKeyAccessControl is the InformerKey for a AccessControl informer
+	InformerKeyAccessControl InformerKey = "AccessControl"
 )
 
 const (

@@ -172,7 +172,7 @@ func newHTTPPerRouteRateLimit(spec *v1alpha1.HTTPPerRouteRateLimitSpec) *HTTPPer
 // HTTPHeaderRateLimit defines the settings corresponding to an HTTP headers
 type HTTPHeaderRateLimit struct {
 	// Headers defines the list of HTTP headers
-	Headers []HTTPHeaderValue `json:"Headers"`
+	Headers map[string]string `json:"Headers"`
 	// RateLimit defines the rate limiting specification
 	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
 }
@@ -189,8 +189,9 @@ func newHTTPHeaderRateLimit(specs *[]v1alpha1.HTTPHeaderSpec) []*HTTPHeaderRateL
 	hrls := make([]*HTTPHeaderRateLimit, 0)
 	for _, spec := range *specs {
 		hrl := new(HTTPHeaderRateLimit)
+		hrl.Headers = make(map[string]string)
 		for _, header := range spec.Headers {
-			hrl.Headers = append(hrl.Headers, newHTTPHeaderValue(header))
+			hrl.Headers[header.Name] = header.Value
 		}
 		hrl.RateLimit = newHTTPPerRouteRateLimit(spec.RateLimit)
 		hrls = append(hrls, hrl)

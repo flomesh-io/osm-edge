@@ -58,10 +58,10 @@ rules:
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["egresses", "ingressbackends", "retries", "upstreamtrafficsettings"]
+    resources: ["egresses", "ingressbackends", "accesscontrols", "retries", "upstreamtrafficsettings"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["ingressbackends/status", "upstreamtrafficsettings/status"]
+    resources: ["ingressbackends/status", "accesscontrols/status", "upstreamtrafficsettings/status"]
     verbs: ["update"]
 
   # Used for interacting with cert-manager CertificateRequest resources.
