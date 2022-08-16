@@ -148,6 +148,10 @@ func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName 
 	}
 }
 
+func (itm *InboundTrafficMatch) setRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+	itm.RateLimit = newRateLimit(rateLimit)
+}
+
 func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange) {
 	otm.DestinationIPRanges = append(otm.DestinationIPRanges, ipRange)
 }
@@ -289,6 +293,14 @@ func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	}
 }
 
+func (hrr *HTTPRouteRule) setRouteRateLimit(rateLimit *v1alpha1.HTTPPerRouteRateLimitSpec) {
+	hrr.RouteRateLimit = newHTTPPerRouteRateLimit(rateLimit)
+}
+
+func (hrr *HTTPRouteRule) setHeaderRateLimit(rateLimit *[]v1alpha1.HTTPHeaderSpec) {
+	hrr.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
+}
+
 func (itp *InboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *WeightedEndpoint {
 	if itp.ClustersConfigs == nil {
 		itp.ClustersConfigs = make(map[ClusterName]*WeightedEndpoint)
@@ -408,7 +420,4 @@ func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *v1alpha1.RetryPolicySpec)
 	otp.RetryPolicy.PerTryTimeout = &perTryTimeout
 	retryBackoffBaseInterval := retryPolicy.RetryBackoffBaseInterval.Seconds()
 	otp.RetryPolicy.RetryBackoffBaseInterval = &retryBackoffBaseInterval
-}
-
-func (otp *ClusterConfigs) setRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
 }

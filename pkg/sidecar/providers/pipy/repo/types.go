@@ -95,10 +95,12 @@ type Services []ServiceName
 
 // HTTPRouteRule http route rule
 type HTTPRouteRule struct {
-	Headers         Headers          `json:"Headers"`
-	Methods         Methods          `json:"Methods"`
-	TargetClusters  WeightedClusters `json:"TargetClusters"`
-	AllowedServices Services         `json:"AllowedServices"`
+	Headers          Headers                `json:"Headers"`
+	Methods          Methods                `json:"Methods"`
+	TargetClusters   WeightedClusters       `json:"TargetClusters"`
+	AllowedServices  Services               `json:"AllowedServices"`
+	RouteRateLimit   *HTTPPerRouteRateLimit `json:"RouteRateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit `json:"HeaderRateLimits"`
 
 	allowedAnyService bool
 	allowedAnyMethod  bool
@@ -219,6 +221,7 @@ type InboundTrafficMatch struct {
 	SourceIPRanges SourceIPRanges
 	TrafficMatch
 	AllowedEndpoints AllowedEndpoints
+	RateLimit        *RateLimit `json:"RateLimit"`
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch

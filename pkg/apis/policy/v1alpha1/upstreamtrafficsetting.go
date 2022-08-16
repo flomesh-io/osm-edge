@@ -52,6 +52,12 @@ type UpstreamTrafficSettingSpec struct {
 	// route level.
 	// +optional
 	HTTPRoutes []HTTPRouteSpec `json:"httpRoutes,omitempty"`
+
+	// HTTPHeaders defines the list of HTTP routes settings
+	// for the upstream host. Settings are applied at all routes
+	// within the VirtualHost.
+	// +optional
+	HTTPHeaders []HTTPHeaderSpec `json:"httpHeaders,omitempty"`
 }
 
 // ConnectionSettingsSpec defines the connection settings for an
@@ -264,7 +270,7 @@ type HTTPHeaderValue struct {
 	Value string `json:"value"`
 }
 
-// HTTPRouteSpec defines the settings correspondng to an HTTP route
+// HTTPRouteSpec defines the settings corresponding to an HTTP route
 type HTTPRouteSpec struct {
 	// Path defines the HTTP path.
 	Path string `json:"path"`
@@ -280,6 +286,16 @@ type HTTPPerRouteRateLimitSpec struct {
 	// Local defines the local rate limiting specification
 	// applied per HTTP route.
 	Local *HTTPLocalRateLimitSpec `json:"local,omitempty"`
+}
+
+// HTTPHeaderSpec defines the settings corresponding to an HTTP headers
+type HTTPHeaderSpec struct {
+	// Headers defines the list of HTTP headers
+	Headers []HTTPHeaderValue `json:"headers"`
+
+	// RateLimit defines the HTTP rate limiting specification for
+	// the specified HTTP route.
+	RateLimit *HTTPPerRouteRateLimitSpec `json:"rateLimit,omitempty"`
 }
 
 // UpstreamTrafficSettingStatus defines the status of an UpstreamTrafficSetting resource.

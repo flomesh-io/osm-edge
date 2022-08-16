@@ -5,7 +5,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 )
 
 var log = logger.New("proxy-registry")
@@ -23,9 +22,4 @@ type ProxyRegistry struct {
 // A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
 type certificateReleaser interface {
 	ReleaseCertificate(key string)
-}
-
-type connectedProxy struct {
-	// Proxy which connected to the XDS control plane
-	proxy *envoy.Proxy
 }

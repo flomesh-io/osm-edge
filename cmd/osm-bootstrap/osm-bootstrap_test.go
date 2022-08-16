@@ -81,7 +81,7 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 	"enableEgressPolicy": true,
 	"enableAsyncProxyServiceMapping": false,
 	"enableIngressBackendPolicy": true,
-	"enableEnvoyActiveHealthChecks": true,
+	"enableSidecarActiveHealthChecks": true,
 	"enableSnapshotCacheMode": true,
 	"enableRetryPolicy": false
 	}

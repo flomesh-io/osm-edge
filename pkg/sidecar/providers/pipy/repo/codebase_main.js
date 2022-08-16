@@ -1,4 +1,4 @@
-// version: '2022.07.18'
+// version: '2022.07.28a'
 ((
   {
     config,
@@ -22,9 +22,9 @@
     probePath,
     logZipkin,
     metrics,
-    codeMessage
-  } = pipy.solve('config.js')
-) => (
+    codeMessage,
+    logLogging
+  } = pipy.solve('f_config.js')) => (
 
   // Turn On Activity Metrics
   metrics.serverLiveGauge.increase(),
@@ -42,24 +42,42 @@
     }
   }).log),
 
+  debugLogLevel && (logLogging = new logging.JSONLogger('access-logging').toFile('/dev/stdout').log),
+
   pipy({
     _inMatch: null,
-    _inTarget: null,
     _inSessionControl: null,
     _ingressMode: null,
-    _inZipkinStruct: {},
-    _localClusterName: null,
     _outIP: null,
     _outPort: null,
     _outMatch: null,
-    _outTarget: null,
     _outSessionControl: null,
     _egressMode: null,
-    _outZipkinStruct: {},
-    _upstreamClusterName: null,
-    _outRequestTime: 0,
     _egressTargetMap: {}
   })
+
+    .export('main', {
+      config: config,
+      metrics: metrics,
+      debugLogLevel: debugLogLevel,
+      namespace: namespace,
+      kind: kind,
+      name: name,
+      pod: pod,
+      logLogging: logLogging,
+      prometheusTarget: prometheusTarget,
+      _inTarget: null,
+      _inZipkinData: null,
+      _inLoggingData: null,
+      _inBytesStruct: null,
+      _localClusterName: null,
+      _outTarget: null,
+      _outBytesStruct: null,
+      _outRequestTime: 0,
+      _upstreamClusterName: null,
+      _outZipkinData: null,
+      _outLoggingData: null
+    })
 
     //
     // inbound
@@ -104,12 +122,12 @@
             close: false
           },
 
-          debugLogLevel && (
-            console.log('inbound _inMatch: ', _inMatch) ||
-            console.log('inbound _inTarget: ', _inTarget?.id) ||
-            console.log('inbound protocol: ', _inMatch?.Protocol) ||
+          debugLogLevel && (() => (
+            console.log('inbound _inMatch: ', _inMatch),
+            console.log('inbound _inTarget: ', _inTarget?.id),
+            console.log('inbound protocol: ', _inMatch?.Protocol),
             console.log('inbound acceptTLS: ', Boolean(tlsCertChain))
-          )
+          ))()
         ))(),
         !_inMatch || (_inTarget && _inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc') ? new Data : null
       )
@@ -135,9 +153,20 @@
     .branch(
       () => _inMatch?.Protocol === 'http' || _inMatch?.Protocol === 'grpc', $ => $
         .demuxHTTP().to($ => $
+          .handleData(
+            (data) => (
+              _inBytesStruct.requestSize += data.size
+            )
+          )
           .replaceMessageStart(
             evt => _inSessionControl.close ? new StreamEnd : evt
           ).link('recv-inbound-http')
+          .handleData(
+            (data) => (
+              _inBytesStruct.responseSize += data.size
+            )
+          )
+          .use(['p_gather.js'], 'after-local-http')
         ),
       () => Boolean(_inTarget), 'send-inbound-tcp',
       $ => $
@@ -188,19 +217,21 @@
           ),
 
           // Initialize ZipKin tracing data
-          logZipkin && (() => (
-            _inZipkinStruct.data = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true),
-            _inZipkinStruct.requestSize = 0,
-            _inZipkinStruct.responseSize = 0
-          ))(),
+          logZipkin && (_inZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true)),
 
-          debugLogLevel && (
-            console.log('inbound path: ', msg.head.path) ||
-            console.log('inbound headers: ', msg.head.headers) ||
-            console.log('inbound service: ', service) ||
-            console.log('inbound match: ', match) ||
+          // Initialize Inbound logging data
+          logLogging && (_inLoggingData = metrics.funcMakeLoggingData(msg, 'inbound')),
+
+          _inBytesStruct = {},
+          _inBytesStruct.requestSize = _inBytesStruct.responseSize = 0,
+
+          debugLogLevel && (() => (
+            console.log('inbound path: ', msg.head.path),
+            console.log('inbound headers: ', msg.head.headers),
+            console.log('inbound service: ', service),
+            console.log('inbound match: ', match),
             console.log('inbound _inTarget: ', _inTarget?.id)
-          )
+          ))()
         ))()
       )
     )
@@ -217,31 +248,6 @@
             status: 403
           }, 'Access denied')
         )
-    )
-    .handleMessageStart(
-      (msg) => (
-        ((headers) => (
-          (headers = msg?.head?.headers) && (() => (
-            headers['osm-stats-namespace'] = namespace,
-            headers['osm-stats-kind'] = kind,
-            headers['osm-stats-name'] = name,
-            headers['osm-stats-pod'] = pod,
-            metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _localClusterName).increase(),
-            metrics.upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase(),
-
-            _inZipkinStruct.data && (() => (
-              _inZipkinStruct.data.tags['peer.address'] = _inTarget?.id,
-              _inZipkinStruct.data.tags['http.status_code'] = msg?.head?.status?.toString?.(),
-              _inZipkinStruct.data.tags['request_size'] = _inZipkinStruct.requestSize.toString(),
-              _inZipkinStruct.data.tags['response_size'] = _inZipkinStruct.responseSize.toString(),
-              _inZipkinStruct.data['duration'] = Date.now() * 1000 - _inZipkinStruct.data['timestamp'],
-              logZipkin(_inZipkinStruct.data)
-            ))(),
-
-            debugLogLevel && console.log('_inZipkinStruct : ', _inZipkinStruct.data)
-          ))()
-        ))()
-      )
     )
 
     //
@@ -260,7 +266,6 @@
     )
     .handleData(
       (data) => (
-        _inZipkinStruct.requestSize += data.size,
         metrics.sendBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
       )
     )
@@ -269,7 +274,6 @@
     )
     .handleData(
       (data) => (
-        _inZipkinStruct.responseSize += data.size,
         metrics.receiveBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
       )
     )
@@ -326,11 +330,11 @@
             close: false
           },
 
-          debugLogLevel && (
-            console.log('outbound _outMatch: ', _outMatch) ||
-            console.log('outbound _outTarget: ', _outTarget?.id) ||
+          debugLogLevel && (() => (
+            console.log('outbound _outMatch: ', _outMatch),
+            console.log('outbound _outTarget: ', _outTarget?.id),
             console.log('outbound protocol: ', _outMatch?.Protocol)
-          )
+          ))()
         ))(),
         _outTarget && _outMatch?.Protocol !== 'http' && _outMatch?.Protocol !== 'grpc' ? new Data : null
       )
@@ -338,9 +342,21 @@
     .branch(
       () => _outMatch?.Protocol === 'http' || _outMatch?.Protocol === 'grpc', $ => $
         .demuxHTTP().to($ => $
+          .handleData(
+            (data) => (
+              _outBytesStruct.requestSize += data.size
+            )
+          )
           .replaceMessageStart(
             evt => _outSessionControl.close ? new StreamEnd : evt
-          ).link('recv-outbound-http')
+          )
+          .link('recv-outbound-http')
+          .handleData(
+            (data) => (
+              _outBytesStruct.responseSize += data.size
+            )
+          )
+          .use(['p_gather.js'], 'after-upstream-http')
         ),
       () => Boolean(_outTarget), 'send-outbound-tcp',
       $ => $
@@ -398,11 +414,13 @@
           _outTarget && metrics.funcTracingHeaders(namespace, kind, name, pod, headers, _outMatch?.Protocol),
 
           // Initialize ZipKin tracing data
-          logZipkin && (() => (
-            _outZipkinStruct.data = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false),
-            _outZipkinStruct.requestSize = 0,
-            _outZipkinStruct.responseSize = 0
-          ))(),
+          logZipkin && (_outZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false)),
+
+          // Initialize Outbound logging data
+          logLogging && (_outLoggingData = metrics.funcMakeLoggingData(msg, 'outbound')),
+
+          _outBytesStruct = {},
+          _outBytesStruct.requestSize = _outBytesStruct.responseSize = 0,
 
           // EGRESS mode
           !_outTarget && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
@@ -416,19 +434,28 @@
           ),
 
           _outRequestTime = Date.now(),
+          config?.outClustersBreakers?.[_upstreamClusterName] && (config.outClustersBreakers[_upstreamClusterName].count_in = true),
 
-          debugLogLevel && (
-            console.log('outbound path: ', msg.head.path) ||
-            console.log('outbound headers: ', msg.head.headers) ||
-            console.log('outbound service: ', service) ||
-            console.log('outbound route: ', route) ||
-            console.log('outbound match: ', match) ||
+          debugLogLevel && (() => (
+            console.log('outbound path: ', msg.head.path),
+            console.log('outbound headers: ', msg.head.headers),
+            console.log('outbound service: ', service),
+            console.log('outbound route: ', route),
+            console.log('outbound match: ', match),
             console.log('outbound _outTarget: ', _outTarget?.id)
-          )
+          ))()
         ))()
       )
     )
+
     .branch(
+      () => config?.outClustersBreakers?.[_upstreamClusterName]?.block?.(), $ => $
+        .replaceMessage(
+          () => (
+            config.outClustersBreakers[_upstreamClusterName].count_in = false,
+            config.outClustersBreakers[_upstreamClusterName].message()
+          )
+        ),
       () => Boolean(_outTarget) && _outMatch?.Protocol === 'grpc', $ => $
         .muxHTTP('send-outbound-tcp', () => _outTarget, {
           version: 2
@@ -442,34 +469,6 @@
           }, 'Access denied')
         )
     )
-    .handleMessageStart(
-      (msg) => (
-        ((headers, d_namespace, d_kind, d_name, d_pod) => (
-          headers = msg?.head?.headers,
-          (d_namespace = headers?.['osm-stats-namespace']) && (delete headers['osm-stats-namespace']),
-          (d_kind = headers?.['osm-stats-kind']) && (delete headers['osm-stats-kind']),
-          (d_name = headers?.['osm-stats-name']) && (delete headers['osm-stats-name']),
-          (d_pod = headers?.['osm-stats-pod']) && (delete headers['osm-stats-pod']),
-          d_namespace && metrics.osmRequestDurationHist.withLabels(namespace, kind, name, pod, d_namespace, d_kind, d_name, d_pod).observe(Date.now() - _outRequestTime),
-          metrics.upstreamCompletedCount.withLabels(_upstreamClusterName).increase(),
-          msg?.head?.status && metrics.upstreamCodeCount.withLabels(msg.head.status, _upstreamClusterName).increase(),
-          msg?.head?.status && metrics.upstreamCodeXCount.withLabels(msg.head.status.toString().charAt(0), _upstreamClusterName).increase(),
-          metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
-          msg?.head?.status && metrics.upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
-
-          _outZipkinStruct.data && (() => (
-            _outZipkinStruct.data.tags['peer.address'] = _outTarget?.id,
-            _outZipkinStruct.data.tags['http.status_code'] = msg?.head?.status?.toString?.(),
-            _outZipkinStruct.data.tags['request_size'] = _outZipkinStruct.requestSize.toString(),
-            _outZipkinStruct.data.tags['response_size'] = _outZipkinStruct.responseSize.toString(),
-            _outZipkinStruct.data['duration'] = Date.now() * 1000 - _outZipkinStruct.data['timestamp'],
-            logZipkin(_outZipkinStruct.data)
-          ))(),
-
-          debugLogLevel && console.log('_outZipkinStruct : ', _outZipkinStruct.data)
-        ))()
-      )
-    )
 
     //
     // Connect to upstream service
@@ -477,17 +476,23 @@
     .pipeline('send-outbound-tcp')
     .onStart(
       () => (
-        metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase()
+        metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase(),
+        config?.outClustersBreakers?.[_upstreamClusterName]?.incConnections?.()
       )
     )
     .onEnd(
       () => (
-        metrics.activeConnectionGauge.withLabels(_upstreamClusterName).decrease()
+        metrics.activeConnectionGauge.withLabels(_upstreamClusterName).decrease(),
+        config?.outClustersBreakers?.[_upstreamClusterName]?.decConnections?.()
+      )
+    )
+    .handleMessageStart(
+      () => (
+        config?.outClustersBreakers?.[_upstreamClusterName]?.increase?.()
       )
     )
     .handleData(
       (data) => (
-        _outZipkinStruct.requestSize += data.size,
         metrics.sendBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
       )
     )
@@ -509,8 +514,25 @@
     )
     .handleData(
       (data) => (
-        _outZipkinStruct.responseSize += data.size,
         metrics.receiveBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
+      )
+    )
+
+    //
+    // Periodic calculate circuit breaker ratio.
+    //
+    .task('5s')
+    .onStart(
+      () => new Message
+    )
+    .replaceMessage(
+      () => (
+        config.outClustersBreakers && Object.entries(config.outClustersBreakers).map(
+          ([k, v]) => (
+            v.sample()
+          )
+        ),
+        new StreamEnd
       )
     )
 
@@ -607,11 +629,12 @@
     )
 
     //
-    // PIPY configuration file
+    // PIPY configuration file and osm get proxy
     //
     .listen(15000)
-    .serveHTTP(
-      msg => http.File.from('pipy.json').toMessage(msg.head.headers['accept-encoding'])
+    .demuxHTTP()
+    .to(
+      $ => $.chain(['p_stats.js'])
     )
 
 ))()
