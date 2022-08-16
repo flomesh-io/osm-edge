@@ -101,7 +101,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
       --mesh-name "$MESH_NAME" \
       --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
@@ -130,7 +129,6 @@ else
   # shellcheck disable=SC2086
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
       --mesh-name "$MESH_NAME" \
       --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \

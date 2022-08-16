@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: jaeger
+  name: osm-jaeger
   namespace: {{ include "osm.namespace" . }}
   labels:
     {{- include "osm.labels" . | nindent 4 }}
-    app: jaeger
+    app: osm-jaeger
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: jaeger
+      app: osm-jaeger
   template:
     metadata:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
-        app: jaeger
+        app: osm-jaeger
     spec:
       {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
       {{- include "restricted.securityContext" . | nindent 6 }}
