@@ -621,6 +621,7 @@ func getDefaultInstallCmd(writer io.Writer) installCmd {
 		meshName:          defaultMeshName,
 		clientSet:         fake.NewSimpleClientset(),
 		enforceSingleMesh: defaultEnforceSingleMesh,
+		disableSpinner:    true,
 	}
 
 	return installCmd
