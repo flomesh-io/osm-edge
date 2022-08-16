@@ -73,7 +73,7 @@ func endpoints(pipyConf *PipyConf, s *Server) {
 }
 
 func balance(pipyConf *PipyConf) {
-	pipyConf.rebalanceOutboundClusters()
+	pipyConf.rebalancedOutboundClusters()
 }
 
 func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {

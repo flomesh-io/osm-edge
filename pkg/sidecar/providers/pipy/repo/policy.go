@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -61,14 +62,18 @@ func (p *PipyConf) newOutboundTrafficPolicy() *OutboundTrafficPolicy {
 	return p.Outbound
 }
 
-func (p *PipyConf) rebalanceOutboundClusters() {
+func (p *PipyConf) rebalancedOutboundClusters() {
 	if p.Outbound == nil {
 		return
 	}
 	if p.Outbound.ClustersConfigs == nil || len(p.Outbound.ClustersConfigs) == 0 {
 		return
 	}
-	for _, weightedEndpoints := range p.Outbound.ClustersConfigs {
+	for _, clusterConfigs := range p.Outbound.ClustersConfigs {
+		weightedEndpoints := clusterConfigs.Endpoints
+		if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
+			continue
+		}
 		missingWeightNb := 0
 		availableWeight := uint32(100)
 		for _, weight := range *weightedEndpoints {
@@ -284,23 +289,41 @@ func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	}
 }
 
-func (tp *TrafficPolicy) newClusterConfigs(clusterName ClusterName) *WeightedEndpoint {
-	if tp.ClustersConfigs == nil {
-		tp.ClustersConfigs = make(ClustersConfigs)
+func (itp *InboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *WeightedEndpoint {
+	if itp.ClustersConfigs == nil {
+		itp.ClustersConfigs = make(map[ClusterName]*WeightedEndpoint)
 	}
-	cluster, exist := tp.ClustersConfigs[clusterName]
+	cluster, exist := itp.ClustersConfigs[clusterName]
 	if !exist || cluster == nil {
 		newCluster := make(WeightedEndpoint, 0)
-		tp.ClustersConfigs[clusterName] = &newCluster
+		itp.ClustersConfigs[clusterName] = &newCluster
 		return &newCluster
 	}
 	return cluster
 }
 
-func (we *WeightedEndpoint) addWeightedEndpoint(
-	address Address,
-	port Port,
-	weight Weight) {
+func (otp *OutboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *ClusterConfigs {
+	if otp.ClustersConfigs == nil {
+		otp.ClustersConfigs = make(map[ClusterName]*ClusterConfigs)
+	}
+	cluster, exist := otp.ClustersConfigs[clusterName]
+	if !exist || cluster == nil {
+		newCluster := new(ClusterConfigs)
+		otp.ClustersConfigs[clusterName] = newCluster
+		return newCluster
+	}
+	return cluster
+}
+
+func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weight Weight) {
+	if otp.Endpoints == nil {
+		weightedEndpoints := make(WeightedEndpoint)
+		otp.Endpoints = &weightedEndpoints
+	}
+	otp.Endpoints.addWeightedEndpoint(address, port, weight)
+}
+
+func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weight Weight) {
 	if addrWithPort.MatchString(string(address)) {
 		httpHostPort := HTTPHostPort(address)
 		(*we)[httpHostPort] = weight
@@ -308,4 +331,84 @@ func (we *WeightedEndpoint) addWeightedEndpoint(
 		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
 		(*we)[httpHostPort] = weight
 	}
+}
+
+func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.ConnectionSettingsSpec) {
+	if connectionSettings == nil {
+		otp.ConnectionSettings = nil
+		return
+	}
+	otp.ConnectionSettings = new(ConnectionSettings)
+	if connectionSettings.TCP != nil {
+		otp.ConnectionSettings.TCP = new(TCPConnectionSettings)
+		otp.ConnectionSettings.TCP.MaxConnections = connectionSettings.TCP.MaxConnections
+		if connectionSettings.TCP.ConnectTimeout != nil {
+			duration := connectionSettings.TCP.ConnectTimeout.Seconds()
+			otp.ConnectionSettings.TCP.ConnectTimeout = &duration
+		}
+		if connectionSettings.TCP.CircuitBreaking != nil {
+			otp.ConnectionSettings.TCP.CircuitBreaking = new(TCPCircuitBreaking)
+			if connectionSettings.TCP.CircuitBreaking.StatTimeWindow != nil {
+				duration := connectionSettings.TCP.CircuitBreaking.StatTimeWindow.Seconds()
+				otp.ConnectionSettings.TCP.CircuitBreaking.StatTimeWindow = &duration
+			}
+			if connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold != nil {
+				duration := connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold.Seconds()
+				otp.ConnectionSettings.TCP.CircuitBreaking.SlowTimeThreshold = &duration
+			}
+			otp.ConnectionSettings.TCP.CircuitBreaking.SlowAmountThreshold = connectionSettings.TCP.CircuitBreaking.SlowAmountThreshold
+			otp.ConnectionSettings.TCP.CircuitBreaking.SlowRatioThreshold = connectionSettings.TCP.CircuitBreaking.SlowRatioThreshold
+			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold = connectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold
+			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold = connectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold
+			if connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow != nil {
+				duration := connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow.Seconds()
+				otp.ConnectionSettings.TCP.CircuitBreaking.DegradedTimeWindow = &duration
+			}
+		}
+	}
+	if connectionSettings.HTTP != nil {
+		otp.ConnectionSettings.HTTP = new(HTTPConnectionSettings)
+		otp.ConnectionSettings.HTTP.MaxRequests = connectionSettings.HTTP.MaxRequests
+		otp.ConnectionSettings.HTTP.MaxRequestsPerConnection = connectionSettings.HTTP.MaxRequestsPerConnection
+		otp.ConnectionSettings.HTTP.MaxPendingRequests = connectionSettings.HTTP.MaxPendingRequests
+		otp.ConnectionSettings.HTTP.MaxRetries = connectionSettings.HTTP.MaxRetries
+		if connectionSettings.HTTP.CircuitBreaking != nil {
+			otp.ConnectionSettings.HTTP.CircuitBreaking = new(HTTPCircuitBreaking)
+			if connectionSettings.HTTP.CircuitBreaking.StatTimeWindow != nil {
+				duration := connectionSettings.HTTP.CircuitBreaking.StatTimeWindow.Seconds()
+				otp.ConnectionSettings.HTTP.CircuitBreaking.StatTimeWindow = &duration
+			}
+			if connectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold != nil {
+				duration := connectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold.Seconds()
+				otp.ConnectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold = &duration
+			}
+			otp.ConnectionSettings.HTTP.CircuitBreaking.SlowAmountThreshold = connectionSettings.HTTP.CircuitBreaking.SlowAmountThreshold
+			otp.ConnectionSettings.HTTP.CircuitBreaking.SlowRatioThreshold = connectionSettings.HTTP.CircuitBreaking.SlowRatioThreshold
+			otp.ConnectionSettings.HTTP.CircuitBreaking.ErrorAmountThreshold = connectionSettings.HTTP.CircuitBreaking.ErrorAmountThreshold
+			otp.ConnectionSettings.HTTP.CircuitBreaking.ErrorRatioThreshold = connectionSettings.HTTP.CircuitBreaking.ErrorRatioThreshold
+			if connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow != nil {
+				duration := connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow.Seconds()
+				otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow = &duration
+			}
+			otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedStatusCode = connectionSettings.HTTP.CircuitBreaking.DegradedStatusCode
+			otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedResponseContent = connectionSettings.HTTP.CircuitBreaking.DegradedResponseContent
+		}
+	}
+}
+
+func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *v1alpha1.RetryPolicySpec) {
+	if retryPolicy == nil {
+		otp.RetryPolicy = nil
+		return
+	}
+	otp.RetryPolicy = new(RetryPolicy)
+	otp.RetryPolicy.RetryOn = retryPolicy.RetryOn
+	otp.RetryPolicy.NumRetries = retryPolicy.NumRetries
+	perTryTimeout := retryPolicy.PerTryTimeout.Seconds()
+	otp.RetryPolicy.PerTryTimeout = &perTryTimeout
+	retryBackoffBaseInterval := retryPolicy.RetryBackoffBaseInterval.Seconds()
+	otp.RetryPolicy.RetryBackoffBaseInterval = &retryBackoffBaseInterval
+}
+
+func (otp *ClusterConfigs) setRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
 }
