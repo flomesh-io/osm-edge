@@ -81,6 +81,7 @@ require (
 )
 
 require (
+	github.com/briandowns/spinner v1.19.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/pkg/errors v0.9.1
 	k8s.io/kubectl v0.23.5

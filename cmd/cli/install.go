@@ -17,6 +17,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const installDesc = `
@@ -128,19 +130,32 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Timeout = i.timeout
 
 	debug("Beginning OSM installation")
-	if _, err = installClient.Run(i.chartRequested, values); err != nil {
-		if !settings.Verbose() {
+	if settings.Verbose() {
+		if _, err = installClient.Run(i.chartRequested, values); err != nil {
+			if !settings.Verbose() {
+				return err
+			}
+
+			pods, _ := i.clientSet.CoreV1().Pods(settings.Namespace()).List(context.Background(), metav1.ListOptions{})
+
+			for _, pod := range pods.Items {
+				fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
+			}
 			return err
 		}
-
-		pods, _ := i.clientSet.CoreV1().Pods(settings.Namespace()).List(context.Background(), metav1.ListOptions{})
-
-		for _, pod := range pods.Items {
-			fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
+	} else {
+		spinner := new(cli.Spinner)
+		spinner.Init(i.clientSet, settings.Namespace(), values)
+		err = spinner.Run(func() error {
+			_, installErr := installClient.Run(i.chartRequested, values)
+			return installErr
+		})
+		if err != nil {
+			if !settings.Verbose() {
+				return err
+			}
 		}
-		return err
 	}
-
 	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
 	return nil
 }
