@@ -66,6 +66,35 @@ spec:
                         connectTimeout:
                           description: TCP connection timeout.
                           type: string
+                        circuitBreaking:
+                          description: TCP connection circuit breaking setting.
+                          type: object
+                          properties:
+                            statTimeWindow:
+                              description: Statistical time period of circuit breaking.
+                              type: string
+                            slowTimeThreshold:
+                              description: Time threshold of slow request.
+                              type: string
+                            slowAmountThreshold:
+                              description: Amount threshold of slow request.
+                              type: integer
+                              minimum: 0
+                            slowRatioThreshold:
+                              description: Ratio threshold of slow request.
+                              type: number
+                              minimum: 0
+                            errorAmountThreshold:
+                              description: Amount threshold of error request.
+                              type: integer
+                              minimum: 0
+                            errorRatioThreshold:
+                              description: Ratio threshold of error request.
+                              type: number
+                              minimum: 0
+                            degradedTimeWindow:
+                              description: Duration of circuit breaking.
+                              type: string
                     http:
                       description: HTTP connection settings.
                       type: object
@@ -86,6 +115,41 @@ spec:
                           description: Maximum number of parallel retries allowed.
                           type: integer
                           minimum: 0
+                        circuitBreaking:
+                          description: HTTP connection circuit breaking setting.
+                          type: object
+                          properties:
+                            statTimeWindow:
+                              description: Statistical time period of circuit breaking.
+                              type: string
+                            slowTimeThreshold:
+                              description: Time threshold of slow request.
+                              type: string
+                            slowAmountThreshold:
+                              description: Amount threshold of slow request.
+                              type: integer
+                              minimum: 0
+                            slowRatioThreshold:
+                              description: Ratio threshold of slow request.
+                              type: number
+                              minimum: 0
+                            errorAmountThreshold:
+                              description: Amount threshold of error request.
+                              type: integer
+                              minimum: 0
+                            errorRatioThreshold:
+                              description: Ratio threshold of error request.
+                              type: number
+                              minimum: 0
+                            degradedTimeWindow:
+                              description: Duration of circuit breaking.
+                              type: string
+                            degradedStatusCode:
+                              description: Degraded http status code of circuit breaking.
+                              type: integer
+                            degradedResponseContent:
+                              description: Degraded http response content of circuit breaking.
+                              type: string
                 rateLimit:
                   description: Rate limiting policy.
                   type: object

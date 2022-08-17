@@ -67,6 +67,31 @@ type ConnectionSettingsSpec struct {
 	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
 }
 
+// TCPCircuitBreaking defines the TCP Circuit Breaking settings for an
+// upstream host.
+type TCPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *metav1.Duration `json:"statTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *metav1.Duration `json:"slowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"slowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"slowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"errorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"errorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *metav1.Duration `json:"degradedTimeWindow"`
+}
+
 // TCPConnectionSettings defines the TCP connection settings for an
 // upstream host.
 type TCPConnectionSettings struct {
@@ -80,6 +105,40 @@ type TCPConnectionSettings struct {
 	// Defaults to 5s if not specified.
 	// +optional
 	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
+
+	// CircuitBreaking specifies the TCP connection circuit breaking setting.
+	CircuitBreaking *TCPCircuitBreaking `json:"circuitBreaking,omitempty"`
+}
+
+// HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
+// upstream host.
+type HTTPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *metav1.Duration `json:"statTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *metav1.Duration `json:"slowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"slowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"slowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"errorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"errorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *metav1.Duration `json:"degradedTimeWindow"`
+
+	// DegradedStatusCode specifies the degraded http status code of circuit breaking
+	DegradedStatusCode *int32 `json:"degradedStatusCode,omitempty"`
+
+	// DegradedResponseContent specifies the degraded http response content of circuit breaking
+	DegradedResponseContent *string `json:"degradedResponseContent,omitempty"`
 }
 
 // HTTPConnectionSettings defines the HTTP connection settings for an
@@ -111,6 +170,9 @@ type HTTPConnectionSettings struct {
 	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxRetries *uint32 `json:"maxRetries,omitempty"`
+
+	// CircuitBreaking specifies the HTTP connection circuit breaking setting.
+	CircuitBreaking *HTTPCircuitBreaking `json:"circuitBreaking,omitempty"`
 }
 
 // RateLimitSpec defines the rate limiting specification for

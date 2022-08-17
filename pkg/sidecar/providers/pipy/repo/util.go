@@ -108,13 +108,13 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 	}
 }
 
-func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy) map[service.ClusterName]service.WeightedCluster {
+func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdentity identity.ServiceIdentity, pipyConf *PipyConf, outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy) map[service.ClusterName]*WeightedCluster {
 	if len(outboundPolicy.TrafficMatches) == 0 {
 		return nil
 	}
 
 	otp := pipyConf.newOutboundTrafficPolicy()
-	dependClusters := make(map[service.ClusterName]service.WeightedCluster)
+	dependClusters := make(map[service.ClusterName]*WeightedCluster)
 
 	for _, trafficMatch := range outboundPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
@@ -164,7 +164,10 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				}
 
 				for cluster := range route.WeightedClusters.Iter() {
-					weightedCluster := cluster.(service.WeightedCluster)
+					serviceCluster := cluster.(service.WeightedCluster)
+					weightedCluster := new(WeightedCluster)
+					weightedCluster.WeightedCluster = serviceCluster
+					weightedCluster.RetryPolicy = route.RetryPolicy
 					if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
 						dependClusters[weightedCluster.ClusterName] = weightedCluster
 					}
@@ -173,11 +176,13 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
 			destinationProtocol == constants.ProtocolTCPServerFirst {
-			for _, cluster := range trafficMatch.WeightedClusters {
-				if _, exist := dependClusters[cluster.ClusterName]; !exist {
-					dependClusters[cluster.ClusterName] = cluster
+			for _, serviceCluster := range trafficMatch.WeightedClusters {
+				weightedCluster := new(WeightedCluster)
+				weightedCluster.WeightedCluster = serviceCluster
+				if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+					dependClusters[weightedCluster.ClusterName] = weightedCluster
 				}
-				tm.addWeightedCluster(ClusterName(cluster.ClusterName), Weight(cluster.Weight))
+				tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			}
 		}
 	}
@@ -185,14 +190,13 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 	return dependClusters
 }
 
-func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*service.WeightedCluster {
+func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*WeightedCluster {
 	if len(egressPolicy.TrafficMatches) == 0 {
 		return nil
 	}
 
 	otp := pipyConf.newOutboundTrafficPolicy()
-	dependClusters := make(map[service.ClusterName]*service.WeightedCluster)
-
+	dependClusters := make(map[service.ClusterName]*WeightedCluster)
 	for _, trafficMatch := range egressPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
 		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
@@ -236,9 +240,12 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 					}
 
 					for cluster := range route.WeightedClusters.Iter() {
-						weightedCluster := cluster.(service.WeightedCluster)
+						serviceCluster := cluster.(service.WeightedCluster)
+						weightedCluster := new(WeightedCluster)
+						weightedCluster.WeightedCluster = serviceCluster
+						weightedCluster.RetryPolicy = route.RetryPolicy
 						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-							dependClusters[weightedCluster.ClusterName] = &weightedCluster
+							dependClusters[weightedCluster.ClusterName] = weightedCluster
 						}
 						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 					}
@@ -249,12 +256,11 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 				}
 			}
 		} else if destinationProtocol == constants.ProtocolHTTPS {
-			cluster := service.WeightedCluster{
-				ClusterName: service.ClusterName(trafficMatch.Cluster),
-				Weight:      constants.ClusterWeightAcceptAll,
-			}
-			tm.addWeightedCluster(ClusterName(cluster.ClusterName), Weight(cluster.Weight))
-			clusterConfigs := otp.newClusterConfigs(ClusterName(cluster.ClusterName.String()))
+			weightedCluster := new(WeightedCluster)
+			weightedCluster.ClusterName = service.ClusterName(trafficMatch.Cluster)
+			weightedCluster.Weight = constants.ClusterWeightAcceptAll
+			tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+			clusterConfigs := otp.newClusterConfigs(ClusterName(weightedCluster.ClusterName.String()))
 			for _, serverName := range trafficMatch.ServerNames {
 				address := Address(serverName)
 				port := Port(trafficMatch.DestinationPort)
@@ -273,7 +279,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _ *pipy.Proxy,
 	proxyIdentity identity.ServiceIdentity,
 	pipyConf *PipyConf, outboundPolicy *trafficpolicy.OutboundMeshTrafficPolicy,
-	dependClusters map[service.ClusterName]service.WeightedCluster) bool {
+	dependClusters map[service.ClusterName]*WeightedCluster) bool {
 	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
@@ -293,6 +299,14 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 			port := Port(clusterConfig.Service.Port)
 			weight := Weight(upstreamEndpoint.Weight)
 			clusterConfigs.addWeightedEndpoint(address, port, weight)
+			if clusterConfig.UpstreamTrafficSetting != nil {
+				if clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings != nil {
+					clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
+				}
+			}
+			if cluster.RetryPolicy != nil {
+				clusterConfigs.setRetryPolicy(cluster.RetryPolicy)
+			}
 		}
 	}
 	return ready
@@ -370,7 +384,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 	}
 }
 
-func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*service.WeightedCluster) bool {
+func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
 	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
@@ -384,6 +398,12 @@ func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Pro
 		port := Port(clusterConfig.Port)
 		weight := Weight(constants.ClusterWeightAcceptAll)
 		clusterConfigs.addWeightedEndpoint(address, port, weight)
+		if clusterConfig.UpstreamTrafficSetting != nil {
+			clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
+		}
+		if cluster.RetryPolicy != nil {
+			clusterConfigs.setRetryPolicy(cluster.RetryPolicy)
+		}
 	}
 	return ready
 }
