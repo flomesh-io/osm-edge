@@ -72,11 +72,11 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebaseMainJS,
 				},
 				{
-					Filename: "f_config.js",
+					Filename: "config.js",
 					Content:  codebaseConfigJS,
 				},
 				{
-					Filename: "f_metrics.js",
+					Filename: "metrics.js",
 					Content:  codebaseMetricsJS,
 				},
 				{
@@ -84,20 +84,52 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebasePipyJSON,
 				},
 				{
-					Filename: "f_codes.js",
+					Filename: "codes.js",
 					Content:  codebaseCodesJS,
 				},
 				{
-					Filename: "f_breaker.js",
+					Filename: "breaker.js",
 					Content:  codebaseBreakerJS,
 				},
 				{
-					Filename: "p_gather.js",
+					Filename: "gather.js",
 					Content:  codebaseGatherJS,
 				},
 				{
-					Filename: "p_stats.js",
+					Filename: "stats.js",
 					Content:  codebaseStatsJS,
+				},
+				{
+					Filename: "inbound-proxy-tcp.js",
+					Content:  codebaseInboundProxyTCPJS,
+				},
+				{
+					Filename: "inbound-recv-http.js",
+					Content:  codebaseInboundRecvHTTPJS,
+				},
+				{
+					Filename: "inbound-recv-tcp.js",
+					Content:  codebaseInboundRecvTCPJS,
+				},
+				{
+					Filename: "inbound-throttle.js",
+					Content:  codebaseInboundThrottleJS,
+				},
+				{
+					Filename: "outbound-breaker.js",
+					Content:  codebaseOutboundBreakerJS,
+				},
+				{
+					Filename: "outbound-mux-http.js",
+					Content:  codebaseOutboundMuxHTTPJS,
+				},
+				{
+					Filename: "outbound-proxy-tcp.js",
+					Content:  codebaseOutboundProxyTCPJS,
+				},
+				{
+					Filename: "outbound-recv-http.js",
+					Content:  codebaseOutboundRecvHTTPJS,
 				},
 			},
 		},

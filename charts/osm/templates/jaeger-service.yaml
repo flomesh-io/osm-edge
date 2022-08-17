@@ -6,10 +6,10 @@ metadata:
   namespace: {{ include "osm.namespace" . }}
   labels:
     {{- include "osm.labels" . | nindent 4 }}
-    app: jaeger
+    app: osm-jaeger
 spec:
   selector:
-    app: jaeger
+    app: osm-jaeger
   ports:
   - protocol: TCP
     # Service port and target port are the same

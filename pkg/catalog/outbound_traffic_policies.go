@@ -18,10 +18,10 @@ import (
 //
 // The function works as follows:
 // 1. If permissive mode is enabled, builds outbound mesh traffic policies to reach every upstream service
-//    discovered using service discovery, using wildcard routes.
+// discovered using service discovery, using wildcard routes.
 // 2. In SMI mode, builds outbound mesh traffic policies to reach every upstream service corresponding
-//    to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
-//    policies.
+// to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
+// policies.
 // 3. Process TraficSplit policies and update the weights for the upstream services based on the policies.
 //
 // The route configurations are consolidated per port, such that upstream services using the same port are a part

@@ -49,6 +49,7 @@ func TestMeshUpgradeDefault(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	err := i.run(config)
 	a.Nil(err)
 
@@ -73,6 +74,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 
 	err := i.run(config)
 	a.Nil(err)
@@ -116,6 +118,7 @@ func TestMeshUpgradeDropsInstallOverrides(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	i.setOptions = []string{
 		"osm.enableEgress=true",
 		"osm.image.registry=installed",
@@ -152,6 +155,7 @@ func TestMeshUpgradeToModifiedChart(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 
 	err := i.run(config)
 	a.Nil(err)
@@ -192,6 +196,7 @@ func TestMeshUpgradeRemovedValue(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	err := i.run(config)
 	a.NoError(err)
 

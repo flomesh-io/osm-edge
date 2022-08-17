@@ -59,6 +59,7 @@ const (
 
 // chartTGZSource is the `helm package`d representation of the default Helm chart.
 // Its value is embedded at build time.
+//
 //go:embed chart.tgz
 var chartTGZSource []byte
 
@@ -73,6 +74,7 @@ type installCmd struct {
 	atomic         bool
 	// Toggle this to enforce only one mesh in this cluster
 	enforceSingleMesh bool
+	disableSpinner    bool
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -130,7 +132,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Timeout = i.timeout
 
 	debug("Beginning OSM installation")
-	if settings.Verbose() {
+	if i.disableSpinner || settings.Verbose() {
 		if _, err = installClient.Run(i.chartRequested, values); err != nil {
 			if !settings.Verbose() {
 				return err
