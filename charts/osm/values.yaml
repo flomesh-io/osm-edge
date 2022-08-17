@@ -48,7 +48,7 @@ osm:
 
 
   # -- `osm-controller` image pull secret
-  imagePullSecrets: []
+  imagePullSecrets: [ ]
   # -- The class of the OSM Sidecar Driver
   sidecarClass: pipy
   # -- Sidecar image for Linux workloads
@@ -85,7 +85,7 @@ osm:
         cpu: "0.5"
         memory: "128M"
     # -- OSM controller's pod labels
-    podLabels: {}
+    podLabels: { }
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -109,31 +109,31 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - osm-controller
-            topologyKey: kubernetes.io/hostname
-          weight: 100
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - osm-controller
+              topologyKey: kubernetes.io/hostname
+            weight: 100
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   #
   # -- Prometheus parameters
@@ -156,7 +156,7 @@ osm:
     image: prom/prometheus:v2.34.0
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -164,23 +164,23 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
-              - arm
-              - ppc64le
-              - s390x
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
+                    - arm
+                    - ppc64le
+                    - s390x
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   # -- The trust domain to use as part of the common name when requesting new certificates.
   trustDomain: cluster.local
@@ -240,7 +240,7 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -248,23 +248,23 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
-              - arm
-              - ppc64le
-              - s390x
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
+                    - arm
+                    - ppc64le
+                    - s390x
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
@@ -326,7 +326,7 @@ osm:
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
 
-   # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
+  # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
   configResyncInterval: "0s"
 
   # -- Controller log verbosity
@@ -361,7 +361,7 @@ osm:
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -369,41 +369,41 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
-              - ppc64le
-              - s390x
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
+                    - ppc64le
+                    - s390x
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
-  outboundIPRangeExclusionList: []
+  outboundIPRangeExclusionList: [ ]
 
   # -- Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
-  outboundIPRangeInclusionList: []
+  outboundIPRangeInclusionList: [ ]
 
   # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
-  outboundPortExclusionList: []
+  outboundPortExclusionList: [ ]
 
   # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
-  inboundPortExclusionList: []
+  inboundPortExclusionList: [ ]
 
   # -- Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy.
-  networkInterfaceExclusionList: []
+  networkInterfaceExclusionList: [ ]
 
   #
   # -- OSM's sidecar injector parameters
@@ -419,7 +419,7 @@ osm:
         cpu: "0.3"
         memory: "64M"
     # -- Sidecar injector's pod labels
-    podLabels: {}
+    podLabels: { }
     # -- Enable Pod Disruption Budget
     enablePodDisruptionBudget: false
     # -- Auto scale configuration
@@ -434,14 +434,14 @@ osm:
         # -- Average target CPU utilization (%)
         targetAverageUtilization: 80
       memory:
-      # -- Average target memory utilization (%)
+        # -- Average target memory utilization (%)
         targetAverageUtilization: 80
     # -- Mutating webhook timeout
     webhookTimeoutSeconds: 20
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -449,31 +449,31 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - osm-injector
-            topologyKey: kubernetes.io/hostname
-          weight: 100
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - osm-injector
+              topologyKey: kubernetes.io/hostname
+            weight: 100
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   # -- Run init container in privileged mode
   enablePrivilegedInitContainer: false
@@ -491,6 +491,9 @@ osm:
     # -- Enables OSM's IngressBackend policy API.
     # When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends
     enableIngressBackendPolicy: true
+    # -- Enables OSM's AccessControl policy API.
+    # When enabled, OSM will use the AccessControl API allow access control traffic to mesh backends
+    enableAccessControlPolicy: false
     # -- Enable Sidecar active health checks
     enableSidecarActiveHealthChecks: false
     # -- Enables SnapshotCache feature for Sidecar xDS server.
@@ -502,7 +505,7 @@ osm:
 
   # -- Node tolerations applied to control plane pods.
   # The specified tolerations allow pods to schedule onto nodes with matching taints.
-  controlPlaneTolerations: []
+  controlPlaneTolerations: [ ]
 
   #
   # -- OSM bootstrap parameters
@@ -518,7 +521,7 @@ osm:
         cpu: "0.3"
         memory: "128M"
     # -- OSM bootstrap's pod labels
-    podLabels: {}
+    podLabels: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -526,35 +529,35 @@ osm:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
-          - matchExpressions:
-            - key: kubernetes.io/os
-              operator: In
-              values:
-              - linux
-            - key: kubernetes.io/arch
-              operator: In
-              values:
-              - amd64
-              - arm64
+            - matchExpressions:
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
       podAntiAffinity:
         preferredDuringSchedulingIgnoredDuringExecution:
-        - podAffinityTerm:
-            labelSelector:
-              matchExpressions:
-              - key: app
-                operator: In
-                values:
-                - osm-bootstrap
-            topologyKey: kubernetes.io/hostname
-          weight: 100
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - osm-bootstrap
+              topologyKey: kubernetes.io/hostname
+            weight: 100
 
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   #
   # -- OSM resource validator webhook configuration
@@ -573,27 +576,27 @@ osm:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                  - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-                  - arm64
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
   cleanup:
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: {}
+    nodeSelector: { }
 
     ## Affinity settings for pod assignment
     ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
@@ -602,19 +605,19 @@ osm:
         requiredDuringSchedulingIgnoredDuringExecution:
           nodeSelectorTerms:
             - matchExpressions:
-              - key: kubernetes.io/os
-                operator: In
-                values:
-                  - linux
-              - key: kubernetes.io/arch
-                operator: In
-                values:
-                  - amd64
-                  - arm64
+                - key: kubernetes.io/os
+                  operator: In
+                  values:
+                    - linux
+                - key: kubernetes.io/arch
+                  operator: In
+                  values:
+                    - amd64
+                    - arm64
 
     # -- Node tolerations applied to control plane pods.
     # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: []
+    tolerations: [ ]
 
 
 

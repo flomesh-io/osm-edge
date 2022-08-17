@@ -34,6 +34,9 @@ type Controller interface {
 	// ListRetryPolicies returns the Retry policies for the given source identity
 	ListRetryPolicies(identity.K8sServiceAccount) []*policyv1alpha1.Retry
 
+	// GetAccessControlPolicy returns the AccessControl policy for the given backend MeshService
+	GetAccessControlPolicy(service.MeshService) *policyv1alpha1.AccessControl
+
 	// GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
 	GetUpstreamTrafficSetting(UpstreamTrafficSettingGetOpt) *policyv1alpha1.UpstreamTrafficSetting
 }

@@ -15,6 +15,14 @@ limitations under the License.
 
 package v1alpha1
 
+// AccessControlListerExpansion allows custom methods to be added to
+// AccessControlLister.
+type AccessControlListerExpansion interface{}
+
+// AccessControlNamespaceListerExpansion allows custom methods to be added to
+// AccessControlNamespaceLister.
+type AccessControlNamespaceListerExpansion interface{}
+
 // EgressListerExpansion allows custom methods to be added to
 // EgressLister.
 type EgressListerExpansion interface{}

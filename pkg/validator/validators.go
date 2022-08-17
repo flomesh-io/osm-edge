@@ -84,6 +84,107 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	return nil, nil
 }
 
+// accessControlValidator validates the AccessControl custom resource
+func (kc *policyValidator) accessControlValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	acl := &policyv1alpha1.AccessControl{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(acl); err != nil {
+		return nil, err
+	}
+	ns := acl.Namespace
+
+	type setEntry struct {
+		name string
+		port int
+	}
+
+	backends := mapset.NewSet()
+	var conflictString strings.Builder
+	conflictingAcls := mapset.NewSet()
+	for _, backend := range acl.Spec.Backends {
+		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
+			return nil, fmt.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+		}
+
+		fakeMeshSvc := service.MeshService{
+			Name:       backend.Name,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
+		if matchingPolicy := kc.policyClient.GetAccessControlPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != acl.Name {
+			// we've found a duplicate
+			if unique := conflictingAcls.Add(matchingPolicy); !unique {
+				// we've already found the conflicts for this resource
+				continue
+			}
+			conflicts := policy.DetectAccessControlConflicts(*acl, *matchingPolicy)
+			fmt.Fprintf(&conflictString, "[+] IngressBackend %s/%s conflicts with %s/%s:\n", ns, acl.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
+			for _, err := range conflicts {
+				fmt.Fprintf(&conflictString, "%s\n", err)
+			}
+			fmt.Fprintf(&conflictString, "\n")
+		}
+
+		// Validate port
+		switch strings.ToLower(backend.Port.Protocol) {
+		case constants.ProtocolHTTP:
+			// Valid
+
+		case constants.ProtocolHTTPS:
+			// Valid
+			// If mTLS is enabled, verify there is an AuthenticatedPrincipal specified
+			authenticatedSourceFound := false
+			for _, source := range acl.Spec.Sources {
+				if source.Kind == policyv1alpha1.KindAuthenticatedPrincipal {
+					authenticatedSourceFound = true
+					break
+				}
+			}
+
+			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
+				return nil, fmt.Errorf("HTTPS acl with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
+			}
+
+		default:
+			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
+		}
+	}
+
+	if conflictString.Len() != 0 {
+		return nil, fmt.Errorf("duplicate backends detected\n%s", conflictString.String())
+	}
+
+	// Validate sources
+	for _, source := range acl.Spec.Sources {
+		switch source.Kind {
+		// Add validation for source kinds here
+		case policyv1alpha1.KindService:
+			if source.Name == "" {
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
+			}
+			if source.Namespace == "" {
+				return nil, fmt.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
+			}
+
+		case policyv1alpha1.KindAuthenticatedPrincipal:
+			if source.Name == "" {
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
+			}
+
+		case policyv1alpha1.KindIPRange:
+			if _, _, err := net.ParseCIDR(source.Name); err != nil {
+				return nil, fmt.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+			}
+
+		default:
+			return nil, fmt.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
+				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
+		}
+	}
+
+	return nil, nil
+}
+
 // ingressBackendValidator validates the IngressBackend custom resource
 func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	ingressBackend := &policyv1alpha1.IngressBackend{}

@@ -39,12 +39,20 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 		Delete: announcements.EgressDeleted,
 	}
 	client.informers.AddEventHandler(informers.InformerKeyEgress, k8s.GetEventHandlerFuncs(shouldObserve, egressEventTypes, msgBroker))
+
 	ingressBackendEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressBackendAdded,
 		Update: announcements.IngressBackendUpdated,
 		Delete: announcements.IngressBackendDeleted,
 	}
 	client.informers.AddEventHandler(informers.InformerKeyIngressBackend, k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
+
+	aclEventTypes := k8s.EventTypes{
+		Add:    announcements.AccessControlAdded,
+		Update: announcements.AccessControlUpdated,
+		Delete: announcements.AccessControlDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyAccessControl, k8s.GetEventHandlerFuncs(shouldObserve, aclEventTypes, msgBroker))
 
 	retryEventTypes := k8s.EventTypes{
 		Add:    announcements.RetryPolicyAdded,
@@ -119,6 +127,29 @@ func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV
 	}
 
 	return retries
+}
+
+// GetAccessControlPolicy returns the AccessControl policy for the given backend MeshService
+func (c *Client) GetAccessControlPolicy(svc service.MeshService) *policyV1alpha1.AccessControl {
+	for _, aclIface := range c.informers.List(informers.InformerKeyAccessControl) {
+		acl := aclIface.(*policyV1alpha1.AccessControl)
+
+		if acl.Namespace != svc.Namespace {
+			continue
+		}
+
+		// Return the first IngressBackend corresponding to the given MeshService.
+		// Multiple IngressBackend policies for the same backend will be prevented
+		// using a validating webhook.
+		for _, backend := range acl.Spec.Backends {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
+				return acl
+			}
+		}
+	}
+
+	return nil
 }
 
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options

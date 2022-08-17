@@ -220,6 +220,7 @@ type InboundTrafficMatch struct {
 	Port                  Port     `json:"Port"`
 	Protocol              Protocol `json:"Protocol"`
 	SourceIPRanges        SourceIPRanges
+	sourceIPRanges        map[SourceIPRange]bool
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
 	TargetClusters        WeightedClusters             `json:"TargetClusters"`

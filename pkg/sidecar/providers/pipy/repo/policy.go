@@ -136,7 +136,13 @@ func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegi
 }
 
 func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange) {
-	itm.SourceIPRanges = append(itm.SourceIPRanges, ipRange)
+	if itm.sourceIPRanges == nil {
+		itm.sourceIPRanges = make(map[SourceIPRange]bool)
+	}
+	if _, exists := itm.sourceIPRanges[ipRange]; !exists {
+		itm.sourceIPRanges[ipRange] = true
+		itm.SourceIPRanges = append(itm.SourceIPRanges, ipRange)
+	}
 }
 
 func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName ServiceName) {

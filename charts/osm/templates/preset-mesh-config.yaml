@@ -57,6 +57,7 @@ data:
         "enableSnapshotCacheMode": {{.Values.osm.featureFlags.enableSnapshotCacheMode | mustToJson}},
         "enableAsyncProxyServiceMapping": {{.Values.osm.featureFlags.enableAsyncProxyServiceMapping | mustToJson}},
         "enableIngressBackendPolicy": {{.Values.osm.featureFlags.enableIngressBackendPolicy | mustToJson}},
+        "enableAccessControlPolicy": {{.Values.osm.featureFlags.enableAccessControlPolicy | mustToJson}},
         "enableSidecarActiveHealthChecks": {{.Values.osm.featureFlags.enableSidecarActiveHealthChecks | mustToJson}},
         "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
       }

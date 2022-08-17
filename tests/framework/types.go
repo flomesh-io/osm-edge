@@ -132,6 +132,7 @@ type InstallOSMOpts struct {
 
 	EnablePrivilegedInitContainer bool
 	EnableIngressBackendPolicy    bool
+	EnableAccessControlPolicy     bool
 	EnableRetryPolicy             bool
 }
 

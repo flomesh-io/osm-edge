@@ -38,6 +38,21 @@ func (m *MockMeshCataloger) EXPECT() *MockMeshCatalogerMockRecorder {
 	return m.recorder
 }
 
+// GetAccessControlTrafficPolicy mocks base method.
+func (m *MockMeshCataloger) GetAccessControlTrafficPolicy(arg0 service.MeshService) (*trafficpolicy.AccessControlTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccessControlTrafficPolicy", arg0)
+	ret0, _ := ret[0].(*trafficpolicy.AccessControlTrafficPolicy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccessControlTrafficPolicy indicates an expected call of GetAccessControlTrafficPolicy.
+func (mr *MockMeshCatalogerMockRecorder) GetAccessControlTrafficPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessControlTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetAccessControlTrafficPolicy), arg0)
+}
+
 // GetEgressTrafficPolicy mocks base method.
 func (m *MockMeshCataloger) GetEgressTrafficPolicy(arg0 identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
 	m.ctrl.T.Helper()
