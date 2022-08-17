@@ -45,14 +45,3 @@ func (pr *ProxyRegistry) UnregisterProxy(p *pipy.Proxy) {
 func (pr *ProxyRegistry) GetConnectedProxyCount() int {
 	return len(pr.ListConnectedProxies())
 }
-
-// ListConnectedProxies lists the Pipy proxies already connected and the time they first connected.
-func (pr *ProxyRegistry) ListConnectedProxies() map[string]*pipy.Proxy {
-	proxies := make(map[string]*pipy.Proxy)
-	pr.connectedProxies.Range(func(keyIface, propsIface interface{}) bool {
-		uuid := keyIface.(string)
-		proxies[uuid] = propsIface.(*pipy.Proxy)
-		return true // continue the iteration
-	})
-	return proxies
-}

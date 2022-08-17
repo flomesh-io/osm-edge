@@ -72,20 +72,32 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebaseMainJS,
 				},
 				{
-					Filename: "config.js",
+					Filename: "f_config.js",
 					Content:  codebaseConfigJS,
 				},
 				{
-					Filename: "metrics.js",
+					Filename: "f_metrics.js",
 					Content:  codebaseMetricsJS,
-				},
-				{
-					Filename: "codes.js",
-					Content:  codebaseCodesJS,
 				},
 				{
 					Filename: "pipy.json",
 					Content:  codebasePipyJSON,
+				},
+				{
+					Filename: "f_codes.js",
+					Content:  codebaseCodesJS,
+				},
+				{
+					Filename: "f_breaker.js",
+					Content:  codebaseBreakerJS,
+				},
+				{
+					Filename: "p_gather.js",
+					Content:  codebaseGatherJS,
+				},
+				{
+					Filename: "p_stats.js",
+					Content:  codebaseStatsJS,
 				},
 			},
 		},

@@ -17,6 +17,7 @@ func TestBuild(t *testing.T) {
 	b := &Builder{
 		NodeID:                cert.GetCommonName().String(),
 		XDSHost:               "osm-controller.osm-system.svc.cluster.local",
+		XDSPort:               15128,
 		TLSMinProtocolVersion: "TLSv1_0",
 		TLSMaxProtocolVersion: "TLSv1_2",
 		CipherSuites:          []string{"abc", "xyz"},

@@ -1,10 +1,13 @@
-// version: '2022.07.18'
+// version: '2022.07.28a'
 (
   (config = JSON.decode(pipy.load('pipy.json')),
-    metrics = pipy.solve('metrics.js'),
-    codeMessage = pipy.solve('codes.js'),
+    metrics = pipy.solve('f_metrics.js'),
+    breaker = pipy.solve('f_breaker.js'),
+    codeMessage = pipy.solve('f_codes.js'),
     global
   ) => (
+
+    config.outClustersBreakers = {},
 
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
@@ -113,9 +116,26 @@
     // Loadbalancer for endpoints
     global.outClustersConfigs = config?.Outbound?.ClustersConfigs && Object.fromEntries(
       Object.entries(config.Outbound.ClustersConfigs).map(
-        ([k, v]) => [
-          k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(global.funcShuffle(v)))
-        ]
+        ([k, v]) => (
+          v?.ConnectionSettings && (v.ConnectionSettings?.http?.CircuitBreaking?.StatTimeWindow > 0) &&
+          (config.outClustersBreakers[k] = breaker(
+            k,
+            v.ConnectionSettings?.tcp?.MaxConnections,
+            v.ConnectionSettings?.http?.MaxRequestsPerConnection,
+            v.ConnectionSettings?.http?.MaxPendingRequests,
+            v.ConnectionSettings?.http?.CircuitBreaking?.StatTimeWindow,
+            v.ConnectionSettings?.http?.CircuitBreaking?.SlowTimeThreshold,
+            v.ConnectionSettings?.http?.CircuitBreaking?.SlowAmountThreshold,
+            v.ConnectionSettings?.http?.CircuitBreaking?.SlowRatioThreshold,
+            v.ConnectionSettings?.http?.CircuitBreaking?.ErrorAmountThreshold,
+            v.ConnectionSettings?.http?.CircuitBreaking?.ErrorRatioThreshold,
+            v.ConnectionSettings?.http?.CircuitBreaking?.DegradedTimeWindow,
+            v.ConnectionSettings?.http?.CircuitBreaking?.DegradedStatusCode,
+            v.ConnectionSettings?.http?.CircuitBreaking?.DegradedResponseContent)),
+          [
+            k, (metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k), new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)))
+          ]
+        )
       )
     ),
 

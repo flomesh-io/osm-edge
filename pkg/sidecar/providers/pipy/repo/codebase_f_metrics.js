@@ -1,4 +1,4 @@
-// version: '2022.07.18'
+// version: '2022.07.28a'
 (
   (metrics) => (
 
@@ -101,6 +101,25 @@
       data.tags['http.status_code'] = '502',
       data.tags['peer.address'] = '',
       data['duration'] = 0,
+      data
+    ),
+
+    metrics.funcMakeLoggingData = (msg, type, data) => (
+      data = {
+        type: type,
+        start_time: new Date(),
+        method: msg.head.method,
+        path: msg.head.path,
+        protocol: msg.head.protocol,
+        user_agent: msg.head.headers['user-agent'],
+        x_forwarded_for: msg.head.headers['x-forwarded-for'] ? msg.head.headers['x-forwarded-for'] : '-',
+        bytes_received: 0,
+        bytes_sent: 0,
+        duration: 0,
+        response_code: null,
+        downstream: null,
+        upstream: null
+      },
       data
     ),
 
