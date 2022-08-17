@@ -105,7 +105,7 @@ func main() {
 	}
 
 	fmt.Println("-------- OSM-Controller LOGS --------\n",
-		maestro.GetPodLogs(kubeClient, osmNamespace, osmControllerPodName, "", maestro.FailureLogsFromTimeSince))
+		maestro.GetPodLogs(kubeClient, osmNamespace, osmControllerPodName, "osm-controller", maestro.FailureLogsFromTimeSince))
 
 	os.Exit(1)
 }
