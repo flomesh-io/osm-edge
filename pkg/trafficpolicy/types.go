@@ -53,8 +53,7 @@ type RouteWeightedClusters struct {
 	// RateLimit defines the rate limit settings applied at the route level
 	// for the given HTTPRouteMatch
 	// +optional
-	RateLimit       *policyv1alpha1.HTTPPerRouteRateLimitSpec `json:"rate_limit:omitempty"`
-	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
+	RateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec `json:"rate_limit:omitempty"`
 }
 
 // InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
@@ -194,4 +193,6 @@ type TrafficMatch struct {
 	// RateLimit defines the rate limiting policy applied for this TrafficMatch
 	// +optional
 	RateLimit *policyv1alpha1.RateLimitSpec
+
+	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
 }

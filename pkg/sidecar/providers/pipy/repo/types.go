@@ -95,25 +95,17 @@ type Services []ServiceName
 
 // HTTPRouteRule http route rule
 type HTTPRouteRule struct {
-	Headers          Headers                `json:"Headers"`
-	Methods          Methods                `json:"Methods"`
-	TargetClusters   WeightedClusters       `json:"TargetClusters"`
-	AllowedServices  Services               `json:"AllowedServices"`
-	RouteRateLimit   *HTTPPerRouteRateLimit `json:"RouteRateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit `json:"HeaderRateLimits"`
+	Headers         Headers          `json:"Headers"`
+	Methods         Methods          `json:"Methods"`
+	TargetClusters  WeightedClusters `json:"TargetClusters"`
+	AllowedServices Services         `json:"AllowedServices"`
 
 	allowedAnyService bool
 	allowedAnyMethod  bool
 }
 
-// HTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type HTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
-
 // HTTPRouteRuleName is a string wrapper type
 type HTTPRouteRuleName string
-
-// HTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
-type HTTPServiceRouteRules map[HTTPRouteRuleName]*HTTPRouteRules
 
 // HTTPHostPort is a string wrapper type
 type HTTPHostPort string
@@ -207,32 +199,53 @@ type WeightedCluster struct {
 	RetryPolicy *v1alpha1.RetryPolicySpec
 }
 
-// TrafficMatch represents the base match of traffic
-type TrafficMatch struct {
-	Port                  Port                  `json:"Port"`
-	Protocol              Protocol              `json:"Protocol"`
-	HTTPHostPort2Service  HTTPHostPort2Service  `json:"HttpHostPort2Service"`
-	HTTPServiceRouteRules HTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters      `json:"TargetClusters"`
+// InboundHTTPRouteRule http route rule
+type InboundHTTPRouteRule struct {
+	HTTPRouteRule
+	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
 }
+
+// InboundHTTPRouteRules is a wrapper type
+type InboundHTTPRouteRules struct {
+	RouteRules       map[URIPathRegexp]*InboundHTTPRouteRule `json:"RouteRules"`
+	RateLimit        *HTTPRateLimit                          `json:"RateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit                  `json:"HeaderRateLimits"`
+}
+
+// InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
+type InboundHTTPServiceRouteRules map[HTTPRouteRuleName]*InboundHTTPRouteRules
 
 // InboundTrafficMatch represents the match of InboundTraffic
 type InboundTrafficMatch struct {
-	SourceIPRanges SourceIPRanges
-	TrafficMatch
-	AllowedEndpoints AllowedEndpoints
-	RateLimit        *RateLimit `json:"RateLimit"`
+	Port                  Port     `json:"Port"`
+	Protocol              Protocol `json:"Protocol"`
+	SourceIPRanges        SourceIPRanges
+	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
+	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
+	TargetClusters        WeightedClusters             `json:"TargetClusters"`
+	AllowedEndpoints      AllowedEndpoints
+	RateLimit             *TCPRateLimit `json:"RateLimit"`
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
 type InboundTrafficMatches map[Port]*InboundTrafficMatch
 
+// OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
+type OutboundHTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
+
+// OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
+type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules
+
 // OutboundTrafficMatch represents the match of OutboundTraffic
 type OutboundTrafficMatch struct {
-	DestinationIPRanges DestinationIPRanges
-	TrafficMatch
-	AllowedEgressTraffic bool
-	ServiceIdentity      identity.ServiceIdentity
+	DestinationIPRanges   DestinationIPRanges
+	Port                  Port                          `json:"Port"`
+	Protocol              Protocol                      `json:"Protocol"`
+	HTTPHostPort2Service  HTTPHostPort2Service          `json:"HttpHostPort2Service"`
+	HTTPServiceRouteRules OutboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
+	TargetClusters        WeightedClusters              `json:"TargetClusters"`
+	ServiceIdentity       identity.ServiceIdentity
+	AllowedEgressTraffic  bool
 }
 
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch

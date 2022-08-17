@@ -2,55 +2,47 @@ package repo
 
 import "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-// RateLimit defines the rate limiting specification for
+// TCPRateLimit defines the rate limiting specification for
 // the upstream host.
-type RateLimit struct {
+type TCPRateLimit struct {
 	// Local specified the local rate limiting specification
 	// for the upstream host.
 	// Local rate limiting is enforced directly by the upstream
 	// host without any involvement of a global rate limiting service.
 	// This is applied as a token bucket rate limiter.
 	// +optional
-	Local *LocalRateLimit `json:"Local,omitempty"`
+	Local *TCPLocalRateLimit `json:"Local,omitempty"`
 }
 
-func newRateLimit(spec *v1alpha1.RateLimitSpec) *RateLimit {
-	if spec == nil {
-		return nil
-	}
-
-	rl := new(RateLimit)
-	rl.Local = newLocalRateLimit(spec.Local)
-	return rl
-}
-
-// LocalRateLimit defines the local rate limiting specification
-// for the upstream host.
-type LocalRateLimit struct {
-	// TCP defines the local rate limiting specification at the network
-	// level. This is a token bucket rate limiter where each connection
-	// consumes a single token. If the token is available, the connection
-	// will be allowed. If no tokens are available, the connection will be
-	// immediately closed.
+// HTTPRateLimit defines the rate limiting specification for
+// the upstream host.
+type HTTPRateLimit struct {
+	// Local specified the local rate limiting specification
+	// for the upstream host.
+	// Local rate limiting is enforced directly by the upstream
+	// host without any involvement of a global rate limiting service.
+	// This is applied as a token bucket rate limiter.
 	// +optional
-	TCP *TCPLocalRateLimit `json:"tcp,omitempty"`
-
-	// HTTP defines the local rate limiting specification for HTTP traffic.
-	// This is a token bucket rate limiter where each request consumes
-	// a single token. If the token is available, the request will be
-	// allowed. If no tokens are available, the request will receive the
-	// configured rate limit status.
-	HTTP *HTTPLocalRateLimit `json:"http,omitempty"`
+	Local *HTTPLocalRateLimit `json:"Local,omitempty"`
 }
 
-func newLocalRateLimit(spec *v1alpha1.LocalRateLimitSpec) *LocalRateLimit {
-	if spec == nil {
+func newTCPRateLimit(spec *v1alpha1.LocalRateLimitSpec) *TCPRateLimit {
+	if spec == nil || spec.TCP == nil {
 		return nil
 	}
 
-	lrl := new(LocalRateLimit)
-	lrl.TCP = newTCPLocalRateLimit(spec.TCP)
-	lrl.HTTP = newHTTPLocalRateLimit(spec.HTTP)
+	lrl := new(TCPRateLimit)
+	lrl.Local = newTCPLocalRateLimit(spec.TCP)
+	return lrl
+}
+
+func newHTTPRateLimit(spec *v1alpha1.LocalRateLimitSpec) *HTTPRateLimit {
+	if spec == nil || spec.HTTP == nil {
+		return nil
+	}
+
+	lrl := new(HTTPRateLimit)
+	lrl.Local = newHTTPLocalRateLimit(spec.HTTP)
 	return lrl
 }
 

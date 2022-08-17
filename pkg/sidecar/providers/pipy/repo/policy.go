@@ -148,8 +148,12 @@ func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName 
 	}
 }
 
-func (itm *InboundTrafficMatch) setRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
-	itm.RateLimit = newRateLimit(rateLimit)
+func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		itm.RateLimit = nil
+	} else {
+		itm.RateLimit = newTCPRateLimit(rateLimit.Local)
+	}
 }
 
 func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange) {
@@ -164,44 +168,87 @@ func (otm *OutboundTrafficMatch) setAllowedEgressTraffic(allowedEgressTraffic bo
 	otm.AllowedEgressTraffic = allowedEgressTraffic
 }
 
-func (tm *TrafficMatch) setPort(port Port) {
-	tm.Port = port
+func (itm *InboundTrafficMatch) setPort(port Port) {
+	itm.Port = port
 }
 
-func (tm *TrafficMatch) setProtocol(protocol Protocol) {
+func (otm *OutboundTrafficMatch) setPort(port Port) {
+	otm.Port = port
+}
+
+func (itm *InboundTrafficMatch) setProtocol(protocol Protocol) {
 	protocol = Protocol(strings.ToLower(string(protocol)))
 	if constants.ProtocolTCPServerFirst == protocol {
-		tm.Protocol = constants.ProtocolTCP
+		itm.Protocol = constants.ProtocolTCP
 	} else {
-		tm.Protocol = protocol
+		itm.Protocol = protocol
 	}
 }
 
-func (tm *TrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if tm.TargetClusters == nil {
-		tm.TargetClusters = make(WeightedClusters)
+func (otm *OutboundTrafficMatch) setProtocol(protocol Protocol) {
+	protocol = Protocol(strings.ToLower(string(protocol)))
+	if constants.ProtocolTCPServerFirst == protocol {
+		otm.Protocol = constants.ProtocolTCP
+	} else {
+		otm.Protocol = protocol
 	}
-	tm.TargetClusters[clusterName] = weight
 }
 
-func (tm *TrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
-	if tm.HTTPHostPort2Service == nil {
-		tm.HTTPHostPort2Service = make(HTTPHostPort2Service)
+func (itm *InboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if itm.TargetClusters == nil {
+		itm.TargetClusters = make(WeightedClusters)
 	}
-	tm.HTTPHostPort2Service[hostPort] = ruleName
+	itm.TargetClusters[clusterName] = weight
 }
 
-func (tm *TrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTPRouteRuleName) *HTTPRouteRules {
-	if tm.HTTPServiceRouteRules == nil {
-		tm.HTTPServiceRouteRules = make(HTTPServiceRouteRules)
+func (otm *OutboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if otm.TargetClusters == nil {
+		otm.TargetClusters = make(WeightedClusters)
+	}
+	otm.TargetClusters[clusterName] = weight
+}
+
+func (itm *InboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
+	if itm.HTTPHostPort2Service == nil {
+		itm.HTTPHostPort2Service = make(HTTPHostPort2Service)
+	}
+	itm.HTTPHostPort2Service[hostPort] = ruleName
+}
+
+func (otm *OutboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
+	if otm.HTTPHostPort2Service == nil {
+		otm.HTTPHostPort2Service = make(HTTPHostPort2Service)
+	}
+	otm.HTTPHostPort2Service[hostPort] = ruleName
+}
+
+func (itm *InboundTrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTPRouteRuleName) *InboundHTTPRouteRules {
+	if itm.HTTPServiceRouteRules == nil {
+		itm.HTTPServiceRouteRules = make(InboundHTTPServiceRouteRules)
 	}
 	if len(httpRouteRuleName) == 0 {
 		return nil
 	}
-	rules, exist := tm.HTTPServiceRouteRules[httpRouteRuleName]
+	rules, exist := itm.HTTPServiceRouteRules[httpRouteRuleName]
 	if !exist || rules == nil {
-		newCluster := make(HTTPRouteRules, 0)
-		tm.HTTPServiceRouteRules[httpRouteRuleName] = &newCluster
+		newCluster := new(InboundHTTPRouteRules)
+		itm.HTTPServiceRouteRules[httpRouteRuleName] = newCluster
+		return newCluster
+	}
+	return rules
+}
+
+func (otm *OutboundTrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTPRouteRuleName) *OutboundHTTPRouteRules {
+	if otm.HTTPServiceRouteRules == nil {
+		otm.HTTPServiceRouteRules = make(OutboundHTTPServiceRouteRules)
+	}
+	if len(httpRouteRuleName) == 0 {
+		return nil
+	}
+	rules, exist := otm.HTTPServiceRouteRules[httpRouteRuleName]
+	if !exist || rules == nil {
+		newCluster := make(OutboundHTTPRouteRules, 0)
+		otm.HTTPServiceRouteRules[httpRouteRuleName] = &newCluster
 		return &newCluster
 	}
 	return rules
@@ -241,7 +288,36 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMat
 	return trafficMatch
 }
 
-func (hrrs *HTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HTTPRouteRule {
+func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		hrrs.RateLimit = nil
+	} else {
+		hrrs.RateLimit = newHTTPRateLimit(rateLimit.Local)
+	}
+}
+
+func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1.HTTPHeaderSpec) {
+	if rateLimit == nil {
+		hrrs.HeaderRateLimits = nil
+	} else {
+		hrrs.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
+	}
+}
+
+func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *InboundHTTPRouteRule {
+	if hrrs.RouteRules == nil {
+		hrrs.RouteRules = make(map[URIPathRegexp]*InboundHTTPRouteRule)
+	}
+	routeRule, exist := hrrs.RouteRules[pathReg]
+	if !exist || routeRule == nil {
+		routeRule = new(InboundHTTPRouteRule)
+		hrrs.RouteRules[pathReg] = routeRule
+		return routeRule
+	}
+	return routeRule
+}
+
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HTTPRouteRule {
 	routeRule, exist := (*hrrs)[pathReg]
 	if !exist || routeRule == nil {
 		routeRule = new(HTTPRouteRule)
@@ -293,12 +369,8 @@ func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	}
 }
 
-func (hrr *HTTPRouteRule) setRouteRateLimit(rateLimit *v1alpha1.HTTPPerRouteRateLimitSpec) {
-	hrr.RouteRateLimit = newHTTPPerRouteRateLimit(rateLimit)
-}
-
-func (hrr *HTTPRouteRule) setHeaderRateLimit(rateLimit *[]v1alpha1.HTTPHeaderSpec) {
-	hrr.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
+func (ihrr *InboundHTTPRouteRule) setRateLimit(rateLimit *v1alpha1.HTTPPerRouteRateLimitSpec) {
+	ihrr.RateLimit = newHTTPPerRouteRateLimit(rateLimit)
 }
 
 func (itp *InboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *WeightedEndpoint {

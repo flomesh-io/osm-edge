@@ -29,21 +29,22 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 		tm := itp.newTrafficMatch(Port(cluster.Service.Port))
 		tm.setProtocol(Protocol(destinationProtocol))
 		tm.setPort(Port(trafficMatch.DestinationPort))
-		tm.setRateLimit(trafficMatch.RateLimit)
+		tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 
 		if destinationProtocol == constants.ProtocolHTTP ||
 			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
 			httpRouteConfig := getInboundHTTPRouteConfigs(inboundPolicy.HTTPRouteConfigsPerPort,
-				int(upstreamSvc.TargetPort),
-				upstreamSvcFQDN)
+				int(upstreamSvc.TargetPort), upstreamSvcFQDN)
 			if httpRouteConfig == nil {
 				continue
 			}
 
 			ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+			hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
+			hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 			for _, hostname := range httpRouteConfig.Hostnames {
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 			}
@@ -73,8 +74,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 							Weight(weightedCluster.Weight))
 					}
 
-					hsrr.setRouteRateLimit(rule.Route.RateLimit)
-					hsrr.setHeaderRateLimit(rule.Route.HeaderRateLimit)
+					hsrr.setRateLimit(rule.Route.RateLimit)
 
 					for allowedServiceIdentity := range rule.AllowedServiceIdentities.Iter() {
 						serviceIdentity := allowedServiceIdentity.(identity.ServiceIdentity)

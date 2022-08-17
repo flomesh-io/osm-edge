@@ -48,8 +48,6 @@ func NewRouteWeightedCluster(route HTTPRouteMatch, weightedClusters []service.We
 	}
 	routeWC.RateLimit = perRouteRateLimit
 
-	routeWC.HeaderRateLimit = &upstreamTrafficSetting.Spec.HTTPHeaders
-
 	return routeWC
 }
 

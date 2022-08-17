@@ -90,6 +90,7 @@ func (mc *MeshCatalog) GetInboundMeshTrafficPolicy(upstreamIdentity identity.Ser
 			}
 			if upstreamTrafficSetting != nil {
 				trafficMatchForUpstreamSvc.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+				trafficMatchForUpstreamSvc.HeaderRateLimit = &upstreamTrafficSetting.Spec.HTTPHeaders
 			}
 			trafficMatches = append(trafficMatches, trafficMatchForUpstreamSvc)
 		}
