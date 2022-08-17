@@ -8,6 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )
 
 var (
@@ -91,17 +92,23 @@ func (p *PipyConf) rebalanceOutboundClusters() {
 	}
 }
 
-func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller) bool {
+func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegistry *registry.ProxyRegistry) bool {
 	ready := true
 	p.AllowedEndpoints = make(map[string]string)
 	allPods := kubeController.ListPods()
 	for _, pod := range allPods {
-		proxy, err := GetProxyFromPod(pod)
+		proxyUUID, err := GetProxyUUIDFromPod(pod)
 		if err != nil {
+			ready = false
 			continue
 		}
-		p.AllowedEndpoints[proxy.PodIP] = fmt.Sprintf("%s.%s", pod.Namespace, pod.Name)
-		if len(proxy.PodIP) == 0 {
+		proxy := proxyRegistry.GetConnectedProxy(proxyUUID)
+		if proxy == nil {
+			ready = false
+			continue
+		}
+		p.AllowedEndpoints[proxy.GetAddr()] = fmt.Sprintf("%s.%s", pod.Namespace, pod.Name)
+		if len(proxy.GetAddr()) == 0 {
 			ready = false
 		}
 	}

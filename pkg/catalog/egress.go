@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -55,6 +54,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port based TrafficMatch for HTTP port
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 				})
@@ -70,6 +70,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
@@ -88,6 +89,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
@@ -137,7 +139,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				policy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
 
 			if upstreamtrafficSetting == nil {
-				return nil, errors.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
+				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
 					namespacedName.String(), egressPolicy.Namespace, egressPolicy.Name)
 			}
 

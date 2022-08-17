@@ -204,8 +204,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 		}
 
 		if destinationProtocol == constants.ProtocolHTTP || destinationProtocol == constants.ProtocolGRPC {
-			httpRouteConfigs := getEgressHTTPRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort,
-				trafficMatch.DestinationPort, trafficMatch.Name)
+			httpRouteConfigs := getEgressHTTPRouteConfigs(egressPolicy.HTTPRouteConfigsPerPort, trafficMatch.DestinationPort)
 			if len(httpRouteConfigs) == 0 {
 				continue
 			}
@@ -414,25 +413,9 @@ func getOutboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolic
 }
 
 func getEgressHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.EgressHTTPRouteConfig,
-	targetPort int, egressSvcName string) []*trafficpolicy.EgressHTTPRouteConfig {
+	targetPort int) []*trafficpolicy.EgressHTTPRouteConfig {
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
-		if len(egressSvcName) == 0 {
-			return httpRouteConfigs
-		}
-		routeConfigs := make([]*trafficpolicy.EgressHTTPRouteConfig, 0)
-		for _, httpRouteConfig := range httpRouteConfigs {
-			if httpRouteConfig.Name == egressSvcName {
-				routeConfigs = append(routeConfigs, httpRouteConfig)
-				return routeConfigs
-			} else if len(httpRouteConfig.Hostnames) > 0 {
-				for _, hostname := range httpRouteConfig.Hostnames {
-					if hostname == egressSvcName {
-						routeConfigs = append(routeConfigs, httpRouteConfig)
-						return routeConfigs
-					}
-				}
-			}
-		}
+		return httpRouteConfigs
 	}
 	return nil
 }
@@ -443,13 +426,13 @@ func trafficMatchToMeshSvc(trafficMatch *trafficpolicy.TrafficMatch) *service.Me
 	}
 
 	chunks := strings.FieldsFunc(trafficMatch.Name, splitFunc)
-	if len(chunks) != 3 {
-		log.Error().Msgf("Invalid traffic match name. Expected: <namespace>/<name>_<port>_<protocol>, got: %s",
+	if len(chunks) != 4 {
+		log.Error().Msgf("Invalid traffic match name. Expected: xxx_<namespace>/<name>_<port>_<protocol>, got: %s",
 			trafficMatch.Name)
 		return nil
 	}
 
-	namespacedName, err := k8s.NamespacedNameFrom(chunks[0])
+	namespacedName, err := k8s.NamespacedNameFrom(chunks[1])
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving NamespacedName from TrafficMatch")
 		return nil

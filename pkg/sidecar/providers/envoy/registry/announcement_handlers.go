@@ -4,12 +4,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/sidecar"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 )
 
 // ReleaseCertificateHandler releases certificates based on podDelete events
-func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manager, stop <-chan struct{}) {
+func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleaser, stop <-chan struct{}) {
 	kubePubSub := pr.msgBroker.GetKubeEventPubSub()
 	podDeleteChan := kubePubSub.Sub(announcements.PodDeleted.String())
 	defer pr.msgBroker.Unsub(kubePubSub, podDeleteChan)
@@ -33,13 +35,13 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificate.Manag
 				continue
 			}
 
-			podUID := deletedPodObj.GetObjectMeta().GetUID()
-			if podIface, ok := pr.podUIDToCN.Load(podUID); ok {
-				endpointCN := podIface.(certificate.CommonName)
-				log.Warn().Msgf("Pod with UID %s found in proxy registry; releasing certificate %s", podUID, endpointCN)
-				certManager.ReleaseCertificate(endpointCN)
+			proxyUUID := deletedPodObj.Labels[constants.SidecarUniqueIDLabelName]
+			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
+				proxy := proxyIface.(*envoy.Proxy)
+				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate for proxy %s", constants.SidecarUniqueIDLabelName, proxyUUID, proxy.Identity)
+				certManager.ReleaseCertificate(sidecar.NewCertCNPrefix(proxy.UUID, proxy.Kind(), proxy.Identity))
 			} else {
-				log.Warn().Msgf("Pod with UID %s not found in proxy registry", podUID)
+				log.Warn().Msgf("Pod with label %s: %s not found in proxy registry", constants.SidecarUniqueIDLabelName, proxyUUID)
 			}
 		}
 	}

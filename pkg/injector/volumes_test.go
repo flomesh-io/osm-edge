@@ -11,14 +11,13 @@ var _ = Describe("Test volume functions", func() {
 	Context("Test GetVolumeSpec", func() {
 		It("creates volume spec", func() {
 			actual := GetVolumeSpec("-sidecar-config-")
-			expected := []v1.Volume{{
+			expected := v1.Volume{
 				Name: "sidecar-bootstrap-config-volume",
 				VolumeSource: v1.VolumeSource{
 					Secret: &v1.SecretVolumeSource{
 						SecretName: "-sidecar-config-",
 					},
-				},
-			}}
+				}}
 			Expect(actual).To(Equal(expected))
 		})
 	})

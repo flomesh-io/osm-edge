@@ -8,12 +8,11 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/rbac"
-
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/rbac"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
@@ -23,17 +22,16 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 		trafficTarget trafficpolicy.TrafficTargetWithRoutes
 
 		expectedPolicy *xds_rbac.Policy
-		expectErr      bool
 	}{
 		{
 			// Test 1
 			name: "traffic target without TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentity("sa-1.ns-1"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentity("sa-2.ns-2"),
+					identity.ServiceIdentity("sa-3.ns-3"),
 				},
 				TCPRouteMatches: nil,
 			},
@@ -45,27 +43,10 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 					},
 				},
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 				},
 			},
-			expectErr: false, // no error
 		},
 
 		{
@@ -73,65 +54,32 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			name: "traffic target with TCP routes",
 			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
 				Name:        "ns-1/test-1",
-				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Destination: identity.ServiceIdentity("sa-1.ns-1"),
 				Sources: []identity.ServiceIdentity{
-					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					identity.ServiceIdentity("sa-2.ns-2"),
+					identity.ServiceIdentity("sa-3.ns-3"),
 				},
 				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
 					{
-						Ports: []int{1000, 2000},
+						Ports: []uint16{1000, 2000},
 					},
 					{
-						Ports: []int{3000},
+						Ports: []uint16{3000},
 					},
 				},
 			},
 
 			expectedPolicy: &xds_rbac.Policy{
 				Permissions: []*xds_rbac.Permission{
-					{
-						Rule: &xds_rbac.Permission_OrRules{
-							OrRules: &xds_rbac.Permission_Set{
-								Rules: []*xds_rbac.Permission{
-									rbac.GetDestinationPortPermission(1000),
-									rbac.GetDestinationPortPermission(2000),
-								},
-							},
-						},
-					},
-					{
-						Rule: &xds_rbac.Permission_OrRules{
-							OrRules: &xds_rbac.Permission_Set{
-								Rules: []*xds_rbac.Permission{
-									rbac.GetDestinationPortPermission(3000),
-								},
-							},
-						},
-					},
+					rbac.GetDestinationPortPermission(1000),
+					rbac.GetDestinationPortPermission(2000),
+					rbac.GetDestinationPortPermission(3000),
 				},
 				Principals: []*xds_rbac.Principal{
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
-								},
-							},
-						},
-					},
-					{
-						Identifier: &xds_rbac.Principal_OrIds{
-							OrIds: &xds_rbac.Principal_Set{
-								Ids: []*xds_rbac.Principal{
-									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
-								},
-							},
-						},
-					},
+					rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+					rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 				},
 			},
-			expectErr: false, // no error
 		},
 	}
 
@@ -140,9 +88,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 			assert := tassert.New(t)
 
 			// Test the RBAC policies
-			policy, err := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
+			policy := buildRBACPolicyFromTrafficTarget(tc.trafficTarget, "cluster.local")
 
-			assert.Equal(tc.expectErr, err != nil)
 			assert.Equal(tc.expectedPolicy, policy)
 		})
 	}
@@ -173,10 +120,10 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -193,17 +140,17 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-4.ns-2"),
 					},
 				},
 			},
@@ -260,10 +207,10 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 					TCPRouteMatches: nil,
 				},
@@ -278,17 +225,17 @@ func TestBuildRBACFilter(t *testing.T) {
 			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
 					Name:        "ns-1/test-1",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
-						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+						identity.ServiceIdentity("sa-2.ns-2"),
+						identity.ServiceIdentity("sa-3.ns-3"),
 					},
 				},
 				{
 					Name:        "ns-1/test-2",
-					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Destination: identity.ServiceIdentity("sa-1.ns-1"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-4.ns-2"),
 					},
 				},
 			},
@@ -307,7 +254,7 @@ func TestBuildRBACFilter(t *testing.T) {
 			rbacFilter, err := lb.buildRBACFilter()
 			assert.Equal(err != nil, tc.expectErr)
 
-			assert.Equal(rbacFilter.Name, wellknown.RoleBasedAccessControl)
+			assert.Equal(envoy.L4RBACFilterName, rbacFilter.Name)
 		})
 	}
 }

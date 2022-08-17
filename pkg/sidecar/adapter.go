@@ -4,17 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
-	corev1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
 )
 
@@ -24,9 +20,16 @@ var (
 	engineDriver driver.Driver
 )
 
-// NewCertCommonName returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<serviceAccount>.<namespace>
-func NewCertCommonName(proxyUUID uuid.UUID, kind ProxyKind, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(fmt.Sprintf("%s.%s.%s.%s.%s", proxyUUID.String(), kind, serviceAccount, namespace, identity.ClusterLocalTrustDomain))
+// NewCertCNPrefix returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>
+func NewCertCNPrefix(proxyUUID uuid.UUID, kind models.ProxyKind, si identity.ServiceIdentity) string {
+	return fmt.Sprintf("%s.%s.%s", proxyUUID.String(), kind, si.String())
+}
+
+// GetCertCNPrefix returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<kind>.<identity>
+// where identity itself is of the form <name>.<namespace>
+func GetCertCNPrefix(proxy models.Proxy, kind models.ProxyKind) string {
+	return fmt.Sprintf("%s.%s.%s", proxy.GetUUID().String(), kind, proxy.GetIdentity())
 }
 
 // InstallDriver is to serve as an indication of the using sidecar driver
@@ -74,28 +77,4 @@ func Start(ctx context.Context) (health.Probes, error) {
 		return nil, errors.New("sidecar: unknown driver (forgot to init?)")
 	}
 	return engineDriver.Start(ctx)
-}
-
-// GetPlatformSpecificSpecComponents return the Platform Spec with SecurityContext and sidecarContainer
-func GetPlatformSpecificSpecComponents(cfg configurator.Configurator, podOS string) (podSecurityContext *corev1.SecurityContext, sidecarContainer string) {
-	if strings.EqualFold(podOS, constants.OSWindows) {
-		podSecurityContext = &corev1.SecurityContext{
-			WindowsOptions: &corev1.WindowsSecurityContextOptions{
-				RunAsUserName: func() *string {
-					userName := constants.SidecarWindowsUser
-					return &userName
-				}(),
-			},
-		}
-		sidecarContainer = cfg.GetSidecarWindowsImage()
-	} else {
-		podSecurityContext = &corev1.SecurityContext{
-			RunAsUser: func() *int64 {
-				uid := constants.SidecarUID
-				return &uid
-			}(),
-		}
-		sidecarContainer = cfg.GetSidecarImage()
-	}
-	return
 }

@@ -1,15 +1,16 @@
 package injector
 
 import (
+	"fmt"
 	"strings"
 
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s"
 )
 
-func (wh *mutatingWebhook) isMetricsEnabled(namespace string) (enabled bool, err error) {
-	ns := wh.kubeController.GetNamespace(namespace)
+// IsMetricsEnabled return whether metrics is enabled.
+func IsMetricsEnabled(kubeController k8s.Controller, namespace string) (enabled bool, err error) {
+	ns := kubeController.GetNamespace(namespace)
 	if ns == nil {
 		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
 		return false, errNamespaceNotFound
@@ -29,7 +30,7 @@ func (wh *mutatingWebhook) isMetricsEnabled(namespace string) (enabled bool, err
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-			err = errors.Errorf("Invalid value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
+			err = fmt.Errorf("Invalid value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
 		}
 	}
 	return

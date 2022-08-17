@@ -28,7 +28,7 @@ type Server struct {
 	proxyRegistry  *registry.ProxyRegistry
 	osmNamespace   string
 	cfg            configurator.Configurator
-	certManager    certificate.Manager
+	certManager    *certificate.Manager
 	ready          bool
 	workQueues     *workerpool.WorkerPool
 	kubeController k8s.Controller

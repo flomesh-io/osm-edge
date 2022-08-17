@@ -86,7 +86,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 		t.Run(fmt.Sprintf("Namespace %s", tc.namespace), func(t *testing.T) {
 			assert := tassert.New(t)
 
-			enabled, err := wh.isMetricsEnabled(tc.namespace)
+			enabled, err := IsMetricsEnabled(wh.kubeController, tc.namespace)
 			assert.Equal(enabled, tc.expectMetricsToBeEnabled)
 			assert.Equal(err != nil, tc.expectedErr)
 		})
