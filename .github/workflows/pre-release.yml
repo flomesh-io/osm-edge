@@ -29,7 +29,7 @@ jobs:
       BUILD_DATE: "$$(date +%Y-%m-%d-%H:%M)"
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
       - name: Push images with version tag
@@ -56,7 +56,7 @@ jobs:
       CTR_TAG: ${{ needs.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
       - name: Setup Trivy
         run: make trivy-ci-setup
       - name: Scan docker images for vulnerabilities
