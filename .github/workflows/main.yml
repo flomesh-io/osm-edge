@@ -258,13 +258,13 @@ jobs:
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
-      CTR_REGISTRY: ${{ github.repository_owner }}
+      CTR_REGISTRY: flomesh
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
-      - name: Push images with git sha tag
+      - name: Push images with "latest-main" tag
         env:
-          CTR_TAG: ${{ github.sha }}
+          CTR_TAG: latest-main
         run: make docker-build-cross
