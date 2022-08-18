@@ -114,7 +114,7 @@ func (c *FakeAccessControls) UpdateStatus(ctx context.Context, accessControl *v1
 // Delete takes name of the accessControl and deletes it. Returns an error if one occurs.
 func (c *FakeAccessControls) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(accesscontrolsResource, c.ns, name), &v1alpha1.AccessControl{})
+		Invokes(testing.NewDeleteActionWithOptions(accesscontrolsResource, c.ns, name, opts), &v1alpha1.AccessControl{})
 
 	return err
 }
