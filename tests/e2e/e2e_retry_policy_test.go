@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -40,6 +41,11 @@ var _ = OSMDescribe("Test Retry Policy",
 					installOpts.EnablePermissiveMode = true
 					installOpts.EnableRetryPolicy = true
 					Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+					sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
+					if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
+						Skip("Pipy doesn't support retry policy")
+					}
 
 					// Create test NS in mesh
 					for _, n := range meshNs {
@@ -156,6 +162,11 @@ var _ = OSMDescribe("Test Retry Policy",
 					installOpts.EnablePermissiveMode = true
 					installOpts.EnableRetryPolicy = false
 					Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+					sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
+					if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
+						Skip("Pipy doesn't support retry policy")
+					}
 
 					// Create test NS in mesh
 					for _, n := range meshNs {
