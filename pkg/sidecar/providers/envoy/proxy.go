@@ -9,22 +9,17 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/models"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	// The Subject Common Name of the certificate used for Envoy to XDS communication.
-	xDSCertificateCommonName certificate.CommonName
-
 	// UUID of the proxy
 	uuid.UUID
 
-	// The Serial Number of the certificate used for Envoy to XDS communication.
-	xDSCertificateSerialNumber certificate.SerialNumber
+	Identity identity.ServiceIdentity
 
 	net.Addr
 
@@ -41,11 +36,8 @@ type Proxy struct {
 	// Contains the last requested resource names (and therefore, subscribed) for a given TypeURI
 	subscribedResources map[TypeURI]mapset.Set
 
-	// hash is based on CommonName
-	hash uint64
-
 	// kind is the proxy's kind (ex. sidecar, gateway)
-	kind ProxyKind
+	kind models.ProxyKind
 
 	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
@@ -55,7 +47,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) String() string {
-	return fmt.Sprintf("[Serial=%s], [Pod metadata=%s]", p.xDSCertificateSerialNumber, p.PodMetadataString())
+	return fmt.Sprintf("[ProxyUUID=%s], [Pod metadata=%s]", p.UUID, p.PodMetadataString())
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -168,19 +160,19 @@ func (p *Proxy) PodMetadataString() string {
 	return fmt.Sprintf("UID=%s, Namespace=%s, Name=%s, ServiceAccount=%s", p.PodMetadata.UID, p.PodMetadata.Namespace, p.PodMetadata.Name, p.PodMetadata.ServiceAccount.Name)
 }
 
-// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
-func (p *Proxy) GetCertificateCommonName() certificate.CommonName {
-	return p.xDSCertificateCommonName
+// GetName returns a unique name for this proxy based on the identity and uuid.
+func (p *Proxy) GetName() string {
+	return fmt.Sprintf("%s:%s", p.Identity.String(), p.UUID.String())
 }
 
-// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
-func (p *Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
-	return p.xDSCertificateSerialNumber
+// GetUUID returns UUID.
+func (p *Proxy) GetUUID() uuid.UUID {
+	return p.UUID
 }
 
-// GetHash returns the proxy hash based on its xDSCertificateCommonName
-func (p *Proxy) GetHash() uint64 {
-	return p.hash
+// GetIdentity returns ServiceIdentity.
+func (p *Proxy) GetIdentity() identity.ServiceIdentity {
+	return p.Identity
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
@@ -224,32 +216,20 @@ func (p *Proxy) SetSubscribedResources(typeURI TypeURI, resourcesSet mapset.Set)
 }
 
 // Kind return the proxy's kind
-func (p *Proxy) Kind() ProxyKind {
+func (p *Proxy) Kind() models.ProxyKind {
 	return p.kind
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) (*Proxy, error) {
-	// Get CommonName hash for this proxy
-	hash, err := utils.HashFromString(certCommonName.String())
-	if err != nil {
-		log.Warn().Err(err).Msgf("Failed to get hash for proxy serial %s, 0 hash will be used", certSerialNumber)
-	}
-
-	cnMeta, err := getCertificateCommonNameMeta(certCommonName)
-	if err != nil {
-		return nil, ErrInvalidCertificateCN
-	}
-
+func NewProxy(kind models.ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
 	return &Proxy{
-		xDSCertificateCommonName:   certCommonName,
-		xDSCertificateSerialNumber: certSerialNumber,
-		UUID:                       cnMeta.ProxyUUID,
+		// Identity is of the form <name>.<namespace>.cluster.local
+		Identity: svcIdentity,
+		UUID:     uuid,
 
 		Addr: ip,
 
 		connectedAt: time.Now(),
-		hash:        hash,
 
 		lastNonce:            make(map[TypeURI]string),
 		lastSentVersion:      make(map[TypeURI]uint64),
@@ -257,6 +237,6 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 		lastxDSResourcesSent: make(map[TypeURI]mapset.Set),
 		subscribedResources:  make(map[TypeURI]mapset.Set),
 
-		kind: cnMeta.ProxyKind,
-	}, nil
+		kind: kind,
+	}
 }

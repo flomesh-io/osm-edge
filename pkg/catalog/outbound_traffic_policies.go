@@ -1,10 +1,8 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
-	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -20,10 +18,10 @@ import (
 //
 // The function works as follows:
 // 1. If permissive mode is enabled, builds outbound mesh traffic policies to reach every upstream service
-//    discovered using service discovery, using wildcard routes.
+// discovered using service discovery, using wildcard routes.
 // 2. In SMI mode, builds outbound mesh traffic policies to reach every upstream service corresponding
-//    to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
-//    policies.
+// to every upstream service account that this downstream is authorized to access using SMI TrafficTarget
+// policies.
 // 3. Process TraficSplit policies and update the weights for the upstream services based on the policies.
 //
 // The route configurations are consolidated per port, such that upstream services using the same port are a part
@@ -37,7 +35,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
-	for _, meshSvc := range mc.listAllowedUpstreamServicesIncludeApex(downstreamIdentity) {
+	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
 
 		// Retrieve the destination IP address from the endpoints for this service
@@ -75,12 +73,20 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		if len(trafficSplits) != 0 {
 			// Program routes to the backends specified in the traffic split
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
+
 			for _, backend := range split.Spec.Backends {
 				backendMeshSvc := service.MeshService{
-					Namespace:  meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-					Name:       backend.Service,
-					TargetPort: meshSvc.TargetPort,
+					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
+					Name:      backend.Service,
 				}
+				targetPort, err := mc.kubeController.GetTargetPortForServicePort(
+					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+				if err != nil {
+					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
+					continue
+				}
+				backendMeshSvc.TargetPort = targetPort
+
 				wc := service.WeightedCluster{
 					ClusterName: service.ClusterName(backendMeshSvc.SidecarClusterName()),
 					Weight:      backend.Weight,
@@ -104,7 +110,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// for this upstream service, port, and destination IP ranges. This
 		// will be programmed on the downstream client.
 		trafficMatchForServicePort := &trafficpolicy.TrafficMatch{
-			Name:                fmt.Sprintf("%s_%d_%s", meshSvc, meshSvc.Port, meshSvc.Protocol),
+			Name:                meshSvc.OutboundTrafficMatchName(),
 			DestinationPort:     int(meshSvc.Port),
 			DestinationProtocol: meshSvc.Protocol,
 			DestinationIPRanges: destinationIPRanges,
@@ -134,12 +140,6 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		ClustersConfigs:         clusterConfigs,
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
 	}
-}
-
-// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-// TODO: improve code by combining with ListOutboundServicesForIdentity
-func (mc *MeshCatalog) ListOutboundServicesForMulticlusterGateway() []service.MeshService {
-	return mc.listMeshServices()
 }
 
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
@@ -174,72 +174,4 @@ func (mc *MeshCatalog) ListOutboundServicesForIdentity(serviceIdentity identity.
 	}
 
 	return allowedServices
-}
-
-func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) []service.MeshService {
-	sa := identity.K8sServiceAccount{
-		Name:      t.Spec.Destination.Name,
-		Namespace: t.Spec.Destination.Namespace,
-	}
-	return mc.getServicesForServiceIdentity(sa.ToServiceIdentity())
-}
-
-// listAllowedUpstreamServicesIncludeApex returns a list of services the given downstream service identity
-// is authorized to communicate with, including traffic split apex services that are not backed by
-// pods.
-func (mc *MeshCatalog) listAllowedUpstreamServicesIncludeApex(downstreamIdentity identity.ServiceIdentity) []service.MeshService {
-	upstreamServices := mc.ListOutboundServicesForIdentity(downstreamIdentity)
-	if len(upstreamServices) == 0 {
-		log.Debug().Msgf("Downstream identity %s does not have any allowed upstream services", downstreamIdentity)
-		return nil
-	}
-
-	dstServicesSet := make(map[service.MeshService]struct{}) // mapset to avoid duplicates
-	for _, upstreamSvc := range upstreamServices {
-		// All upstreams with an endpoint are expected to have TargetPort set.
-		// Only a TrafficSplit apex service (virtual service) that does not have endpoints
-		// will have an unset TargetPort. We will not include such a service in the initial
-		// set because it will be correctly added to the set later on when each upstream
-		// service is matched to a TrafficSplit object. This is important to avoid duplicate
-		// TrafficSplit apex/virtual service from being computed with and without TargetPort set.
-		if upstreamSvc.TargetPort != 0 {
-			dstServicesSet[upstreamSvc] = struct{}{}
-		}
-	}
-
-	// Getting apex services referring to the outbound services
-	// We get possible apexes which could traffic split to any of the possible
-	// outbound services
-	splitPolicy := mc.meshSpec.ListTrafficSplits()
-
-	for upstreamSvc := range dstServicesSet {
-		for _, split := range splitPolicy {
-			// Split policy must be in the same namespace as the upstream service that is a backend
-			if split.Namespace != upstreamSvc.Namespace {
-				continue
-			}
-			for _, backend := range split.Spec.Backends {
-				if backend.Service == upstreamSvc.Name {
-					rootServiceName := k8s.GetServiceFromHostname(split.Spec.Service)
-					rootMeshService := service.MeshService{
-						Namespace:  split.Namespace,
-						Name:       rootServiceName,
-						Port:       upstreamSvc.Port,
-						TargetPort: upstreamSvc.TargetPort,
-						Protocol:   upstreamSvc.Protocol,
-					}
-
-					// Add this root service into the set
-					dstServicesSet[rootMeshService] = struct{}{}
-				}
-			}
-		}
-	}
-
-	dstServices := make([]service.MeshService, 0, len(dstServicesSet))
-	for svc := range dstServicesSet {
-		dstServices = append(dstServices, svc)
-	}
-
-	return dstServices
 }

@@ -197,3 +197,192 @@ func TestDetectIngressBackendConflicts(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectAccessControlConflicts(t *testing.T) {
+	testCases := []struct {
+		name              string
+		x                 policyv1alpha1.AccessControl
+		y                 policyv1alpha1.AccessControl
+		conflictsExpected int
+	}{
+		{
+			name: "single backend conflict",
+			x: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			y: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-2",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			conflictsExpected: 1,
+		},
+		{
+			name: "Unique backends per policy",
+			x: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			y: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-2",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend2",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			conflictsExpected: 0,
+		},
+		{
+			name: "multiple backends conflict",
+			x: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+						{
+							Name: "backend2",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			y: policyv1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-2",
+					Namespace: "test",
+				},
+				Spec: policyv1alpha1.AccessControlSpec{
+					Backends: []policyv1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+						{
+							Name: "backend2",
+							Port: policyv1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyv1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+			conflictsExpected: 2,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			conflicts := DetectAccessControlConflicts(tc.x, tc.y)
+			a.Len(conflicts, tc.conflictsExpected)
+		})
+	}
+}

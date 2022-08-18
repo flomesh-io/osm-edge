@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -18,14 +18,14 @@ import (
 func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {
 	certif, err := tls.X509KeyPair(certPem, keyPem)
 	if err != nil {
-		return nil, errors.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
+		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
 	}
 
 	certPool := x509.NewCertPool()
 
 	// Load the set of Root CAs
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		return nil, errors.Errorf("[grpc][mTLS][%s] Failed to append client certs", serverName)
+		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed to append client certs", serverName)
 	}
 
 	// #nosec G402
@@ -41,7 +41,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 }
 
 // ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
-func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}) (certificate.CommonName, certificate.SerialNumber, error) {
+func ValidateClient(ctx context.Context) (certificate.CommonName, certificate.SerialNumber, error) {
 	mtlsPeer, ok := peer.FromContext(ctx)
 	if !ok {
 		log.Error().Msg("[grpc][mTLS] No peer found")
@@ -61,10 +61,6 @@ func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface
 
 	// Check whether the subject common name is one that is allowed to connect.
 	cn := tlsAuth.State.VerifiedChains[0][0].Subject.CommonName
-	if _, ok := allowedCommonNames[cn]; len(allowedCommonNames) > 0 && !ok {
-		log.Error().Msgf("[grpc][mTLS] Subject common name %+v not allowed", cn)
-		return "", "", status.Error(codes.Unauthenticated, "disallowed subject common name")
-	}
 
 	certificateSerialNumber := tlsAuth.State.VerifiedChains[0][0].SerialNumber.String()
 	return certificate.CommonName(cn), certificate.SerialNumber(certificateSerialNumber), nil

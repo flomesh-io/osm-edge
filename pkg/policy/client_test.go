@@ -3,6 +3,7 @@ package policy
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -11,6 +12,7 @@ import (
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	fakePolicyClient "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -132,13 +134,16 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, egressPolicy := range tc.allEgresses {
-				_ = c.caches.egress.Add(egressPolicy)
+				_ = c.informers.Add(informers.InformerKeyEgress, egressPolicy, t)
 			}
 
 			actual := c.ListEgressPoliciesForSourceIdentity(tc.source)
@@ -202,7 +207,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					Spec: policyV1alpha1.IngressBackendSpec{
 						Backends: []policyV1alpha1.BackendSpec{
 							{
-								Name: "backend2", // does not match the backend specified in the test case
+								Name: "backend3", // does not match the backend specified in the test case
 								Port: policyV1alpha1.PortSpec{
 									Number:   80,
 									Protocol: "http",
@@ -219,7 +224,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 					},
 				},
 			},
-			backend: service.MeshService{Name: "backend1", Namespace: "test"},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
 			expectedIngressBackend: &policyV1alpha1.IngressBackend{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "ingress-backend-1",
@@ -320,13 +325,16 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, ingressBackend := range tc.allResources {
-				_ = c.caches.ingressBackend.Add(ingressBackend)
+				_ = c.informers.Add(informers.InformerKeyIngressBackend, ingressBackend, t)
 			}
 
 			actual := c.GetIngressBackendPolicy(tc.backend)
@@ -335,7 +343,202 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 	}
 }
 
+func TestGetAccessControlPolicy(t *testing.T) {
+	testCases := []struct {
+		name         string
+		allResources []*policyV1alpha1.AccessControl
+		backend      service.MeshService
+		expectedACL  *policyV1alpha1.AccessControl
+	}{
+		{
+			name:         "AccessControl policy not found",
+			allResources: nil,
+			backend:      service.MeshService{Name: "backend1", Namespace: "test"},
+			expectedACL:  nil,
+		},
+		{
+			name: "AccessControl policy found",
+			allResources: []*policyV1alpha1.AccessControl{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend3", // does not match the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend: service.MeshService{Name: "backend1", Namespace: "test", TargetPort: 80, Protocol: "http"},
+			expectedACL: &policyV1alpha1.AccessControl{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "acl-backend-1",
+					Namespace: "test",
+				},
+				Spec: policyV1alpha1.AccessControlSpec{
+					Backends: []policyV1alpha1.AccessControlBackendSpec{
+						{
+							Name: "backend1",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+						{
+							Name: "backend2",
+							Port: policyV1alpha1.PortSpec{
+								Number:   80,
+								Protocol: "http",
+							},
+						},
+					},
+					Sources: []policyV1alpha1.AccessControlSourceSpec{
+						{
+							Kind:      "Service",
+							Name:      "client",
+							Namespace: "foo",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "AccessControl policy namespace does not match MeshService.Namespace",
+			allResources: []*policyV1alpha1.AccessControl{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-1",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend1", // matches the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+							{
+								Name: "backend2",
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "acl-backend-2",
+						Namespace: "test",
+					},
+					Spec: policyV1alpha1.AccessControlSpec{
+						Backends: []policyV1alpha1.AccessControlBackendSpec{
+							{
+								Name: "backend2", // does not match the backend specified in the test case
+								Port: policyV1alpha1.PortSpec{
+									Number:   80,
+									Protocol: "http",
+								},
+							},
+						},
+						Sources: []policyV1alpha1.AccessControlSourceSpec{
+							{
+								Kind:      "Service",
+								Name:      "client",
+								Namespace: "foo",
+							},
+						},
+					},
+				},
+			},
+			backend:     service.MeshService{Name: "backend1", Namespace: "test-1"}, // Namespace does not match IngressBackend.Namespace
+			expectedACL: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			a := assert.New(t)
+
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
+			a.Nil(err)
+			a.NotNil(c)
+
+			// Create fake egress policies
+			for _, acl := range tc.allResources {
+				_ = c.informers.Add(informers.InformerKeyAccessControl, acl, t)
+			}
+
+			actual := c.GetAccessControlPolicy(tc.backend)
+			a.Equal(tc.expectedACL, actual)
+		})
+	}
+}
+
 func TestListRetryPolicy(t *testing.T) {
+	var thresholdUintVal uint32 = 3
+	thresholdTimeoutDuration := metav1.Duration{Duration: time.Duration(5 * time.Second)}
+	thresholdBackoffDuration := metav1.Duration{Duration: time.Duration(1 * time.Second)}
+
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -376,9 +579,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -414,9 +617,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -448,9 +651,9 @@ func TestListRetryPolicy(t *testing.T) {
 						},
 						RetryPolicy: policyV1alpha1.RetryPolicySpec{
 							RetryOn:                  "",
-							NumRetries:               1,
-							PerTryTimeout:            "2s",
-							RetryBackoffBaseInterval: "3ms",
+							NumRetries:               &thresholdUintVal,
+							PerTryTimeout:            &thresholdTimeoutDuration,
+							RetryBackoffBaseInterval: &thresholdBackoffDuration,
 						},
 					},
 				},
@@ -462,13 +665,16 @@ func TestListRetryPolicy(t *testing.T) {
 		t.Run(fmt.Sprintf("Running test case %d: %s", i, tc.name), func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(mockKubeController, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake retry policies
 			for _, retryPolicy := range tc.allRetries {
-				err := c.caches.retry.Add(retryPolicy)
+				err := c.informers.Add(informers.InformerKeyRetry, retryPolicy, t)
 				a.Nil(err)
 			}
 
@@ -605,13 +811,16 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			c, err := newClient(nil, fakePolicyClient.NewSimpleClientset(), nil, nil)
+			fakeClient := fakePolicyClient.NewSimpleClientset()
+			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
+			a.Nil(err)
+			c := NewPolicyController(informerCollection, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
 			// Create fake egress policies
 			for _, resource := range tc.allResources {
-				_ = c.caches.upstreamTrafficSetting.Add(resource)
+				_ = c.informers.Add(informers.InformerKeyUpstreamTrafficSetting, resource, t)
 			}
 
 			actual := c.GetUpstreamTrafficSetting(tc.opt)

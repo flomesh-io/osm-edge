@@ -7,8 +7,6 @@ set -o pipefail
 # desired cluster name; default is "kind"
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-osm}"
 
-KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-$(dpkg --print-architecture)}"
-
 # shellcheck disable=SC2086
 if kind get clusters | grep -q ^$KIND_CLUSTER_NAME$ ; then
   echo "cluster '$KIND_CLUSTER_NAME' already exists, skipping creation of cluster."
@@ -41,7 +39,7 @@ fi
 echo "Registry Host: ${reg_host}"
 
 # create a cluster with the local registry enabled in containerd
-cat <<EOF | kind create cluster --image kindest/node-"${KUBERNETES_NODE_ARCH}":v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
+cat <<EOF | kind create cluster --image kindest/node:v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

@@ -21,11 +21,12 @@ BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+PERMISSIVE_MODE="${PERMISSIVE_MODE:-true}"
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
-CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
+CTR_TAG="${CTR_TAG:-latest}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-false}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
@@ -39,8 +40,9 @@ DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 SIDECAR_LOG_LEVEL="${SIDECAR_LOG_LEVEL:-error}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
 TIMEOUT="${TIMEOUT:-90s}"
-USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 PUBLISH_IMAGES="${PUBLISH_IMAGES:-true}"
+LOCAL_PROXY_MODE=${LOCAL_PROXY_MODE:-Localhost}
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -99,8 +101,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.vault.host="$VAULT_HOST" \
       --set=osm.vault.token="$VAULT_TOKEN" \
@@ -120,14 +122,15 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="warn" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
   bin/osm install \
       --osm-namespace "$K8S_NAMESPACE" \
-      --verbose \
       --mesh-name "$MESH_NAME" \
+      --set=osm.enablePermissiveTrafficPolicy="$PERMISSIVE_MODE" \
       --set=osm.certificateProvider.kind="$CERT_MANAGER" \
       --set=osm.image.registry="$CTR_REGISTRY" \
       --set=osm.imagePullSecrets[0].name="$CTR_REGISTRY_CREDS_NAME" \
@@ -144,6 +147,8 @@ else
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="warn" \
+      --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
+      --set=osm.pipyRepoImage="flomesh/pipy-repo-nightly:latest"\
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

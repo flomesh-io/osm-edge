@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 

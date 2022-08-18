@@ -3,7 +3,6 @@ package driver
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -24,20 +23,6 @@ type Driver interface {
 	Start(ctx context.Context) (health.Probes, error)
 }
 
-// HealthProbes is to serve as an indication how to probe the sidecar driver's health status
-type HealthProbes struct {
-	liveness, readiness, startup *HealthProbe
-}
-
-// HealthProbe is an API endpoint to indicate the current status of the sidecar driver.
-type HealthProbe struct {
-	path      string
-	port      int32
-	http      bool
-	timeout   time.Duration
-	tcpSocket bool
-}
-
 // InjectorCtxKey the pointer is the key that a InjectorContext returns itself for.
 var InjectorCtxKey int
 
@@ -45,24 +30,18 @@ var InjectorCtxKey int
 type InjectorContext struct {
 	context.Context
 
-	Pod                          *corev1.Pod
 	MeshName                     string
-	OsmNamespace                 string
-	PodNamespace                 string
-	PodOS                        string
-	ProxyCommonName              certificate.CommonName
-	ProxyUUID                    uuid.UUID
-	Configurator                 configurator.Configurator
 	KubeClient                   kubernetes.Interface
+	OsmNamespace                 string
+	OsmContainerPullPolicy       corev1.PullPolicy
+	Configurator                 configurator.Configurator
+	Pod                          *corev1.Pod
+	PodOS                        string
+	PodNamespace                 string
+	ProxyUUID                    uuid.UUID
+	BootstrapCertificateCNPrefix string
 	BootstrapCertificate         *certificate.Certificate
-	ContainerPullPolicy          corev1.PullPolicy
-	InboundPortExclusionList     []int
-	OutboundPortExclusionList    []int
-	OutboundIPRangeInclusionList []string
-	OutboundIPRangeExclusionList []string
-	OriginalHealthProbes         HealthProbes
-
-	DryRun bool
+	DryRun                       bool
 }
 
 // ControllerCtxKey the pointer is the key that a ControllerContext returns itself for.
@@ -78,7 +57,7 @@ type ControllerContext struct {
 	KubeConfig       *rest.Config
 	Configurator     configurator.Configurator
 	MeshCatalog      catalog.MeshCataloger
-	CertManager      certificate.Manager
+	CertManager      *certificate.Manager
 	MsgBroker        *messaging.Broker
 	DebugHandlers    map[string]http.Handler
 	CancelFunc       func()

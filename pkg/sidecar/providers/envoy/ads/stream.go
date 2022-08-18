@@ -8,7 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/pkg/errors"
+	"github.com/google/uuid"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -27,13 +28,13 @@ import (
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context(), nil)
+	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context())
 	if err != nil {
-		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
+		return fmt.Errorf("Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy: %w", err)
 	}
 
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Envoy connections is less than maxDataPlaneConnections
-	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
+	if s.cfg.GetMaxDataPlaneConnections() > 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		metricsstore.DefaultMetricsStore.ProxyMaxConnectionsRejected.Inc()
 		return errTooManyConnections
 	}
@@ -41,16 +42,15 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
+	kind, proxyUUID, si, err := getCertificateCommonNameMeta(certCommonName)
+	if err != nil {
+		return fmt.Errorf("error parsing certificate common name %s: %w", certCommonName, err)
+	}
+
 	// This is the Envoy proxy that just connected to the control plane.
 	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
 	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
-	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
-	proxy, err := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
-	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInitializingProxy)).
-			Msgf("Error initializing proxy with certificate SerialNumber=%s", certSerialNumber)
-		return err
-	}
+	proxy := envoy.NewProxy(kind, proxyUUID, si, utils.GetIPFromContext(server.Context()))
 
 	if err := s.recordPodMetadata(proxy); err == errServiceAccountMismatch {
 		// Service Account mismatch
@@ -106,7 +106,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 			log.Debug().Str("proxy", proxy.String()).Msgf("Processing DiscoveryRequest %s", discoveryReqToStr(discoveryRequest))
 
-			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(certCommonName.String(), discoveryRequest.TypeUrl).Inc()
+			metricsstore.DefaultMetricsStore.ProxyXDSRequestCount.WithLabelValues(proxy.UUID.String(), proxy.Identity.String(), discoveryRequest.TypeUrl).Inc()
 
 			// This function call runs xDS proto state machine given DiscoveryRequest as input.
 			// It's output is the decision to reply or not to this request.
@@ -322,12 +322,6 @@ func getResourceSliceFromMapset(resourceMap mapset.Set) []string {
 // Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
 // <svc-account>.<namespace>.<trust-domain>.
 func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
-	proxyIdentity, err := envoy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Str("proxy", proxy.String()).Err(err).Msg("Error looking up proxy identity")
-		return false
-	}
-
 	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
 	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
 	if len(chunks) < 3 {
@@ -335,19 +329,38 @@ func isCNforProxy(proxy *envoy.Proxy, cn certificate.CommonName) bool {
 	}
 
 	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
-	return identityForCN == proxyIdentity.ToK8sServiceAccount()
+	return identityForCN == proxy.Identity.ToK8sServiceAccount()
+}
+
+func getCertificateCommonNameMeta(cn certificate.CommonName) (models.ProxyKind, uuid.UUID, identity.ServiceIdentity, error) {
+	// XDS cert CN is of the form <proxy-UUID>.<kind>.<proxy-identity>.<trust-domain>
+	chunks := strings.SplitN(cn.String(), constants.DomainDelimiter, 5)
+	if len(chunks) < 4 {
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	}
+	proxyUUID, err := uuid.Parse(chunks[0])
+	if err != nil {
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrParsingXDSCertCN)).
+			Msgf("Error parsing %s into uuid.UUID", chunks[0])
+		return "", uuid.UUID{}, "", err
+	}
+
+	switch {
+	case chunks[1] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[2] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	case chunks[3] == "":
+		return "", uuid.UUID{}, "", errInvalidCertificateCN
+	}
+
+	return models.ProxyKind(chunks[1]), proxyUUID, identity.New(chunks[2], chunks[3]), nil
 }
 
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
-	if p.Kind() == envoy.KindGateway {
-		log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Str("proxy", p.String()).
-			Msgf("Proxy is a Multicluster gateway, skipping recording pod metadata")
-		return nil
-	}
-
-	pod, err := envoy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubecontroller)
+	pod, err := s.kubecontroller.GetPodForProxy(p)
 	if err != nil {
 		log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 		return nil
@@ -376,16 +389,9 @@ func (s *Server) recordPodMetadata(p *envoy.Proxy) error {
 	}
 
 	// Verify Service account matches (cert to pod Service Account)
-	cn := p.GetCertificateCommonName()
-	certSA, err := envoy.GetServiceIdentityFromProxyCertificate(cn)
-	if err != nil {
-		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from XDS certificate with CommonName=%s", cn)
-		return err
-	}
-
-	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
+	if p.Identity.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).Str("proxy", p.String()).
-			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
+			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, p.Identity.ToK8sServiceAccount())
 		return errServiceAccountMismatch
 	}
 

@@ -187,9 +187,6 @@ type FeatureFlags struct {
 	// EnableEgressPolicy defines if OSM's Egress policy is enabled.
 	EnableEgressPolicy bool `json:"enableEgressPolicy"`
 
-	// EnableMulticlusterMode defines if Multicluster mode is enabled.
-	EnableMulticlusterMode bool `json:"enableMulticlusterMode"`
-
 	// EnableSnapshotCacheMode defines if XDS server starts with snapshot cache.
 	EnableSnapshotCacheMode bool `json:"enableSnapshotCacheMode"`
 
@@ -199,6 +196,10 @@ type FeatureFlags struct {
 	// EnableIngressBackendPolicy defines if OSM will use the IngressBackend API to allow ingress traffic to
 	// service mesh backends.
 	EnableIngressBackendPolicy bool `json:"enableIngressBackendPolicy"`
+
+	// EnableAccessControlPolicy defines if OSM will use the AccessControl API to allow access control traffic to
+	// service mesh backends.
+	EnableAccessControlPolicy bool `json:"enableAccessControlPolicy"`
 
 	// EnableSidecarActiveHealthChecks defines if OSM will sidecar active health
 	// checks between services allowed to communicate.

@@ -12,8 +12,6 @@ import (
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-
-	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 func meshUpgradeConfig() *action.Configuration {
@@ -26,14 +24,13 @@ func meshUpgradeConfig() *action.Configuration {
 		KubeClient: &kubefake.PrintingKubeClient{
 			Out: ioutil.Discard,
 		},
-		Capabilities: chartutil.DefaultCapabilities,
+		Capabilities: helmCapabilities(),
 		Log:          func(_ string, _ ...interface{}) {},
 	}
 }
 
 func defaultMeshUpgradeCmd() *meshUpgradeCmd {
 	chart, err := loader.Load(testChartPath)
-	cli.EnsureNodeSelector(chart)
 	if err != nil {
 		panic(err)
 	}
@@ -52,6 +49,7 @@ func TestMeshUpgradeDefault(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	err := i.run(config)
 	a.Nil(err)
 
@@ -76,6 +74,7 @@ func TestMeshUpgradeOverridesInstallDefaults(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 
 	err := i.run(config)
 	a.Nil(err)
@@ -119,6 +118,7 @@ func TestMeshUpgradeDropsInstallOverrides(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	i.setOptions = []string{
 		"osm.enableEgress=true",
 		"osm.image.registry=installed",
@@ -155,6 +155,7 @@ func TestMeshUpgradeToModifiedChart(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 
 	err := i.run(config)
 	a.Nil(err)
@@ -195,6 +196,7 @@ func TestMeshUpgradeRemovedValue(t *testing.T) {
 
 	i := getDefaultInstallCmd(ioutil.Discard)
 	i.chartPath = testChartPath
+	i.disableSpinner = true
 	err := i.run(config)
 	a.NoError(err)
 
@@ -205,7 +207,7 @@ func TestMeshUpgradeRemovedValue(t *testing.T) {
 	a.NoError(err)
 	delete(u.chart.Values["osm"].(map[string]interface{}), "namespace")
 	// Schema only accepting the remaining values
-	u.chart.Schema = []byte(`{"properties": {"osm": {"properties": {"image": {}, "imagePullSecrets": {}, "nodeSelector": {}}}, "additionalProperties": false}}}`)
+	u.chart.Schema = []byte(`{"properties": {"osm": {"properties": {"image": {}, "imagePullSecrets": {}}, "additionalProperties": false}}}`)
 
 	err = u.run(config)
 	a.NoError(err)

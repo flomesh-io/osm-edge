@@ -12,7 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -31,7 +30,7 @@ const (
 
 // NewRepoServer creates a new Aggregated Discovery Service server
 func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string,
-	cfg configurator.Configurator, certManager certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+	cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
 	server := Server{
 		catalog:        meshCatalog,
 		proxyRegistry:  proxyRegistry,
@@ -81,12 +80,56 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebaseMetricsJS,
 				},
 				{
+					Filename: "pipy.json",
+					Content:  codebasePipyJSON,
+				},
+				{
 					Filename: "codes.js",
 					Content:  codebaseCodesJS,
 				},
 				{
-					Filename: "pipy.json",
-					Content:  codebasePipyJSON,
+					Filename: "breaker.js",
+					Content:  codebaseBreakerJS,
+				},
+				{
+					Filename: "gather.js",
+					Content:  codebaseGatherJS,
+				},
+				{
+					Filename: "stats.js",
+					Content:  codebaseStatsJS,
+				},
+				{
+					Filename: "inbound-proxy-tcp.js",
+					Content:  codebaseInboundProxyTCPJS,
+				},
+				{
+					Filename: "inbound-recv-http.js",
+					Content:  codebaseInboundRecvHTTPJS,
+				},
+				{
+					Filename: "inbound-recv-tcp.js",
+					Content:  codebaseInboundRecvTCPJS,
+				},
+				{
+					Filename: "inbound-throttle.js",
+					Content:  codebaseInboundThrottleJS,
+				},
+				{
+					Filename: "outbound-breaker.js",
+					Content:  codebaseOutboundBreakerJS,
+				},
+				{
+					Filename: "outbound-mux-http.js",
+					Content:  codebaseOutboundMuxHTTPJS,
+				},
+				{
+					Filename: "outbound-proxy-tcp.js",
+					Content:  codebaseOutboundProxyTCPJS,
+				},
+				{
+					Filename: "outbound-recv-http.js",
+					Content:  codebaseOutboundRecvHTTPJS,
 				},
 			},
 		},
@@ -101,9 +144,4 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	s.ready = true
 
 	return nil
-}
-
-// ListConnectedProxies implements ProxyRegistry interface
-func (s *Server) ListConnectedProxies() map[certificate.CommonName]sidecar.Proxy {
-	return s.proxyRegistry.ListConnectedProxies()
 }

@@ -6,6 +6,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -13,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/workerpool"
@@ -28,7 +30,7 @@ type Server struct {
 	proxyRegistry  *registry.ProxyRegistry
 	osmNamespace   string
 	cfg            configurator.Configurator
-	certManager    certificate.Manager
+	certManager    *certificate.Manager
 	ready          bool
 	workQueues     *workerpool.WorkerPool
 	kubeController k8s.Controller
@@ -63,9 +65,6 @@ type ClusterName string
 
 // WeightedEndpoint is a wrapper type of map[HTTPHostPort]Weight
 type WeightedEndpoint map[HTTPHostPort]Weight
-
-// ClustersConfigs is a wrapper type of map[ClusterName]*WeightedEndpoint
-type ClustersConfigs map[ClusterName]*WeightedEndpoint
 
 // Header is a string wrapper type
 type Header string
@@ -105,14 +104,8 @@ type HTTPRouteRule struct {
 	allowedAnyMethod  bool
 }
 
-// HTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type HTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
-
 // HTTPRouteRuleName is a string wrapper type
 type HTTPRouteRuleName string
-
-// HTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
-type HTTPServiceRouteRules map[HTTPRouteRuleName]*HTTPRouteRules
 
 // HTTPHostPort is a string wrapper type
 type HTTPHostPort string
@@ -135,51 +128,15 @@ type SourceIPRanges []SourceIPRange
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
 
-// TrafficMatch represents the base match of traffic
-type TrafficMatch struct {
-	Port                  Port                  `json:"Port"`
-	Protocol              Protocol              `json:"Protocol"`
-	HTTPHostPort2Service  HTTPHostPort2Service  `json:"HttpHostPort2Service"`
-	HTTPServiceRouteRules HTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters      `json:"TargetClusters"`
-}
-
-// InboundTrafficMatch represents the match of InboundTraffic
-type InboundTrafficMatch struct {
-	SourceIPRanges SourceIPRanges
-	TrafficMatch
-	AllowedEndpoints AllowedEndpoints
-}
-
-// InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
-type InboundTrafficMatches map[Port]*InboundTrafficMatch
-
-// OutboundTrafficMatch represents the match of OutboundTraffic
-type OutboundTrafficMatch struct {
-	DestinationIPRanges DestinationIPRanges
-	TrafficMatch
-	AllowedEgressTraffic bool
-	ServiceIdentity      identity.ServiceIdentity
-}
-
-// OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
-type OutboundTrafficMatches map[Port][]*OutboundTrafficMatch
-
-// TrafficPolicy represents the base policy of traffic
-type TrafficPolicy struct {
-	ClustersConfigs ClustersConfigs `json:"ClustersConfigs"`
-}
-
-// InboundTrafficPolicy represents the policy of InboundTraffic
-type InboundTrafficPolicy struct {
-	TrafficMatches InboundTrafficMatches `json:"TrafficMatches"`
-	TrafficPolicy
-}
-
-// OutboundTrafficPolicy represents the policy of OutboundTraffic
-type OutboundTrafficPolicy struct {
-	TrafficMatches OutboundTrafficMatches `json:"TrafficMatches"`
-	TrafficPolicy
+// PipyConf is a policy used by pipy sidecar
+type PipyConf struct {
+	Ts               *time.Time
+	Version          *string
+	Spec             MeshConfigSpec
+	Certificate      *Certificate
+	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
+	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
 }
 
 // FeatureFlags represents the flags of feature
@@ -218,13 +175,219 @@ type Certificate struct {
 	IssuingCA string
 }
 
-// PipyConf is a policy used by pipy sidecar
-type PipyConf struct {
-	Ts               *time.Time
-	Version          *string
-	Spec             MeshConfigSpec
-	Certificate      *Certificate
-	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
-	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
+// RetryPolicy is the type used to represent the retry policy specified in the Retry policy specification.
+type RetryPolicy struct {
+	// RetryOn defines the policies to retry on, delimited by comma.
+	RetryOn string `json:"RetryOn"`
+
+	// PerTryTimeout defines the time allowed for a retry before it's considered a failed attempt.
+	// +optional
+	PerTryTimeout *float64 `json:"PerTryTimeout"`
+
+	// NumRetries defines the max number of retries to attempt.
+	// +optional
+	NumRetries *uint32 `json:"NumRetries"`
+
+	// RetryBackoffBaseInterval defines the base interval for exponential retry backoff.
+	// +optional
+	RetryBackoffBaseInterval *float64 `json:"RetryBackoffBaseInterval"`
+}
+
+// WeightedCluster is a struct of a cluster and is weight that is backing a service
+type WeightedCluster struct {
+	service.WeightedCluster
+	RetryPolicy *v1alpha1.RetryPolicySpec
+}
+
+// InboundHTTPRouteRule http route rule
+type InboundHTTPRouteRule struct {
+	HTTPRouteRule
+	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
+}
+
+// InboundHTTPRouteRules is a wrapper type
+type InboundHTTPRouteRules struct {
+	RouteRules       map[URIPathRegexp]*InboundHTTPRouteRule `json:"RouteRules"`
+	RateLimit        *HTTPRateLimit                          `json:"RateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit                  `json:"HeaderRateLimits"`
+}
+
+// InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
+type InboundHTTPServiceRouteRules map[HTTPRouteRuleName]*InboundHTTPRouteRules
+
+// InboundTrafficMatch represents the match of InboundTraffic
+type InboundTrafficMatch struct {
+	Port                  Port     `json:"Port"`
+	Protocol              Protocol `json:"Protocol"`
+	SourceIPRanges        SourceIPRanges
+	sourceIPRanges        map[SourceIPRange]bool
+	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
+	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
+	TargetClusters        WeightedClusters             `json:"TargetClusters"`
+	AllowedEndpoints      AllowedEndpoints
+	RateLimit             *TCPRateLimit `json:"RateLimit"`
+}
+
+// InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
+type InboundTrafficMatches map[Port]*InboundTrafficMatch
+
+// OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
+type OutboundHTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
+
+// OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
+type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules
+
+// OutboundTrafficMatch represents the match of OutboundTraffic
+type OutboundTrafficMatch struct {
+	DestinationIPRanges   DestinationIPRanges
+	Port                  Port                          `json:"Port"`
+	Protocol              Protocol                      `json:"Protocol"`
+	HTTPHostPort2Service  HTTPHostPort2Service          `json:"HttpHostPort2Service"`
+	HTTPServiceRouteRules OutboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
+	TargetClusters        WeightedClusters              `json:"TargetClusters"`
+	ServiceIdentity       identity.ServiceIdentity
+	AllowedEgressTraffic  bool
+}
+
+// OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
+type OutboundTrafficMatches map[Port][]*OutboundTrafficMatch
+
+// InboundTrafficPolicy represents the policy of InboundTraffic
+type InboundTrafficPolicy struct {
+	TrafficMatches  InboundTrafficMatches             `json:"TrafficMatches"`
+	ClustersConfigs map[ClusterName]*WeightedEndpoint `json:"ClustersConfigs"`
+}
+
+// ClusterConfigs represents the configs of Cluster
+type ClusterConfigs struct {
+	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
+	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
+	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
+}
+
+// OutboundTrafficPolicy represents the policy of OutboundTraffic
+type OutboundTrafficPolicy struct {
+	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+}
+
+// ConnectionSettings defines the connection settings for an
+// upstream host.
+type ConnectionSettings struct {
+	// TCP specifies the TCP level connection settings.
+	// Applies to both TCP and HTTP connections.
+	// +optional
+	TCP *TCPConnectionSettings `json:"tcp,omitempty"`
+
+	// HTTP specifies the HTTP level connection settings.
+	// +optional
+	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
+}
+
+// TCPCircuitBreaking defines the TCP Circuit Breaking settings for an
+// upstream host.
+type TCPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *float64 `json:"StatTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"SlowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"SlowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"ErrorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
+}
+
+// TCPConnectionSettings defines the TCP connection settings for an
+// upstream host.
+type TCPConnectionSettings struct {
+	// MaxConnections specifies the maximum number of TCP connections
+	// allowed to the upstream host.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
+	// +optional
+	MaxConnections *uint32 `json:"MaxConnections,omitempty"`
+
+	// ConnectTimeout specifies the TCP connection timeout.
+	// Defaults to 5s if not specified.
+	// +optional
+	ConnectTimeout *float64 `json:"ConnectTimeout,omitempty"`
+
+	// CircuitBreaking specifies the TCP connection circuit breaking setting.
+	CircuitBreaking *TCPCircuitBreaking `json:"CircuitBreaking,omitempty"`
+}
+
+// HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
+// upstream host.
+type HTTPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *float64 `json:"StatTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"SlowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"SlowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"ErrorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
+
+	// DegradedStatusCode specifies the degraded http status code of circuit breaking
+	DegradedStatusCode *int32 `json:"DegradedStatusCode,omitempty"`
+
+	// DegradedResponseContent specifies the degraded http response content of circuit breaking
+	DegradedResponseContent *string `json:"DegradedResponseContent,omitempty"`
+}
+
+// HTTPConnectionSettings defines the HTTP connection settings for an
+// upstream host.
+type HTTPConnectionSettings struct {
+	// MaxRequests specifies the maximum number of parallel requests
+	// allowed to the upstream host.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
+	// +optional
+	MaxRequests *uint32 `json:"MaxRequests,omitempty"`
+
+	// MaxRequestsPerConnection specifies the maximum number of requests
+	// per connection allowed to the upstream host.
+	// Defaults to unlimited if not specified.
+	// +optional
+	MaxRequestsPerConnection *uint32 `json:"MaxRequestsPerConnection,omitempty"`
+
+	// MaxPendingRequests specifies the maximum number of pending HTTP
+	// requests allowed to the upstream host. For HTTP/2 connections,
+	// if `maxRequestsPerConnection` is not configured, all requests will
+	// be multiplexed over the same connection so this circuit breaker
+	// will only be hit when no connection is already established.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
+	// +optional
+	MaxPendingRequests *uint32 `json:"MaxPendingRequests,omitempty"`
+
+	// MaxRetries specifies the maximum number of parallel retries
+	// allowed to the upstream host.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
+	// +optional
+	MaxRetries *uint32 `json:"MaxRetries,omitempty"`
+
+	// CircuitBreaking specifies the HTTP connection circuit breaking setting.
+	CircuitBreaking *HTTPCircuitBreaking `json:"CircuitBreaking,omitempty"`
 }

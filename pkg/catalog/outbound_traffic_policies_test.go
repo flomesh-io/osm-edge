@@ -9,9 +9,8 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/types"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -36,7 +35,8 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	// MeshService for  k8s service ns2/s2 with 1 port
 	meshSvc2 := service.MeshService{Name: "s2", Namespace: "ns2", Port: 8080, TargetPort: 80, Protocol: "http"}
 	// MeshService for  k8s service ns3/s3 with 1 port, and 2 split backends
-	meshSvc3 := service.MeshService{Name: "s3", Namespace: "ns3", Port: 8080, TargetPort: 80, Protocol: "http"}
+	// We test the scenario where TargetPort 80 on root meshSvc3 does not match TargetPort 8080 on backends meshSvc3V1 and meshSvc3V2
+	meshSvc3 := service.MeshService{Name: "s3", Namespace: "ns3", Port: 8080, TargetPort: 8080, Protocol: "http"}
 	meshSvc3V1 := service.MeshService{Name: "s3-v1", Namespace: "ns3", Port: 8080, TargetPort: 80, Protocol: "http"}
 	meshSvc3V2 := service.MeshService{Name: "s3-v2", Namespace: "ns3", Port: 8080, TargetPort: 80, Protocol: "http"}
 	// MeshService for  k8s service ns3/s4 with 1 port
@@ -76,12 +76,12 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 	}
 
 	svcIdentityToSvcMapping := map[string][]service.MeshService{
-		"sa1.ns1.cluster.local": {meshSvc1P1, meshSvc1P2},
-		"sa2.ns2.cluster.local": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
-		"sa3.ns3.cluster.local": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
+		"sa1.ns1": {meshSvc1P1, meshSvc1P2},
+		"sa2.ns2": {meshSvc2}, // Client `downstreamIdentity` cannot access this upstream
+		"sa3.ns3": {meshSvc3, meshSvc3V1, meshSvc3V2, meshSvc4, meshSvc5},
 	}
 
-	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1.cluster.local")
+	downstreamIdentity := identity.ServiceIdentity("sa-x.ns1")
 
 	// TrafficTargets that allow: sa-x.ns1 -> sa1.ns1, sa3.ns3
 	// No TrafficTarget that allows sa-x.ns1 -> sa2.ns2 (this should be allowed in permissive mode)
@@ -141,7 +141,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			Namespace: "ns3",
 		},
 		Spec: split.TrafficSplitSpec{
-			Service: "s3.ns3.cluster.local",
+			Service: "s3.ns3.svc.cluster.local",
 			Backends: []split.TrafficSplitBackend{
 				{
 					Service: "s3-v1",
@@ -154,7 +154,6 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			},
 		},
 	}
-	trafficSplits := []*split.TrafficSplit{trafficSplitSvc3}
 
 	// Add UpstreamTrafficSetting config for service meshSvc1P1, meshSvc1P1: ns1/s1
 	// Both map to the same k8s service but different ports
@@ -180,7 +179,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -193,7 +192,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -206,7 +205,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -223,7 +222,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -236,7 +235,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -249,7 +248,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},
@@ -262,7 +261,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s5 on port 9091
-						Name:                "ns3/s5_9091_tcp-server-first",
+						Name:                meshSvc5.OutboundTrafficMatchName(),
 						DestinationPort:     9091,
 						DestinationProtocol: "tcp-server-first",
 						DestinationIPRanges: []string{"10.0.5.1/32"},
@@ -286,7 +285,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 						UpstreamTrafficSetting: &upstreamTrafficSettingSvc1,
 					},
 					{
-						Name:    "ns3/s3|80",
+						Name:    "ns3/s3|8080",
 						Service: meshSvc3,
 					},
 					{
@@ -438,7 +437,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 				TrafficMatches: []*trafficpolicy.TrafficMatch{
 					{
 						// To match ns1/s1 on port 8080
-						Name:                "ns1/s1_8080_http",
+						Name:                meshSvc1P1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -451,7 +450,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns1/s1 on port 9090
-						Name:                "ns1/s1_9090_http",
+						Name:                meshSvc1P2.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.1.1/32", "10.0.1.2/32"},
@@ -464,7 +463,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns2/s2 on port 8080
-						Name:                "ns2/s2_8080_http",
+						Name:                meshSvc2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.2.1/32"},
@@ -477,7 +476,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3 apex) on port 8080, split to s3-v1 and s3-v2
-						Name:                "ns3/s3_8080_http",
+						Name:                meshSvc3.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.1/32"},
@@ -494,7 +493,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v1) on port 8080
-						Name:                "ns3/s3-v1_8080_http",
+						Name:                meshSvc3V1.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.2/32"},
@@ -507,7 +506,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s3(s3-v2) on port 8080
-						Name:                "ns3/s3-v2_8080_http",
+						Name:                meshSvc3V2.OutboundTrafficMatchName(),
 						DestinationPort:     8080,
 						DestinationProtocol: "http",
 						DestinationIPRanges: []string{"10.0.3.3/32"},
@@ -520,7 +519,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					},
 					{
 						// To match ns3/s4 on port 9090
-						Name:                "ns3/s4_9090_tcp",
+						Name:                meshSvc4.OutboundTrafficMatchName(),
 						DestinationPort:     9090,
 						DestinationProtocol: "tcp",
 						DestinationIPRanges: []string{"10.0.4.1/32"},
@@ -601,7 +600,6 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
 			mockServiceProvider.EXPECT().GetID().Return("test").AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("test").AnyTimes()
-			firstSplitCall := mockMeshSpec.EXPECT().ListTrafficSplits().Return(trafficSplits).Times(1)
 			// Mock conditional traffic split for service
 			mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).DoAndReturn(
 				func(options ...smi.TrafficSplitListOption) []*split.TrafficSplit {
@@ -614,7 +612,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 						return []*split.TrafficSplit{trafficSplitSvc3}
 					}
 					return nil
-				}).After(firstSplitCall).AnyTimes()
+				}).AnyTimes()
+			mockKubeController.EXPECT().GetTargetPortForServicePort(
+				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
+			mockKubeController.EXPECT().GetTargetPortForServicePort(
+				types.NamespacedName{Namespace: meshSvc3V2.Namespace, Name: meshSvc3V2.Name}, meshSvc3.Port).Return(meshSvc3V2.TargetPort, nil).AnyTimes()
 
 			// Mock ServiceIdentity -> Service lookups executed when TrafficTargets are evaluated
 			if !tc.permissiveMode {
@@ -691,7 +693,7 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 		},
 		{
 			name:           "gateway",
-			svcIdentity:    "gateway.osm-system.cluster.local",
+			svcIdentity:    "gateway.osm-system",
 			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
 			permissiveMode: true,
 		},
@@ -704,296 +706,6 @@ func TestListOutboundServicesForIdentity(t *testing.T) {
 			})
 			actualList := mc.ListOutboundServicesForIdentity(tc.svcIdentity)
 			assert.ElementsMatch(actualList, tc.expectedList)
-		})
-	}
-}
-
-func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockKubeController := k8s.NewMockController(mockCtrl)
-	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController:     mockKubeController,
-		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-		serviceProviders:   []service.Provider{mockServiceProvider},
-	}
-
-	destSA := identity.K8sServiceAccount{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destMeshService := service.MeshService{
-		Name:      "bookstore",
-		Namespace: "bookstore-ns",
-	}
-
-	destK8sService := tests.NewServiceFixture(destMeshService.Name, destMeshService.Namespace, map[string]string{})
-	mockServiceProvider.EXPECT().GetServicesForServiceIdentity(destSA.ToServiceIdentity()).Return([]service.MeshService{destMeshService}).AnyTimes()
-	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockServiceProvider.EXPECT().GetID().Return("fake").AnyTimes()
-	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
-
-	trafficTarget := &access.TrafficTarget{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha3",
-			Kind:       "TrafficTarget",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "target",
-			Namespace: "bookstore-ns",
-		},
-		Spec: access.TrafficTargetSpec{
-			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
-				Name:      "bookstore",
-				Namespace: "bookstore-ns",
-			},
-			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
-				Name:      "bookbuyer",
-				Namespace: "default",
-			}},
-		},
-	}
-
-	actual := mc.getDestinationServicesFromTrafficTarget(trafficTarget)
-	assert.Equal([]service.MeshService{destMeshService}, actual)
-}
-
-func TestListAllowedUpstreamServicesIncludeApex(t *testing.T) {
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	mockController := k8s.NewMockController(mockCtrl)
-	mockServiceProvider := service.NewMockProvider(mockCtrl)
-	mockConfigurator.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableMulticlusterMode: true}).AnyTimes()
-	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
-
-	mc := MeshCatalog{
-		meshSpec:         mockMeshSpec,
-		kubeController:   mockController,
-		configurator:     mockConfigurator,
-		serviceProviders: []service.Provider{mockServiceProvider},
-	}
-
-	testCases := []struct {
-		name          string
-		id            identity.ServiceIdentity
-		services      []*corev1.Service
-		trafficSplits []*split.TrafficSplit
-		expected      []service.MeshService
-	}{
-		{
-			name:     "no allowed outbound services",
-			id:       "foo.bar",
-			expected: nil,
-		},
-		{
-			name: "some allowed service",
-			id:   "my-src-ns.my-src-name",
-			services: []*corev1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "my-dst-ns",
-						Name:      "split-backend-1",
-					},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "servicePort",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       tests.ServicePort,
-								TargetPort: intstr.FromInt(tests.ServicePort),
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "my-dst-ns",
-						Name:      "split-backend-2",
-					},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "servicePort",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       tests.ServicePort,
-								TargetPort: intstr.FromInt(tests.ServicePort),
-							},
-						},
-					},
-				},
-			},
-			trafficSplits: []*split.TrafficSplit{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "wrong-ns",
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "split",
-						Namespace: "my-dst-ns",
-					},
-					Spec: split.TrafficSplitSpec{
-						Service: "split-svc.my-dst-ns",
-						Backends: []split.TrafficSplitBackend{
-							{
-								Service: "split-backend-1",
-							},
-							{
-								Service: "split-backend-2",
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Name:       "split-svc",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-				{
-					Name:       "split-backend-1",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-				{
-					Name:       "split-backend-2",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-			},
-		},
-		{
-			name: "TrafficSplit apex service should not have duplicate when it does not have endpoints",
-			id:   "my-src-ns.my-src-name",
-			services: []*corev1.Service{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "my-dst-ns",
-						Name:      "split-backend-1",
-					},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "servicePort",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       tests.ServicePort,
-								TargetPort: intstr.FromInt(tests.ServicePort),
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "my-dst-ns",
-						Name:      "split-backend-2",
-					},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Name:       "servicePort",
-								Protocol:   corev1.ProtocolTCP,
-								Port:       tests.ServicePort,
-								TargetPort: intstr.FromInt(tests.ServicePort),
-							},
-						},
-					},
-				},
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "my-dst-ns",
-						Name:      "split-svc",
-					},
-					Spec: corev1.ServiceSpec{
-						Ports: []corev1.ServicePort{
-							{
-								Name:     "servicePort",
-								Protocol: corev1.ProtocolTCP,
-								Port:     tests.ServicePort,
-								// No TargetPort: apex service without endpoint
-							},
-						},
-					},
-				},
-			},
-			trafficSplits: []*split.TrafficSplit{
-				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "split",
-						Namespace: "my-dst-ns",
-					},
-					Spec: split.TrafficSplitSpec{
-						Service: "split-svc.my-dst-ns",
-						Backends: []split.TrafficSplitBackend{
-							{
-								Service: "split-backend-1",
-							},
-							{
-								Service: "split-backend-2",
-							},
-						},
-					},
-				},
-			},
-			expected: []service.MeshService{
-				{
-					Name:       "split-svc",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-				{
-					Name:       "split-backend-1",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-				{
-					Name:       "split-backend-2",
-					Namespace:  "my-dst-ns",
-					Port:       tests.ServicePort,
-					TargetPort: tests.ServicePort,
-					Protocol:   "http",
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			var meshServices []service.MeshService
-
-			for _, k8sSvc := range tc.services {
-				meshServices = append(meshServices, service.MeshService{Namespace: k8sSvc.Namespace, Name: k8sSvc.Name, Port: tests.ServicePort, TargetPort: uint16(k8sSvc.Spec.Ports[0].TargetPort.IntValue()), Protocol: "http"})
-			}
-
-			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
-			mockServiceProvider.EXPECT().ListServices().Return(meshServices).Times(1)
-			if len(tc.trafficSplits) > 0 {
-				mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficSplits).Times(1)
-			}
-
-			tassert.ElementsMatch(t, tc.expected, mc.listAllowedUpstreamServicesIncludeApex(tc.id))
 		})
 	}
 }

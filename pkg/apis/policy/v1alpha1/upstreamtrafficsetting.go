@@ -38,6 +38,26 @@ type UpstreamTrafficSettingSpec struct {
 	// directed to the upstream host.
 	// +optional
 	ConnectionSettings *ConnectionSettingsSpec `json:"connectionSettings,omitempty"`
+
+	// RateLimit specifies the rate limit settings for the traffic
+	// directed to the upstream host.
+	// If HTTP rate limiting is specified, the rate limiting is applied
+	// at the VirtualHost level applicable to all routes within the
+	// VirtualHost.
+	// +optional
+	RateLimit *RateLimitSpec `json:"rateLimit,omitempty"`
+
+	// HTTPRoutes defines the list of HTTP routes settings
+	// for the upstream host. Settings are applied at a per
+	// route level.
+	// +optional
+	HTTPRoutes []HTTPRouteSpec `json:"httpRoutes,omitempty"`
+
+	// HTTPHeaders defines the list of HTTP routes settings
+	// for the upstream host. Settings are applied at all routes
+	// within the VirtualHost.
+	// +optional
+	HTTPHeaders []HTTPHeaderSpec `json:"httpHeaders,omitempty"`
 }
 
 // ConnectionSettingsSpec defines the connection settings for an
@@ -53,6 +73,31 @@ type ConnectionSettingsSpec struct {
 	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
 }
 
+// TCPCircuitBreaking defines the TCP Circuit Breaking settings for an
+// upstream host.
+type TCPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *metav1.Duration `json:"statTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *metav1.Duration `json:"slowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"slowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"slowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"errorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"errorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *metav1.Duration `json:"degradedTimeWindow"`
+}
+
 // TCPConnectionSettings defines the TCP connection settings for an
 // upstream host.
 type TCPConnectionSettings struct {
@@ -66,6 +111,40 @@ type TCPConnectionSettings struct {
 	// Defaults to 5s if not specified.
 	// +optional
 	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
+
+	// CircuitBreaking specifies the TCP connection circuit breaking setting.
+	CircuitBreaking *TCPCircuitBreaking `json:"circuitBreaking,omitempty"`
+}
+
+// HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
+// upstream host.
+type HTTPCircuitBreaking struct {
+	// StatTimeWindow specifies statistical time period of circuit breaking
+	StatTimeWindow *metav1.Duration `json:"statTimeWindow"`
+
+	// SlowTimeThreshold specifies the time threshold of slow request
+	SlowTimeThreshold *metav1.Duration `json:"slowTimeThreshold,omitempty"`
+
+	// SlowAmountThreshold specifies the amount threshold of slow request
+	SlowAmountThreshold *uint32 `json:"slowAmountThreshold,omitempty"`
+
+	// SlowRatioThreshold specifies the ratio threshold of slow request
+	SlowRatioThreshold *float32 `json:"slowRatioThreshold,omitempty"`
+
+	// ErrorAmountThreshold specifies the amount threshold of error request
+	ErrorAmountThreshold *uint32 `json:"errorAmountThreshold,omitempty"`
+
+	// ErrorRatioThreshold specifies the ratio threshold of error request
+	ErrorRatioThreshold *float32 `json:"errorRatioThreshold,omitempty"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *metav1.Duration `json:"degradedTimeWindow"`
+
+	// DegradedStatusCode specifies the degraded http status code of circuit breaking
+	DegradedStatusCode *int32 `json:"degradedStatusCode,omitempty"`
+
+	// DegradedResponseContent specifies the degraded http response content of circuit breaking
+	DegradedResponseContent *string `json:"degradedResponseContent,omitempty"`
 }
 
 // HTTPConnectionSettings defines the HTTP connection settings for an
@@ -97,6 +176,126 @@ type HTTPConnectionSettings struct {
 	// Defaults to 4294967295 (2^32 - 1) if not specified.
 	// +optional
 	MaxRetries *uint32 `json:"maxRetries,omitempty"`
+
+	// CircuitBreaking specifies the HTTP connection circuit breaking setting.
+	CircuitBreaking *HTTPCircuitBreaking `json:"circuitBreaking,omitempty"`
+}
+
+// RateLimitSpec defines the rate limiting specification for
+// the upstream host.
+type RateLimitSpec struct {
+	// Local specified the local rate limiting specification
+	// for the upstream host.
+	// Local rate limiting is enforced directly by the upstream
+	// host without any involvement of a global rate limiting service.
+	// This is applied as a token bucket rate limiter.
+	// +optional
+	Local *LocalRateLimitSpec `json:"local,omitempty"`
+}
+
+// LocalRateLimitSpec defines the local rate limiting specification
+// for the upstream host.
+type LocalRateLimitSpec struct {
+	// TCP defines the local rate limiting specification at the network
+	// level. This is a token bucket rate limiter where each connection
+	// consumes a single token. If the token is available, the connection
+	// will be allowed. If no tokens are available, the connection will be
+	// immediately closed.
+	// +optional
+	TCP *TCPLocalRateLimitSpec `json:"tcp,omitempty"`
+
+	// HTTP defines the local rate limiting specification for HTTP traffic.
+	// This is a token bucket rate limiter where each request consumes
+	// a single token. If the token is available, the request will be
+	// allowed. If no tokens are available, the request will receive the
+	// configured rate limit status.
+	HTTP *HTTPLocalRateLimitSpec `json:"http,omitempty"`
+}
+
+// TCPLocalRateLimitSpec defines the local rate limiting specification
+// for the upstream host at the TCP level.
+type TCPLocalRateLimitSpec struct {
+	// Connections defines the number of connections allowed
+	// per unit of time before rate limiting occurs.
+	Connections uint32 `json:"connections"`
+
+	// Unit defines the period of time within which connections
+	// over the limit will be rate limited.
+	// Valid values are "second", "minute" and "hour".
+	Unit string `json:"unit"`
+
+	// Burst defines the number of connections above the baseline
+	// rate that are allowed in a short period of time.
+	// +optional
+	Burst uint32 `json:"burst,omitempty"`
+}
+
+// HTTPLocalRateLimitSpec defines the local rate limiting specification
+// for the upstream host at the HTTP level.
+type HTTPLocalRateLimitSpec struct {
+	// Requests defines the number of requests allowed
+	// per unit of time before rate limiting occurs.
+	Requests uint32 `json:"requests"`
+
+	// Unit defines the period of time within which requests
+	// over the limit will be rate limited.
+	// Valid values are "second", "minute" and "hour".
+	Unit string `json:"unit"`
+
+	// Burst defines the number of requests above the baseline
+	// rate that are allowed in a short period of time.
+	// +optional
+	Burst uint32 `json:"burst,omitempty"`
+
+	// ResponseStatusCode defines the HTTP status code to use for responses
+	// to rate limited requests. Code must be in the 400-599 (inclusive)
+	// error range. If not specified, a default of 429 (Too Many Requests) is used.
+	// See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode
+	// for the list of HTTP status codes supported by Envoy.
+	// +optional
+	ResponseStatusCode uint32 `json:"responseStatusCode,omitempty"`
+
+	// ResponseHeadersToAdd defines the list of HTTP headers that should be
+	// added to each response for requests that have been rate limited.
+	// +optional
+	ResponseHeadersToAdd []HTTPHeaderValue `json:"responseHeadersToAdd,omitempty"`
+}
+
+// HTTPHeaderValue defines an HTTP header name/value pair
+type HTTPHeaderValue struct {
+	// Name defines the name of the HTTP header.
+	Name string `json:"name"`
+
+	// Value defines the value of the header corresponding to the name key.
+	Value string `json:"value"`
+}
+
+// HTTPRouteSpec defines the settings corresponding to an HTTP route
+type HTTPRouteSpec struct {
+	// Path defines the HTTP path.
+	Path string `json:"path"`
+
+	// RateLimit defines the HTTP rate limiting specification for
+	// the specified HTTP route.
+	RateLimit *HTTPPerRouteRateLimitSpec `json:"rateLimit,omitempty"`
+}
+
+// HTTPPerRouteRateLimitSpec defines the rate limiting specification
+// per HTTP route.
+type HTTPPerRouteRateLimitSpec struct {
+	// Local defines the local rate limiting specification
+	// applied per HTTP route.
+	Local *HTTPLocalRateLimitSpec `json:"local,omitempty"`
+}
+
+// HTTPHeaderSpec defines the settings corresponding to an HTTP headers
+type HTTPHeaderSpec struct {
+	// Headers defines the list of HTTP headers
+	Headers []HTTPHeaderValue `json:"headers"`
+
+	// RateLimit defines the HTTP rate limiting specification for
+	// the specified HTTP route.
+	RateLimit *HTTPPerRouteRateLimitSpec `json:"rateLimit,omitempty"`
 }
 
 // UpstreamTrafficSettingStatus defines the status of an UpstreamTrafficSetting resource.

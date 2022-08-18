@@ -42,9 +42,6 @@ type MeshCataloger interface {
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
 
-	// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-	ListOutboundServicesForMulticlusterGateway() []service.MeshService
-
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
 
@@ -60,6 +57,9 @@ type MeshCataloger interface {
 
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
+
+	// GetAccessControlTrafficPolicy returns the access control traffic policy for the given mesh service
+	GetAccessControlTrafficPolicy(service.MeshService) (*trafficpolicy.AccessControlTrafficPolicy, error)
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)

@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,13 +21,13 @@ func GetSidecarProxyConfig(clientSet kubernetes.Interface, config *rest.Config, 
 	// Check if the pod belongs to a mesh
 	pod, err := clientSet.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Errorf("Could not find pod %s in namespace %s", podName, namespace)
+		return nil, fmt.Errorf("Could not find pod %s in namespace %s", podName, namespace)
 	}
 	if !mesh.ProxyLabelExists(*pod) {
-		return nil, errors.Errorf("Pod %s in namespace %s is not a part of a mesh", podName, namespace)
+		return nil, fmt.Errorf("Pod %s in namespace %s is not a part of a mesh", podName, namespace)
 	}
 	if pod.Status.Phase != corev1.PodRunning {
-		return nil, errors.Errorf("Pod %s in namespace %s is not running", podName, namespace)
+		return nil, fmt.Errorf("Pod %s in namespace %s is not running", podName, namespace)
 	}
 
 	dialer, err := k8s.DialerToPod(config, clientSet, podName, namespace)
@@ -38,7 +37,7 @@ func GetSidecarProxyConfig(clientSet kubernetes.Interface, config *rest.Config, 
 
 	portForwarder, err := k8s.NewPortForwarder(dialer, fmt.Sprintf("%d:%d", localPort, constants.SidecarAdminPort))
 	if err != nil {
-		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+		return nil, fmt.Errorf("Error setting up port forwarding: %w", err)
 	}
 
 	var sidecarProxyConfig []byte
@@ -49,17 +48,20 @@ func GetSidecarProxyConfig(clientSet kubernetes.Interface, config *rest.Config, 
 		// #nosec G107: Potential HTTP request made with variable url
 		resp, err := http.Get(url)
 		if err != nil {
-			return errors.Errorf("Error fetching url %s: %s", url, err)
+			return fmt.Errorf("Error fetching url %s: %w", url, err)
 		}
+		//nolint: errcheck
+		//#nosec G307
+		defer resp.Body.Close()
 
 		sidecarProxyConfig, err = ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Errorf("Error rendering HTTP response: %s", err)
+			return fmt.Errorf("Error rendering HTTP response: %w", err)
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Errorf("Error retrieving proxy config for pod %s in namespace %s: %s", podName, namespace, err)
+		return nil, fmt.Errorf("Error retrieving proxy config for pod %s in namespace %s: %w", podName, namespace, err)
 	}
 
 	return sidecarProxyConfig, nil

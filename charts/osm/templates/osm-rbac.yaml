@@ -19,7 +19,7 @@ rules:
     verbs: ["list", "get", "watch"]
 
   # Port forwarding is needed for the OSM pod to be able to connect
-  # to participating Sidecars and fetch their configuration.
+  # to participating Envoys and fetch their configuration.
   # This is used by the OSM debugging system.
   - apiGroups: [""]
     resources: ["pods", "pods/log", "pods/portforward"]
@@ -41,11 +41,11 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["meshconfigs"]
+    resources: ["meshconfigs", "meshrootcertificates"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["config.openservicemesh.io"]
-    resources: ["multiclusterservices"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    resources: ["meshrootcertificates/status"]
+    verbs: ["update"]
   - apiGroups: ["split.smi-spec.io"]
     resources: ["trafficsplits"]
     verbs: ["list", "get", "watch"]
@@ -58,10 +58,10 @@ rules:
 
   # OSM's custom policy API
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["egresses", "ingressbackends", "retries", "upstreamtrafficsettings"]
+    resources: ["egresses", "ingressbackends", "accesscontrols", "retries", "upstreamtrafficsettings"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["ingressbackends/status", "upstreamtrafficsettings/status"]
+    resources: ["ingressbackends/status", "accesscontrols/status", "upstreamtrafficsettings/status"]
     verbs: ["update"]
 
   # Used for interacting with cert-manager CertificateRequest resources.

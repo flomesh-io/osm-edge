@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -25,6 +24,10 @@ const (
 // Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
 // or Kubernetes Ingress API.
 func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	if !mc.configurator.GetFeatureFlags().EnableIngressBackendPolicy {
+		return nil, nil
+	}
+
 	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
 	if ingressBackendPolicy == nil {
 		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
@@ -44,7 +47,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		}
 
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     fmt.Sprintf("ingress_%s_%d_%s", svc, backend.Port.Number, backend.Port.Protocol),
+			Name:                     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
 			ServerNames:              backend.TLS.SNIHosts,
@@ -56,7 +59,10 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		for _, source := range ingressBackendPolicy.Spec.Sources {
 			switch source.Kind {
 			case policyV1alpha1.KindService:
-				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
+				sourceMeshSvc := service.MeshService{
+					Name:      source.Name,
+					Namespace: source.Namespace,
+				}
 				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
 					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
@@ -66,7 +72,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
 						log.Error().Err(err).Msg("Error updating status for IngressBackend")
 					}
-					return nil, errors.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
+					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
 						source.Namespace, source.Name, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
 				}
 

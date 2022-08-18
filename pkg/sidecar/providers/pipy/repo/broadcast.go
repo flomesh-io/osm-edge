@@ -6,13 +6,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )
@@ -46,8 +45,8 @@ func (s *Server) broadcastListener() {
 			reconfirm = true
 
 		case <-slidingTimer.C:
-			connectedProxies := make(map[certificate.CommonName]*pipy.Proxy)
-			disconnectedProxies := make(map[certificate.CommonName]*pipy.Proxy)
+			connectedProxies := make(map[string]*pipy.Proxy)
+			disconnectedProxies := make(map[string]*pipy.Proxy)
 			proxies := s.fireExistProxies()
 			for _, proxy := range proxies {
 				if proxy.PodMetadata == nil {
@@ -56,17 +55,17 @@ func (s *Server) broadcastListener() {
 						continue
 					}
 				}
-				if proxy.PodMetadata == nil || len(proxy.PodIP) == 0 {
+				if proxy.PodMetadata == nil || proxy.Addr == nil || len(proxy.GetAddr()) == 0 {
 					slidingTimer.Reset(time.Second * 5)
 					continue
 				}
-				connectedProxies[proxy.GetCertificateCommonName()] = proxy
+				connectedProxies[proxy.UUID.String()] = proxy
 			}
 
-			s.proxyRegistry.PodCNtoProxy.Range(func(key, value interface{}) bool {
-				certCommonName := key.(certificate.CommonName)
-				if _, exists := connectedProxies[certCommonName]; !exists {
-					disconnectedProxies[certCommonName] = value.(*pipy.Proxy)
+			s.proxyRegistry.RangeConnectedProxy(func(key, value interface{}) bool {
+				proxyUUID := key.(string)
+				if _, exists := connectedProxies[proxyUUID]; !exists {
+					disconnectedProxies[proxyUUID] = value.(*pipy.Proxy)
 				}
 				return true
 			})
@@ -107,8 +106,6 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 	for _, pod := range allPods {
 		proxy, err := GetProxyFromPod(pod)
 		if err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrGettingProxyFromPod)).
-				Msgf("Could not get proxy from pod %s/%s", pod.Namespace, pod.Name)
 			continue
 		}
 		s.fireUpdatedPod(s.proxyRegistry, proxy)
@@ -118,7 +115,7 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 }
 
 func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) {
-	if _, ok := proxyRegistry.PodCNtoProxy.Load(proxy.GetCertificateCommonName()); !ok {
+	if v := proxyRegistry.GetConnectedProxy(proxy.UUID.String()); v == nil {
 		s.informProxy(proxy)
 	}
 }
@@ -135,30 +132,35 @@ func (s *Server) informProxy(proxy *pipy.Proxy) {
 }
 
 // GetProxyFromPod infers and creates a Proxy data structure from a Pod.
-// This is a temporary workaround as proxy is required and expected in any vertical call to XDS,
+// This is a temporary workaround as proxy is required and expected in any vertical call,
 // however snapshotcache has no need to provide visibility on proxies whatsoever.
 // All verticals use the proxy structure to infer the pod later, so the actual only mandatory
 // data for the verticals to be functional is the common name, which links proxy <-> pod
 func GetProxyFromPod(pod *v1.Pod) (*pipy.Proxy, error) {
-	var serviceAccount string
-	var namespace string
-
 	uuidString, uuidFound := pod.Labels[constants.SidecarUniqueIDLabelName]
 	if !uuidFound {
-		return nil, errors.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
+		return nil, fmt.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
 	}
 	proxyUUID, err := uuid.Parse(uuidString)
 	if err != nil {
-		return nil, errors.Errorf("Could not parse UUID label into UUID type (%s): %v", uuidString, err)
+		return nil, fmt.Errorf("Could not parse UUID label into UUID type (%s): %w", uuidString, err)
 	}
 
-	serviceAccount = pod.Spec.ServiceAccountName
-	namespace = pod.Namespace
+	sa := pod.Spec.ServiceAccountName
+	namespace := pod.Namespace
 
-	// construct CN for this pod/proxy
-	// TODO: Infer proxy type from Pod
-	commonName := pipy.NewCertCommonName(proxyUUID, pipy.KindSidecar, serviceAccount, namespace)
-	tempProxy, err := pipy.NewProxy(commonName, "NoSerial", pod.Status.PodIP)
+	return pipy.NewProxy(models.KindSidecar, proxyUUID, identity.New(sa, namespace), nil), nil
+}
 
-	return tempProxy, err
+// GetProxyUUIDFromPod infers and creates a Proxy UUID from a Pod.
+func GetProxyUUIDFromPod(pod *v1.Pod) (string, error) {
+	uuidString, uuidFound := pod.Labels[constants.SidecarUniqueIDLabelName]
+	if !uuidFound {
+		return "", fmt.Errorf("UUID not found for pod %s/%s, not a mesh pod", pod.Namespace, pod.Name)
+	}
+	proxyUUID, err := uuid.Parse(uuidString)
+	if err != nil {
+		return "", fmt.Errorf("Could not parse UUID label into UUID type (%s): %w", uuidString, err)
+	}
+	return proxyUUID.String(), nil
 }
