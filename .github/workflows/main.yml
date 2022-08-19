@@ -162,10 +162,10 @@ jobs:
         focus: [""]
         bucket: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         include:
-          - k8s_version: v1.19.16
+          - k8s_version: v1.19.11
             focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
             bucket: ".*"
-          - k8s_version: v1.20.15
+          - k8s_version: v1.20.7
             focus: "Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP"
             bucket: ".*"
           - k8s_version: v1.21.12
@@ -258,13 +258,13 @@ jobs:
     env:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
-      CTR_REGISTRY: ${{ github.repository_owner }}
+      CTR_REGISTRY: flomesh
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Docker Login
         run: docker login --username "$DOCKER_USER" --password-stdin <<< "$DOCKER_PASS"
-      - name: Push images with git sha tag
+      - name: Push images with "latest-main" tag
         env:
-          CTR_TAG: ${{ github.sha }}
+          CTR_TAG: latest-main
         run: make docker-build-cross
