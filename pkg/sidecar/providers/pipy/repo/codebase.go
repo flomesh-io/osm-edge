@@ -25,8 +25,8 @@ var codebaseGatherJS []byte
 //go:embed codebase_stats.js
 var codebaseStatsJS []byte
 
-//go:embed codebase_pipy.json
-var codebasePipyJSON []byte
+//go:embed codebase_config.json
+var codebaseConfigJSON []byte
 
 //go:embed codebase_inbound-proxy-tcp.js
 var codebaseInboundProxyTCPJS []byte

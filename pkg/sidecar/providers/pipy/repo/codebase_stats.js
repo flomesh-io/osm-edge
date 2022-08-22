@@ -62,7 +62,7 @@
         ),
       () => (_statsPath === '/config_dump'), $ => $
         .replaceMessage(
-          msg => http.File.from('pipy.json').toMessage(msg.head.headers['accept-encoding'])
+          msg => http.File.from('config.json').toMessage(msg.head.headers['accept-encoding'])
         ),
       $ => $
         .replaceMessage(
