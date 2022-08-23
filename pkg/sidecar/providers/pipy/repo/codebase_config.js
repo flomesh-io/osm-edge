@@ -1,6 +1,6 @@
 // version: '2022.08.15'
 (
-  (config = JSON.decode(pipy.load('pipy.json')),
+  (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
     breaker = pipy.solve('breaker.js'),
     codeMessage = pipy.solve('codes.js'),

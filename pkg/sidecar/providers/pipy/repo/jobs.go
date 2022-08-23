@@ -242,7 +242,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 						Basepath: codebase,
 						Items: []client.BatchItem{
 							{
-								Filename: "pipy.json",
+								Filename: osmCodebaseConfig,
 								Content:  bytes,
 							},
 						},

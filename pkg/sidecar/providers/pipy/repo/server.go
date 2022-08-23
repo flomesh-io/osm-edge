@@ -26,6 +26,7 @@ const (
 
 	osmCodebase        = "/osm-edge"
 	osmSidecarCodebase = "/osm-edge-sidecar"
+	osmCodebaseConfig  = "config.json"
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server
@@ -80,8 +81,8 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Content:  codebaseMetricsJS,
 				},
 				{
-					Filename: "pipy.json",
-					Content:  codebasePipyJSON,
+					Filename: osmCodebaseConfig,
+					Content:  codebaseConfigJSON,
 				},
 				{
 					Filename: "codes.js",
