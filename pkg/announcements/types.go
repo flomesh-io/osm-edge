@@ -157,6 +157,15 @@ const (
 	// EgressUpdated is the type of announcement emitted when we observe an update to egresses.policy.openservicemesh.io
 	EgressUpdated Kind = "egress-updated"
 
+	// EgressGatewayAdded is the type of announcement emitted when we observe an addition of egressgateways.policy.openservicemesh.io
+	EgressGatewayAdded Kind = "egressgateway-added"
+
+	// EgressGatewayDeleted the type of announcement emitted when we observe a deletion of egressgateways.policy.openservicemesh.io
+	EgressGatewayDeleted Kind = "egressgateway-deleted"
+
+	// EgressGatewayUpdated is the type of announcement emitted when we observe an update to egressgateways.policy.openservicemesh.io
+	EgressGatewayUpdated Kind = "egressgateway-updated"
+
 	// IngressBackendAdded is the type of announcement emitted when we observe an addition of ingressbackends.policy.openservicemesh.io
 	IngressBackendAdded Kind = "ingressbackend-added"
 

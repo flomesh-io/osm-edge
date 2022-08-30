@@ -40,6 +40,13 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 	}
 	client.informers.AddEventHandler(informers.InformerKeyEgress, k8s.GetEventHandlerFuncs(shouldObserve, egressEventTypes, msgBroker))
 
+	egressGatewayEventTypes := k8s.EventTypes{
+		Add:    announcements.EgressGatewayAdded,
+		Update: announcements.EgressGatewayUpdated,
+		Delete: announcements.EgressGatewayDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyEgressGateway, k8s.GetEventHandlerFuncs(shouldObserve, egressGatewayEventTypes, msgBroker))
+
 	ingressBackendEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressBackendAdded,
 		Update: announcements.IngressBackendUpdated,
@@ -69,6 +76,17 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 	client.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
 
 	return client
+}
+
+// ListEgressGateways lists egress gateways
+func (c *Client) ListEgressGateways() []*policyV1alpha1.EgressGateway {
+	var egressGateways []*policyV1alpha1.EgressGateway
+	for _, egressGatewayIface := range c.informers.List(informers.InformerKeyEgressGateway) {
+		egressGateway := egressGatewayIface.(*policyV1alpha1.EgressGateway)
+		egressGateways = append(egressGateways, egressGateway)
+	}
+
+	return egressGateways
 }
 
 // ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity based on service accounts

@@ -276,6 +276,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		//
 		// Egress event
 		announcements.EgressAdded, announcements.EgressDeleted, announcements.EgressUpdated,
+		// EgressGateway event
+		announcements.EgressGatewayAdded, announcements.EgressGatewayDeleted, announcements.EgressGatewayUpdated,
 		// IngressBackend event
 		announcements.IngressBackendAdded, announcements.IngressBackendDeleted, announcements.IngressBackendUpdated,
 		// AccessControl event

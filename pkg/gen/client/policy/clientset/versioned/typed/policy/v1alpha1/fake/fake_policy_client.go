@@ -33,6 +33,10 @@ func (c *FakePolicyV1alpha1) Egresses(namespace string) v1alpha1.EgressInterface
 	return &FakeEgresses{c, namespace}
 }
 
+func (c *FakePolicyV1alpha1) EgressGateways(namespace string) v1alpha1.EgressGatewayInterface {
+	return &FakeEgressGateways{c, namespace}
+}
+
 func (c *FakePolicyV1alpha1) IngressBackends(namespace string) v1alpha1.IngressBackendInterface {
 	return &FakeIngressBackends{c, namespace}
 }

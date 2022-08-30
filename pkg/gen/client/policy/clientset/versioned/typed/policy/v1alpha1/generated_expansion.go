@@ -19,6 +19,8 @@ type AccessControlExpansion interface{}
 
 type EgressExpansion interface{}
 
+type EgressGatewayExpansion interface{}
+
 type IngressBackendExpansion interface{}
 
 type RetryExpansion interface{}

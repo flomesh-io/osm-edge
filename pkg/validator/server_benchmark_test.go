@@ -62,6 +62,7 @@ func BenchmarkDoValidation(b *testing.B) {
 		validators: map[string]validateFunc{
 			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String():         kv.ingressBackendValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,
+			policyv1alpha1.SchemeGroupVersion.WithKind("EgressGateway").String():          kv.egressGatewayValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
 			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,
 		},

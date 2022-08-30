@@ -43,6 +43,8 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 			continue
 		}
 
+		egressGateway := mc.getGatewayForEgress(egress)
+
 		for _, portSpec := range egress.Spec.Ports {
 			switch strings.ToLower(portSpec.Protocol) {
 			case constants.ProtocolHTTP:
@@ -57,6 +59,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
+					EgressGateWay:       egressGateway,
 				})
 
 			case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
@@ -75,6 +78,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
 					Cluster:             fmt.Sprintf("%d", portSpec.Number),
+					EgressGateWay:       egressGateway,
 				})
 
 			case constants.ProtocolHTTPS:
@@ -95,6 +99,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					DestinationIPRanges: egress.Spec.IPAddresses,
 					ServerNames:         egress.Spec.Hosts,
 					Cluster:             fmt.Sprintf("%d", portSpec.Number),
+					EgressGateWay:       egressGateway,
 				})
 			}
 		}

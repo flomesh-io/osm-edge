@@ -105,6 +105,7 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		informerFactory := policyInformers.NewSharedInformerFactory(policyClient, DefaultKubeEventResyncInterval)
 
 		ic.informers[InformerKeyEgress] = informerFactory.Policy().V1alpha1().Egresses().Informer()
+		ic.informers[InformerKeyEgressGateway] = informerFactory.Policy().V1alpha1().EgressGateways().Informer()
 		ic.informers[InformerKeyIngressBackend] = informerFactory.Policy().V1alpha1().IngressBackends().Informer()
 		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
