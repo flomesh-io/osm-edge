@@ -336,8 +336,6 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 		return nil, err
 	}
 
-	fmt.Println("OoooooooooooooKKKKKKKKKKK")
-
 	ns := upstreamTrafficSetting.Namespace
 	hostComponents := strings.Split(upstreamTrafficSetting.Spec.Host, ".")
 	if len(hostComponents) < 2 {
