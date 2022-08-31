@@ -90,9 +90,9 @@ func (s *Server) broadcastListener() {
 
 			go func() {
 				if len(disconnectedProxies) > 0 {
-					for certCommonName, proxy := range disconnectedProxies {
+					for _, proxy := range disconnectedProxies {
 						s.proxyRegistry.UnregisterProxy(proxy)
-						s.repoClient.Delete(fmt.Sprintf("%s/%s", osmSidecarCodebase, certCommonName))
+						s.repoClient.Delete(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix()))
 					}
 				}
 			}()
