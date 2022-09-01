@@ -25,6 +25,9 @@ type Client struct {
 
 // Controller is the interface for the functionality provided by the resources part of the policy.openservicemesh.io API group
 type Controller interface {
+	// ListEgressGateways lists Egress gateways
+	ListEgressGateways() []*policyv1alpha1.EgressGateway
+
 	// ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity
 	ListEgressPoliciesForSourceIdentity(identity.K8sServiceAccount) []*policyv1alpha1.Egress
 

@@ -367,3 +367,44 @@ func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.Admi
 
 	return nil, nil
 }
+
+// egressGatewayValidator validates the EgressGateway custom resource
+func (kc *policyValidator) egressGatewayValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	egressGateway := &policyv1alpha1.EgressGateway{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(egressGateway); err != nil {
+		return nil, err
+	}
+	fmt.Println("egress gateway create error")
+	return nil, fmt.Errorf("EgressGateway conflicts")
+
+	//ns := egressGateway.Namespace
+	//hostComponents := strings.Split(egressGateway.Spec.Host, ".")
+	//if len(hostComponents) < 2 {
+	//	return nil, field.Invalid(field.NewPath("spec").Child("host"), egressGateway.Spec.Host, "invalid FQDN specified as host")
+	//}
+	//
+	//opt := policy.UpstreamTrafficSettingGetOpt{Host: egressGateway.Spec.Host}
+	//if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != egressGateway.Name {
+	//	// duplicate detected
+	//	return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, egressGateway.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
+	//}
+	//
+	//// Validate rate limiting config
+	//rl := egressGateway.Spec.RateLimit
+	//if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
+	//	if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
+	//		return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+	//			rl.Local.HTTP.ResponseStatusCode)
+	//	}
+	//}
+	//for _, route := range egressGateway.Spec.HTTPRoutes {
+	//	if route.RateLimit != nil && route.RateLimit.Local != nil {
+	//		if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
+	//			return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+	//				route.RateLimit.Local.ResponseStatusCode)
+	//		}
+	//	}
+	//}
+	//
+	//return nil, nil
+}

@@ -62,6 +62,13 @@ func (p *PipyConf) newOutboundTrafficPolicy() *OutboundTrafficPolicy {
 	return p.Outbound
 }
 
+func (p *PipyConf) newForwardTrafficPolicy() *ForwardTrafficPolicy {
+	if p.Forward == nil {
+		p.Forward = new(ForwardTrafficPolicy)
+	}
+	return p.Forward
+}
+
 func (p *PipyConf) rebalancedOutboundClusters() {
 	if p.Outbound == nil {
 		return
@@ -91,6 +98,67 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 					missingWeightNb--
 					availableWeight = availableWeight - uint32(weight)
 					(*weightedEndpoints)[upstreamEndpoint] = weight
+				}
+			}
+		}
+	}
+}
+
+func (p *PipyConf) rebalancedForwardClusters() {
+	if p.Forward == nil {
+		return
+	}
+	if p.Forward.ForwardMatches != nil && len(p.Forward.ForwardMatches) > 0 {
+		for _, weightedEndpoints := range p.Forward.ForwardMatches {
+			if len(weightedEndpoints) == 0 {
+				continue
+			}
+			missingWeightNb := 0
+			availableWeight := uint32(100)
+			for _, weight := range weightedEndpoints {
+				if weight == 0 {
+					missingWeightNb++
+				} else {
+					availableWeight = availableWeight - uint32(weight)
+				}
+			}
+
+			if missingWeightNb == len(weightedEndpoints) {
+				for upstreamEndpoint, weight := range weightedEndpoints {
+					if weight == 0 {
+						weight = Weight(availableWeight / uint32(missingWeightNb))
+						missingWeightNb--
+						availableWeight = availableWeight - uint32(weight)
+						(weightedEndpoints)[upstreamEndpoint] = weight
+					}
+				}
+			}
+		}
+	}
+	if p.Forward.EgressGateways != nil && len(p.Forward.EgressGateways) > 0 {
+		for _, clusterConfigs := range p.Forward.EgressGateways {
+			weightedEndpoints := clusterConfigs.Endpoints
+			if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
+				continue
+			}
+			missingWeightNb := 0
+			availableWeight := uint32(100)
+			for _, weight := range *weightedEndpoints {
+				if weight == 0 {
+					missingWeightNb++
+				} else {
+					availableWeight = availableWeight - uint32(weight)
+				}
+			}
+
+			if missingWeightNb == len(*weightedEndpoints) {
+				for upstreamEndpoint, weight := range *weightedEndpoints {
+					if weight == 0 {
+						weight = Weight(availableWeight / uint32(missingWeightNb))
+						missingWeightNb--
+						availableWeight = availableWeight - uint32(weight)
+						(*weightedEndpoints)[upstreamEndpoint] = weight
+					}
 				}
 			}
 		}
@@ -180,6 +248,10 @@ func (itm *InboundTrafficMatch) setPort(port Port) {
 
 func (otm *OutboundTrafficMatch) setPort(port Port) {
 	otm.Port = port
+}
+
+func (otm *OutboundTrafficMatch) setEgressForwardGateway(egresssGateway *string) {
+	otm.EgressForwardGateway = egresssGateway
 }
 
 func (itm *InboundTrafficMatch) setProtocol(protocol Protocol) {
@@ -498,4 +570,30 @@ func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *v1alpha1.RetryPolicySpec)
 	otp.RetryPolicy.PerTryTimeout = &perTryTimeout
 	retryBackoffBaseInterval := retryPolicy.RetryBackoffBaseInterval.Seconds()
 	otp.RetryPolicy.RetryBackoffBaseInterval = &retryBackoffBaseInterval
+}
+
+func (ftp *ForwardTrafficPolicy) newForwardMatch(rule string) WeightedClusters {
+	if ftp.ForwardMatches == nil {
+		ftp.ForwardMatches = make(ForwardTrafficMatches)
+	}
+	forwardMatch, exist := ftp.ForwardMatches[rule]
+	if !exist || forwardMatch == nil {
+		forwardMatch = make(WeightedClusters)
+		ftp.ForwardMatches[rule] = forwardMatch
+		return forwardMatch
+	}
+	return forwardMatch
+}
+
+func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName) *ClusterConfigs {
+	if ftp.EgressGateways == nil {
+		ftp.EgressGateways = make(map[ClusterName]*ClusterConfigs)
+	}
+	cluster, exist := ftp.EgressGateways[clusterName]
+	if !exist || cluster == nil {
+		newCluster := new(ClusterConfigs)
+		ftp.EgressGateways[clusterName] = newCluster
+		return newCluster
+	}
+	return cluster
 }

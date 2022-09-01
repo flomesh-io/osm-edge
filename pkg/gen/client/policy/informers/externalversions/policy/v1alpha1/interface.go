@@ -25,6 +25,8 @@ type Interface interface {
 	AccessControls() AccessControlInformer
 	// Egresses returns a EgressInformer.
 	Egresses() EgressInformer
+	// EgressGateways returns a EgressGatewayInformer.
+	EgressGateways() EgressGatewayInformer
 	// IngressBackends returns a IngressBackendInformer.
 	IngressBackends() IngressBackendInformer
 	// Retries returns a RetryInformer.
@@ -52,6 +54,11 @@ func (v *version) AccessControls() AccessControlInformer {
 // Egresses returns a EgressInformer.
 func (v *version) Egresses() EgressInformer {
 	return &egressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// EgressGateways returns a EgressGatewayInformer.
+func (v *version) EgressGateways() EgressGatewayInformer {
+	return &egressGatewayInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // IngressBackends returns a IngressBackendInformer.

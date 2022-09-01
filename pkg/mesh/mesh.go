@@ -1,3 +1,4 @@
+// Package mesh implements the mesh methods.
 package mesh
 
 import (

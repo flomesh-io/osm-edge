@@ -1,3 +1,4 @@
+// Package client implements the PipyRepo struct.
 package client
 
 import (

@@ -192,6 +192,14 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			expectedTopic: announcements.ProxyUpdate.String(),
 		},
 		{
+			name: "egress gateway event",
+			msg: events.PubSubMessage{
+				Kind: announcements.EgressGatewayAdded,
+			},
+			expectEvent:   true,
+			expectedTopic: announcements.ProxyUpdate.String(),
+		},
+		{
 			name: "MeshConfig updated to enable permissive mode",
 			msg: events.PubSubMessage{
 				Kind: announcements.MeshConfigUpdated,

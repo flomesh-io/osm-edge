@@ -1,3 +1,4 @@
+// Package driver implements Driver's methods.
 package driver
 
 import "time"

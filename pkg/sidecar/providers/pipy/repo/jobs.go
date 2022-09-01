@@ -57,6 +57,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	inbound(cataloger, proxy.Identity, proxyServices, pipyConf)
 	outbound(cataloger, proxy.Identity, pipyConf, proxy, s)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
+	forward(cataloger, proxy.Identity, s, pipyConf, proxy)
 	balance(pipyConf)
 	endpoints(pipyConf, s)
 
@@ -74,6 +75,7 @@ func endpoints(pipyConf *PipyConf, s *Server) {
 
 func balance(pipyConf *PipyConf) {
 	pipyConf.rebalancedOutboundClusters()
+	pipyConf.rebalancedForwardClusters()
 }
 
 func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
@@ -96,6 +98,26 @@ func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 				}
 				return false
 			}
+		}
+	}
+	return true
+}
+
+func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, _ *pipy.Proxy) bool {
+	egressGatewayPolicy, egressErr := cataloger.GetEgressGatewayPolicy()
+	if egressErr != nil {
+		if s.retryJob != nil {
+			s.retryJob()
+		}
+		return false
+	}
+	if egressGatewayPolicy != nil {
+		if ready := generatePipyEgressTrafficForwardPolicy(cataloger, serviceIdentity, pipyConf,
+			egressGatewayPolicy); !ready {
+			if s.retryJob != nil {
+				s.retryJob()
+			}
+			return false
 		}
 	}
 	return true

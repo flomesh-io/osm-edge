@@ -1,3 +1,7 @@
+// Package informers centralize informers by creating a single object that
+// runs a set of informers, instead of creating different objects
+// that each manage their own informer collections.
+// A pointer to this object is then shared with all objects that need it.
 package informers
 
 import (
@@ -105,6 +109,7 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		informerFactory := policyInformers.NewSharedInformerFactory(policyClient, DefaultKubeEventResyncInterval)
 
 		ic.informers[InformerKeyEgress] = informerFactory.Policy().V1alpha1().Egresses().Informer()
+		ic.informers[InformerKeyEgressGateway] = informerFactory.Policy().V1alpha1().EgressGateways().Informer()
 		ic.informers[InformerKeyIngressBackend] = informerFactory.Policy().V1alpha1().IngressBackends().Informer()
 		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()

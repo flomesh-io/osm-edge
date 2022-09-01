@@ -1,4 +1,4 @@
-// version: '2022.08.15'
+// version: '2022.08.30'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -8,7 +8,7 @@
   ) => (
 
     config.outClustersBreakers = {},
-
+    
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
       namespace: (os.env.POD_NAMESPACE || 'default'),
@@ -29,9 +29,11 @@
       probeTarget: null,
       probePath: null,
       funcShuffle: null,
+      forwardMatches: null,
+      forwardEgressGateways: null,
       codeMessage: codeMessage
     },
-
+    
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
         sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
@@ -175,6 +177,7 @@
                   Protocol: o.Protocol,
                   ServiceIdentity: o.ServiceIdentity,
                   AllowedEgressTraffic: o.AllowedEgressTraffic,
+                  EgressForwardGateway: o?.EgressForwardGateway,
                   HttpHostPort2Service: o.HttpHostPort2Service,
                   TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
                   DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
@@ -222,6 +225,24 @@
           ]
         )
       )
+    ),
+
+    global.forwardMatches = config?.Forward?.ForwardMatches && Object.fromEntries(
+      Object.entries(
+        config.Forward.ForwardMatches).map(
+          ([k, v]) => [
+            k, new algo.RoundRobinLoadBalancer(v || {})
+          ]
+        )
+    ),
+
+    global.forwardEgressGateways = config?.Forward?.EgressGateways && Object.fromEntries(
+      Object.entries(
+        config.Forward.EgressGateways).map(
+          ([k, v]) => [
+            k, new algo.RoundRobinLoadBalancer(v?.Endpoints || {})
+          ]
+        )
     ),
 
     // Initialize probeScheme, probeTarget, probePath

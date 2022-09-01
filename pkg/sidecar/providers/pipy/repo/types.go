@@ -136,6 +136,7 @@ type PipyConf struct {
 	Certificate      *Certificate
 	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
 	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
+	Forward          *ForwardTrafficPolicy  `json:"Forward"`
 	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
 }
 
@@ -247,6 +248,7 @@ type OutboundTrafficMatch struct {
 	TargetClusters        WeightedClusters              `json:"TargetClusters"`
 	ServiceIdentity       identity.ServiceIdentity
 	AllowedEgressTraffic  bool
+	EgressForwardGateway  *string
 }
 
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
@@ -269,6 +271,15 @@ type ClusterConfigs struct {
 type OutboundTrafficPolicy struct {
 	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
 	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+}
+
+// ForwardTrafficMatches is a wrapper type of map[Port][]WeightedClusters
+type ForwardTrafficMatches map[string]WeightedClusters
+
+// ForwardTrafficPolicy represents the policy of Egress Gateway
+type ForwardTrafficPolicy struct {
+	ForwardMatches ForwardTrafficMatches           `json:"ForwardMatches"`
+	EgressGateways map[ClusterName]*ClusterConfigs `json:"EgressGateways"`
 }
 
 // ConnectionSettings defines the connection settings for an

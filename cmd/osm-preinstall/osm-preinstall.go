@@ -1,3 +1,4 @@
+// Package main implements the previous install methods.
 package main
 
 import (

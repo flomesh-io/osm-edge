@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -206,6 +207,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
 		tm.setProtocol(Protocol(destinationProtocol))
 		tm.setPort(Port(trafficMatch.DestinationPort))
+		tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
 			tm.addDestinationIPRange(DestinationIPRange(ipRange))
@@ -386,6 +388,62 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			}
 		}
 	}
+}
+
+func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressGatewayPolicy *trafficpolicy.EgressGatewayPolicy) bool {
+	if egressGatewayPolicy == nil || (egressGatewayPolicy.Global == nil && (egressGatewayPolicy.Rules == nil || len(egressGatewayPolicy.Rules) == 0)) {
+		return true
+	}
+
+	success := true
+	ftp := pipyConf.newForwardTrafficPolicy()
+	if egressGatewayPolicy.Global != nil {
+		forwardMatch := ftp.newForwardMatch("*")
+		for _, gateway := range egressGatewayPolicy.Global {
+			clusterName := fmt.Sprintf("%s.%s", gateway.Service, gateway.Namespace)
+			if gateway.Weight != nil {
+				forwardMatch[ClusterName(clusterName)] = Weight(*gateway.Weight)
+			} else {
+				forwardMatch[ClusterName(clusterName)] = Weight(0)
+			}
+			if len(gateway.Endpoints) > 0 {
+				clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
+				for _, endpoint := range gateway.Endpoints {
+					address := Address(endpoint.IP.String())
+					port := Port(endpoint.Port)
+					weight := Weight(0)
+					clusterConfigs.addWeightedEndpoint(address, port, weight)
+				}
+			}
+		}
+	}
+	if egressGatewayPolicy.Rules != nil {
+		for index, rule := range egressGatewayPolicy.Rules {
+			ruleName := fmt.Sprintf("%s.%s.%d", rule.Namespace, rule.Name, index)
+			forwardMatch := ftp.newForwardMatch(ruleName)
+			for _, gateway := range rule.EgressGateways {
+				clusterName := fmt.Sprintf("%s.%s", gateway.Service, gateway.Namespace)
+				if gateway.Weight != nil {
+					forwardMatch[ClusterName(clusterName)] = Weight(*gateway.Weight)
+				} else {
+					forwardMatch[ClusterName(clusterName)] = constants.ClusterWeightAcceptAll
+				}
+				if len(gateway.Endpoints) > 0 {
+					clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
+					for _, endpoint := range gateway.Endpoints {
+						address := Address(endpoint.IP.String())
+						port := Port(endpoint.Port)
+						weight := Weight(0)
+						clusterConfigs.addWeightedEndpoint(address, port, weight)
+					}
+				} else {
+					success = false
+				}
+			}
+		}
+	}
+
+	return success
 }
 
 func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy) {

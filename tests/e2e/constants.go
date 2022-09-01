@@ -1,3 +1,4 @@
+// Package e2e defines test's const vars.
 package e2e
 
 import "github.com/openservicemesh/osm/tests/framework"

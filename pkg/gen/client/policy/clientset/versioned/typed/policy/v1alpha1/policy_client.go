@@ -27,6 +27,7 @@ type PolicyV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	AccessControlsGetter
 	EgressesGetter
+	EgressGatewaysGetter
 	IngressBackendsGetter
 	RetriesGetter
 	UpstreamTrafficSettingsGetter
@@ -43,6 +44,10 @@ func (c *PolicyV1alpha1Client) AccessControls(namespace string) AccessControlInt
 
 func (c *PolicyV1alpha1Client) Egresses(namespace string) EgressInterface {
 	return newEgresses(c, namespace)
+}
+
+func (c *PolicyV1alpha1Client) EgressGateways(namespace string) EgressGatewayInterface {
+	return newEgressGateways(c, namespace)
 }
 
 func (c *PolicyV1alpha1Client) IngressBackends(namespace string) IngressBackendInterface {

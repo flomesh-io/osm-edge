@@ -1,3 +1,4 @@
+// Package fake implements Fake's methods.
 package fake
 
 import (

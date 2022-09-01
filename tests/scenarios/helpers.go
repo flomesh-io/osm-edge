@@ -1,3 +1,4 @@
+// Package scenarios implements helper's methods.
 package scenarios
 
 import (

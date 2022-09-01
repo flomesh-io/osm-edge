@@ -64,6 +64,9 @@ type MeshCataloger interface {
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 
+	// GetEgressGatewayPolicy returns the Egress gateway policy.
+	GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPolicy, error)
+
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
 
