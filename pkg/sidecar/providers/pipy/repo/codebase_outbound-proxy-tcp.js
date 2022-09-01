@@ -1,4 +1,4 @@
-// version: '2022.08.12'
+// version: '2022.08.30'
 ((
   {
     config,
@@ -13,6 +13,7 @@
 
     .import({
       _egressMode: 'main',
+      _egressEndpoint: 'main',
       _outTarget: 'main',
       _upstreamClusterName: 'main'
     })
@@ -23,7 +24,7 @@
     .pipeline()
     .onStart(
       () => (
-        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode', Boolean(tlsCertChain), Boolean(_egressMode)),
+        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint', Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint),
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase(),
         config?.outClustersBreakers?.[_upstreamClusterName]?.incConnections?.(),
         null
@@ -57,6 +58,14 @@
           ]
         }).to($ => $
           .connect(() => _outTarget?.id)
+        ),
+      () => (Boolean(_egressMode) && Boolean(_egressEndpoint)), $ => $
+        .connectSOCKS(
+          () => _outTarget?.id,
+        ).to($ => $
+          .connect(
+            () => _egressEndpoint
+          )
         ),
       $ => $
         .connect(() => _outTarget?.id)

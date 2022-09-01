@@ -1,4 +1,4 @@
-// version: '2022.08.12'
+// version: '2022.08.30'
 ((
   {
     config,
@@ -12,6 +12,8 @@
     outTrafficMatches,
     outClustersConfigs,
     allowedEndpoints,
+    forwardMatches,
+    forwardEgressGateways,
     prometheusTarget,
     probeScheme,
     probeTarget,
@@ -56,6 +58,7 @@
       _outMatch: null,
       _outTarget: null,
       _egressMode: null,
+      _egressEndpoint: null,
       _outRequestTime: null,
       _outBytesStruct: null,
       _outZipkinData: null,
@@ -158,6 +161,12 @@
             (_egressMode = true) && outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
               (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
           )),
+
+          // Find egress nat gateway
+          _outMatch?.EgressForwardGateway && forwardMatches && ((egw) => (
+            egw = forwardMatches[_outMatch.EgressForwardGateway]?.next?.()?.id,
+            egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
+          ))(),
 
           // Layer 4 load balance
           _outTarget = (
