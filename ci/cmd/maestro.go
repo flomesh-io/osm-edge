@@ -1,3 +1,4 @@
+// Package scale implements maestro's methods.
 package main
 
 import (

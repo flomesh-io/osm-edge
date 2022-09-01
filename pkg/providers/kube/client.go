@@ -1,3 +1,4 @@
+// Package kube implements KubeClient's methods.
 package kube
 
 import (

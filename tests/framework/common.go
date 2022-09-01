@@ -1,3 +1,4 @@
+// Package framework implements test framework common methods.
 package framework
 
 import (

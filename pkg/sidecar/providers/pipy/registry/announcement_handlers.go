@@ -1,3 +1,4 @@
+// Package registry implements handler's methods.
 package registry
 
 import (

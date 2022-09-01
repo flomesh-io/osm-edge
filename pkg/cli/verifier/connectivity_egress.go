@@ -1,3 +1,4 @@
+// Package verifier implements egress connectivity verifier's methods.
 package verifier
 
 import (

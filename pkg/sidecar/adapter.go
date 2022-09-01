@@ -1,3 +1,4 @@
+// Package sidecar implements adapter's methods.
 package sidecar
 
 import (

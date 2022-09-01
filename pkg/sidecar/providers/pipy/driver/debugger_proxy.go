@@ -1,3 +1,4 @@
+// Package driver implements debugger's methods.
 package driver
 
 import (

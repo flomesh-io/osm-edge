@@ -1,3 +1,4 @@
+// Package repo implements broadcast's methods.
 package repo
 
 import (

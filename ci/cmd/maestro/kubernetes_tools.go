@@ -1,3 +1,4 @@
+// Package maestro implements Maestro's methods.
 package maestro
 
 import (

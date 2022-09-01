@@ -1,3 +1,4 @@
+// Package reconciler implements reconciler client's methods.
 package reconciler
 
 import (

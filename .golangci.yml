@@ -1,6 +1,6 @@
 run:
   tests: true
-  timeout: 10m
+  timeout: 20m
   skip-dirs:
     - pkg/gen
   skip-files:
