@@ -11,7 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/messaging"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
@@ -20,8 +19,6 @@ func (s *Server) informTrafficPolicies(proxy *pipy.Proxy, wg *sync.WaitGroup) er
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		return errTooManyConnections
 	}
-
-	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	if initError := s.recordPodMetadata(proxy); initError == errServiceAccountMismatch {
 		// Service Account mismatch
@@ -58,7 +55,6 @@ func (s *Server) informTrafficPolicies(proxy *pipy.Proxy, wg *sync.WaitGroup) er
 		select {
 		case <-proxy.Quit:
 			log.Info().Str("proxy", proxy.String()).Msgf("Pipy Restful session closed")
-			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
 		case <-proxyUpdateChan:
