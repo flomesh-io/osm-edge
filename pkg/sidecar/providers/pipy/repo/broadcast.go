@@ -3,6 +3,7 @@ package repo
 
 import (
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"sync"
 	"time"
 
@@ -49,6 +50,7 @@ func (s *Server) broadcastListener() {
 			connectedProxies := make(map[string]*pipy.Proxy)
 			disconnectedProxies := make(map[string]*pipy.Proxy)
 			proxies := s.fireExistProxies()
+			metricsstore.DefaultMetricsStore.ProxyConnectCount.Set(float64(len(proxies)))
 			for _, proxy := range proxies {
 				if proxy.PodMetadata == nil {
 					if err := s.recordPodMetadata(proxy); err != nil {
