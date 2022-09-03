@@ -348,12 +348,10 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 				msg:   msg,
 				topic: GetPubSubTopicForProxyUUID(proxyUUID),
 			}
-		} else {
-			if proxyUUID := newPod.Labels[constants.SidecarUniqueIDLabelName]; len(proxyUUID) > 0 {
-				return &proxyUpdateEvent{
-					msg:   msg,
-					topic: announcements.ProxyUpdate.String(),
-				}
+		} else if proxyUUID := newPod.Labels[constants.SidecarUniqueIDLabelName]; len(proxyUUID) > 0 {
+			return &proxyUpdateEvent{
+				msg:   msg,
+				topic: announcements.ProxyUpdate.String(),
 			}
 		}
 		return nil
