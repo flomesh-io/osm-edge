@@ -374,37 +374,18 @@ func (kc *policyValidator) egressGatewayValidator(req *admissionv1.AdmissionRequ
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(egressGateway); err != nil {
 		return nil, err
 	}
-	fmt.Println("egress gateway create error")
-	return nil, fmt.Errorf("EgressGateway conflicts")
 
-	//ns := egressGateway.Namespace
-	//hostComponents := strings.Split(egressGateway.Spec.Host, ".")
-	//if len(hostComponents) < 2 {
-	//	return nil, field.Invalid(field.NewPath("spec").Child("host"), egressGateway.Spec.Host, "invalid FQDN specified as host")
-	//}
-	//
-	//opt := policy.UpstreamTrafficSettingGetOpt{Host: egressGateway.Spec.Host}
-	//if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != egressGateway.Name {
-	//	// duplicate detected
-	//	return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, egressGateway.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
-	//}
-	//
-	//// Validate rate limiting config
-	//rl := egressGateway.Spec.RateLimit
-	//if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
-	//	if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
-	//		return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
-	//			rl.Local.HTTP.ResponseStatusCode)
-	//	}
-	//}
-	//for _, route := range egressGateway.Spec.HTTPRoutes {
-	//	if route.RateLimit != nil && route.RateLimit.Local != nil {
-	//		if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
-	//			return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
-	//				route.RateLimit.Local.ResponseStatusCode)
-	//		}
-	//	}
-	//}
-	//
-	//return nil, nil
+	if len(egressGateway.Spec.GlobalEgressGateways) > 0 {
+		existEgressGateways := kc.policyClient.ListEgressGateways()
+		for _, p := range existEgressGateways {
+			if strings.EqualFold(egressGateway.Name, p.Name) && strings.EqualFold(egressGateway.Namespace, p.Namespace) {
+				continue
+			}
+			if len(p.Spec.GlobalEgressGateways) > 0 {
+				return nil, fmt.Errorf("Redefinition of global egress gateway policy and conflict with %s.%s", p.Namespace, p.Name)
+			}
+		}
+	}
+
+	return nil, nil
 }
