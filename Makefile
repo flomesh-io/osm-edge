@@ -52,11 +52,14 @@ ifndef CTR_TAG
 endif
 
 .PHONY: build-osm
-build-osm: cmd/cli/chart.tgz
+build-osm: helm-update-dep cmd/cli/chart.tgz
 	CGO_ENABLED=0 go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 cmd/cli/chart.tgz: scripts/generate_chart/generate_chart.go $(shell find charts/osm)
 	go run $< > $@
+
+helm-update-dep:
+	helm dependency update charts/osm/
 
 .PHONY: clean-osm
 clean-osm:
@@ -111,7 +114,7 @@ go-mod-tidy:
 	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
-go-test: cmd/cli/chart.tgz
+go-test: helm-update-dep cmd/cli/chart.tgz
 	./scripts/go-test.sh
 
 .PHONY: go-test-coverage
@@ -216,7 +219,7 @@ docker-build-cross-demo: docker-build-demo
 docker-build-cross: docker-build-cross-osm docker-build-cross-demo
 
 .PHONY: embed-files
-embed-files: cmd/cli/chart.tgz
+embed-files: helm-update-dep cmd/cli/chart.tgz
 
 .PHONY: embed-files-test
 embed-files-test:
@@ -260,7 +263,7 @@ install-git-pre-push-hook:
 # -------------------------------------------
 
 .PHONY: build-cross
-build-cross: cmd/cli/chart.tgz
+build-cross: helm-update-dep cmd/cli/chart.tgz
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=5 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
