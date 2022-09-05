@@ -21,6 +21,7 @@ const (
 	httpRouteGroupConverterPath        = "/convert/httproutegroup"
 	meshConfigConverterPath            = "/convert/meshconfig"
 	egressPolicyConverterPath          = "/convert/egresspolicy"
+	egressGatewayPolicyConverterPath   = "/convert/egressgatewaypolicy"
 	trafficSplitConverterPath          = "/convert/trafficsplit"
 	tcpRoutesConverterPath             = "/convert/tcproutes"
 	ingressBackendsPolicyConverterPath = "/convert/ingressbackendspolicy"
@@ -44,6 +45,7 @@ func NewConversionWebhook(ctx context.Context, kubeClient kubernetes.Interface, 
 		trafficAccessConverterPath:         serveTrafficAccessConversion,
 		httpRouteGroupConverterPath:        serveHTTPRouteGroupConversion,
 		egressPolicyConverterPath:          serveEgressPolicyConversion,
+		egressGatewayPolicyConverterPath:   serveEgressGatewayPolicyConversion,
 		trafficSplitConverterPath:          serveTrafficSplitConversion,
 		tcpRoutesConverterPath:             serveTCPRouteConversion,
 		ingressBackendsPolicyConverterPath: serveIngressBackendsPolicyConversion,

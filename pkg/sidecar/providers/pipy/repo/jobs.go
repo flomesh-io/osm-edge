@@ -43,7 +43,7 @@ func (job *PipyConfGeneratorJob) Run() {
 
 	proxyServices, err := s.proxyRegistry.ListProxyServices(proxy)
 	if err != nil {
-		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
+		log.Warn().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingServiceList)).
 			Msgf("Error looking up services for Sidecar with name=%s", proxy.GetName())
 		return
 	}

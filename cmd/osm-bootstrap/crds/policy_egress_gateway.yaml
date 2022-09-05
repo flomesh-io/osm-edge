@@ -100,7 +100,7 @@ spec:
                               description: Traffic weight value of the egress gateway.
                               type: number
                 matches:
-                  description: The resource references an Egress policy should match on.
+                  description: The resource references an EgressGateway policy should match on.
                   type: array
                   items:
                     type: object
