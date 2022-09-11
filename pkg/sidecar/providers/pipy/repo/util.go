@@ -19,7 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {
+func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy, trustDomain string) {
 	itp := pipyConf.newInboundTrafficPolicy()
 
 	for _, trafficMatch := range inboundPolicy.TrafficMatches {
@@ -77,13 +77,14 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 
 					hsrr.setRateLimit(rule.Route.RateLimit)
 
-					for allowedServiceIdentity := range rule.AllowedPrincipals.Iter() {
-						serviceIdentity := allowedServiceIdentity.(identity.ServiceIdentity)
-						hsrr.addAllowedService(ServiceName(serviceIdentity))
-						if pipyConf.isPermissiveTrafficPolicyMode() {
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						hsrr.addAllowedService(ServiceName(servicePrincipal))
+						if identity.WildcardPrincipal == servicePrincipal || pipyConf.isPermissiveTrafficPolicyMode() {
 							continue
 						}
-						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, serviceIdentity)
+						serviceIdentity := strings.TrimSuffix(servicePrincipal, fmt.Sprintf(`.%s`, trustDomain))
+						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, identity.ServiceIdentity(serviceIdentity))
 						if len(allowedServiceEndpoints) > 0 {
 							for _, allowedEndpoint := range allowedServiceEndpoints {
 								tm.addAllowedEndpoint(Address(allowedEndpoint.IP.String()), ServiceName(serviceIdentity))
