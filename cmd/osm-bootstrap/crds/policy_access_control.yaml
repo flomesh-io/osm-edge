@@ -30,6 +30,8 @@ spec:
       - accesscontrol
     singular: accesscontrol
     plural: accesscontrols
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha1
       served: true

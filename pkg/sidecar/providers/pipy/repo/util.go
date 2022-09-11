@@ -77,7 +77,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 
 					hsrr.setRateLimit(rule.Route.RateLimit)
 
-					for allowedServiceIdentity := range rule.AllowedServiceIdentities.Iter() {
+					for allowedServiceIdentity := range rule.AllowedPrincipals.Iter() {
 						serviceIdentity := allowedServiceIdentity.(identity.ServiceIdentity)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 						if pipyConf.isPermissiveTrafficPolicyMode() {
@@ -380,7 +380,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedServiceIdentities.Iter() {
+					for allowedServiceIdentitiy := range rule.AllowedPrincipals.Iter() {
 						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
@@ -508,7 +508,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedServiceIdentities.Iter() {
+					for allowedServiceIdentitiy := range rule.AllowedPrincipals.Iter() {
 						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}

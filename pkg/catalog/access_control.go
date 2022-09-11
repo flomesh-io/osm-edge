@@ -34,7 +34,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 	aclWithStatus := *aclPolicy
 
 	var trafficRoutingRules []*trafficpolicy.Rule
-	sourceServiceIdentities := mapset.NewSet()
+	sourcePrincipals := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.AccessControlTrafficMatch
 	for _, backend := range aclPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
@@ -89,13 +89,11 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				var sourceIdentity identity.ServiceIdentity
 				if backend.TLS.SkipClientCertValidation {
-					sourceIdentity = identity.WildcardServiceIdentity
+					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
-					sourceIdentity = identity.ServiceIdentity(source.Name)
+					sourcePrincipals.Add(source.Name)
 				}
-				sourceServiceIdentities.Add(sourceIdentity)
 			}
 		}
 
@@ -103,7 +101,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 		// because the identity cannot be verified for HTTP traffic. HTTP based acl can
 		// restrict downstreams based on their endpoint's IP address.
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
-			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+			sourcePrincipals.Add(identity.WildcardPrincipal)
 		}
 
 		trafficMatch.SourceIPRanges = sourceIPRanges
@@ -124,7 +122,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 					HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
 					WeightedClusters: mapset.NewSet(backendCluster),
 				},
-				AllowedServiceIdentities: sourceServiceIdentities,
+				AllowedPrincipals: sourcePrincipals,
 			}
 			trafficRoutingRules = append(trafficRoutingRules, routingRule)
 		}
