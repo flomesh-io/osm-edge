@@ -20,6 +20,7 @@ func New(name, namespace string) ServiceIdentity {
 	return ServiceIdentity(fmt.Sprintf("%s.%s", name, namespace))
 }
 
+// FromPrincipal returns a new ServiceIdentity for the given servicePrincipal.
 func FromPrincipal(servicePrincipal, trustDomain string) ServiceIdentity {
 	return ServiceIdentity(strings.TrimSuffix(servicePrincipal, fmt.Sprintf(`.%s`, trustDomain)))
 }
