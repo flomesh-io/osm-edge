@@ -79,12 +79,12 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
 						servicePrincipal := allowedPrincipal.(string)
-						hsrr.addAllowedService(ServiceName(servicePrincipal))
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
+						hsrr.addAllowedService(ServiceName(serviceIdentity))
 						if identity.WildcardPrincipal == servicePrincipal || pipyConf.isPermissiveTrafficPolicyMode() {
 							continue
 						}
-						serviceIdentity := strings.TrimSuffix(servicePrincipal, fmt.Sprintf(`.%s`, trustDomain))
-						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, identity.ServiceIdentity(serviceIdentity))
+						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, serviceIdentity)
 						if len(allowedServiceEndpoints) > 0 {
 							for _, allowedEndpoint := range allowedServiceEndpoints {
 								tm.addAllowedEndpoint(Address(allowedEndpoint.IP.String()), ServiceName(serviceIdentity))

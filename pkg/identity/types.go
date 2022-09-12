@@ -20,6 +20,10 @@ func New(name, namespace string) ServiceIdentity {
 	return ServiceIdentity(fmt.Sprintf("%s.%s", name, namespace))
 }
 
+func FromPrincipal(servicePrincipal, trustDomain string) ServiceIdentity {
+	return ServiceIdentity(strings.TrimSuffix(servicePrincipal, fmt.Sprintf(`.%s`, trustDomain)))
+}
+
 // WildcardServiceIdentity is a wildcard to match all service identities
 const WildcardServiceIdentity ServiceIdentity = "*"
 
