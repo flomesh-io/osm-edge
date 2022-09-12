@@ -149,14 +149,12 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 		for _, svc := range proxyServices {
 			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
 				if ingressTrafficPolicy != nil {
-					generatePipyIngressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
-						ingressTrafficPolicy)
+					generatePipyIngressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, ingressTrafficPolicy, trustDomain)
 				}
 			}
 			if aclTrafficPolicy, aclErr := cataloger.GetAccessControlTrafficPolicy(svc); aclErr == nil {
 				if aclTrafficPolicy != nil {
-					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
-						aclTrafficPolicy)
+					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, aclTrafficPolicy, trustDomain)
 				}
 			}
 		}

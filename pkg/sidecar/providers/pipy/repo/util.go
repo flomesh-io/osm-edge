@@ -319,7 +319,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 	return ready
 }
 
-func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
+func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy, trustDomain string) {
 	if len(ingressPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -381,8 +381,9 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedPrincipals.Iter() {
-						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
 				}
@@ -447,7 +448,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 	return success
 }
 
-func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy) {
+func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy, trustDomain string) {
 	if len(aclPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -509,8 +510,9 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedPrincipals.Iter() {
-						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
 				}
