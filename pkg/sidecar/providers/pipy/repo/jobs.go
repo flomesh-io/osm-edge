@@ -54,7 +54,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf)
-	inbound(cataloger, proxy.Identity, proxyServices, pipyConf)
+	inbound(cataloger, proxy.Identity, proxyServices, pipyConf, s.certManager.GetTrustDomain())
 	outbound(cataloger, proxy.Identity, pipyConf, proxy, s)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
 	forward(cataloger, proxy.Identity, s, pipyConf, proxy)
@@ -139,24 +139,22 @@ func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceI
 	return true
 }
 
-func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf) {
+func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf, trustDomain string) {
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
 	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(serviceIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy)
+	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy, trustDomain)
 	if len(proxyServices) > 0 {
 		for _, svc := range proxyServices {
 			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
 				if ingressTrafficPolicy != nil {
-					generatePipyIngressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
-						ingressTrafficPolicy)
+					generatePipyIngressTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, ingressTrafficPolicy, trustDomain)
 				}
 			}
 			if aclTrafficPolicy, aclErr := cataloger.GetAccessControlTrafficPolicy(svc); aclErr == nil {
 				if aclTrafficPolicy != nil {
-					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
-						aclTrafficPolicy)
+					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, aclTrafficPolicy, trustDomain)
 				}
 			}
 		}

@@ -148,7 +148,6 @@ else
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="warn" \
       --set=osm.localProxyMode="$LOCAL_PROXY_MODE" \
-      --set=osm.pipyRepoImage="flomesh/pipy-repo-nightly:latest"\
       --timeout="$TIMEOUT" \
       $optionalInstallArgs
 fi

@@ -19,7 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy) {
+func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, inboundPolicy *trafficpolicy.InboundMeshTrafficPolicy, trustDomain string) {
 	itp := pipyConf.newInboundTrafficPolicy()
 
 	for _, trafficMatch := range inboundPolicy.TrafficMatches {
@@ -77,10 +77,11 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 
 					hsrr.setRateLimit(rule.Route.RateLimit)
 
-					for allowedServiceIdentity := range rule.AllowedServiceIdentities.Iter() {
-						serviceIdentity := allowedServiceIdentity.(identity.ServiceIdentity)
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
-						if pipyConf.isPermissiveTrafficPolicyMode() {
+						if identity.WildcardPrincipal == servicePrincipal || pipyConf.isPermissiveTrafficPolicyMode() {
 							continue
 						}
 						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, serviceIdentity)
@@ -318,7 +319,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 	return ready
 }
 
-func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
+func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy, trustDomain string) {
 	if len(ingressPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -380,8 +381,9 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedServiceIdentities.Iter() {
-						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
 				}
@@ -446,7 +448,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 	return success
 }
 
-func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy) {
+func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy, trustDomain string) {
 	if len(aclPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -508,8 +510,9 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 							Weight(weightedCluster.Weight))
 					}
 
-					for allowedServiceIdentitiy := range rule.AllowedServiceIdentities.Iter() {
-						serviceIdentity := allowedServiceIdentitiy.(identity.ServiceIdentity)
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
 				}

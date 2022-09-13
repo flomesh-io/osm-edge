@@ -30,6 +30,8 @@ spec:
       - egressgateway
     singular: egressgateway
     plural: egressgateways
+  conversion:
+    strategy: None
   versions:
     - name: v1alpha1
       served: true
