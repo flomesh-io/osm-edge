@@ -65,6 +65,20 @@ func (mr *MockMeshSpecMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockMeshSpec)(nil).GetTCPRoute), arg0)
 }
 
+// GetUDPRoute mocks base method.
+func (m *MockMeshSpec) GetUDPRoute(arg0 string) *v1alpha4.UDPRoute {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUDPRoute", arg0)
+	ret0, _ := ret[0].(*v1alpha4.UDPRoute)
+	return ret0
+}
+
+// GetUDPRoute indicates an expected call of GetUDPRoute.
+func (mr *MockMeshSpecMockRecorder) GetUDPRoute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUDPRoute", reflect.TypeOf((*MockMeshSpec)(nil).GetUDPRoute), arg0)
+}
+
 // ListHTTPTrafficSpecs mocks base method.
 func (m *MockMeshSpec) ListHTTPTrafficSpecs() []*v1alpha4.HTTPRouteGroup {
 	m.ctrl.T.Helper()
@@ -141,4 +155,18 @@ func (m *MockMeshSpec) ListTrafficTargets(arg0 ...TrafficTargetListOption) []*v1
 func (mr *MockMeshSpecMockRecorder) ListTrafficTargets(arg0 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficTargets", reflect.TypeOf((*MockMeshSpec)(nil).ListTrafficTargets), arg0...)
+}
+
+// ListUDPTrafficSpecs mocks base method.
+func (m *MockMeshSpec) ListUDPTrafficSpecs() []*v1alpha4.UDPRoute {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUDPTrafficSpecs")
+	ret0, _ := ret[0].([]*v1alpha4.UDPRoute)
+	return ret0
+}
+
+// ListUDPTrafficSpecs indicates an expected call of ListUDPTrafficSpecs.
+func (mr *MockMeshSpecMockRecorder) ListUDPTrafficSpecs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUDPTrafficSpecs", reflect.TypeOf((*MockMeshSpec)(nil).ListUDPTrafficSpecs))
 }

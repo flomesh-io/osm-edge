@@ -1176,7 +1176,24 @@
                     "$id": "#/properties/osm/properties/outboundPortExclusionList",
                     "type": "array",
                     "title": "The outboundPortExclusionList schema",
-                    "description": "Outbound port exluclusion list for sidecar traffic interception",
+                    "description": "Outbound tcp port exluclusion list for sidecar tcp traffic interception",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                    },
+                    "examples": [
+                        [
+                            6379,
+                            3315
+                        ]
+                    ]
+                },
+                "outboundUDPPortExclusionList": {
+                    "$id": "#/properties/osm/properties/outboundUDPPortExclusionList",
+                    "type": "array",
+                    "title": "The outboundUDPPortExclusionList schema",
+                    "description": "Outbound udp port exluclusion list for sidecar udp traffic interception",
                     "items": {
                         "type": "integer",
                         "minimum": 1,
@@ -1193,7 +1210,24 @@
                     "$id": "#/properties/osm/properties/inboundPortExclusionList",
                     "type": "array",
                     "title": "The inboundPortExclusionList schema",
-                    "description": "Inbound port exluclusion list for sidecar traffic interception",
+                    "description": "Inbound tcp port exluclusion list for sidecar tcp traffic interception",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 65535
+                    },
+                    "examples": [
+                        [
+                            6379,
+                            3315
+                        ]
+                    ]
+                },
+                "inboundUDPPortExclusionList": {
+                    "$id": "#/properties/osm/properties/inboundUDPPortExclusionList",
+                    "type": "array",
+                    "title": "The inboundUDPPortExclusionList schema",
+                    "description": "Inbound udp port exluclusion list for sidecar udp traffic interception",
                     "items": {
                         "type": "integer",
                         "minimum": 1,

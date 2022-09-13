@@ -113,8 +113,14 @@ type TrafficSpec struct {
 	// OutboundPortExclusionList defines a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
 	OutboundPortExclusionList []int `json:"outboundPortExclusionList"`
 
+	// OutboundUDPPortExclusionList defines a global list of ports to exclude from outbound udp traffic interception by the sidecar proxy.
+	OutboundUDPPortExclusionList []int `json:"outboundUDPPortExclusionList"`
+
 	// InboundPortExclusionList defines a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
 	InboundPortExclusionList []int `json:"inboundPortExclusionList"`
+
+	// InboundUDPPortExclusionList defines a global list of ports to exclude from inbound udp traffic interception by the sidecar proxy.
+	InboundUDPPortExclusionList []int `json:"inboundUDPPortExclusionList"`
 
 	// EnablePermissiveTrafficPolicyMode defines a boolean indicating if permissive traffic policy mode is enabled mesh-wide.
 	EnablePermissiveTrafficPolicyMode bool `json:"enablePermissiveTrafficPolicyMode"`

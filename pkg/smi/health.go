@@ -13,6 +13,7 @@ var (
 	requiredResourceKindGroupMap = map[string]string{
 		"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
 		"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
+		"UDPRoute":       smiSpecs.SchemeGroupVersion.String(),
 		"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
 		"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
 	}

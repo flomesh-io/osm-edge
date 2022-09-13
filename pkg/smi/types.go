@@ -46,6 +46,12 @@ type MeshSpec interface {
 	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
 	GetTCPRoute(string) *spec.TCPRoute
 
+	// ListUDPTrafficSpecs lists SMI UDPRoute resources
+	ListUDPTrafficSpecs() []*spec.UDPRoute
+
+	// GetUDPRoute returns an SMI UDPRoute resource given its name of the form <namespace>/<name>
+	GetUDPRoute(string) *spec.UDPRoute
+
 	// ListTrafficTargets lists SMI TrafficTarget resources. An optional filter can be applied to filter the
 	// returned list
 	ListTrafficTargets(...TrafficTargetListOption) []*access.TrafficTarget

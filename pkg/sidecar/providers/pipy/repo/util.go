@@ -100,7 +100,8 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 				hsrr.addAllowedService("*")
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
-			destinationProtocol == constants.ProtocolTCPServerFirst {
+			destinationProtocol == constants.ProtocolTCPServerFirst ||
+			destinationProtocol == constants.ProtocolUDP {
 			tm.addWeightedCluster(ClusterName(cluster.Name), Weight(constants.ClusterWeightAcceptAll))
 		}
 	}
@@ -181,7 +182,8 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				}
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
-			destinationProtocol == constants.ProtocolTCPServerFirst {
+			destinationProtocol == constants.ProtocolTCPServerFirst ||
+			destinationProtocol == constants.ProtocolUDP {
 			for _, serviceCluster := range trafficMatch.WeightedClusters {
 				weightedCluster := new(WeightedCluster)
 				weightedCluster.WeightedCluster = serviceCluster
@@ -275,7 +277,8 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 				clusterConfigs.addWeightedEndpoint(address, port, weight)
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
-			destinationProtocol == constants.ProtocolTCPServerFirst {
+			destinationProtocol == constants.ProtocolTCPServerFirst ||
+			destinationProtocol == constants.ProtocolUDP {
 			tm.setAllowedEgressTraffic(true)
 		}
 	}

@@ -360,6 +360,65 @@ func TestGetTCPRoute(t *testing.T) {
 	a.Nil(invalid)
 }
 
+func TestListUDPTrafficSpecs(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	c, _, err := bootstrapClient(stop, t)
+	a.Nil(err)
+
+	obj := &smiSpecs.UDPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "UDPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "udp-route",
+		},
+		Spec: smiSpecs.UDPRouteSpec{},
+	}
+	err = c.informers.Add(informers.InformerKeyUDPRoute, obj, t)
+	a.Nil(err)
+
+	// Verify
+	actual := c.ListUDPTrafficSpecs()
+	a.Len(actual, 1)
+	a.Equal(obj, actual[0])
+}
+
+func TestGetUDPRoute(t *testing.T) {
+	a := assert.New(t)
+	stop := make(chan struct{})
+	defer close(stop)
+
+	c, _, err := bootstrapClient(stop, t)
+	a.Nil(err)
+
+	obj := &smiSpecs.UDPRoute{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "UDPRoute",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNamespaceName,
+			Name:      "udp-route",
+		},
+		Spec: smiSpecs.UDPRouteSpec{},
+	}
+	err = c.informers.Add(informers.InformerKeyUDPRoute, obj, t)
+	a.Nil(err)
+
+	// Verify
+	key, _ := cache.MetaNamespaceKeyFunc(obj)
+	actual := c.GetUDPRoute(key)
+	a.Equal(obj, actual)
+
+	invalid := c.GetUDPRoute("invalid")
+	a.Nil(invalid)
+}
+
 func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 	a := assert.New(t)
 

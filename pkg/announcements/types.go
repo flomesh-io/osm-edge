@@ -101,6 +101,17 @@ const (
 
 	// ---
 
+	// UDPRouteAdded is the type of announcement emitted when we observe an addition of a Kubernetes UDPRoute
+	UDPRouteAdded Kind = "udproute-added"
+
+	// UDPRouteDeleted the type of announcement emitted when we observe the deletion of a Kubernetes UDPRoute
+	UDPRouteDeleted Kind = "udproute-deleted"
+
+	// UDPRouteUpdated is the type of announcement emitted when we observe an update to a Kubernetes UDPRoute
+	UDPRouteUpdated Kind = "udproute-updated"
+
+	// ---
+
 	// TrafficTargetAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficTarget
 	TrafficTargetAdded Kind = "traffictarget-added"
 

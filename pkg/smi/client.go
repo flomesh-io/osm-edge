@@ -21,6 +21,9 @@ const (
 	// ServiceAccountKind is the kind specified for the destination and sources in an SMI TrafficTarget policy
 	ServiceAccountKind = "ServiceAccount"
 
+	// UDPRouteKind is the kind specified for the UDP route rules in an SMI Traffictarget policy
+	UDPRouteKind = "UDPRoute"
+
 	// TCPRouteKind is the kind specified for the TCP route rules in an SMI Traffictarget policy
 	TCPRouteKind = "TCPRoute"
 
@@ -67,6 +70,13 @@ func NewSMIClient(informerCollection *informers.InformerCollection, osmNamespace
 		Delete: a.TCPRouteDeleted,
 	}
 	informerCollection.AddEventHandler(informers.InformerKeyTCPRoute, k8s.GetEventHandlerFuncs(shouldObserve, tcpRouteEventTypes, msgBroker))
+
+	udpRouteEventTypes := k8s.EventTypes{
+		Add:    a.UDPRouteAdded,
+		Update: a.UDPRouteUpdated,
+		Delete: a.UDPRouteDeleted,
+	}
+	informerCollection.AddEventHandler(informers.InformerKeyUDPRoute, k8s.GetEventHandlerFuncs(shouldObserve, udpRouteEventTypes, msgBroker))
 
 	trafficTargetEventTypes := k8s.EventTypes{
 		Add:    a.TrafficTargetAdded,
@@ -165,6 +175,35 @@ func (c *Client) GetHTTPRouteGroup(namespacedName string) *smiSpecs.HTTPRouteGro
 	return nil
 }
 
+// ListUDPTrafficSpecs lists SMI UDPRoute resources
+func (c *Client) ListUDPTrafficSpecs() []*smiSpecs.UDPRoute {
+	var udpRouteSpec []*smiSpecs.UDPRoute
+	for _, specIface := range c.informers.List(informers.InformerKeyUDPRoute) {
+		udpRoute := specIface.(*smiSpecs.UDPRoute)
+
+		if !c.kubeController.IsMonitoredNamespace(udpRoute.Namespace) {
+			continue
+		}
+		udpRouteSpec = append(udpRouteSpec, udpRoute)
+	}
+	return udpRouteSpec
+}
+
+// GetUDPRoute returns an SMI UDPRoute resource given its name of the form <namespace>/<name>
+func (c *Client) GetUDPRoute(namespacedName string) *smiSpecs.UDPRoute {
+	// client-go cache uses <namespace>/<name> as key
+	routeIf, exists, err := c.informers.GetByKey(informers.InformerKeyUDPRoute, namespacedName)
+	if exists && err == nil {
+		route := routeIf.(*smiSpecs.UDPRoute)
+		if !c.kubeController.IsMonitoredNamespace(route.Namespace) {
+			log.Warn().Msgf("TCPRoute %s found, but belongs to a namespace that is not monitored, ignoring it", namespacedName)
+			return nil
+		}
+		return route
+	}
+	return nil
+}
+
 // ListTCPTrafficSpecs lists SMI TCPRoute resources
 func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	var tcpRouteSpec []*smiSpecs.TCPRoute
@@ -237,7 +276,7 @@ func hasValidRules(rules []smiAccess.TrafficTargetRule) bool {
 	}
 	for _, rule := range rules {
 		switch rule.Kind {
-		case HTTPRouteGroupKind, TCPRouteKind:
+		case HTTPRouteGroupKind, TCPRouteKind, UDPRouteKind:
 			// valid Kind for rules
 
 		default:
@@ -310,6 +349,7 @@ func GetSmiClientVersionHTTPHandler() http.Handler {
 			"TrafficTarget":  smiAccess.SchemeGroupVersion.String(),
 			"HTTPRouteGroup": smiSpecs.SchemeGroupVersion.String(),
 			"TCPRoute":       smiSpecs.SchemeGroupVersion.String(),
+			"UDPRoute":       smiSpecs.SchemeGroupVersion.String(),
 			"TrafficSplit":   smiSplit.SchemeGroupVersion.String(),
 		}
 

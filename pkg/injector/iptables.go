@@ -12,14 +12,20 @@ import (
 
 // iptablesOutboundStaticRules is the list of iptables rules related to outbound traffic interception and redirection
 var iptablesOutboundStaticRules = []string{
-	// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Sidecar's outbound listener port
-	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarOutboundListenerPort),
+	// Redirects outbound TCP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Sidecar's tcp outbound listener port
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarTCPOutboundListenerPort),
+
+	// Redirects outbound UDP traffic hitting OSM_PROXY_OUT_REDIRECT chain to Sidecar's udp outbound listener port
+	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p udp -j REDIRECT --to-port %d", constants.SidecarUDPOutboundListenerPort),
 
 	// Traffic to the Proxy Admin port flows to the Proxy -- not redirected
 	fmt.Sprintf("-A OSM_PROXY_OUT_REDIRECT -p tcp --dport %d -j ACCEPT", constants.SidecarAdminPort),
 
 	// For outbound TCP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
 	"-A OUTPUT -p tcp -j OSM_PROXY_OUTBOUND",
+
+	// For outbound UDP traffic jump from OUTPUT chain to OSM_PROXY_OUTBOUND chain
+	"-A OUTPUT -p udp -j OSM_PROXY_OUTBOUND",
 
 	// Outbound traffic from Sidecar to the local app over the loopback interface should jump to the inbound proxy redirect chain.
 	// So when an app directs traffic to itself via the k8s service, traffic flows as follows:
@@ -39,11 +45,17 @@ var iptablesOutboundStaticRules = []string{
 
 // iptablesInboundStaticRules is the list of iptables rules related to inbound traffic interception and redirection
 var iptablesInboundStaticRules = []string{
-	// Redirects inbound TCP traffic hitting the OSM_PROXY_IN_REDIRECT chain to Sidecar's inbound listener port
-	fmt.Sprintf("-A OSM_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarInboundListenerPort),
+	// Redirects inbound TCP traffic hitting the OSM_PROXY_IN_REDIRECT chain to Sidecar's tcp inbound listener port
+	fmt.Sprintf("-A OSM_PROXY_IN_REDIRECT -p tcp -j REDIRECT --to-port %d", constants.SidecarTCPInboundListenerPort),
 
-	// For inbound traffic jump from PREROUTING chain to OSM_PROXY_INBOUND chain
+	// Redirects inbound UDP traffic hitting the OSM_PROXY_IN_REDIRECT chain to Sidecar's udp inbound listener port
+	fmt.Sprintf("-A OSM_PROXY_IN_REDIRECT -p udp -j REDIRECT --to-port %d", constants.SidecarUDPInboundListenerPort),
+
+	// For tcp inbound traffic jump from PREROUTING chain to OSM_PROXY_INBOUND chain
 	"-A PREROUTING -p tcp -j OSM_PROXY_INBOUND",
+
+	// For udp inbound traffic jump from PREROUTING chain to OSM_PROXY_INBOUND chain
+	"-A PREROUTING -p udp -j OSM_PROXY_INBOUND",
 
 	// Skip metrics query traffic being directed to Sidecar's inbound prometheus listener port
 	fmt.Sprintf("-A OSM_PROXY_INBOUND -p tcp --dport %d -j RETURN", constants.SidecarPrometheusInboundListenerPort),
@@ -62,7 +74,7 @@ var iptablesInboundStaticRules = []string{
 }
 
 // GenerateIptablesCommands generates a list of iptables commands to set up sidecar interception and redirection
-func GenerateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, networkInterfaceExclusionList []string) string {
+func GenerateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundIPRangeExclusionList []string, outboundIPRangeInclusionList []string, outboundPortExclusionList []int, inboundPortExclusionList []int, outboundUDPPortExclusionList []int, inboundUDPPortExclusionList []int, networkInterfaceExclusionList []string) string {
 	var rules strings.Builder
 
 	fmt.Fprintln(&rules, `# OSM sidecar interception rules
@@ -91,6 +103,16 @@ func GenerateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundI
 		}
 		inboundPortsToExclude := strings.Join(portExclusionListStr, ",")
 		rule := fmt.Sprintf("-I OSM_PROXY_INBOUND -p tcp --match multiport --dports %s -j RETURN", inboundPortsToExclude)
+		cmds = append(cmds, rule)
+	}
+
+	if len(inboundUDPPortExclusionList) > 0 {
+		var portExclusionListStr []string
+		for _, port := range inboundUDPPortExclusionList {
+			portExclusionListStr = append(portExclusionListStr, strconv.Itoa(port))
+		}
+		inboundPortsToExclude := strings.Join(portExclusionListStr, ",")
+		rule := fmt.Sprintf("-I OSM_PROXY_INBOUND -p udp --match multiport --dports %s -j RETURN", inboundPortsToExclude)
 		cmds = append(cmds, rule)
 	}
 
@@ -130,6 +152,16 @@ func GenerateIptablesCommands(proxyMode configv1alpha2.LocalProxyMode, outboundI
 		}
 		outboundPortsToExclude := strings.Join(portExclusionListStr, ",")
 		rule := fmt.Sprintf("-A OSM_PROXY_OUTBOUND -p tcp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
+		cmds = append(cmds, rule)
+	}
+
+	if len(outboundUDPPortExclusionList) > 0 {
+		var portExclusionListStr []string
+		for _, port := range outboundUDPPortExclusionList {
+			portExclusionListStr = append(portExclusionListStr, strconv.Itoa(port))
+		}
+		outboundPortsToExclude := strings.Join(portExclusionListStr, ",")
+		rule := fmt.Sprintf("-A OSM_PROXY_OUTBOUND -p udp --match multiport --dports %s -j RETURN", outboundPortsToExclude)
 		cmds = append(cmds, rule)
 	}
 

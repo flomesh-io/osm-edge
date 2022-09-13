@@ -36,7 +36,7 @@ var _ = Describe("Test functions creating Sidecar bootstrap configuration", func
 				},
 			}).Times(1)
 			privileged := privilegedFalse
-			actual := GetInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
+			actual := GetInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",
@@ -112,7 +112,7 @@ EOF
 				},
 			}).Times(1)
 			privileged := privilegedFalse
-			actual := GetInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
+			actual := GetInitContainerSpec(containerName, mockConfigurator, nil, nil, nil, nil, nil, nil, privileged, corev1.PullAlways, nil)
 
 			expected := corev1.Container{
 				Name:            "-container-name-",

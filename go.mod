@@ -391,3 +391,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+replace github.com/servicemeshinterface/smi-sdk-go v0.5.0 => github.com/flomesh-io/smi-sdk-go v0.6.0

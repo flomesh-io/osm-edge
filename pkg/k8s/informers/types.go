@@ -30,6 +30,8 @@ const (
 	InformerKeyHTTPRouteGroup InformerKey = "HTTPRouteGroup"
 	// InformerKeyTCPRoute is the InformerKey for a TCPRoute informer
 	InformerKeyTCPRoute InformerKey = "TCPRoute"
+	// InformerKeyUDPRoute is the InformerKey for a UDPRoute informer
+	InformerKeyUDPRoute InformerKey = "UDPRoute"
 
 	// InformerKeyMeshConfig is the InformerKey for a MeshConfig informer
 	InformerKeyMeshConfig InformerKey = "MeshConfig"

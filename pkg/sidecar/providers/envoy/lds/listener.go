@@ -35,7 +35,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 
 	listener := &xds_listener.Listener{
 		Name:             OutboundListenerName,
-		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarOutboundListenerPort),
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarTCPOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
 		FilterChains:     serviceFilterChains,
 		ListenerFilters: []*xds_listener.ListenerFilter{
@@ -127,7 +127,7 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 func newInboundListener() *xds_listener.Listener {
 	return &xds_listener.Listener{
 		Name:             InboundListenerName,
-		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarInboundListenerPort),
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarTCPInboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		FilterChains:     []*xds_listener.FilterChain{},
 		ListenerFilters: []*xds_listener.ListenerFilter{

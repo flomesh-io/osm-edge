@@ -13,20 +13,32 @@ const (
 	// SidecarAdminPortName is Sidecar's admin port name
 	SidecarAdminPortName = "proxy-admin"
 
-	// SidecarInboundListenerPort is Sidecar's inbound listener port number.
-	SidecarInboundListenerPort = 15003
+	// SidecarTCPInboundListenerPort is Sidecar's tcp inbound listener port number.
+	SidecarTCPInboundListenerPort = 15003
 
-	// SidecarInboundListenerPortName is Sidecar's inbound listener port name.
-	SidecarInboundListenerPortName = "proxy-inbound"
+	// SidecarUDPInboundListenerPort is Sidecar's udp inbound listener port number.
+	SidecarUDPInboundListenerPort = 15004
+
+	// SidecarTCPInboundListenerPortName is Sidecar's tcp inbound listener port name.
+	SidecarTCPInboundListenerPortName = "pxy-tcp-inbound"
+
+	// SidecarUDPInboundListenerPortName is Sidecar's udp inbound listener port name.
+	SidecarUDPInboundListenerPortName = "pxy-udp-inbound"
 
 	// SidecarInboundPrometheusListenerPortName is Sidecar's inbound listener port name for prometheus.
 	SidecarInboundPrometheusListenerPortName = "proxy-metrics"
 
-	// SidecarOutboundListenerPort is Sidecar's outbound listener port number.
-	SidecarOutboundListenerPort = 15001
+	// SidecarTCPOutboundListenerPort is Sidecar's tcp outbound listener port number.
+	SidecarTCPOutboundListenerPort = 15001
 
-	// SidecarOutboundListenerPortName is Sidecar's outbound listener port name.
-	SidecarOutboundListenerPortName = "proxy-outbound"
+	// SidecarUDPOutboundListenerPort is Sidecar's udp outbound listener port number.
+	SidecarUDPOutboundListenerPort = 15002
+
+	// SidecarTCPOutboundListenerPortName is Sidecar's tcp outbound listener port name.
+	SidecarTCPOutboundListenerPortName = "proxy-tcp-outbound"
+
+	// SidecarUDPOutboundListenerPortName is Sidecar's udp outbound listener port name.
+	SidecarUDPOutboundListenerPortName = "proxy-udp-outbound"
 
 	// SidecarUID is the Sidecar's User ID
 	SidecarUID int64 = 1500
@@ -259,6 +271,9 @@ const (
 	// Ex. MySQL, SMTP, PostgreSQL etc. where the server initiates the first
 	// byte in a TCP connection.
 	ProtocolTCPServerFirst = "tcp-server-first"
+
+	// UDP protocol
+	ProtocolUDP = "udp"
 )
 
 // Operating systems.
@@ -308,7 +323,7 @@ const (
 
 var (
 	// SupportedProtocolsInMesh is a list of the protocols OSM supports for in-mesh traffic
-	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC}
+	SupportedProtocolsInMesh = []string{ProtocolTCPServerFirst, ProtocolHTTP, ProtocolTCP, ProtocolGRPC, ProtocolUDP}
 )
 
 const (

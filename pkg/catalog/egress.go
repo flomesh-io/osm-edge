@@ -62,7 +62,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					EgressGateWay:       egressGateway,
 				})
 
-			case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
+			case constants.ProtocolTCP, constants.ProtocolTCPServerFirst, constants.ProtocolUDP:
 				// ---
 				// Build the TCP cluster config for this port
 				clusterConfigs = append(clusterConfigs, &trafficpolicy.EgressClusterConfig{

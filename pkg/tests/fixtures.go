@@ -522,6 +522,19 @@ var (
 		Spec: spec.TCPRouteSpec{},
 	}
 
+	// UDPRoute is a UDPRoute SMI resource
+	UDPRoute = spec.UDPRoute{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha4",
+			Kind:       "UDPRoute",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+			Name:      "udp-route",
+		},
+		Spec: spec.UDPRouteSpec{},
+	}
+
 	// BookstoreV1DefaultWeightedCluster is a weighted cluster for bookstore-v1
 	BookstoreV1DefaultWeightedCluster = service.WeightedCluster{
 		ClusterName: "default/bookstore-v1",

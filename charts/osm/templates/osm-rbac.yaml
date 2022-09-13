@@ -53,7 +53,7 @@ rules:
     resources: ["traffictargets"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["specs.smi-spec.io"]
-    resources: ["httproutegroups", "tcproutes"]
+    resources: ["httproutegroups", "tcproutes", "udproutes"]
     verbs: ["list", "get", "watch"]
 
   # OSM's custom policy API

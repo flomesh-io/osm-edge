@@ -10,9 +10,10 @@ import (
 // GetInitContainerSpec returns the spec of init container.
 func GetInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
-	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy, networkInterfaceExclusionList []string) corev1.Container {
+	inboundPortExclusionList []int, outboundUDPPortExclusionList []int, inboundUDPPortExclusionList []int,
+	enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy, networkInterfaceExclusionList []string) corev1.Container {
 	proxyMode := cfg.GetMeshConfig().Spec.Sidecar.LocalProxyMode
-	iptablesInitCommand := GenerateIptablesCommands(proxyMode, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, networkInterfaceExclusionList)
+	iptablesInitCommand := GenerateIptablesCommands(proxyMode, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, outboundUDPPortExclusionList, inboundUDPPortExclusionList, networkInterfaceExclusionList)
 
 	return corev1.Container{
 		Name:            containerName,

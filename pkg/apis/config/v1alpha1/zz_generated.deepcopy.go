@@ -262,8 +262,18 @@ func (in *TrafficSpec) DeepCopyInto(out *TrafficSpec) {
 		*out = make([]int, len(*in))
 		copy(*out, *in)
 	}
+	if in.OutboundUDPPortExclusionList != nil {
+		in, out := &in.OutboundUDPPortExclusionList, &out.OutboundUDPPortExclusionList
+		*out = make([]int, len(*in))
+		copy(*out, *in)
+	}
 	if in.InboundPortExclusionList != nil {
 		in, out := &in.InboundPortExclusionList, &out.InboundPortExclusionList
+		*out = make([]int, len(*in))
+		copy(*out, *in)
+	}
+	if in.InboundUDPPortExclusionList != nil {
+		in, out := &in.InboundUDPPortExclusionList, &out.InboundUDPPortExclusionList
 		*out = make([]int, len(*in))
 		copy(*out, *in)
 	}

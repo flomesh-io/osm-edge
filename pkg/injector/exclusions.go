@@ -11,11 +11,17 @@ import (
 )
 
 const (
-	// OutboundPortExclusionListAnnotation is the annotation used for outbound port exclusions
+	// OutboundPortExclusionListAnnotation is the annotation used for outbound tcp port exclusions
 	OutboundPortExclusionListAnnotation = "openservicemesh.io/outbound-port-exclusion-list"
 
-	// InboundPortExclusionListAnnotation is the annotation used for inbound port exclusions
+	// OutboundUDPPortExclusionListAnnotation is the annotation used for outbound udp port exclusions
+	OutboundUDPPortExclusionListAnnotation = "openservicemesh.io/outbound-udp-port-exclusion-list"
+
+	// InboundPortExclusionListAnnotation is the annotation used for inbound tcp port exclusions
 	InboundPortExclusionListAnnotation = "openservicemesh.io/inbound-port-exclusion-list"
+
+	// InboundUDPPortExclusionListAnnotation is the annotation used for inbound tcp port exclusions
+	InboundUDPPortExclusionListAnnotation = "openservicemesh.io/inbound-tcp-port-exclusion-list"
 
 	// OutboundIPRangeExclusionListAnnotation is the annotation used for outbound IP range exclusions
 	OutboundIPRangeExclusionListAnnotation = "openservicemesh.io/outbound-ip-range-exclusion-list"

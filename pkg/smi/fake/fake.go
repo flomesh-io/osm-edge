@@ -16,6 +16,7 @@ type fakeMeshSpec struct {
 	trafficSplits   []*split.TrafficSplit
 	httpRouteGroups []*spec.HTTPRouteGroup
 	tcpRoutes       []*spec.TCPRoute
+	udpRoutes       []*spec.UDPRoute
 	trafficTargets  []*access.TrafficTarget
 	serviceAccounts []identity.K8sServiceAccount
 }
@@ -27,6 +28,7 @@ func NewFakeMeshSpecClient() smi.MeshSpec {
 		trafficSplits:   []*split.TrafficSplit{&tests.TrafficSplit},
 		httpRouteGroups: []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		tcpRoutes:       []*spec.TCPRoute{&tests.TCPRoute},
+		udpRoutes:       []*spec.UDPRoute{&tests.UDPRoute},
 		trafficTargets:  []*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget},
 		serviceAccounts: []identity.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
@@ -69,6 +71,16 @@ func (f fakeMeshSpec) ListTCPTrafficSpecs() []*spec.TCPRoute {
 
 // GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>s
 func (f fakeMeshSpec) GetTCPRoute(_ string) *spec.TCPRoute {
+	return nil
+}
+
+// ListUDPTrafficSpecs lists SMI UDPRoute resources
+func (f fakeMeshSpec) ListUDPTrafficSpecs() []*spec.UDPRoute {
+	return f.udpRoutes
+}
+
+// GetUDPRoute returns an SMI UDPRoute resource given its name of the form <namespace>/<name>s
+func (f fakeMeshSpec) GetUDPRoute(_ string) *spec.UDPRoute {
 	return nil
 }
 

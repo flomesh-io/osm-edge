@@ -25,6 +25,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -44,6 +45,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -60,6 +62,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -78,6 +81,26 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 				Resources: map[string]metav1.APIResourceList{
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
+						{Kind: "UDPRoute"},
+					}},
+					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficTarget"},
+					}},
+					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+						{Kind: "TrafficSplit"},
+					}},
+				},
+				Err: nil,
+			},
+			expect: false,
+		},
+		{
+			name: "UDPRoute does not exist",
+			discoveryClient: &k8sFake.DiscoveryClient{
+				Resources: map[string]metav1.APIResourceList{
+					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
+						{Kind: "HTTPRouteGroup"},
+						{Kind: "TCPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -97,6 +120,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{}},
 					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
@@ -129,6 +153,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
@@ -145,6 +170,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
+						{Kind: "UDPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
@@ -175,6 +201,7 @@ func TestGetID(t *testing.T) {
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},
 				{Kind: "TCPRoute"},
+				{Kind: "UDPRoute"},
 			}},
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},
@@ -198,6 +225,7 @@ func TestLiveness(t *testing.T) {
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},
 				{Kind: "TCPRoute"},
+				{Kind: "UDPRoute"},
 			}},
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},
@@ -221,6 +249,7 @@ func TestReadiness(t *testing.T) {
 			"specs.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "HTTPRouteGroup"},
 				{Kind: "TCPRoute"},
+				{Kind: "UDPRoute"},
 			}},
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},

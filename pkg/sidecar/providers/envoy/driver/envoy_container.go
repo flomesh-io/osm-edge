@@ -113,8 +113,8 @@ func getEnvoyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.C
 			ContainerPort: constants.SidecarAdminPort,
 		},
 		{
-			Name:          constants.SidecarInboundListenerPortName,
-			ContainerPort: constants.SidecarInboundListenerPort,
+			Name:          constants.SidecarTCPInboundListenerPortName,
+			ContainerPort: constants.SidecarTCPInboundListenerPort,
 		},
 		{
 			Name:          constants.SidecarInboundPrometheusListenerPortName,

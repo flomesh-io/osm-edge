@@ -293,6 +293,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.RouteGroupAdded, announcements.RouteGroupDeleted, announcements.RouteGroupUpdated,
 		// SMI TCPRoute event
 		announcements.TCPRouteAdded, announcements.TCPRouteDeleted, announcements.TCPRouteUpdated,
+		// SMI UDPRoute event
+		announcements.UDPRouteAdded, announcements.UDPRouteDeleted, announcements.UDPRouteUpdated,
 		// SMI TrafficSplit event
 		announcements.TrafficSplitAdded, announcements.TrafficSplitDeleted, announcements.TrafficSplitUpdated,
 		// SMI TrafficTarget event

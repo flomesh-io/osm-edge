@@ -148,7 +148,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.registry | string | `"flomesh"` | Container image registry for control plane images |
 | osm.image.tag | string | `"1.2.0"` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
-| osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound tcp traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| osm.inboundUDPPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound udp traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0] | string | `"linux"` |  |
@@ -221,7 +222,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.osmNamespace | string | `""` | Namespace to deploy OSM in. If not specified, the Helm release namespace is used. |
 | osm.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundIPRangeInclusionList | list | `[]` | Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
-| osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound tcp traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| osm.outboundUDPPortExclusionList | list | `[53]` | Specifies a global list of ports to exclude from outbound udp traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.pipyRepoImage | string | `"flomesh/pipy-repo:latest"` | Pipy repo image for Pipy sidecar's proxy control plane container |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |

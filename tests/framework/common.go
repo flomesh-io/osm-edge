@@ -438,6 +438,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 	meshConfig.Spec.Traffic.EnableEgress = instOpts.EgressEnabled
 	meshConfig.Spec.Traffic.EnablePermissiveTrafficPolicyMode = instOpts.EnablePermissiveMode
 	meshConfig.Spec.Traffic.OutboundPortExclusionList = []int{}
+	meshConfig.Spec.Traffic.OutboundUDPPortExclusionList = []int{}
 	meshConfig.Spec.Traffic.OutboundIPRangeExclusionList = []string{}
 
 	meshConfig.Spec.Observability.EnableDebugServer = instOpts.EnableDebugServer

@@ -133,6 +133,13 @@ func ConfigurePodInit(cfg configurator.Configurator, podOS string, pod *corev1.P
 	globalOutboundPortExclusionList := cfg.GetMeshConfig().Spec.Traffic.OutboundPortExclusionList
 	outboundPortExclusionList := MergePortExclusionLists(podOutboundPortExclusionList, globalOutboundPortExclusionList)
 
+	podOutboundUDPPortExclusionList, err := GetPortExclusionListForPod(pod, OutboundUDPPortExclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalOutboundUDPPortExclusionList := cfg.GetMeshConfig().Spec.Traffic.OutboundUDPPortExclusionList
+	outboundUDPPortExclusionList := MergePortExclusionLists(podOutboundUDPPortExclusionList, globalOutboundUDPPortExclusionList)
+
 	// Build inbound port exclusion list
 	podInboundPortExclusionList, err := GetPortExclusionListForPod(pod, InboundPortExclusionListAnnotation)
 	if err != nil {
@@ -140,6 +147,13 @@ func ConfigurePodInit(cfg configurator.Configurator, podOS string, pod *corev1.P
 	}
 	globalInboundPortExclusionList := cfg.GetMeshConfig().Spec.Traffic.InboundPortExclusionList
 	inboundPortExclusionList := MergePortExclusionLists(podInboundPortExclusionList, globalInboundPortExclusionList)
+
+	podInboundUDPPortExclusionList, err := GetPortExclusionListForPod(pod, InboundUDPPortExclusionListAnnotation)
+	if err != nil {
+		return err
+	}
+	globalInboundUDPPortExclusionList := cfg.GetMeshConfig().Spec.Traffic.InboundUDPPortExclusionList
+	inboundUDPPortExclusionList := MergePortExclusionLists(podInboundUDPPortExclusionList, globalInboundUDPPortExclusionList)
 
 	// Build the outbound IP range exclusion list
 	podOutboundIPRangeExclusionList, err := GetOutboundIPRangeListForPod(pod, OutboundIPRangeExclusionListAnnotation)
@@ -160,7 +174,7 @@ func ConfigurePodInit(cfg configurator.Configurator, podOS string, pod *corev1.P
 	networkInterfaceExclusionList := cfg.GetMeshConfig().Spec.Traffic.NetworkInterfaceExclusionList
 
 	// Add the init container to the pod spec
-	initContainer := GetInitContainerSpec(constants.InitContainerName, cfg, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, cfg.IsPrivilegedInitContainer(), osmContainerPullPolicy, networkInterfaceExclusionList)
+	initContainer := GetInitContainerSpec(constants.InitContainerName, cfg, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, outboundUDPPortExclusionList, inboundUDPPortExclusionList, cfg.IsPrivilegedInitContainer(), osmContainerPullPolicy, networkInterfaceExclusionList)
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	return nil

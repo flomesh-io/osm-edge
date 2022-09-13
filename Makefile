@@ -147,7 +147,7 @@ kind-demo: .env kind-up clean-osm
 build-bookwatcher:
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwatcher/bookwatcher ./demo/cmd/bookwatcher
 
-DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
+DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client udp-echo-server udp-client
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
 .PHONY: $(DOCKER_DEMO_TARGETS)

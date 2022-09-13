@@ -15,7 +15,9 @@ func TestGenerateIptablesCommands(t *testing.T) {
 		outboundIPRangeExclusions  []string
 		outboundIPRangeInclusions  []string
 		outboundPortExclusions     []int
+		outboundUDPPortExclusions  []int
 		inboundPortExclusions      []int
+		inboundUDPPortExclusions   []int
 		networkInterfaceExclusions []string
 		expected                   string
 	}{
@@ -129,7 +131,7 @@ EOF
 		t.Run(tc.name, func(t *testing.T) {
 			a := assert.New(t)
 
-			actual := GenerateIptablesCommands(tc.proxyMode, tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions, tc.networkInterfaceExclusions)
+			actual := GenerateIptablesCommands(tc.proxyMode, tc.outboundIPRangeExclusions, tc.outboundIPRangeInclusions, tc.outboundPortExclusions, tc.inboundPortExclusions, tc.outboundUDPPortExclusions, tc.inboundUDPPortExclusions, tc.networkInterfaceExclusions)
 			a.Equal(tc.expected, actual)
 		})
 	}

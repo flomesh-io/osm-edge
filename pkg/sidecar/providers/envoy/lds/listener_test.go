@@ -40,7 +40,7 @@ var _ = Describe("Construct inbound listeners", func() {
 	Context("Test creation of inbound listener", func() {
 		It("Tests the inbound listener config", func() {
 			listener := newInboundListener()
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarInboundListenerPort)))
+			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarTCPInboundListenerPort)))
 			Expect(listener.AccessLog).NotTo(BeEmpty())
 			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(envoy.TLSInspectorFilterName))

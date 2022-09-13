@@ -158,8 +158,12 @@ func getPipyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.Co
 			ContainerPort: constants.SidecarAdminPort,
 		},
 		{
-			Name:          constants.SidecarInboundListenerPortName,
-			ContainerPort: constants.SidecarInboundListenerPort,
+			Name:          constants.SidecarTCPInboundListenerPortName,
+			ContainerPort: constants.SidecarTCPInboundListenerPort,
+		},
+		{
+			Name:          constants.SidecarUDPInboundListenerPortName,
+			ContainerPort: constants.SidecarUDPInboundListenerPort,
 		},
 		{
 			Name:          constants.SidecarInboundPrometheusListenerPortName,

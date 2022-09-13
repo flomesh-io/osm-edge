@@ -20,7 +20,9 @@ data:
         "enableEgress": {{.Values.osm.enableEgress | mustToJson}},
         "enablePermissiveTrafficPolicyMode": {{.Values.osm.enablePermissiveTrafficPolicy | mustToJson}},
         "outboundPortExclusionList": {{.Values.osm.outboundPortExclusionList | mustToJson}},
+        "outboundUDPPortExclusionList": {{.Values.osm.outboundUDPPortExclusionList | mustToJson}},
         "inboundPortExclusionList": {{.Values.osm.inboundPortExclusionList | mustToJson}},
+        "inboundUDPPortExclusionList": {{.Values.osm.inboundUDPPortExclusionList | mustToJson}},
         "outboundIPRangeExclusionList": {{.Values.osm.outboundIPRangeExclusionList | mustToJson}},
         "outboundIPRangeInclusionList": {{.Values.osm.outboundIPRangeInclusionList | mustToJson}},
         "networkInterfaceExclusionList": {{.Values.osm.networkInterfaceExclusionList | mustToJson}}

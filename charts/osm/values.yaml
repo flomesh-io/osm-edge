@@ -394,13 +394,21 @@ osm:
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeInclusionList: [ ]
 
-  # -- Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy.
+  # -- Specifies a global list of ports to exclude from outbound tcp traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   outboundPortExclusionList: [ ]
 
-  # -- Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy.
+  # -- Specifies a global list of ports to exclude from outbound udp traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  outboundUDPPortExclusionList: [ 53 ]
+
+  # -- Specifies a global list of ports to exclude from inbound tcp traffic interception by the sidecar proxy.
   # If specified, must be a list of positive integers.
   inboundPortExclusionList: [ ]
+
+  # -- Specifies a global list of ports to exclude from inbound udp traffic interception by the sidecar proxy.
+  # If specified, must be a list of positive integers.
+  inboundUDPPortExclusionList: [ ]
 
   # -- Specifies a global list of network interface names to exclude for inbound and outbound traffic interception by the sidecar proxy.
   networkInterfaceExclusionList: [ ]
