@@ -1,4 +1,4 @@
-// version: '2022.08.30'
+// version: '2022.09.17'
 ((
   {
     config,
@@ -163,8 +163,9 @@
           )),
 
           // Find egress nat gateway
-          _outMatch?.EgressForwardGateway && forwardMatches && ((egw) => (
-            egw = forwardMatches[_outMatch.EgressForwardGateway]?.next?.()?.id,
+          forwardMatches && ((policy, egw) => (
+            policy = _outMatch?.EgressForwardGateway ? _outMatch?.EgressForwardGateway : '*',
+            egw = forwardMatches[policy]?.next?.()?.id,
             egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
           ))(),
 
