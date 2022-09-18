@@ -135,14 +135,6 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 		return nil, nil
 	}
 
-	aclWithStatus.Status = policyV1alpha1.AccessControlStatus{
-		CurrentStatus: "committed",
-		Reason:        "successfully committed by the system",
-	}
-	if _, err := mc.kubeController.UpdateStatus(&aclWithStatus); err != nil {
-		log.Error().Err(err).Msg("Error updating status for AccessControl")
-	}
-
 	// Create an inbound traffic policy from the routing rules
 	// TODO(#3779): Implement HTTP route matching from AccessControl.Spec.Matches
 	var httpRoutePolicy *trafficpolicy.InboundTrafficPolicy
