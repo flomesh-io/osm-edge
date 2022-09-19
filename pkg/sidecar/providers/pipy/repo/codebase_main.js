@@ -1,4 +1,4 @@
-// version: '2022.09.17'
+// version: '2022.09.19'
 ((
   {
     config,
@@ -88,6 +88,12 @@
           // Check client address against the whitelist
           _inMatch?.AllowedEndpoints &&
           _inMatch.AllowedEndpoints[__inbound.remoteAddress] === undefined && (
+            _inMatch = null
+          ),
+          
+          // Check RateLimit.Local.Connections
+          (_inMatch?.RateLimitConnQuota && _inMatch.RateLimitConnQuota.consume(1) != 1) && (
+            metrics.sidecarInsideStats[_inMatch?.RateLimitConnStatsKey] += 1,
             _inMatch = null
           ),
 
@@ -347,10 +353,10 @@
     //
     // PIPY configuration file and osm get proxy
     //
-    .listen(15000)
+    .listen(':::15000')
     .demuxHTTP()
     .to(
       $ => $.chain(['stats.js'])
     )
-
+    
 ))()

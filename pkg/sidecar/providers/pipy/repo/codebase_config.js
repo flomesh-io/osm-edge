@@ -1,4 +1,4 @@
-// version: '2022.08.30'
+// version: '2022.09.19'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -8,7 +8,8 @@
   ) => (
 
     config.outClustersBreakers = {},
-    
+    metrics.sidecarInsideStats = {},
+
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
       namespace: (os.env.POD_NAMESPACE || 'default'),
@@ -33,7 +34,7 @@
       forwardEgressGateways: null,
       codeMessage: codeMessage
     },
-    
+
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
         sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
@@ -126,7 +127,13 @@
             (match?.RateLimit?.Local?.Connections > 0) && (((array) => (
               array = (new Array(match?.RateLimit?.Local?.Connections > 1000 ? 1000 : match?.RateLimit?.Local?.Connections)).fill('connection_').map((e, index) => e + index),
               obj.RateLimit = new algo.LeastWorkLoadBalancer(Object.fromEntries(array.map(k => [k, 1]))),
-              obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)]))
+              obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)])),
+              obj.RateLimitConnQuota = new algo.Quota(
+                match?.RateLimit?.Local?.Burst ? match.RateLimit.Local.Burst : match.RateLimit.Local.Connections,
+                { produce: match.RateLimit.Local.Connections, per: match?.RateLimit?.Local?.StatTimeWindow > 0 ? match.RateLimit.Local.StatTimeWindow : 1 }
+              ),
+              obj.RateLimitConnStatsKey = 'local_rate_limit.inbound_' + global.namespace + '/' + global.pod.split('-')[0] + '_' + match.Port + '_' + match.Protocol + '.rate_limited',
+              metrics.sidecarInsideStats[obj.RateLimitConnStatsKey] = 0
             ))()),
             obj
           )
