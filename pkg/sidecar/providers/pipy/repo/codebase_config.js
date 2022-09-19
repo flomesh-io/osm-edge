@@ -9,6 +9,9 @@
 
     config.outClustersBreakers = {},
     metrics.sidecarInsideStats = {},
+    
+    // pipy inside stats
+    metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] = 0,
 
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),

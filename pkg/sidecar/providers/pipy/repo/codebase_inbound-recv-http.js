@@ -1,4 +1,4 @@
-// version: '2022.08.15'
+// version: '2022.09.19'
 ((
   {
     name,
@@ -113,6 +113,7 @@
       () => _overflow, $ => $
         .replaceMessage(
           () => (
+            metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] += 1,
             new Message({
               status: 429
             }, 'Too Many Requests')
