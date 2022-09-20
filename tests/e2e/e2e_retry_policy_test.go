@@ -42,11 +42,6 @@ var _ = OSMDescribe("Test Retry Policy",
 					installOpts.EnableRetryPolicy = true
 					Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
-					sidecarClass, _ := Td.GetSidecarClass(Td.OsmNamespace)
-					if len(sidecarClass) == 0 || sidecarClass == constants.SidecarClassPipy {
-						Skip("Pipy doesn't support retry policy")
-					}
-
 					// Create test NS in mesh
 					for _, n := range meshNs {
 						Expect(Td.CreateNs(n, nil)).To(Succeed())

@@ -1,4 +1,4 @@
-// version: '2022.08.15'
+// version: '2022.09.20'
 (() => (
 
   pipy({
@@ -40,7 +40,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inHostRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inHostRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inHostRateLimit }), new StreamEnd] : msg
               )
             )
         ),
@@ -62,7 +62,8 @@
                 () => _overflow, $ => $
                   .replaceData()
                   .replaceMessage([new Message({
-                    overflow: true
+                    overflow: true,
+                    ratelimit: 2
                   }), new StreamEnd]),
                 $ => $
                   .throttleMessageRate(() => _inPathRateLimit.quota)
@@ -72,7 +73,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inPathRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inPathRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inPathRateLimit }), new StreamEnd] : msg
               )
             )
         ),
@@ -94,7 +95,8 @@
                 () => _overflow, $ => $
                   .replaceData()
                   .replaceMessage([new Message({
-                    overflow: true
+                    overflow: true,
+                    ratelimit: 3
                   }), new StreamEnd]),
                 $ => $
                   .throttleMessageRate(() => _inHeaderRateLimit.quota)
@@ -104,7 +106,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inHeaderRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inHeaderRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inHeaderRateLimit }), new StreamEnd] : msg
               )
             )
         ),

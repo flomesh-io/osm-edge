@@ -1,4 +1,4 @@
-// version: '2022.09.19'
+// version: '2022.09.20'
 ((
   {
     name,
@@ -8,7 +8,7 @@
   } = pipy.solve('config.js')) => (
 
   pipy({
-    _overflow: false
+    _inRateLimit: null
   })
 
     .import({
@@ -106,18 +106,23 @@
     )
     .chain(['inbound-throttle.js'])
     .handleMessageStart(
-      msg => _overflow = Boolean(msg.head?.overflow)
+      msg => Boolean(msg.head?.overflow) && (_inRateLimit = msg.head?.ratelimit)
     )
 
     .branch(
-      () => _overflow, $ => $
+      () => _inRateLimit, $ => $
         .replaceMessage(
           () => (
-            metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] += 1,
-            new Message({
-              status: 429
-            }, 'Too Many Requests')
-          )),
+            ((hds = {}) => (
+              metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] += 1,
+              _inRateLimit?.headers && _inRateLimit.headers.forEach(h => hds[h.Name] = h.Value),
+              new Message({
+                status: _inRateLimit.status,
+                headers: hds
+              }, 'Too Many Requests')
+            ))()
+          )
+        ),
       () => Boolean(_inTarget) && _inMatch?.Protocol === 'grpc', $ => $
         .muxHTTP(() => _inTarget, {
           version: 2
