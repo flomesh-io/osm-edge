@@ -102,7 +102,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			upstreamClusters = append(upstreamClusters, wc)
 		}
 
-		retryPolicy := mc.getRetryPolicy(downstreamIdentity, meshSvc)
+		retryPolicy := mc.GetRetryPolicy(downstreamIdentity, meshSvc)
 
 		// ---
 		// Create a TrafficMatch for this upstream service and port combination.

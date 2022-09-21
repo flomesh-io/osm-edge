@@ -521,7 +521,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 	}
 }
 
-func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
+func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _ *pipy.Proxy, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
 	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
@@ -540,6 +540,10 @@ func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Pro
 		}
 		if cluster.RetryPolicy != nil {
 			clusterConfigs.setRetryPolicy(cluster.RetryPolicy)
+		} else if upstreamSvc, err := hostToMeshSvc(cluster.ClusterName.String()); err == nil {
+			if retryPolicy := meshCatalog.GetRetryPolicy(serviceIdentity, upstreamSvc); retryPolicy != nil {
+				clusterConfigs.setRetryPolicy(retryPolicy)
+			}
 		}
 	}
 	return ready
@@ -660,6 +664,32 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 	return service.MeshService{
 		Namespace: chunks[0],
 		Name:      chunks[1],
+		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
+		// endpoints of a service are derived from it's TargetPort and not Port.
+		TargetPort: uint16(port),
+	}, nil
+}
+
+// hostToMeshSvc returns the MeshService associated with the given host name
+func hostToMeshSvc(cluster string) (service.MeshService, error) {
+	splitFunc := func(r rune) bool {
+		return r == '.' || r == ':'
+	}
+
+	chunks := strings.FieldsFunc(cluster, splitFunc)
+	if len(chunks) > 4 && strings.EqualFold("svc", chunks[3]) {
+		return service.MeshService{},
+			errors.Errorf("Invalid host. Expected: <name>.<namespace>.svc.trustdomain:<port>, got: %s", cluster)
+	}
+
+	port, err := strconv.ParseUint(chunks[len(chunks)-1], 10, 16)
+	if err != nil {
+		return service.MeshService{}, errors.Errorf("Invalid cluster port %s, expected int value: %s", chunks[len(chunks)-1], err)
+	}
+
+	return service.MeshService{
+		Namespace: chunks[1],
+		Name:      chunks[0],
 		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),

@@ -239,7 +239,7 @@ func TestGetRetryPolicy(t *testing.T) {
 			mockCfg.EXPECT().GetFeatureFlags().Return(v1alpha2.FeatureFlags{EnableRetryPolicy: tc.retryPolicyFlag}).Times(1)
 			mockPolicyController.EXPECT().ListRetryPolicies(gomock.Any()).Return(tc.retryCRDs).Times(1)
 
-			res := mc.getRetryPolicy(retrySrc, tc.destSvc)
+			res := mc.GetRetryPolicy(retrySrc, tc.destSvc)
 			assert.Equal(tc.expectedRetryPolicy, res)
 		})
 	}
