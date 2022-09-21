@@ -1,4 +1,4 @@
-// version: '2022.09.20'
+// version: '2022.09.21'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -210,7 +210,16 @@
               v.ConnectionSettings?.tcp?.MaxConnections && (
                 array = (new Array(v.ConnectionSettings?.tcp?.MaxConnections > 1000 ? 1000 : v.ConnectionSettings?.tcp?.MaxConnections)).fill('connection_').map((e, index) => e + index),
                 obj.RateLimit = new algo.LeastWorkLoadBalancer(Object.fromEntries(array.map(k => [k, 1]))),
-                obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)]))
+                obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)])),
+                obj.TcpMaxConnections = v.ConnectionSettings.tcp.MaxConnections,
+                v.ConnectionSettings?.http?.MaxRequestsPerConnection && (
+                  obj.HttpMaxRequestsPerConnection = v.ConnectionSettings.http.MaxRequestsPerConnection
+                ),
+                v.ConnectionSettings?.http?.MaxPendingRequests && (
+                  obj.HttpMaxPendingRequests = v.ConnectionSettings.http.MaxPendingRequests + v.ConnectionSettings.tcp.MaxConnections,
+                  obj.HttpMaxPendingStatsKey = 'cluster.' + k + '.upstream_rq_pending_overflow',
+                  metrics.sidecarInsideStats[obj.HttpMaxPendingStatsKey] = 0
+                )
               ),
               obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
               metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k),
