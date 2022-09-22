@@ -59,7 +59,6 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
-					DestinationIPRanges: egress.Spec.IPAddresses,
 					EgressGateWay:       egressGateway,
 				})
 
