@@ -1,4 +1,4 @@
-// version: '2022.09.21'
+// version: '2022.09.22'
 ((
   {
     metrics,
@@ -7,9 +7,10 @@
 
   pipy({
     _overflow: false,
+    _timestamp: null,
     _retryCount: null,
     _retryPolicy: null,
-    _muxHttpOptions: {}
+    _muxHttpOptions: null
   })
 
     .import({
@@ -23,7 +24,7 @@
     //
     .pipeline()
     .branch(
-      () => Boolean(outClustersConfigs?.[_upstreamClusterName]?.HttpMaxPendingRequests), $ => $
+      () => (_timestamp = Date.now(), Boolean(outClustersConfigs?.[_upstreamClusterName]?.HttpMaxPendingRequests)), $ => $
         .muxQueue(() => _upstreamClusterName, () => ({
           maxQueue: outClustersConfigs[_upstreamClusterName].HttpMaxPendingRequests
         }))
@@ -48,7 +49,10 @@
         (_overflow = Boolean(msg.head?.overflow)) ?
           (metrics.sidecarInsideStats[outClustersConfigs[_upstreamClusterName].HttpMaxPendingStatsKey]++,
             new Message({ status: 503 }, 'Service Unavailable'))
-          : msg
+          :
+          (msg.head.headers['server'] = 'pipy',
+            msg.head.headers['x-pipy-upstream-service-time'] = Math.ceil(Date.now() - _timestamp),
+            msg)
       )
     )
     .chain()
@@ -62,6 +66,7 @@
         (_retryPolicy = outClustersConfigs?.[_upstreamClusterName]?.RetryPolicy) && (
           _retryCount = 0
         ),
+        _muxHttpOptions = {},
         (_outMatch?.Protocol === 'grpc') && (
           _muxHttpOptions['version'] = 2
         ),
