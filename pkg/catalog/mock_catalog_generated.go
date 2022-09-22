@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/k8s"
@@ -138,6 +139,20 @@ func (m *MockMeshCataloger) GetOutboundMeshTrafficPolicy(arg0 identity.ServiceId
 func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
+}
+
+// GetRetryPolicy mocks base method.
+func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha1.RetryPolicySpec {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRetryPolicy", arg0, arg1)
+	ret0, _ := ret[0].(*v1alpha1.RetryPolicySpec)
+	return ret0
+}
+
+// GetRetryPolicy indicates an expected call of GetRetryPolicy.
+func (mr *MockMeshCatalogerMockRecorder) GetRetryPolicy(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRetryPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetRetryPolicy), arg0, arg1)
 }
 
 // ListAllowedUpstreamEndpointsForService mocks base method.
