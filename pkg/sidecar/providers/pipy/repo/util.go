@@ -340,14 +340,9 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			continue
 		}
 
-		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
-				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
-				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
-			})
-		}
+		var authenticatedPrincipals []string = nil
 		protocol := strings.ToLower(trafficMatch.Protocol)
-		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {
+		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
 			continue
 		}
 		for _, httpRouteConfig := range ingressPolicy.HTTPRoutePolicies {
@@ -386,11 +381,20 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
 						servicePrincipal := allowedPrincipal.(string)
+						authenticatedPrincipals = append(authenticatedPrincipals, servicePrincipal)
 						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
 						hsrr.addAllowedService(ServiceName(serviceIdentity))
 					}
 				}
 			}
+		}
+
+		for _, ipRange := range trafficMatch.SourceIPRanges {
+			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
+				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
+				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
+				AuthenticatedPrincipals:  authenticatedPrincipals,
+			})
 		}
 	}
 }

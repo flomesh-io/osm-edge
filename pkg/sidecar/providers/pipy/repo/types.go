@@ -126,6 +126,7 @@ type SourceIPRange string
 type SecuritySpec struct {
 	HTTPS                    bool `json:"mTLS"`
 	SkipClientCertValidation bool
+	AuthenticatedPrincipals  []string
 }
 
 // SourceIPRanges is a wrapper type of map[SourceIPRange]*SecuritySpec
