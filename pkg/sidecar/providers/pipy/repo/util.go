@@ -341,7 +341,10 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange))
+			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
+				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
+				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
+			})
 		}
 		protocol := strings.ToLower(trafficMatch.Protocol)
 		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {
@@ -410,9 +413,9 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 			}
 			if len(gateway.Endpoints) > 0 {
 				clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
-				for _, endpoint := range gateway.Endpoints {
-					address := Address(endpoint.IP.String())
-					port := Port(endpoint.Port)
+				for _, endPeer := range gateway.Endpoints {
+					address := Address(endPeer.IP.String())
+					port := Port(endPeer.Port)
 					weight := Weight(0)
 					clusterConfigs.addWeightedEndpoint(address, port, weight)
 				}
@@ -432,9 +435,9 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 				}
 				if len(gateway.Endpoints) > 0 {
 					clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
-					for _, endpoint := range gateway.Endpoints {
-						address := Address(endpoint.IP.String())
-						port := Port(endpoint.Port)
+					for _, endPeer := range gateway.Endpoints {
+						address := Address(endPeer.IP.String())
+						port := Port(endPeer.Port)
 						weight := Weight(0)
 						clusterConfigs.addWeightedEndpoint(address, port, weight)
 					}
@@ -470,7 +473,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange))
+			tm.addSourceIPRange(SourceIPRange(ipRange), nil)
 		}
 		protocol := strings.ToLower(trafficMatch.Protocol)
 		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {

@@ -122,8 +122,14 @@ type DestinationIPRanges []DestinationIPRange
 // SourceIPRange is a string wrapper type
 type SourceIPRange string
 
-// SourceIPRanges is a wrapper type of []SourceIPRange
-type SourceIPRanges []SourceIPRange
+// SecuritySpec is the security spec of source
+type SecuritySpec struct {
+	HTTPS                    bool `json:"mTLS"`
+	SkipClientCertValidation bool
+}
+
+// SourceIPRanges is a wrapper type of map[SourceIPRange]*SecuritySpec
+type SourceIPRanges map[SourceIPRange]*SecuritySpec
 
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
@@ -221,7 +227,6 @@ type InboundTrafficMatch struct {
 	Port                  Port     `json:"Port"`
 	Protocol              Protocol `json:"Protocol"`
 	SourceIPRanges        SourceIPRanges
-	sourceIPRanges        map[SourceIPRange]bool
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
 	TargetClusters        WeightedClusters             `json:"TargetClusters"`
