@@ -171,6 +171,8 @@ type MeshConfigSpec struct {
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
+	// The CommonName of the certificate
+	CommonName certificate.CommonName
 	// When the cert expires
 	Expiration string
 

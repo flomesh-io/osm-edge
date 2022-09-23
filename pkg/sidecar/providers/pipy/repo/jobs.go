@@ -165,7 +165,7 @@ func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
 		if !(*meshConf).GetSidecarDisabledMTLS() {
-			cnPrefix := proxy.GetCNPrefix()
+			cnPrefix := proxy.Identity.String()
 			if proxy.SidecarCert == nil {
 				pipyConf.Certificate = nil
 				sidecarCert := s.certManager.GetCertificate(cnPrefix)
@@ -252,6 +252,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 				version := fmt.Sprintf("%d", codebaseCurV)
 				pipyConf.Version = &version
 				if proxy.SidecarCert != nil {
+					pipyConf.Certificate.CommonName = proxy.SidecarCert.CommonName
 					pipyConf.Certificate.CertChain = string(proxy.SidecarCert.CertChain)
 					pipyConf.Certificate.PrivateKey = string(proxy.SidecarCert.PrivateKey)
 					pipyConf.Certificate.IssuingCA = string(proxy.SidecarCert.IssuingCA)
