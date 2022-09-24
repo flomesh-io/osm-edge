@@ -1,4 +1,4 @@
-// version: '2022.09.20'
+// version: '2022.09.23'
 (() => (
 
   pipy({
@@ -62,8 +62,7 @@
                 () => _overflow, $ => $
                   .replaceData()
                   .replaceMessage([new Message({
-                    overflow: true,
-                    ratelimit: 2
+                    overflow: true
                   }), new StreamEnd]),
                 $ => $
                   .throttleMessageRate(() => _inPathRateLimit.quota)
@@ -95,8 +94,7 @@
                 () => _overflow, $ => $
                   .replaceData()
                   .replaceMessage([new Message({
-                    overflow: true,
-                    ratelimit: 3
+                    overflow: true
                   }), new StreamEnd]),
                 $ => $
                   .throttleMessageRate(() => _inHeaderRateLimit.quota)

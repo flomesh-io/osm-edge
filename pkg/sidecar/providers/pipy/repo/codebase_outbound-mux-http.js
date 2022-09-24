@@ -1,8 +1,9 @@
-// version: '2022.09.22'
+// version: '2022.09.24'
 ((
   {
     metrics,
-    outClustersConfigs
+    outClustersConfigs,
+    funcCalcScaleRatio
   } = pipy.solve('config.js')) => (
 
   pipy({
@@ -61,7 +62,7 @@
     // upstream request
     //
     .pipeline('upstream-http-request')
-    .handleMessage(
+    .handleMessageStart(
       () => (
         (_retryPolicy = outClustersConfigs?.[_upstreamClusterName]?.RetryPolicy) && (
           _retryCount = 0
@@ -78,7 +79,8 @@
         )
       )
     )
-    .replay().to($ => $
+    .replay({ 'delay': () => _retryPolicy?.RetryBackoffBaseInterval ? _retryPolicy?.RetryBackoffBaseInterval * funcCalcScaleRatio(_retryCount) / 1000.0 : 0 })
+    .to($ => $
       .muxHTTP(() => _outTarget, () => _muxHttpOptions).to($ => $.chain(['outbound-proxy-tcp.js']))
       .replaceMessage(
         msg => ((status = msg.head.status, again = false) => (

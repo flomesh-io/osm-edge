@@ -1,4 +1,4 @@
-// version: '2022.09.21'
+// version: '2022.09.24'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -46,6 +46,10 @@
         global.debugLogLevel && console.log('funcShuffle LB out : ', out)
       ))(),
       out || {}
+    ),
+
+    global.funcCalcScaleRatio = (n) => (
+      n < 1 ? 0 : (n = Math.pow(2, n - 1), n > 10 ? 10 : n)
     ),
 
     global.funcInitLocalRateLimit = (local) => (
@@ -232,14 +236,14 @@
                   NumRetries: v.RetryPolicy?.NumRetries ? v.RetryPolicy.NumRetries : 1,
                   RetryBackoffBaseInterval: v.RetryPolicy?.RetryBackoffBaseInterval ? v.RetryPolicy.RetryBackoffBaseInterval : 1,
                   StatsKeyPrefix: 'cluster.' + k + '.upstream_rq_retry'
-                },
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix] = 0,
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix + '_backoff_exponential'] = 0,
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix + '_backoff_ratelimited'] = 0,
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix + '_limit_exceeded'] = 0,
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix + '_overflow'] = 0,
-                metrics.sidecarInsideStats[obj.RetryPolicy.StatsKeyPrefix + '_success'] = 0
+                }
               ),
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_backoff_exponential'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_backoff_ratelimited'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_limit_exceeded'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_overflow'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_success'] = 0,
               obj
             ))()
           ]
