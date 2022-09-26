@@ -186,6 +186,7 @@
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
+                "remoteLogging",
                 "webhookConfigNamePrefix",
                 "osmController",
                 "enablePrivilegedInitContainer",
@@ -871,6 +872,64 @@
                         },
                         "tolerations": {
                             "type": "array"
+                        }
+                    },
+                    "additionalProperties": false
+                },
+                "remoteLogging": {
+                    "$id": "#/properties/osm/properties/remoteLogging",
+                    "type": "object",
+                    "title": "The remote logging schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "examples": [
+                        {
+                            "enable": true
+                        }
+                    ],
+                    "required": [
+                        "enable",
+                        "address",
+                        "port",
+                        "endpoint"
+                    ],
+                    "properties": {
+                        "enable": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/enable",
+                            "type": "boolean",
+                            "title": "The enable schema for tracing",
+                            "description": "Indicates whether remote logging is enabled or not",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "address": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/address",
+                            "type": "string",
+                            "title": "The address schema for remote logging service",
+                            "description": "Address of the remote logging service",
+                            "examples": [
+                                "remote-logging-service.<osm-namespace>.svc.cluster.local"
+                            ]
+                        },
+                        "port": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/port",
+                            "type": "integer",
+                            "title": "The port schema for remote logging service",
+                            "description": "Port of the remote logging service",
+                            "minimum": 1,
+                            "maximum": 65535,
+                            "examples": [
+                                30514
+                            ]
+                        },
+                        "endpoint": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/endpoint",
+                            "type": "string",
+                            "title": "The endpoint schema for remote logging service",
+                            "description": "API path of the collector",
+                            "examples": [
+                                "/api/v2/spans"
+                            ]
                         }
                     },
                     "additionalProperties": false
