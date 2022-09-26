@@ -273,7 +273,7 @@ osm:
     # -- Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local".
     address: ""
     # -- Port of the remote logging service
-    port: 9411
+    port: 30514
     # -- Remote logging's API path where the spans will be sent to
     endpoint: ""
 
