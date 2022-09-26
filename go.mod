@@ -74,8 +74,8 @@ require (
 	github.com/klauspost/compress v1.14.4 // indirect
 	github.com/moby/sys/mountinfo v0.6.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/net v0.0.0-20220906165146-f3363e06e74c // indirect
+	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	google.golang.org/genproto v0.0.0-20220303160752-862486edd9cc // indirect
 	honnef.co/go/tools v0.1.1 // indirect
 )
