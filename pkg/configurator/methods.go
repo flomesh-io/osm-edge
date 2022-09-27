@@ -145,6 +145,15 @@ func (c *Client) GetRemoteLoggingEndpoint() string {
 	return ""
 }
 
+// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
+func (c *Client) GetRemoteLoggingAuthorization() string {
+	remoteLoggingAuthorization := c.getMeshConfig().Spec.Observability.RemoteLogging.Authorization
+	if remoteLoggingAuthorization != "" {
+		return remoteLoggingAuthorization
+	}
+	return ""
+}
+
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 func (c *Client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections

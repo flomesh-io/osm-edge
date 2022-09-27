@@ -220,6 +220,20 @@ func (mr *MockConfiguratorMockRecorder) GetProxyServerPort() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyServerPort", reflect.TypeOf((*MockConfigurator)(nil).GetProxyServerPort))
 }
 
+// GetRemoteLoggingAuthorization mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingAuthorization() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingAuthorization")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRemoteLoggingAuthorization indicates an expected call of GetRemoteLoggingAuthorization.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingAuthorization() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingAuthorization", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingAuthorization))
+}
+
 // GetRemoteLoggingEndpoint mocks base method.
 func (m *MockConfigurator) GetRemoteLoggingEndpoint() string {
 	m.ctrl.T.Helper()

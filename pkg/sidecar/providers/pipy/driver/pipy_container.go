@@ -161,6 +161,12 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 				Value: injCtx.Configurator.GetRemoteLoggingEndpoint(),
 			})
 		}
+		if len(injCtx.Configurator.GetRemoteLoggingAuthorization()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "REMOTE_LOGGING_AUTHORIZATION",
+				Value: injCtx.Configurator.GetRemoteLoggingAuthorization(),
+			})
+		}
 	}
 
 	return sidecarContainer

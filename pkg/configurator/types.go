@@ -68,10 +68,13 @@ type Configurator interface {
 	// GetRemoteLoggingEndpoint returns the collector endpoint
 	GetRemoteLoggingEndpoint() string
 
+	// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
+	GetRemoteLoggingAuthorization() string
+
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
 
-	// GetOsmLogLevel returns the configured OSM log level
+	// GetOSMLogLevel returns the configured OSM log level
 	GetOSMLogLevel() string
 
 	// GetSidecarLogLevel returns the sidecar log level
