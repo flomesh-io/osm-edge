@@ -242,6 +242,12 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 				Value: injCtx.Configurator.GetRemoteLoggingEndpoint(),
 			})
 		}
+		if len(injCtx.Configurator.GetRemoteLoggingAuthorization()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "REMOTE_LOGGING_AUTHORIZATION",
+				Value: injCtx.Configurator.GetRemoteLoggingAuthorization(),
+			})
+		}
 	}
 
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecarContainer)

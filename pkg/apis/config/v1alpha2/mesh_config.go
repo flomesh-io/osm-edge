@@ -154,6 +154,9 @@ type RemoteLoggingSpec struct {
 
 	// Endpoint defines the API endpoint for remote logging requests sent to the collector.
 	Endpoint string `json:"endpoint,omitempty"`
+
+	// Authorization defines the access entity that allows to authorize someone in remote logging service.
+	Authorization string `json:"authorization,omitempty"`
 }
 
 // ExternalAuthzSpec is a type to represent external authorization configuration.

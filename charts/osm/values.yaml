@@ -276,6 +276,8 @@ osm:
     port: 30514
     # -- Remote logging's API path where the spans will be sent to
     endpoint: ""
+    # -- The authorization for remote logging service
+    authorization: ""
 
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.

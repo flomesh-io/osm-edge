@@ -186,6 +186,7 @@
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
+                "remoteLogging",
                 "webhookConfigNamePrefix",
                 "osmController",
                 "enablePrivilegedInitContainer",
@@ -920,6 +921,15 @@
                             "description": "API path of the collector",
                             "examples": [
                                 "/api/v2/spans"
+                            ]
+                        },
+                        "authorization": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/authorization",
+                            "type": "string",
+                            "title": "The authorization for remote logging service",
+                            "description": "Authorization for remote logging service",
+                            "examples": [
+                                "Basic XXX"
                             ]
                         }
                     },

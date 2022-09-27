@@ -168,6 +168,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
 | osm.remoteLogging.address | string | `""` | Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local". |
+| osm.remoteLogging.authorization | string | `""` | The authorization for remote logging service |
 | osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
