@@ -75,6 +75,13 @@ spec:
                             statTimeWindow:
                               description: Statistical time period of circuit breaking.
                               type: string
+                            minRequestAmount:
+                              description: Minimum number of requests (in an active statistic time span) that can trigger circuit breaking.
+                              type: integer
+                              minimum: 1
+                            degradedTimeWindow:
+                              description: Duration of circuit breaking.
+                              type: string
                             slowTimeThreshold:
                               description: Time threshold of slow request.
                               type: string
@@ -94,9 +101,6 @@ spec:
                               description: Ratio threshold of error request.
                               type: number
                               minimum: 0
-                            degradedTimeWindow:
-                              description: Duration of circuit breaking.
-                              type: string
                     http:
                       description: HTTP connection settings.
                       type: object
@@ -124,6 +128,13 @@ spec:
                             statTimeWindow:
                               description: Statistical time period of circuit breaking.
                               type: string
+                            minRequestAmount:
+                              description: Minimum number of requests (in an active statistic time span) that can trigger circuit breaking.
+                              type: integer
+                              minimum: 1
+                            degradedTimeWindow:
+                              description: Duration of circuit breaking.
+                              type: string
                             slowTimeThreshold:
                               description: Time threshold of slow request.
                               type: string
@@ -143,9 +154,6 @@ spec:
                               description: Ratio threshold of error request.
                               type: number
                               minimum: 0
-                            degradedTimeWindow:
-                              description: Duration of circuit breaking.
-                              type: string
                             degradedStatusCode:
                               description: Degraded http status code of circuit breaking.
                               type: integer

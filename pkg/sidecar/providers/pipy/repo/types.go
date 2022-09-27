@@ -309,6 +309,12 @@ type TCPCircuitBreaking struct {
 	// StatTimeWindow specifies statistical time period of circuit breaking
 	StatTimeWindow *float64 `json:"StatTimeWindow"`
 
+	// MinRequestAmount specifies minimum number of requests (in an active statistic time span) that can trigger circuit breaking.
+	MinRequestAmount uint32 `json:"MinRequestAmount"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
+
 	// SlowTimeThreshold specifies the time threshold of slow request
 	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
 
@@ -323,9 +329,6 @@ type TCPCircuitBreaking struct {
 
 	// ErrorRatioThreshold specifies the ratio threshold of error request
 	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
-
-	// DegradedTimeWindow specifies the duration of circuit breaking
-	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
 }
 
 // TCPConnectionSettings defines the TCP connection settings for an
@@ -352,6 +355,12 @@ type HTTPCircuitBreaking struct {
 	// StatTimeWindow specifies statistical time period of circuit breaking
 	StatTimeWindow *float64 `json:"StatTimeWindow"`
 
+	// MinRequestAmount specifies minimum number of requests (in an active statistic time span) that can trigger circuit breaking.
+	MinRequestAmount uint32 `json:"MinRequestAmount"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
+
 	// SlowTimeThreshold specifies the time threshold of slow request
 	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
 
@@ -366,9 +375,6 @@ type HTTPCircuitBreaking struct {
 
 	// ErrorRatioThreshold specifies the ratio threshold of error request
 	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
-
-	// DegradedTimeWindow specifies the duration of circuit breaking
-	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
 
 	// DegradedStatusCode specifies the degraded http status code of circuit breaking
 	DegradedStatusCode *int32 `json:"DegradedStatusCode,omitempty"`
