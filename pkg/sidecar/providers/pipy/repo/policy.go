@@ -507,26 +507,6 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 			duration := connectionSettings.TCP.ConnectTimeout.Seconds()
 			otp.ConnectionSettings.TCP.ConnectTimeout = &duration
 		}
-		if connectionSettings.TCP.CircuitBreaking != nil {
-			otp.ConnectionSettings.TCP.CircuitBreaking = new(TCPCircuitBreaking)
-			if connectionSettings.TCP.CircuitBreaking.StatTimeWindow != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.StatTimeWindow.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.StatTimeWindow = &duration
-			}
-			otp.ConnectionSettings.TCP.CircuitBreaking.MinRequestAmount = connectionSettings.TCP.CircuitBreaking.MinRequestAmount
-			if connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.DegradedTimeWindow = &duration
-			}
-			if connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.SlowTimeThreshold = &duration
-			}
-			otp.ConnectionSettings.TCP.CircuitBreaking.SlowAmountThreshold = connectionSettings.TCP.CircuitBreaking.SlowAmountThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.SlowRatioThreshold = connectionSettings.TCP.CircuitBreaking.SlowRatioThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold = connectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold = connectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold
-		}
 	}
 	if connectionSettings.HTTP != nil {
 		otp.ConnectionSettings.HTTP = new(HTTPConnectionSettings)

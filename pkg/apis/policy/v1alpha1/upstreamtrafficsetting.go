@@ -73,9 +73,24 @@ type ConnectionSettingsSpec struct {
 	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
 }
 
-// TCPCircuitBreaking defines the TCP Circuit Breaking settings for an
+// TCPConnectionSettings defines the TCP connection settings for an
 // upstream host.
-type TCPCircuitBreaking struct {
+type TCPConnectionSettings struct {
+	// MaxConnections specifies the maximum number of TCP connections
+	// allowed to the upstream host.
+	// Defaults to 4294967295 (2^32 - 1) if not specified.
+	// +optional
+	MaxConnections *uint32 `json:"maxConnections,omitempty"`
+
+	// ConnectTimeout specifies the TCP connection timeout.
+	// Defaults to 5s if not specified.
+	// +optional
+	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
+}
+
+// HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
+// upstream host.
+type HTTPCircuitBreaking struct {
 	// StatTimeWindow specifies statistical time period of circuit breaking
 	StatTimeWindow *metav1.Duration `json:"statTimeWindow"`
 
@@ -99,30 +114,6 @@ type TCPCircuitBreaking struct {
 
 	// ErrorRatioThreshold specifies the ratio threshold of error request
 	ErrorRatioThreshold *float32 `json:"errorRatioThreshold,omitempty"`
-}
-
-// TCPConnectionSettings defines the TCP connection settings for an
-// upstream host.
-type TCPConnectionSettings struct {
-	// MaxConnections specifies the maximum number of TCP connections
-	// allowed to the upstream host.
-	// Defaults to 4294967295 (2^32 - 1) if not specified.
-	// +optional
-	MaxConnections *uint32 `json:"maxConnections,omitempty"`
-
-	// ConnectTimeout specifies the TCP connection timeout.
-	// Defaults to 5s if not specified.
-	// +optional
-	ConnectTimeout *metav1.Duration `json:"connectTimeout,omitempty"`
-
-	// CircuitBreaking specifies the TCP connection circuit breaking setting.
-	CircuitBreaking *TCPCircuitBreaking `json:"circuitBreaking,omitempty"`
-}
-
-// HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
-// upstream host.
-type HTTPCircuitBreaking struct {
-	TCPCircuitBreaking
 
 	// DegradedStatusCode specifies the degraded http status code of circuit breaking
 	DegradedStatusCode *int32 `json:"degradedStatusCode,omitempty"`
