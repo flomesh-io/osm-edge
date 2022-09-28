@@ -1,4 +1,4 @@
-// version: '2022.09.19'
+// version: '2022.09.28'
 ((
   {
     config,
@@ -67,7 +67,8 @@
       _outPort: null,
       _outSessionControl: null,
       _egressTargetMap: {},
-      _upstreamClusterName: null
+      _upstreamClusterName: null,
+      _forbiddenTLS: null
     })
 
     //
@@ -90,7 +91,7 @@
           _inMatch.AllowedEndpoints[__inbound.remoteAddress] === undefined && (
             _inMatch = null
           ),
-          
+
           // Check RateLimit.Local.Connections
           (_inMatch?.RateLimitConnQuota && _inMatch.RateLimitConnQuota.consume(1) != 1) && (
             metrics.sidecarInsideStats[_inMatch?.RateLimitConnStatsKey] += 1,
@@ -98,7 +99,7 @@
           ),
 
           // INGRESS mode
-          _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)),
+          _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.netmask.contains(__inbound.remoteAddress)),
 
           // Layer 4 load balance
           _inTarget = (
@@ -130,7 +131,7 @@
       )
     )
     .branch(
-      () => Boolean(tlsCertChain) && Boolean(_inMatch) && !Boolean(_ingressMode), $ => $
+      () => Boolean(tlsCertChain) && Boolean(_inMatch) && (!Boolean(_ingressMode) || _ingressMode?.mTLS), $ => $
         .acceptTLS({
           certificate: () => ({
             cert: new crypto.Certificate(tlsCertChain),
@@ -138,7 +139,23 @@
           }),
           trusted: (!tlsIssuingCA && []) || [
             new crypto.Certificate(tlsIssuingCA),
-          ]
+          ],
+          verify: (ok, cert) => (
+            _ingressMode?.mTLS && !Boolean(_ingressMode?.skipClientCertValidation) && (
+              _ingressMode?.authenticatedPrincipals && (_forbiddenTLS = true),
+              (_ingressMode?.authenticatedPrincipals?.[cert?.subject?.commonName] ||
+                (cert?.subjectAltNames && cert.subjectAltNames.find(o => _ingressMode?.authenticatedPrincipals?.[o]))) && (
+                _forbiddenTLS = false
+              ),
+              _forbiddenTLS && (
+                (_inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc') && (
+                  ok = false
+                ),
+                debugLogLevel && console.log('Bad client certificate :', cert?.subject)
+              )
+            ),
+            ok
+          )
         }).to($ => $
           .chain(['inbound-recv-tcp.js'])),
       $ => $
@@ -243,7 +260,7 @@
     //
     // Periodic calculate circuit breaker ratio.
     //
-    .task('5s')
+    .task('1s')
     .onStart(
       () => new Message
     )
@@ -358,5 +375,5 @@
     .to(
       $ => $.chain(['stats.js'])
     )
-    
+
 ))()

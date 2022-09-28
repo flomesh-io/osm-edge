@@ -1,4 +1,4 @@
-// version: '2022.09.20'
+// version: '2022.09.28'
 ((
   {
     name,
@@ -21,7 +21,8 @@
       _inLoggingData: 'main',
       _inZipkinData: 'main',
       _inSessionControl: 'main',
-      _localClusterName: 'main'
+      _localClusterName: 'main',
+      _forbiddenTLS: 'main'
     })
 
     .export('inbound-recv-http', {
@@ -48,7 +49,7 @@
           !service && (service = (headers.serviceidentity && _inMatch?.HttpHostPort2Service?.[headers.host])),
 
           // Find a match by the service's route rules
-          match = _inMatch.HttpServiceRouteRules?.[service]?.RouteRules?.find?.(o => (
+          match = !Boolean(_forbiddenTLS) && _inMatch.HttpServiceRouteRules?.[service]?.RouteRules?.find?.(o => (
             // Match methods
             (!o.Methods || o.Methods[msg.head.method]) &&
             // Match service whitelist

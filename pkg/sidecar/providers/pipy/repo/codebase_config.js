@@ -1,4 +1,4 @@
-// version: '2022.09.24'
+// version: '2022.09.28'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -112,7 +112,13 @@
               Protocol: match.Protocol,
               HttpHostPort2Service: match.HttpHostPort2Service,
               SourceIPRanges_: match?.SourceIPRanges, // for debugLogLevel
-              SourceIPRanges: match.SourceIPRanges && match.SourceIPRanges.map(e => new Netmask(e)),
+              SourceIPRanges: match.SourceIPRanges && Object.entries(match.SourceIPRanges).map(([k, v]) =>
+              ({
+                netmask: new Netmask(k),
+                mTLS: v?.mTLS,
+                skipClientCertValidation: v?.SkipClientCertValidation,
+                authenticatedPrincipals: v?.AuthenticatedPrincipals && Object.fromEntries(v.AuthenticatedPrincipals.map(e => [e, true])),
+              })),
               TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(match.TargetClusters)),
               HttpServiceRouteRules: match.HttpServiceRouteRules && global.funcInboundHttpServiceRouteRules(match.HttpServiceRouteRules),
               ProbeTarget: (match.Protocol === 'http') && (!global.probeTarget || !match.SourceIPRanges) && (global.probeTarget = '127.0.0.1:' + port)
@@ -199,6 +205,7 @@
             v.ConnectionSettings?.tcp?.MaxConnections,
             v.ConnectionSettings?.http?.MaxRequestsPerConnection,
             v.ConnectionSettings?.http?.MaxPendingRequests,
+            v.ConnectionSettings?.http?.CircuitBreaking?.MinRequestAmount,
             v.ConnectionSettings?.http?.CircuitBreaking?.StatTimeWindow,
             v.ConnectionSettings?.http?.CircuitBreaking?.SlowTimeThreshold,
             v.ConnectionSettings?.http?.CircuitBreaking?.SlowAmountThreshold,

@@ -1,41 +1,38 @@
-// version: '2022.08.12'
+// version: '2022.09.28'
 (
   serviceName = '',
   maxConnections = 10,
   maxRequestsPerConnection = 10, // unimplement
   maxPendingRequests = 10, // unimplement
-  statTimeWindow = 15, // 15s
-  slowTimeThreshold = 3, // 3s
-  slowAmountThreshold = 10,
-  slowRatioThreshold = 0.5,
-  errorAmountThreshold = 10,
-  errorRatioThreshold = 0.25,
-  degradedTimeWindow = 15, // 15s
+  minRequestAmount = 100,
+  statTimeWindow = 30, // 30s
+  slowTimeThreshold = 5, // 5s
+  slowAmountThreshold = 0,
+  slowRatioThreshold = 0.0,
+  errorAmountThreshold = 0,
+  errorRatioThreshold = 0.0,
+  degradedTimeWindow = 30, // 30s
   degradedStatusCode = 409,
   degradedResponseContent = 'Coming soon ...'
 ) => (
   ((
+    tick = 0,
     total = 0,
     slowAmount = 0,
     errorAmount = 0,
     degraded = false,
     lastDegraded = false,
     tcpConnections = 0,
-    slowQuota = new algo.Quota(slowAmountThreshold, {
+    slowQuota = slowAmountThreshold > 0 ? new algo.Quota(slowAmountThreshold - 1, {
       per: statTimeWindow
-    }),
-    errorQuota = new algo.Quota(errorAmountThreshold, {
+    }) : null,
+    errorQuota = errorAmountThreshold > 0 ? new algo.Quota(errorAmountThreshold - 1, {
       per: statTimeWindow
-    }),
+    }) : null,
     degradedQuota = new algo.Quota(1, {
       per: degradedTimeWindow
     }),
-    samplingSlowQuota = new algo.Quota((statTimeWindow + 4) / 5 - 1, {
-      per: statTimeWindow
-    }),
-    samplingErrorQuota = new algo.Quota((statTimeWindow + 4) / 5 - 1, {
-      per: statTimeWindow
-    }),
+    checkSample,
     report,
     exceedMaxConnections
   ) => (
@@ -44,6 +41,7 @@
     console.log('maxConnections:', maxConnections),
     console.log('maxRequestsPerConnection:', maxRequestsPerConnection),
     console.log('maxPendingRequests:', maxPendingRequests),
+    console.log('minRequestAmount:', minRequestAmount),
     console.log('statTimeWindow:', statTimeWindow),
     console.log('slowTimeThreshold:', slowTimeThreshold),
     console.log('slowAmountThreshold:', slowAmountThreshold),
@@ -54,10 +52,24 @@
     console.log('degradedStatusCode:', degradedStatusCode),
     console.log('degradedResponseContent:', degradedResponseContent),
 
+    checkSample = (cond) => (
+      !degraded && (total >= minRequestAmount) && (
+        lastDegraded = degraded,
+        (slowRatioThreshold > 0) && (
+          (slowAmount / total >= slowRatioThreshold) && (degraded = true)
+        ),
+        (errorRatioThreshold > 0) && (
+          (errorAmount / total >= errorRatioThreshold) && (degraded = true)
+        ),
+        !lastDegraded && degraded && degradedQuota.consume(1),
+        degraded && console.log('[circuit_breaker] total/slowAmount/errorAmount', cond, serviceName, degraded, total, slowAmount, errorAmount)
+      )
+    ),
+
     report = code => (
       lastDegraded = degraded,
-      ((code & 0x1) == 1) && (++slowAmount) && (slowQuota.consume(1) != 1) && (degraded = true),
-      ((code & 0x2) == 2) && (++errorAmount) && (errorQuota.consume(1) != 1) && (degraded = true),
+      ((code & 0x1) == 1) && (++slowAmount) && slowQuota && (slowQuota.consume(1) != 1) && (degraded = true),
+      ((code & 0x2) == 2) && (++errorAmount) && errorQuota && (errorQuota.consume(1) != 1) && (degraded = true),
       !lastDegraded && degraded && degradedQuota.consume(1)
     ),
 
@@ -67,8 +79,9 @@
       ),
 
       block: () => (
+        checkSample('block'),
         degraded && (degradedQuota.consume(1) == 1) && (lastDegraded = degraded = false),
-        degraded && console.log('=== [circuit_breaker] === (block)', serviceName, degraded),
+        // degraded && console.log('[circuit_breaker] (block)', serviceName, degraded),
         degraded
       ),
 
@@ -81,14 +94,19 @@
       ),
 
       sample: () => (
-        (total > 0) && (() => (
-          lastDegraded = degraded,
-          (total >= slowAmountThreshold) && (slowAmount / total >= slowRatioThreshold) && (samplingSlowQuota.consume(1) != 1) && (degraded = true),
-          (total >= errorAmountThreshold) && (errorAmount / total >= errorRatioThreshold) && (samplingErrorQuota.consume(1) != 1) && (degraded = true),
-          !lastDegraded && degraded && degradedQuota.consume(1),
-          degraded && console.log('=== [circuit_breaker] === (timer) total/slowAmount/errorAmount', serviceName, degraded, total, slowAmount, errorAmount),
-          total = slowAmount = errorAmount = 0
-        ))()
+        degraded && (
+          tick = 0,
+          (total > 0) && (
+            total = slowAmount = errorAmount = 0
+          )
+        ),
+
+        !degraded && (
+          checkSample('timer'),
+          (++tick > statTimeWindow) && (
+            tick = total = slowAmount = errorAmount = 0
+          )
+        )
       ),
 
       message: () => (
@@ -116,6 +134,9 @@
 
       maxRequestsPerConnection: () => maxRequestsPerConnection,
 
-      maxPendingRequests: () => maxPendingRequests
+      maxPendingRequests: () => maxPendingRequests,
+
+      minRequestAmount: () => minRequestAmount
+
     }))()
 )
