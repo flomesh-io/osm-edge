@@ -1,4 +1,4 @@
-// version: '2022.09.27'
+// version: '2022.09.29'
 ((
   {
     config,
@@ -212,6 +212,7 @@
 
           _inLoggingData = {
             reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
             remoteAddr: __inbound?.remoteAddress,
             remotePort: __inbound?.remotePort,
             localAddr: __inbound?.destinationAddress,
@@ -480,6 +481,7 @@
 
           _outLoggingData = {
             reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
             remoteAddr: __inbound?.destinationAddress,
             remotePort: __inbound?.destinationPort,
             localAddr: __inbound?.remoteAddress,
