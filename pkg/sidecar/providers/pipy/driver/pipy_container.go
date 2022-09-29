@@ -83,6 +83,10 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		},
 		Env: []corev1.EnvVar{
 			{
+				Name:  "MESH_NAME",
+				Value: injCtx.MeshName,
+			},
+			{
 				Name: "POD_UID",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
