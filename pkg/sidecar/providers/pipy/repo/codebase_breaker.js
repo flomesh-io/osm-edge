@@ -1,4 +1,4 @@
-// version: '2022.09.28'
+// version: '2022.09.29'
 (
   serviceName = '',
   maxConnections = 10,
@@ -17,6 +17,7 @@
 ) => (
   ((
     tick = 0,
+    delay = 0,
     total = 0,
     slowAmount = 0,
     errorAmount = 0,
@@ -33,8 +34,7 @@
       per: degradedTimeWindow
     }),
     checkSample,
-    report,
-    exceedMaxConnections
+    report
   ) => (
 
     console.log('serviceName:', serviceName),
@@ -62,7 +62,7 @@
           (errorAmount / total >= errorRatioThreshold) && (degraded = true)
         ),
         !lastDegraded && degraded && degradedQuota.consume(1),
-        degraded && console.log('[circuit_breaker] total/slowAmount/errorAmount', cond, serviceName, degraded, total, slowAmount, errorAmount)
+        degraded && console.log('[circuit_breaker] tick/delay, total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
       )
     ),
 
@@ -81,7 +81,6 @@
       block: () => (
         checkSample('block'),
         degraded && (degradedQuota.consume(1) == 1) && (lastDegraded = degraded = false),
-        // degraded && console.log('[circuit_breaker] (block)', serviceName, degraded),
         degraded
       ),
 
@@ -97,11 +96,16 @@
         degraded && (
           tick = 0,
           (total > 0) && (
-            total = slowAmount = errorAmount = 0
+            delay = total = slowAmount = errorAmount = 0
+          ),
+          (++delay > degradedTimeWindow) && (
+            console.log('[circuit_breaker] end of circuit breaker, tick/delay/total/slowAmount/errorAmount', serviceName, tick, delay, total, slowAmount, errorAmount),
+            lastDegraded = degraded = false,
+            delay = total = slowAmount = errorAmount = 0
           )
         ),
-
         !degraded && (
+          delay = 0,
           checkSample('timer'),
           (++tick > statTimeWindow) && (
             tick = total = slowAmount = errorAmount = 0
@@ -122,10 +126,6 @@
 
       decConnections: () => (
         --tcpConnections
-      ),
-
-      exceedMaxConnections: () => (
-        tcpConnections > maxConnections ? console.log('=== [circuit_breaker] === (exceedMaxConnections)', serviceName, tcpConnections, maxConnections) || true : false
       ),
 
       serviceName: () => serviceName,
