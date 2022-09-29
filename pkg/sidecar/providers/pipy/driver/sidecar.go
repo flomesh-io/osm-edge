@@ -164,6 +164,10 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 		},
 		Env: []corev1.EnvVar{
 			{
+				Name:  "MESH_NAME",
+				Value: injCtx.MeshName,
+			},
+			{
 				Name: "POD_UID",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
