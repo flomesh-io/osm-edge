@@ -340,7 +340,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			continue
 		}
 
-		var authenticatedPrincipals []string = nil
+		var authenticatedPrincipals []string
 		protocol := strings.ToLower(trafficMatch.Protocol)
 		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
 			continue
