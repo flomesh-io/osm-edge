@@ -1,4 +1,4 @@
-// version: '2022.09.28'
+// version: '2022.09.30'
 ((
   {
     config,
@@ -39,7 +39,18 @@
     }
   }).log),
 
-  debugLogLevel && (logLogging = new logging.JSONLogger('access-logging').toFile('/dev/stdout').log),
+  os.env.REMOTE_LOGGING_ADDRESS && (logLogging = new logging.JSONLogger('access-logging').toHTTP('http://' + os.env.REMOTE_LOGGING_ADDRESS +
+    (os.env.REMOTE_LOGGING_ENDPOINT || '/?query=insert%20into%20log(message)%20format%20JSONAsString'), {
+    batch: {
+      prefix: '[',
+      postfix: ']',
+      separator: ','
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': os.env.REMOTE_LOGGING_AUTHORIZATION || ''
+    }
+  }).log),
 
   pipy({
   })

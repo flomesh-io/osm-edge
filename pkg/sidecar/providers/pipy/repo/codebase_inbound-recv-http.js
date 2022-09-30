@@ -1,4 +1,4 @@
-// version: '2022.09.28'
+// version: '2022.09.30'
 ((
   {
     name,
@@ -90,7 +90,32 @@
           logZipkin && (_inZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true)),
 
           // Initialize Inbound logging data
-          logLogging && (_inLoggingData = metrics.funcMakeLoggingData(msg, 'inbound')),
+          logLogging && (_inLoggingData = {
+            reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
+            remoteAddr: __inbound?.remoteAddress,
+            remotePort: __inbound?.remotePort,
+            localAddr: __inbound?.destinationAddress,
+            localPort: __inbound?.destinationPort,
+            node: {
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.HOSTNAME || 'localhost',
+            },
+            pod: {
+              ns: os.env.POD_NAMESPACE || 'default',
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
+            },
+            service: {
+              name: service || 'anonymous', target: _inTarget?.id, ingressMode: Boolean(_ingressMode)
+            },
+            trace: {
+              id: headers?.['x-b3-traceid'] || '',
+              span: headers?.['x-b3-spanid'] || '',
+              parent: headers?.['x-b3-parentspanid'] || '',
+              sampled: headers?.['x-b3-sampled'] || ''
+            }
+          }),
 
           _inBytesStruct = {},
           _inBytesStruct.requestSize = _inBytesStruct.responseSize = 0,
@@ -109,7 +134,15 @@
     .handleMessageStart(
       msg => Boolean(msg.head?.overflow) && (_inRateLimit = msg.head?.ratelimit)
     )
-
+    .handleMessage(
+      msg => (
+        logLogging && (
+          _inLoggingData.req = Object.assign({}, msg.head),
+          _inLoggingData.req['body'] = msg.body.toString('base64'),
+          _inLoggingData['reqSize'] = msg.body.size
+        )
+      )
+    )
     .branch(
       () => _inRateLimit, $ => $
         .replaceMessage(

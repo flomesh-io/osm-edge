@@ -1,4 +1,4 @@
-// version: '2022.08.12'
+// version: '2022.09.30'
 ((
   {
     config,
@@ -91,7 +91,32 @@
           logZipkin && (_outZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _upstreamClusterName, 'CLIENT', false)),
 
           // Initialize Outbound logging data
-          logLogging && (_outLoggingData = metrics.funcMakeLoggingData(msg, 'outbound')),
+          logLogging && (_outLoggingData = {
+            reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
+            remoteAddr: __inbound?.destinationAddress,
+            remotePort: __inbound?.destinationPort,
+            localAddr: __inbound?.remoteAddress,
+            localPort: __inbound?.remotePort,
+            node: {
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.HOSTNAME || 'localhost',
+            },
+            pod: {
+              ns: os.env.POD_NAMESPACE || 'default',
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
+            },
+            service: {
+              name: service || 'anonymous', target: _outTarget?.id, egressMode: Boolean(_egressMode)
+            },
+            trace: {
+              id: headers?.['x-b3-traceid'] || '',
+              span: headers?.['x-b3-spanid'] || '',
+              parent: headers?.['x-b3-parentspanid'] || '',
+              sampled: headers?.['x-b3-sampled'] || ''
+            }
+          }),
 
           _outBytesStruct = {},
           _outBytesStruct.requestSize = _outBytesStruct.responseSize = 0,
@@ -121,7 +146,15 @@
         ))()
       )
     )
-
+    .handleMessage(
+      msg => (
+        logLogging && (
+          _outLoggingData.req = Object.assign({}, msg.head),
+          _outLoggingData.req['body'] = msg.body.toString('base64'),
+          _outLoggingData['reqSize'] = msg.body.size
+        )
+      )
+    )
     .branch(
       () => config?.outClustersBreakers?.[_upstreamClusterName]?.block?.(), $ => $
         .replaceMessage(

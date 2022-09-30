@@ -1,4 +1,4 @@
-// version: '2022.09.29'
+// version: '2022.09.30'
 (
   serviceName = '',
   maxConnections = 10,
@@ -33,6 +33,8 @@
     degradedQuota = new algo.Quota(1, {
       per: degradedTimeWindow
     }),
+    close,
+    open,
     checkSample,
     report
   ) => (
@@ -52,7 +54,16 @@
     console.log('degradedStatusCode:', degradedStatusCode),
     console.log('degradedResponseContent:', degradedResponseContent),
 
-    checkSample = (cond) => (
+    close = cond => (
+      degradedQuota.consume(1),
+      console.log('[circuit_breaker] (close) tick/delay/degraded/total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
+    ),
+
+    open = cond => (
+      console.log('[circuit_breaker] (open) tick/delay/degraded/total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
+    ),
+
+    checkSample = cond => (
       !degraded && (total >= minRequestAmount) && (
         lastDegraded = degraded,
         (slowRatioThreshold > 0) && (
@@ -61,8 +72,7 @@
         (errorRatioThreshold > 0) && (
           (errorAmount / total >= errorRatioThreshold) && (degraded = true)
         ),
-        !lastDegraded && degraded && degradedQuota.consume(1),
-        degraded && console.log('[circuit_breaker] tick/delay, total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
+        !lastDegraded && degraded && close(cond)
       )
     ),
 
@@ -70,7 +80,7 @@
       lastDegraded = degraded,
       ((code & 0x1) == 1) && (++slowAmount) && slowQuota && (slowQuota.consume(1) != 1) && (degraded = true),
       ((code & 0x2) == 2) && (++errorAmount) && errorQuota && (errorQuota.consume(1) != 1) && (degraded = true),
-      !lastDegraded && degraded && degradedQuota.consume(1)
+      !lastDegraded && degraded && close('report')
     ),
 
     {
@@ -79,8 +89,11 @@
       ),
 
       block: () => (
-        checkSample('block'),
-        degraded && (degradedQuota.consume(1) == 1) && (lastDegraded = degraded = false),
+        checkSample('check'),
+        degraded && (degradedQuota.consume(1) == 1) && (
+          lastDegraded = degraded = false,
+          open('check')
+        ),
         degraded
       ),
 
@@ -99,8 +112,8 @@
             delay = total = slowAmount = errorAmount = 0
           ),
           (++delay > degradedTimeWindow) && (
-            console.log('[circuit_breaker] end of circuit breaker, tick/delay/total/slowAmount/errorAmount', serviceName, tick, delay, total, slowAmount, errorAmount),
             lastDegraded = degraded = false,
+            open('timer'),
             delay = total = slowAmount = errorAmount = 0
           )
         ),
