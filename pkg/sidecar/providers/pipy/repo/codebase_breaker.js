@@ -33,8 +33,8 @@
     degradedQuota = new algo.Quota(1, {
       per: degradedTimeWindow
     }),
-    close,
     open,
+    close,
     checkSample,
     report
   ) => (
@@ -54,13 +54,13 @@
     console.log('degradedStatusCode:', degradedStatusCode),
     console.log('degradedResponseContent:', degradedResponseContent),
 
-    close = cond => (
+    open = cond => (
       degradedQuota.consume(1),
-      console.log('[circuit_breaker] (close) tick/delay/degraded/total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
+      console.log('[circuit_breaker] tick/delay/degraded/total/slowAmount/errorAmount (open) ', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
     ),
 
-    open = cond => (
-      console.log('[circuit_breaker] (open) tick/delay/degraded/total/slowAmount/errorAmount', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
+    close = cond => (
+      console.log('[circuit_breaker] tick/delay/degraded/total/slowAmount/errorAmount (close)', cond, serviceName, tick, delay, degraded, total, slowAmount, errorAmount)
     ),
 
     checkSample = cond => (
@@ -72,7 +72,7 @@
         (errorRatioThreshold > 0) && (
           (errorAmount / total >= errorRatioThreshold) && (degraded = true)
         ),
-        !lastDegraded && degraded && close(cond)
+        !lastDegraded && degraded && open(cond)
       )
     ),
 
@@ -80,7 +80,7 @@
       lastDegraded = degraded,
       ((code & 0x1) == 1) && (++slowAmount) && slowQuota && (slowQuota.consume(1) != 1) && (degraded = true),
       ((code & 0x2) == 2) && (++errorAmount) && errorQuota && (errorQuota.consume(1) != 1) && (degraded = true),
-      !lastDegraded && degraded && close('report')
+      !lastDegraded && degraded && open('report')
     ),
 
     {
@@ -92,7 +92,7 @@
         checkSample('check'),
         degraded && (degradedQuota.consume(1) == 1) && (
           lastDegraded = degraded = false,
-          open('check')
+          close('check')
         ),
         degraded
       ),
@@ -113,7 +113,7 @@
           ),
           (++delay > degradedTimeWindow) && (
             lastDegraded = degraded = false,
-            open('timer'),
+            close('timer'),
             delay = total = slowAmount = errorAmount = 0
           )
         ),
