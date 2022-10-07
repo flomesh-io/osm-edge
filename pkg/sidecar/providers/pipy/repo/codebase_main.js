@@ -1,4 +1,4 @@
-// version: '2022.07.18'
+// version: '2022.09.29'
 ((
   {
     config,
@@ -22,7 +22,8 @@
     probePath,
     logZipkin,
     metrics,
-    codeMessage
+    codeMessage,
+    logLogging
   } = pipy.solve('config.js')
 ) => (
 
@@ -42,12 +43,26 @@
     }
   }).log),
 
+  os.env.REMOTE_LOGGING_ADDRESS && (logLogging = new logging.JSONLogger('access-logging').toHTTP('http://' + os.env.REMOTE_LOGGING_ADDRESS +
+    (os.env.REMOTE_LOGGING_ENDPOINT || '/?query=insert%20into%20log(message)%20format%20JSONAsString'), {
+    batch: {
+      prefix: '[',
+      postfix: ']',
+      separator: ','
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': os.env.REMOTE_LOGGING_AUTHORIZATION || ''
+    }
+  }).log),
+
   pipy({
     _inMatch: null,
     _inTarget: null,
     _inSessionControl: null,
     _ingressMode: null,
     _inZipkinStruct: {},
+    _inLoggingData: null,
     _localClusterName: null,
     _outIP: null,
     _outPort: null,
@@ -56,6 +71,7 @@
     _outSessionControl: null,
     _egressMode: null,
     _outZipkinStruct: {},
+    _outLoggingData: null,
     _upstreamClusterName: null,
     _outRequestTime: 0,
     _egressTargetMap: {}
@@ -194,6 +210,33 @@
             _inZipkinStruct.responseSize = 0
           ))(),
 
+          _inLoggingData = {
+            reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
+            remoteAddr: __inbound?.remoteAddress,
+            remotePort: __inbound?.remotePort,
+            localAddr: __inbound?.destinationAddress,
+            localPort: __inbound?.destinationPort,
+            node: {
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.HOSTNAME || 'localhost',
+            },
+            pod: {
+              ns: os.env.POD_NAMESPACE || 'default',
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
+            },
+            service: {
+              name: service || 'anonymous', target: _inTarget?.id, ingressMode: Boolean(_ingressMode)
+            },
+            trace: {
+              id: headers?.['x-b3-traceid'] || '',
+              span: headers?.['x-b3-spanid'] || '',
+              parent: headers?.['x-b3-parentspanid'] || '',
+              sampled: headers?.['x-b3-sampled'] || ''
+            }
+          },
+
           debugLogLevel && (
             console.log('inbound path: ', msg.head.path) ||
             console.log('inbound headers: ', msg.head.headers) ||
@@ -202,6 +245,13 @@
             console.log('inbound _inTarget: ', _inTarget?.id)
           )
         ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        _inLoggingData.req = Object.assign({}, msg.head),
+        _inLoggingData.req['body'] = msg.body.toString('base64'),
+        _inLoggingData['reqSize'] = msg.body.size
       )
     )
     .branch(
@@ -238,9 +288,21 @@
               logZipkin(_inZipkinStruct.data)
             ))(),
 
-            debugLogLevel && console.log('_inZipkinStruct : ', _inZipkinStruct.data)
+            debugLogLevel && console.log('_inZipkinStruct : ', _inZipkinStruct.data),
+
+            _inLoggingData['resTime'] = Date.now()
           ))()
         ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        _inLoggingData.res = Object.assign({}, msg.head),
+        _inLoggingData.res['body'] = msg.body.toString('base64'),
+        _inLoggingData['resSize'] = msg.body.size,
+        _inLoggingData['endTime'] = Date.now(),
+        _inLoggingData['type'] = 'inbound',
+        logLogging && logLogging(_inLoggingData)
       )
     )
 
@@ -417,6 +479,33 @@
 
           _outRequestTime = Date.now(),
 
+          _outLoggingData = {
+            reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
+            remoteAddr: __inbound?.destinationAddress,
+            remotePort: __inbound?.destinationPort,
+            localAddr: __inbound?.remoteAddress,
+            localPort: __inbound?.remotePort,
+            node: {
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.HOSTNAME || 'localhost',
+            },
+            pod: {
+              ns: os.env.POD_NAMESPACE || 'default',
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
+            },
+            service: {
+              name: service || 'anonymous', target: _outTarget?.id, egressMode: Boolean(_egressMode)
+            },
+            trace: {
+              id: headers?.['x-b3-traceid'] || '',
+              span: headers?.['x-b3-spanid'] || '',
+              parent: headers?.['x-b3-parentspanid'] || '',
+              sampled: headers?.['x-b3-sampled'] || ''
+            }
+          },
+
           debugLogLevel && (
             console.log('outbound path: ', msg.head.path) ||
             console.log('outbound headers: ', msg.head.headers) ||
@@ -426,6 +515,13 @@
             console.log('outbound _outTarget: ', _outTarget?.id)
           )
         ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        _outLoggingData.req = Object.assign({}, msg.head),
+        _outLoggingData.req['body'] = msg.body.toString('base64'),
+        _outLoggingData['reqSize'] = msg.body.size
       )
     )
     .branch(
@@ -466,8 +562,20 @@
             logZipkin(_outZipkinStruct.data)
           ))(),
 
-          debugLogLevel && console.log('_outZipkinStruct : ', _outZipkinStruct.data)
+          debugLogLevel && console.log('_outZipkinStruct : ', _outZipkinStruct.data),
+
+          _outLoggingData['resTime'] = Date.now()
         ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        _outLoggingData.res = Object.assign({}, msg.head),
+        _outLoggingData.res['body'] = msg.body.toString('base64'),
+        _outLoggingData['resSize'] = msg.body.size,
+        _outLoggingData['endTime'] = Date.now(),
+        _outLoggingData['type'] = 'outbound',
+        logLogging && logLogging(_outLoggingData)
       )
     )
 

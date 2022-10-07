@@ -262,6 +262,23 @@ osm:
     # -- Image used for tracing
     image: jaegertracing/all-in-one
 
+  #
+  # -- Remote logging parameters
+  #
+  # The following section configures a remote server where logging
+  # data is sent to.
+  remoteLogging:
+    # -- Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh
+    enable: false
+    # -- Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local".
+    address: ""
+    # -- Port of the remote logging service
+    port: 30514
+    # -- Remote logging's API path where the spans will be sent to
+    endpoint: ""
+    # -- The authorization for remote logging service
+    authorization: ""
+
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []

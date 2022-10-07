@@ -110,6 +110,47 @@ func (c *client) GetTracingEndpoint() string {
 	return constants.DefaultTracingEndpoint
 }
 
+// IsRemoteLoggingEnabled returns whether remote logging is enabled
+func (c *client) IsRemoteLoggingEnabled() bool {
+	return c.getMeshConfig().Spec.Observability.RemoteLogging.Enable
+}
+
+// GetRemoteLoggingHost is the host to which we send logging spans
+func (c *client) GetRemoteLoggingHost() string {
+	remoteLoggingAddress := c.getMeshConfig().Spec.Observability.RemoteLogging.Address
+	if remoteLoggingAddress != "" {
+		return remoteLoggingAddress
+	}
+	return ""
+}
+
+// GetRemoteLoggingPort returns the remote logging listener port
+func (c *client) GetRemoteLoggingPort() uint32 {
+	remoteLoggingPort := c.getMeshConfig().Spec.Observability.RemoteLogging.Port
+	if remoteLoggingPort != 0 {
+		return uint32(remoteLoggingPort)
+	}
+	return 0
+}
+
+// GetRemoteLoggingEndpoint returns the collector endpoint
+func (c *client) GetRemoteLoggingEndpoint() string {
+	remoteLoggingEndpoint := c.getMeshConfig().Spec.Observability.RemoteLogging.Endpoint
+	if remoteLoggingEndpoint != "" {
+		return remoteLoggingEndpoint
+	}
+	return ""
+}
+
+// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
+func (c *client) GetRemoteLoggingAuthorization() string {
+	remoteLoggingAuthorization := c.getMeshConfig().Spec.Observability.RemoteLogging.Authorization
+	if remoteLoggingAuthorization != "" {
+		return remoteLoggingAuthorization
+	}
+	return ""
+}
+
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 func (c *client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections

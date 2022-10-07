@@ -238,6 +238,25 @@ spec:
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
+                    remoteLogging:
+                      description: Configuration for remote logging
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables remote logging for the mesh.
+                          type: boolean
+                        port:
+                          description: Port on which remote logging is enabled.
+                          type: integer
+                        address:
+                          description: Address of remote logging deployment, if remote logging is enabled.
+                          type: string
+                        endpoint:
+                          description: Endpoint for tracing data, if remote logging is enabled.
+                          type: string
+                        authorization:
+                          description: Authorization for remote logging service, if remote logging is enabled.
+                          type: string
                 certificate:
                   description: Configuration for certificate management
                   type: object
@@ -471,6 +490,25 @@ spec:
                           type: string
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
+                          type: string
+                    remoteLogging:
+                      description: Configuration for remote logging
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables remote logging for the mesh.
+                          type: boolean
+                        port:
+                          description: Port on which remote logging is enabled.
+                          type: integer
+                        address:
+                          description: Address of remote logging deployment, if remote logging is enabled.
+                          type: string
+                        endpoint:
+                          description: Endpoint for tracing data, if remote logging is enabled.
+                          type: string
+                        authorization:
+                          description: Authorization for remote logging service, if remote logging is enabled.
                           type: string
                 certificate:
                   description: Configuration for certificate management
