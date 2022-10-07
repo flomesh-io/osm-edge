@@ -167,6 +167,11 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.prometheus.resources | object | `{"limits":{"cpu":"1","memory":"2G"},"requests":{"cpu":"0.5","memory":"512M"}}` | Prometheus's container resource parameters |
 | osm.prometheus.retention | object | `{"time":"15d"}` | Prometheus data rentention configuration |
 | osm.prometheus.retention.time | string | `"15d"` | Prometheus data retention time |
+| osm.remoteLogging.address | string | `""` | Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local". |
+| osm.remoteLogging.authorization | string | `""` | The authorization for remote logging service |
+| osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
+| osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
+| osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
 | osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy:0.50.0-25","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
 | osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |

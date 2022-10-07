@@ -206,6 +206,62 @@ func (mr *MockConfiguratorMockRecorder) GetProxyServerPort() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProxyServerPort", reflect.TypeOf((*MockConfigurator)(nil).GetProxyServerPort))
 }
 
+// GetRemoteLoggingAuthorization mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingAuthorization() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingAuthorization")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRemoteLoggingAuthorization indicates an expected call of GetRemoteLoggingAuthorization.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingAuthorization() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingAuthorization", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingAuthorization))
+}
+
+// GetRemoteLoggingEndpoint mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingEndpoint() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingEndpoint")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRemoteLoggingEndpoint indicates an expected call of GetRemoteLoggingEndpoint.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingEndpoint() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingEndpoint", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingEndpoint))
+}
+
+// GetRemoteLoggingHost mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingHost() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingHost")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRemoteLoggingHost indicates an expected call of GetRemoteLoggingHost.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingHost() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingHost", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingHost))
+}
+
+// GetRemoteLoggingPort mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingPort() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingPort")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
+// GetRemoteLoggingPort indicates an expected call of GetRemoteLoggingPort.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingPort() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingPort", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingPort))
+}
+
 // GetServiceCertValidityPeriod mocks base method.
 func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 	m.ctrl.T.Helper()
@@ -386,6 +442,20 @@ func (m *MockConfigurator) IsPrivilegedInitContainer() bool {
 func (mr *MockConfiguratorMockRecorder) IsPrivilegedInitContainer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrivilegedInitContainer", reflect.TypeOf((*MockConfigurator)(nil).IsPrivilegedInitContainer))
+}
+
+// IsRemoteLoggingEnabled mocks base method.
+func (m *MockConfigurator) IsRemoteLoggingEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsRemoteLoggingEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsRemoteLoggingEnabled indicates an expected call of IsRemoteLoggingEnabled.
+func (mr *MockConfiguratorMockRecorder) IsRemoteLoggingEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRemoteLoggingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsRemoteLoggingEnabled))
 }
 
 // IsTracingEnabled mocks base method.

@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"sync"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 )

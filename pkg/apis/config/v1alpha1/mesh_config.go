@@ -105,6 +105,9 @@ type ObservabilitySpec struct {
 
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
+
+	// RemoteLogging defines OSM's remot logging configuration.
+	RemoteLogging RemoteLoggingSpec `json:"remoteLogging,omitempty"`
 }
 
 // TracingSpec is the type to represent OSM's tracing configuration.
@@ -120,6 +123,24 @@ type TracingSpec struct {
 
 	// Endpoint defines the API endpoint for tracing requests sent to the collector.
 	Endpoint string `json:"endpoint,omitempty"`
+}
+
+// RemoteLoggingSpec is the type to represent OSM's remote logging configuration.
+type RemoteLoggingSpec struct {
+	// Enable defines a boolean indicating if the sidecars are enabled for remote logging.
+	Enable bool `json:"enable"`
+
+	// Port defines the remote loggings port.
+	Port int16 `json:"port,omitempty"`
+
+	// Address defines the remote logging's hostname.
+	Address string `json:"address,omitempty"`
+
+	// Endpoint defines the API endpoint for remote logging requests sent to the collector.
+	Endpoint string `json:"endpoint,omitempty"`
+
+	// Authorization defines the access entity that allows to authorize someone in remote logging service.
+	Authorization string `json:"authorization,omitempty"`
 }
 
 // ExternalAuthzSpec is a type to represent external authorization configuration.
