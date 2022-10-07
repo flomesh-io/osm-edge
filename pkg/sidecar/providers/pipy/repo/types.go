@@ -122,8 +122,15 @@ type DestinationIPRanges []DestinationIPRange
 // SourceIPRange is a string wrapper type
 type SourceIPRange string
 
-// SourceIPRanges is a wrapper type of []SourceIPRange
-type SourceIPRanges []SourceIPRange
+// SecuritySpec is the security spec of source
+type SecuritySpec struct {
+	HTTPS                    bool `json:"mTLS"`
+	SkipClientCertValidation bool
+	AuthenticatedPrincipals  []string
+}
+
+// SourceIPRanges is a wrapper type of map[SourceIPRange]*SecuritySpec
+type SourceIPRanges map[SourceIPRange]*SecuritySpec
 
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
@@ -165,6 +172,8 @@ type MeshConfigSpec struct {
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
+	// The CommonName of the certificate
+	CommonName certificate.CommonName
 	// When the cert expires
 	Expiration string
 
@@ -221,7 +230,6 @@ type InboundTrafficMatch struct {
 	Port                  Port     `json:"Port"`
 	Protocol              Protocol `json:"Protocol"`
 	SourceIPRanges        SourceIPRanges
-	sourceIPRanges        map[SourceIPRange]bool
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
 	TargetClusters        WeightedClusters             `json:"TargetClusters"`
@@ -295,31 +303,6 @@ type ConnectionSettings struct {
 	HTTP *HTTPConnectionSettings `json:"http,omitempty"`
 }
 
-// TCPCircuitBreaking defines the TCP Circuit Breaking settings for an
-// upstream host.
-type TCPCircuitBreaking struct {
-	// StatTimeWindow specifies statistical time period of circuit breaking
-	StatTimeWindow *float64 `json:"StatTimeWindow"`
-
-	// SlowTimeThreshold specifies the time threshold of slow request
-	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
-
-	// SlowAmountThreshold specifies the amount threshold of slow request
-	SlowAmountThreshold *uint32 `json:"SlowAmountThreshold,omitempty"`
-
-	// SlowRatioThreshold specifies the ratio threshold of slow request
-	SlowRatioThreshold *float32 `json:"SlowRatioThreshold,omitempty"`
-
-	// ErrorAmountThreshold specifies the amount threshold of error request
-	ErrorAmountThreshold *uint32 `json:"ErrorAmountThreshold,omitempty"`
-
-	// ErrorRatioThreshold specifies the ratio threshold of error request
-	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
-
-	// DegradedTimeWindow specifies the duration of circuit breaking
-	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
-}
-
 // TCPConnectionSettings defines the TCP connection settings for an
 // upstream host.
 type TCPConnectionSettings struct {
@@ -333,9 +316,6 @@ type TCPConnectionSettings struct {
 	// Defaults to 5s if not specified.
 	// +optional
 	ConnectTimeout *float64 `json:"ConnectTimeout,omitempty"`
-
-	// CircuitBreaking specifies the TCP connection circuit breaking setting.
-	CircuitBreaking *TCPCircuitBreaking `json:"CircuitBreaking,omitempty"`
 }
 
 // HTTPCircuitBreaking defines the HTTP Circuit Breaking settings for an
@@ -343,6 +323,12 @@ type TCPConnectionSettings struct {
 type HTTPCircuitBreaking struct {
 	// StatTimeWindow specifies statistical time period of circuit breaking
 	StatTimeWindow *float64 `json:"StatTimeWindow"`
+
+	// MinRequestAmount specifies minimum number of requests (in an active statistic time span) that can trigger circuit breaking.
+	MinRequestAmount uint32 `json:"MinRequestAmount"`
+
+	// DegradedTimeWindow specifies the duration of circuit breaking
+	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
 
 	// SlowTimeThreshold specifies the time threshold of slow request
 	SlowTimeThreshold *float64 `json:"SlowTimeThreshold,omitempty"`
@@ -358,9 +344,6 @@ type HTTPCircuitBreaking struct {
 
 	// ErrorRatioThreshold specifies the ratio threshold of error request
 	ErrorRatioThreshold *float32 `json:"ErrorRatioThreshold,omitempty"`
-
-	// DegradedTimeWindow specifies the duration of circuit breaking
-	DegradedTimeWindow *float64 `json:"DegradedTimeWindow"`
 
 	// DegradedStatusCode specifies the degraded http status code of circuit breaking
 	DegradedStatusCode *int32 `json:"DegradedStatusCode,omitempty"`

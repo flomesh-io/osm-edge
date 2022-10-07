@@ -83,6 +83,10 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		},
 		Env: []corev1.EnvVar{
 			{
+				Name:  "MESH_NAME",
+				Value: injCtx.MeshName,
+			},
+			{
 				Name: "POD_UID",
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
@@ -144,6 +148,27 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 				Name:  "TRACING_ENDPOINT",
 				Value: injCtx.Configurator.GetTracingEndpoint(),
+			})
+		}
+	}
+
+	if injCtx.Configurator.IsRemoteLoggingEnabled() {
+		if len(injCtx.Configurator.GetRemoteLoggingHost()) > 0 && injCtx.Configurator.GetRemoteLoggingPort() > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "REMOTE_LOGGING_ADDRESS",
+				Value: fmt.Sprintf("%s:%d", injCtx.Configurator.GetRemoteLoggingHost(), injCtx.Configurator.GetRemoteLoggingPort()),
+			})
+		}
+		if len(injCtx.Configurator.GetRemoteLoggingEndpoint()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "REMOTE_LOGGING_ENDPOINT",
+				Value: injCtx.Configurator.GetRemoteLoggingEndpoint(),
+			})
+		}
+		if len(injCtx.Configurator.GetRemoteLoggingAuthorization()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "REMOTE_LOGGING_AUTHORIZATION",
+				Value: injCtx.Configurator.GetRemoteLoggingAuthorization(),
 			})
 		}
 	}

@@ -1,7 +1,8 @@
-// version: '2022.08.12'
+// version: '2022.09.19'
 ((
   {
     config,
+    metrics,
     prometheusTarget
   } = pipy.solve('config.js')) => (
 
@@ -36,6 +37,9 @@
             !(out = msg?.body?.toString()?.split?.('\n')) && (out = []),
             out = out.filter(line => line.indexOf('peer') > 0),
             (_statsPath === '/clusters') && (out = out.filter(line => line.indexOf('_bucket') < 0)),
+            out = out.concat(Object.entries(metrics.sidecarInsideStats).map(
+              ([k, v]) => (k + ': ' + v)
+            )),
             new Message(out.join('\n'))
           )
         ),

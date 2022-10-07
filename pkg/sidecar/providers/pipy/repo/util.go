@@ -319,7 +319,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 	return ready
 }
 
-func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy, trustDomain string) {
+func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, ingressPolicy *trafficpolicy.IngressTrafficPolicy) {
 	if len(ingressPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -340,11 +340,9 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			continue
 		}
 
-		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange))
-		}
+		var authenticatedPrincipals []string
 		protocol := strings.ToLower(trafficMatch.Protocol)
-		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {
+		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
 			continue
 		}
 		for _, httpRouteConfig := range ingressPolicy.HTTPRoutePolicies {
@@ -383,11 +381,18 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
 						servicePrincipal := allowedPrincipal.(string)
-						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
-						hsrr.addAllowedService(ServiceName(serviceIdentity))
+						authenticatedPrincipals = append(authenticatedPrincipals, servicePrincipal)
 					}
 				}
 			}
+		}
+
+		for _, ipRange := range trafficMatch.SourceIPRanges {
+			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
+				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
+				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
+				AuthenticatedPrincipals:  authenticatedPrincipals,
+			})
 		}
 	}
 }
@@ -410,9 +415,9 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 			}
 			if len(gateway.Endpoints) > 0 {
 				clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
-				for _, endpoint := range gateway.Endpoints {
-					address := Address(endpoint.IP.String())
-					port := Port(endpoint.Port)
+				for _, endPeer := range gateway.Endpoints {
+					address := Address(endPeer.IP.String())
+					port := Port(endPeer.Port)
 					weight := Weight(0)
 					clusterConfigs.addWeightedEndpoint(address, port, weight)
 				}
@@ -432,9 +437,9 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 				}
 				if len(gateway.Endpoints) > 0 {
 					clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
-					for _, endpoint := range gateway.Endpoints {
-						address := Address(endpoint.IP.String())
-						port := Port(endpoint.Port)
+					for _, endPeer := range gateway.Endpoints {
+						address := Address(endPeer.IP.String())
+						port := Port(endPeer.Port)
 						weight := Weight(0)
 						clusterConfigs.addWeightedEndpoint(address, port, weight)
 					}
@@ -470,7 +475,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange))
+			tm.addSourceIPRange(SourceIPRange(ipRange), nil)
 		}
 		protocol := strings.ToLower(trafficMatch.Protocol)
 		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {
@@ -521,7 +526,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 	}
 }
 
-func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Proxy, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
+func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _ *pipy.Proxy, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
 	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()
 	for _, cluster := range dependClusters {
@@ -540,6 +545,10 @@ func generatePipyEgressTrafficBalancePolicy(_ catalog.MeshCataloger, _ *pipy.Pro
 		}
 		if cluster.RetryPolicy != nil {
 			clusterConfigs.setRetryPolicy(cluster.RetryPolicy)
+		} else if upstreamSvc, err := hostToMeshSvc(cluster.ClusterName.String()); err == nil {
+			if retryPolicy := meshCatalog.GetRetryPolicy(serviceIdentity, upstreamSvc); retryPolicy != nil {
+				clusterConfigs.setRetryPolicy(retryPolicy)
+			}
 		}
 	}
 	return ready
@@ -660,6 +669,32 @@ func clusterToMeshSvc(cluster string) (service.MeshService, error) {
 	return service.MeshService{
 		Namespace: chunks[0],
 		Name:      chunks[1],
+		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
+		// endpoints of a service are derived from it's TargetPort and not Port.
+		TargetPort: uint16(port),
+	}, nil
+}
+
+// hostToMeshSvc returns the MeshService associated with the given host name
+func hostToMeshSvc(cluster string) (service.MeshService, error) {
+	splitFunc := func(r rune) bool {
+		return r == '.' || r == ':'
+	}
+
+	chunks := strings.FieldsFunc(cluster, splitFunc)
+	if len(chunks) > 4 && strings.EqualFold("svc", chunks[3]) {
+		return service.MeshService{},
+			errors.Errorf("Invalid host. Expected: <name>.<namespace>.svc.trustdomain:<port>, got: %s", cluster)
+	}
+
+	port, err := strconv.ParseUint(chunks[len(chunks)-1], 10, 16)
+	if err != nil {
+		return service.MeshService{}, errors.Errorf("Invalid cluster port %s, expected int value: %s", chunks[len(chunks)-1], err)
+	}
+
+	return service.MeshService{
+		Namespace: chunks[1],
+		Name:      chunks[0],
 		// The port always maps to MeshServer.TargetPort and not MeshService.Port because
 		// endpoints of a service are derived from it's TargetPort and not Port.
 		TargetPort: uint16(port),

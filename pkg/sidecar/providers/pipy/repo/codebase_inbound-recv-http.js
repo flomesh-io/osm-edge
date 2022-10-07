@@ -1,4 +1,4 @@
-// version: '2022.08.15'
+// version: '2022.09.30'
 ((
   {
     name,
@@ -8,7 +8,7 @@
   } = pipy.solve('config.js')) => (
 
   pipy({
-    _overflow: false
+    _inRateLimit: null
   })
 
     .import({
@@ -21,7 +21,8 @@
       _inLoggingData: 'main',
       _inZipkinData: 'main',
       _inSessionControl: 'main',
-      _localClusterName: 'main'
+      _localClusterName: 'main',
+      _forbiddenTLS: 'main'
     })
 
     .export('inbound-recv-http', {
@@ -48,7 +49,7 @@
           !service && (service = (headers.serviceidentity && _inMatch?.HttpHostPort2Service?.[headers.host])),
 
           // Find a match by the service's route rules
-          match = _inMatch.HttpServiceRouteRules?.[service]?.RouteRules?.find?.(o => (
+          match = !Boolean(_forbiddenTLS) && _inMatch.HttpServiceRouteRules?.[service]?.RouteRules?.find?.(o => (
             // Match methods
             (!o.Methods || o.Methods[msg.head.method]) &&
             // Match service whitelist
@@ -89,7 +90,32 @@
           logZipkin && (_inZipkinData = metrics.funcMakeZipKinData(name, msg, headers, _localClusterName, 'SERVER', true)),
 
           // Initialize Inbound logging data
-          logLogging && (_inLoggingData = metrics.funcMakeLoggingData(msg, 'inbound')),
+          logLogging && (_inLoggingData = {
+            reqTime: Date.now(),
+            meshName: os.env.MESH_NAME || '',
+            remoteAddr: __inbound?.remoteAddress,
+            remotePort: __inbound?.remotePort,
+            localAddr: __inbound?.destinationAddress,
+            localPort: __inbound?.destinationPort,
+            node: {
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.HOSTNAME || 'localhost',
+            },
+            pod: {
+              ns: os.env.POD_NAMESPACE || 'default',
+              ip: os.env.POD_IP || '127.0.0.1',
+              name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
+            },
+            service: {
+              name: service || 'anonymous', target: _inTarget?.id, ingressMode: Boolean(_ingressMode)
+            },
+            trace: {
+              id: headers?.['x-b3-traceid'] || '',
+              span: headers?.['x-b3-spanid'] || '',
+              parent: headers?.['x-b3-parentspanid'] || '',
+              sampled: headers?.['x-b3-sampled'] || ''
+            }
+          }),
 
           _inBytesStruct = {},
           _inBytesStruct.requestSize = _inBytesStruct.responseSize = 0,
@@ -106,17 +132,31 @@
     )
     .chain(['inbound-throttle.js'])
     .handleMessageStart(
-      msg => _overflow = Boolean(msg.head?.overflow)
+      msg => Boolean(msg.head?.overflow) && (_inRateLimit = msg.head?.ratelimit)
     )
-
+    .handleMessage(
+      msg => (
+        logLogging && (
+          _inLoggingData.req = Object.assign({}, msg.head),
+          _inLoggingData.req['body'] = msg.body.toString('base64'),
+          _inLoggingData['reqSize'] = msg.body.size
+        )
+      )
+    )
     .branch(
-      () => _overflow, $ => $
+      () => _inRateLimit, $ => $
         .replaceMessage(
           () => (
-            new Message({
-              status: 429
-            }, 'Too Many Requests')
-          )),
+            ((hds = {}) => (
+              metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] += 1,
+              _inRateLimit?.headers && _inRateLimit.headers.forEach(h => hds[h.Name] = h.Value),
+              new Message({
+                status: _inRateLimit.status,
+                headers: hds
+              }, 'Too Many Requests')
+            ))()
+          )
+        ),
       () => Boolean(_inTarget) && _inMatch?.Protocol === 'grpc', $ => $
         .muxHTTP(() => _inTarget, {
           version: 2

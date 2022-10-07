@@ -195,7 +195,7 @@ func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegi
 		if len(trafficMatch.SourceIPRanges) == 0 {
 			continue
 		}
-		for _, ipRange := range trafficMatch.SourceIPRanges {
+		for ipRange := range trafficMatch.SourceIPRanges {
 			ingressIP := strings.TrimSuffix(string(ipRange), "/32")
 			p.AllowedEndpoints[ingressIP] = "Ingress Controller"
 		}
@@ -203,13 +203,12 @@ func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegi
 	return ready
 }
 
-func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange) {
-	if itm.sourceIPRanges == nil {
-		itm.sourceIPRanges = make(map[SourceIPRange]bool)
+func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange, sourceSpec *SecuritySpec) {
+	if itm.SourceIPRanges == nil {
+		itm.SourceIPRanges = make(map[SourceIPRange]*SecuritySpec)
 	}
-	if _, exists := itm.sourceIPRanges[ipRange]; !exists {
-		itm.sourceIPRanges[ipRange] = true
-		itm.SourceIPRanges = append(itm.SourceIPRanges, ipRange)
+	if _, exists := itm.SourceIPRanges[ipRange]; !exists {
+		itm.SourceIPRanges[ipRange] = sourceSpec
 	}
 }
 
@@ -508,25 +507,6 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 			duration := connectionSettings.TCP.ConnectTimeout.Seconds()
 			otp.ConnectionSettings.TCP.ConnectTimeout = &duration
 		}
-		if connectionSettings.TCP.CircuitBreaking != nil {
-			otp.ConnectionSettings.TCP.CircuitBreaking = new(TCPCircuitBreaking)
-			if connectionSettings.TCP.CircuitBreaking.StatTimeWindow != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.StatTimeWindow.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.StatTimeWindow = &duration
-			}
-			if connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.SlowTimeThreshold.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.SlowTimeThreshold = &duration
-			}
-			otp.ConnectionSettings.TCP.CircuitBreaking.SlowAmountThreshold = connectionSettings.TCP.CircuitBreaking.SlowAmountThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.SlowRatioThreshold = connectionSettings.TCP.CircuitBreaking.SlowRatioThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold = connectionSettings.TCP.CircuitBreaking.ErrorAmountThreshold
-			otp.ConnectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold = connectionSettings.TCP.CircuitBreaking.ErrorRatioThreshold
-			if connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow != nil {
-				duration := connectionSettings.TCP.CircuitBreaking.DegradedTimeWindow.Seconds()
-				otp.ConnectionSettings.TCP.CircuitBreaking.DegradedTimeWindow = &duration
-			}
-		}
 	}
 	if connectionSettings.HTTP != nil {
 		otp.ConnectionSettings.HTTP = new(HTTPConnectionSettings)
@@ -540,6 +520,11 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 				duration := connectionSettings.HTTP.CircuitBreaking.StatTimeWindow.Seconds()
 				otp.ConnectionSettings.HTTP.CircuitBreaking.StatTimeWindow = &duration
 			}
+			otp.ConnectionSettings.HTTP.CircuitBreaking.MinRequestAmount = connectionSettings.HTTP.CircuitBreaking.MinRequestAmount
+			if connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow != nil {
+				duration := connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow.Seconds()
+				otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow = &duration
+			}
 			if connectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold != nil {
 				duration := connectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold.Seconds()
 				otp.ConnectionSettings.HTTP.CircuitBreaking.SlowTimeThreshold = &duration
@@ -548,10 +533,6 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 			otp.ConnectionSettings.HTTP.CircuitBreaking.SlowRatioThreshold = connectionSettings.HTTP.CircuitBreaking.SlowRatioThreshold
 			otp.ConnectionSettings.HTTP.CircuitBreaking.ErrorAmountThreshold = connectionSettings.HTTP.CircuitBreaking.ErrorAmountThreshold
 			otp.ConnectionSettings.HTTP.CircuitBreaking.ErrorRatioThreshold = connectionSettings.HTTP.CircuitBreaking.ErrorRatioThreshold
-			if connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow != nil {
-				duration := connectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow.Seconds()
-				otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedTimeWindow = &duration
-			}
 			otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedStatusCode = connectionSettings.HTTP.CircuitBreaking.DegradedStatusCode
 			otp.ConnectionSettings.HTTP.CircuitBreaking.DegradedResponseContent = connectionSettings.HTTP.CircuitBreaking.DegradedResponseContent
 		}

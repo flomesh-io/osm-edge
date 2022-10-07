@@ -1,4 +1,4 @@
-// version: '2022.09.17'
+// version: '2022.09.30'
 ((
   {
     config,
@@ -39,7 +39,18 @@
     }
   }).log),
 
-  debugLogLevel && (logLogging = new logging.JSONLogger('access-logging').toFile('/dev/stdout').log),
+  os.env.REMOTE_LOGGING_ADDRESS && (logLogging = new logging.JSONLogger('access-logging').toHTTP('http://' + os.env.REMOTE_LOGGING_ADDRESS +
+    (os.env.REMOTE_LOGGING_ENDPOINT || '/?query=insert%20into%20log(message)%20format%20JSONAsString'), {
+    batch: {
+      prefix: '[',
+      postfix: ']',
+      separator: ','
+    },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': os.env.REMOTE_LOGGING_AUTHORIZATION || ''
+    }
+  }).log),
 
   pipy({
   })
@@ -67,7 +78,8 @@
       _outPort: null,
       _outSessionControl: null,
       _egressTargetMap: {},
-      _upstreamClusterName: null
+      _upstreamClusterName: null,
+      _forbiddenTLS: null
     })
 
     //
@@ -91,8 +103,14 @@
             _inMatch = null
           ),
 
+          // Check RateLimit.Local.Connections
+          (_inMatch?.RateLimitConnQuota && _inMatch.RateLimitConnQuota.consume(1) != 1) && (
+            metrics.sidecarInsideStats[_inMatch?.RateLimitConnStatsKey] += 1,
+            _inMatch = null
+          ),
+
           // INGRESS mode
-          _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.contains(__inbound.remoteAddress)),
+          _ingressMode = _inMatch?.SourceIPRanges?.find?.(e => e.netmask.contains(__inbound.remoteAddress)),
 
           // Layer 4 load balance
           _inTarget = (
@@ -124,7 +142,7 @@
       )
     )
     .branch(
-      () => Boolean(tlsCertChain) && Boolean(_inMatch) && !Boolean(_ingressMode), $ => $
+      () => Boolean(tlsCertChain) && Boolean(_inMatch) && (!Boolean(_ingressMode) || _ingressMode?.mTLS), $ => $
         .acceptTLS({
           certificate: () => ({
             cert: new crypto.Certificate(tlsCertChain),
@@ -132,7 +150,23 @@
           }),
           trusted: (!tlsIssuingCA && []) || [
             new crypto.Certificate(tlsIssuingCA),
-          ]
+          ],
+          verify: (ok, cert) => (
+            _ingressMode?.mTLS && !Boolean(_ingressMode?.skipClientCertValidation) && (
+              _ingressMode?.authenticatedPrincipals && (_forbiddenTLS = true),
+              (_ingressMode?.authenticatedPrincipals?.[cert?.subject?.commonName] ||
+                (cert?.subjectAltNames && cert.subjectAltNames.find(o => _ingressMode?.authenticatedPrincipals?.[o]))) && (
+                _forbiddenTLS = false
+              ),
+              _forbiddenTLS && (
+                (_inMatch.Protocol !== 'http' && _inMatch.Protocol !== 'grpc') && (
+                  ok = false
+                ),
+                debugLogLevel && console.log('Bad client certificate :', cert?.subject)
+              )
+            ),
+            ok
+          )
         }).to($ => $
           .chain(['inbound-recv-tcp.js'])),
       $ => $
@@ -237,7 +271,7 @@
     //
     // Periodic calculate circuit breaker ratio.
     //
-    .task('5s')
+    .task('1s')
     .onStart(
       () => new Message
     )
@@ -347,7 +381,7 @@
     //
     // PIPY configuration file and osm get proxy
     //
-    .listen(15000)
+    .listen(':::15000')
     .demuxHTTP()
     .to(
       $ => $.chain(['stats.js'])

@@ -1,4 +1,4 @@
-// version: '2022.08.30'
+// version: '2022.09.28'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -8,7 +8,11 @@
   ) => (
 
     config.outClustersBreakers = {},
-    
+    metrics.sidecarInsideStats = {},
+
+    // pipy inside stats
+    metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] = 0,
+
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
       namespace: (os.env.POD_NAMESPACE || 'default'),
@@ -33,7 +37,7 @@
       forwardEgressGateways: null,
       codeMessage: codeMessage
     },
-    
+
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
         sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
@@ -42,6 +46,28 @@
         global.debugLogLevel && console.log('funcShuffle LB out : ', out)
       ))(),
       out || {}
+    ),
+
+    global.funcCalcScaleRatio = (n) => (
+      n < 1 ? 0 : (n = Math.pow(2, n - 1), n > 10 ? 10 : n)
+    ),
+
+    global.funcInitLocalRateLimit = (local) => (
+      ((burst) => (
+        burst = local.Burst > local.Requests ? local.Burst : local.Requests,
+        {
+          group: algo.uuid(),
+          backlog: local.Backlog > 0 ? local.Backlog : 0,
+          quota: new algo.Quota(
+            burst, {
+            produce: local.Requests,
+            per: local.StatTimeWindow > 0 ? local.StatTimeWindow : 1
+          }
+          ),
+          status: local.ResponseStatusCode ? local.ResponseStatusCode : 429,
+          headers: local.ResponseHeadersToAdd
+        }
+      ))()
     ),
 
     global.funcInboundHttpServiceRouteRules = json => (
@@ -60,48 +86,16 @@
                   AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
                   TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
                 },
-                obj.RateLimit = (condition?.RateLimit?.Local?.Requests > 0) && ((burst) => (
-                  burst = condition?.RateLimit?.Local?.Burst > condition.RateLimit.Local.Requests ? condition.RateLimit.Local.Burst : condition.RateLimit.Local.Requests,
-                  {
-                    group: algo.uuid(),
-                    backlog: condition?.RateLimit?.Local?.Backlog > 0 ? condition.RateLimit.Local.Backlog : 0,
-                    quota: new algo.Quota(
-                      burst,
-                      { produce: condition.RateLimit.Local.Requests, per: condition?.RateLimit?.Local?.StatTimeWindow > 0 ? condition.RateLimit.Local.StatTimeWindow : 1 }
-                    )
-                  }
-                ))(),
+                obj.RateLimit = (condition?.RateLimit?.Local?.Requests > 0) && global.funcInitLocalRateLimit(condition.RateLimit.Local),
                 obj
               )
             ),
-            RateLimit: (rule?.RateLimit?.Local?.Requests > 0) && ((burst) => (
-              burst = rule?.RateLimit?.Local?.Burst > rule.RateLimit.Local.Requests ? rule.RateLimit.Local.Burst : rule.RateLimit.Local.Requests,
-              {
-                group: algo.uuid(),
-                backlog: rule?.RateLimit?.Local?.Backlog > 0 ? rule.RateLimit.Local.Backlog : 0,
-                quota: new algo.Quota(
-                  burst,
-                  { produce: rule.RateLimit.Local.Requests, per: rule?.RateLimit?.Local?.StatTimeWindow > 0 ? rule.RateLimit.Local.StatTimeWindow : 1 }
-                )
-              }
-            ))(),
+            RateLimit: (rule?.RateLimit?.Local?.Requests > 0) && global.funcInitLocalRateLimit(rule.RateLimit.Local),
             HeaderRateLimits: rule?.HeaderRateLimits && rule.HeaderRateLimits.map(
-              o => (
-                {
-                  Headers: o.Headers && Object.entries(o.Headers).map(([k, v]) => [k, new RegExp(v)]),
-                  RateLimit: (o?.RateLimit?.Local?.Requests > 0) && ((burst) => (
-                    burst = o?.RateLimit?.Local?.Burst > o.RateLimit.Local.Requests ? o.RateLimit.Local.Burst : o.RateLimit.Local.Requests,
-                    {
-                      group: algo.uuid(),
-                      backlog: o?.RateLimit?.Local?.Backlog > 0 ? o.RateLimit.Local.Backlog : 0,
-                      quota: new algo.Quota(
-                        burst,
-                        { produce: o.RateLimit.Local.Requests, per: o?.RateLimit?.Local?.StatTimeWindow > 0 ? o.RateLimit.Local.StatTimeWindow : 1 }
-                      )
-                    }
-                  ))(),
-                }
-              )
+              o => ({
+                Headers: o.Headers && Object.entries(o.Headers).map(([k, v]) => [k, new RegExp(v)]),
+                RateLimit: (o?.RateLimit?.Local?.Requests > 0) && global.funcInitLocalRateLimit(o.RateLimit.Local)
+              })
             )
           }
         ]
@@ -118,7 +112,13 @@
               Protocol: match.Protocol,
               HttpHostPort2Service: match.HttpHostPort2Service,
               SourceIPRanges_: match?.SourceIPRanges, // for debugLogLevel
-              SourceIPRanges: match.SourceIPRanges && match.SourceIPRanges.map(e => new Netmask(e)),
+              SourceIPRanges: match.SourceIPRanges && Object.entries(match.SourceIPRanges).map(([k, v]) =>
+              ({
+                netmask: new Netmask(k),
+                mTLS: v?.mTLS,
+                skipClientCertValidation: v?.SkipClientCertValidation,
+                authenticatedPrincipals: v?.AuthenticatedPrincipals && Object.fromEntries(v.AuthenticatedPrincipals.map(e => [e, true])),
+              })),
               TargetClusters: match.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(match.TargetClusters)),
               HttpServiceRouteRules: match.HttpServiceRouteRules && global.funcInboundHttpServiceRouteRules(match.HttpServiceRouteRules),
               ProbeTarget: (match.Protocol === 'http') && (!global.probeTarget || !match.SourceIPRanges) && (global.probeTarget = '127.0.0.1:' + port)
@@ -126,7 +126,15 @@
             (match?.RateLimit?.Local?.Connections > 0) && (((array) => (
               array = (new Array(match?.RateLimit?.Local?.Connections > 1000 ? 1000 : match?.RateLimit?.Local?.Connections)).fill('connection_').map((e, index) => e + index),
               obj.RateLimit = new algo.LeastWorkLoadBalancer(Object.fromEntries(array.map(k => [k, 1]))),
-              obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)]))
+              obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)])),
+              obj.RateLimitConnQuota = new algo.Quota(
+                match?.RateLimit?.Local?.Burst ? match.RateLimit.Local.Burst : match.RateLimit.Local.Connections, {
+                produce: match.RateLimit.Local.Connections,
+                per: match?.RateLimit?.Local?.StatTimeWindow > 0 ? match.RateLimit.Local.StatTimeWindow : 1
+              }
+              ),
+              obj.RateLimitConnStatsKey = 'local_rate_limit.inbound_' + global.namespace + '/' + global.pod.split('-')[0] + '_' + match.Port + '_' + match.Protocol + '.rate_limited',
+              metrics.sidecarInsideStats[obj.RateLimitConnStatsKey] = 0
             ))()),
             obj
           )
@@ -148,17 +156,15 @@
         ([name, rule]) => [
           name,
           Object.entries(rule).map(
-            ([path, condition]) => (
-              {
-                Path_: path, // for debugLogLevel
-                Path: new RegExp(path), // HTTP request path
-                Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
-                Headers_: condition?.Headers, // for debugLogLevel
-                Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
-                AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
-                TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
-              }
-            )
+            ([path, condition]) => ({
+              Path_: path, // for debugLogLevel
+              Path: new RegExp(path), // HTTP request path
+              Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
+              Headers_: condition?.Headers, // for debugLogLevel
+              Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
+              AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
+              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
+            })
           )
         ]
       ))
@@ -171,19 +177,17 @@
           (
             match?.map(
               (o =>
-              (
-                {
-                  Port: o.Port,
-                  Protocol: o.Protocol,
-                  ServiceIdentity: o.ServiceIdentity,
-                  AllowedEgressTraffic: o.AllowedEgressTraffic,
-                  EgressForwardGateway: o?.EgressForwardGateway,
-                  HttpHostPort2Service: o.HttpHostPort2Service,
-                  TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
-                  DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
-                  HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
-                }
-              )
+              ({
+                Port: o.Port,
+                Protocol: o.Protocol,
+                ServiceIdentity: o.ServiceIdentity,
+                AllowedEgressTraffic: o.AllowedEgressTraffic,
+                EgressForwardGateway: o?.EgressForwardGateway,
+                HttpHostPort2Service: o.HttpHostPort2Service,
+                TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
+                DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
+                HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
+              })
               )
             )
           )
@@ -201,6 +205,7 @@
             v.ConnectionSettings?.tcp?.MaxConnections,
             v.ConnectionSettings?.http?.MaxRequestsPerConnection,
             v.ConnectionSettings?.http?.MaxPendingRequests,
+            v.ConnectionSettings?.http?.CircuitBreaking?.MinRequestAmount,
             v.ConnectionSettings?.http?.CircuitBreaking?.StatTimeWindow,
             v.ConnectionSettings?.http?.CircuitBreaking?.SlowTimeThreshold,
             v.ConnectionSettings?.http?.CircuitBreaking?.SlowAmountThreshold,
@@ -216,10 +221,36 @@
               v.ConnectionSettings?.tcp?.MaxConnections && (
                 array = (new Array(v.ConnectionSettings?.tcp?.MaxConnections > 1000 ? 1000 : v.ConnectionSettings?.tcp?.MaxConnections)).fill('connection_').map((e, index) => e + index),
                 obj.RateLimit = new algo.LeastWorkLoadBalancer(Object.fromEntries(array.map(k => [k, 1]))),
-                obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)]))
+                obj.RateLimitObject = Object.fromEntries(array.map(k => [k, new String(k)])),
+                obj.TcpMaxConnections = v.ConnectionSettings.tcp.MaxConnections,
+                v.ConnectionSettings?.http?.MaxRequestsPerConnection && (
+                  obj.HttpMaxRequestsPerConnection = v.ConnectionSettings.http.MaxRequestsPerConnection
+                ),
+                v.ConnectionSettings?.http?.MaxPendingRequests && (
+                  obj.HttpMaxPendingRequests = v.ConnectionSettings.http.MaxPendingRequests + v.ConnectionSettings.tcp.MaxConnections,
+                  obj.HttpMaxPendingStatsKey = 'cluster.' + k + '.upstream_rq_pending_overflow',
+                  metrics.sidecarInsideStats[obj.HttpMaxPendingStatsKey] = 0
+                )
               ),
               obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
               metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k),
+              v.RetryPolicy?.NumRetries && (
+                obj.RetryPolicy = {
+                  RetryOn: v.RetryPolicy?.RetryOn,
+                  lowerbound: v.RetryPolicy?.RetryOn ? v.RetryPolicy.RetryOn.replaceAll('x', '0') : 500,
+                  upperbound: v.RetryPolicy?.RetryOn ? v.RetryPolicy.RetryOn.replaceAll('x', '9') : 599,
+                  PerTryTimeout: v.RetryPolicy?.PerTryTimeout ? v.RetryPolicy.PerTryTimeout : 1,
+                  NumRetries: v.RetryPolicy?.NumRetries ? v.RetryPolicy.NumRetries : 1,
+                  RetryBackoffBaseInterval: v.RetryPolicy?.RetryBackoffBaseInterval ? v.RetryPolicy.RetryBackoffBaseInterval : 1,
+                  StatsKeyPrefix: 'cluster.' + k + '.upstream_rq_retry'
+                }
+              ),
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_backoff_exponential'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_backoff_ratelimited'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_limit_exceeded'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_overflow'] = 0,
+              metrics.sidecarInsideStats['cluster.' + k + '.upstream_rq_retry_success'] = 0,
               obj
             ))()
           ]

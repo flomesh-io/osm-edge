@@ -1,4 +1,4 @@
-// version: '2022.08.15'
+// version: '2022.09.23'
 (() => (
 
   pipy({
@@ -40,7 +40,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inHostRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inHostRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inHostRateLimit }), new StreamEnd] : msg
               )
             )
         ),
@@ -72,7 +72,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inPathRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inPathRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inPathRateLimit }), new StreamEnd] : msg
               )
             )
         ),
@@ -104,7 +104,7 @@
           $ => $
             .replaceMessage(
               msg => (
-                (_inHeaderRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true }), new StreamEnd] : msg
+                (_inHeaderRateLimit.quota.consume(1) != 1) ? [new Message({ overflow: true, ratelimit: _inHeaderRateLimit }), new StreamEnd] : msg
               )
             )
         ),

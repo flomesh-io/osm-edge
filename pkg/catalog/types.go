@@ -5,6 +5,7 @@
 package catalog
 
 import (
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -80,6 +81,9 @@ type MeshCataloger interface {
 
 	// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
 	GetInboundMeshTrafficPolicy(identity.ServiceIdentity, []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy
+
+	// GetRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
+	GetRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec
 }
 
 type trafficDirection string

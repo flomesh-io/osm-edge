@@ -56,10 +56,25 @@ type Configurator interface {
 	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
+	// IsRemoteLoggingEnabled returns whether remote logging is enabled
+	IsRemoteLoggingEnabled() bool
+
+	// GetRemoteLoggingHost is the host to which we send logging spans
+	GetRemoteLoggingHost() string
+
+	// GetRemoteLoggingPort returns the remote logging listener port
+	GetRemoteLoggingPort() uint32
+
+	// GetRemoteLoggingEndpoint returns the collector endpoint
+	GetRemoteLoggingEndpoint() string
+
+	// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
+	GetRemoteLoggingAuthorization() string
+
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
 
-	// GetOsmLogLevel returns the configured OSM log level
+	// GetOSMLogLevel returns the configured OSM log level
 	GetOSMLogLevel() string
 
 	// GetSidecarLogLevel returns the sidecar log level

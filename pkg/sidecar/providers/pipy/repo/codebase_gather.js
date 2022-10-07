@@ -1,4 +1,4 @@
-// version: '2022.08.12'
+// version: '2022.09.30'
 ((
   {
     debugLogLevel,
@@ -31,7 +31,7 @@
     })
 
     //
-    // Metrics and Logging after local service response. 
+    // Metrics and Logging after local service response.
     //
     .pipeline('after-local-http')
     .handleMessageStart(
@@ -44,7 +44,8 @@
             headers['osm-stats-name'] = name,
             headers['osm-stats-pod'] = pod,
             metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _localClusterName).increase(),
-            metrics.upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase()
+            metrics.upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, _localClusterName).increase(),
+            logLogging && (_inLoggingData['resTime'] = Date.now())
           ))()
         ))()
       )
@@ -60,23 +61,25 @@
             _inZipkinData['duration'] = Date.now() * 1000 - _inZipkinData['timestamp'],
             debugLogLevel && console.log('_inZipkinData : ', _inZipkinData),
             logZipkin(_inZipkinData)
-          ))(),
-          _inLoggingData && (() => (
-            _inLoggingData['downstream'] = __inbound.remoteAddress,
-            _inLoggingData['upstream'] = _inTarget?.id,
-            _inLoggingData['response_code'] = _inMessageHead.status,
-            _inLoggingData['duration'] = Date.now() - _inLoggingData['start_time'],
-            _inLoggingData['start_time'] = _inLoggingData['start_time'].toISOString(),
-            _inLoggingData['bytes_received'] = _inBytesStruct.requestSize,
-            _inLoggingData['bytes_sent'] = _inBytesStruct.responseSize,
-            logLogging(_inLoggingData)
           ))()
+        ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        logLogging && msg?.head?.headers && (() => (
+          _inLoggingData.res = Object.assign({}, msg.head),
+          _inLoggingData.res['body'] = msg.body.toString('base64'),
+          _inLoggingData['resSize'] = msg.body.size,
+          _inLoggingData['endTime'] = Date.now(),
+          _inLoggingData['type'] = 'inbound',
+          logLogging(_inLoggingData)
         ))()
       )
     )
 
     //
-    // Metrics and Logging after upstream service response. 
+    // Metrics and Logging after upstream service response.
     //
     .pipeline('after-upstream-http')
     .handleMessageStart(
@@ -93,7 +96,8 @@
           msg?.head?.status && metrics.upstreamCodeCount.withLabels(msg.head.status, _upstreamClusterName).increase(),
           msg?.head?.status && metrics.upstreamCodeXCount.withLabels(msg.head.status.toString().charAt(0), _upstreamClusterName).increase(),
           metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, _upstreamClusterName).increase(),
-          msg?.head?.status && metrics.upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase()
+          msg?.head?.status && metrics.upstreamResponseCode.withLabels(msg.head.status.toString().charAt(0), namespace, kind, name, pod, _upstreamClusterName).increase(),
+          logLogging && (_outLoggingData['resTime'] = Date.now())
         ))()
       )
     )
@@ -109,17 +113,19 @@
             _outZipkinData['duration'] = Date.now() * 1000 - _outZipkinData['timestamp'],
             debugLogLevel && console.log('_outZipkinData : ', _outZipkinData),
             logZipkin(_outZipkinData)
-          ))(),
-          _outLoggingData && (() => (
-            _outLoggingData['downstream'] = __inbound.remoteAddress,
-            _outLoggingData['upstream'] = _outTarget?.id,
-            _outLoggingData['response_code'] = _outMessageHead.status,
-            _outLoggingData['duration'] = Date.now() - _outLoggingData['start_time'],
-            _outLoggingData['start_time'] = _outLoggingData['start_time'].toISOString(),
-            _outLoggingData['bytes_received'] = _outBytesStruct.requestSize,
-            _outLoggingData['bytes_sent'] = _outBytesStruct.responseSize,
-            logLogging(_outLoggingData)
           ))()
+        ))()
+      )
+    )
+    .handleMessage(
+      msg => (
+        logLogging && msg?.head?.headers && (() => (
+          _outLoggingData.res = Object.assign({}, msg.head),
+          _outLoggingData.res['body'] = msg.body.toString('base64'),
+          _outLoggingData['resSize'] = msg.body.size,
+          _outLoggingData['endTime'] = Date.now(),
+          _outLoggingData['type'] = 'outbound',
+          logLogging(_outLoggingData)
         ))()
       )
     )
