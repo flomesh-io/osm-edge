@@ -14,6 +14,7 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/k8s"
 	service "github.com/openservicemesh/osm/pkg/service"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface.
@@ -67,6 +68,21 @@ func (m *MockMeshCataloger) GetEgressGatewayPolicy() (*trafficpolicy.EgressGatew
 func (mr *MockMeshCatalogerMockRecorder) GetEgressGatewayPolicy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressGatewayPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressGatewayPolicy))
+}
+
+// GetEgressSourceSecret mocks base method.
+func (m *MockMeshCataloger) GetEgressSourceSecret(arg0 v1.SecretReference) (*v1.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEgressSourceSecret", arg0)
+	ret0, _ := ret[0].(*v1.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEgressSourceSecret indicates an expected call of GetEgressSourceSecret.
+func (mr *MockMeshCatalogerMockRecorder) GetEgressSourceSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressSourceSecret", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressSourceSecret), arg0)
 }
 
 // GetEgressTrafficPolicy mocks base method.

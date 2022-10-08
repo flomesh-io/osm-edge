@@ -841,7 +841,7 @@ func TestBuildHTTPRouteConfigs(t *testing.T) {
 				meshSpec: mockMeshSpec,
 			}
 
-			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting)
+			routeConfigs, clusterConfigs := mc.buildHTTPRouteConfigs(tc.egressPolicy, tc.egressPort, tc.upstreamTrafficSetting, nil)
 			assert.ElementsMatch(tc.expectedRouteConfigs, routeConfigs)
 			assert.ElementsMatch(tc.expectedClusterConfigs, clusterConfigs)
 		})

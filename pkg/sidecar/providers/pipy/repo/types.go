@@ -173,7 +173,11 @@ type MeshConfigSpec struct {
 // Certificate represents an x509 certificate.
 type Certificate struct {
 	// The CommonName of the certificate
-	CommonName certificate.CommonName
+	CommonName *certificate.CommonName `json:"CommonName,omitempty"`
+
+	// SubjectAltNames defines the Subject Alternative Names (domain names and IP addresses) secured by the certificate.
+	SubjectAltNames []string `json:"SubjectAltNames,omitempty"`
+
 	// When the cert expires
 	Expiration string
 
@@ -273,6 +277,7 @@ type ClusterConfigs struct {
 	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
+	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
 }
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic

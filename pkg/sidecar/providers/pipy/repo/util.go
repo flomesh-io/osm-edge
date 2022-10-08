@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -542,6 +543,28 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 		clusterConfigs.addWeightedEndpoint(address, port, weight)
 		if clusterConfig.UpstreamTrafficSetting != nil {
 			clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
+		}
+		if clusterConfig.SourceCert != nil {
+			secretReference := corev1.SecretReference{
+				Name:      clusterConfig.SourceCert.Secret.Name,
+				Namespace: clusterConfig.SourceCert.Secret.Namespace,
+			}
+			if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+				clusterConfigs.SourceCert = new(Certificate)
+				clusterConfigs.SourceCert.SubjectAltNames = clusterConfig.SourceCert.SubjectAltNames
+				clusterConfigs.SourceCert.Expiration = clusterConfig.SourceCert.Expiration
+				if caCrt, ok := secret.Data["ca.crt"]; ok {
+					clusterConfigs.SourceCert.IssuingCA = string(caCrt)
+				}
+				if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+					clusterConfigs.SourceCert.CertChain = string(tlsCrt)
+				}
+				if tlsKey, ok := secret.Data["tls.key"]; ok {
+					clusterConfigs.SourceCert.PrivateKey = string(tlsKey)
+				}
+			} else {
+				log.Error().Err(err)
+			}
 		}
 		if cluster.RetryPolicy != nil {
 			clusterConfigs.setRetryPolicy(cluster.RetryPolicy)

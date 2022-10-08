@@ -254,7 +254,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
 
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,

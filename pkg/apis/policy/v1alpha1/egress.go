@@ -68,6 +68,25 @@ type EgressSourceSpec struct {
 
 	// Namespace defines the namespace for the given source.
 	Namespace string `json:"namespace"`
+
+	// MTLS defines the certificate specification for the egress source.
+	// +optional
+	MTLS *EgressSourceCertSpec `json:"mtls,omitempty"`
+}
+
+// EgressSourceCertSpec is the type to represent the certificate specification for an egress source.
+type EgressSourceCertSpec struct {
+	// SerialNumber defines the serial number of the certificate.
+	SerialNumber int `json:"sn"`
+
+	// SubjectAltNames defines the Subject Alternative Names (domain names and IP addresses) secured by the certificate.
+	SubjectAltNames []string `json:"subjectAltNames"`
+
+	// Expiration defines the expiration of the certificate.
+	Expiration string `json:"expiration"`
+
+	// Secret defines the secret in which the certificate is stored.
+	Secret corev1.SecretReference `json:"secret"`
 }
 
 // PortSpec is the type used to represent the Port in the list of Ports specified in an Egress policy specification.

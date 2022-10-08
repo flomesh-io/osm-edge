@@ -252,7 +252,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 				version := fmt.Sprintf("%d", codebaseCurV)
 				pipyConf.Version = &version
 				if proxy.SidecarCert != nil {
-					pipyConf.Certificate.CommonName = proxy.SidecarCert.CommonName
+					pipyConf.Certificate.CommonName = &proxy.SidecarCert.CommonName
 					pipyConf.Certificate.CertChain = string(proxy.SidecarCert.CertChain)
 					pipyConf.Certificate.PrivateKey = string(proxy.SidecarCert.PrivateKey)
 					pipyConf.Certificate.IssuingCA = string(proxy.SidecarCert.IssuingCA)

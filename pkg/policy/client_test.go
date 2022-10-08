@@ -137,7 +137,7 @@ func TestListEgressPoliciesForSourceIdentity(t *testing.T) {
 			fakeClient := fakePolicyClient.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, mockKubeController, nil)
+			c := NewPolicyController(informerCollection, nil, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -328,7 +328,7 @@ func TestGetIngressBackendPolicy(t *testing.T) {
 			fakeClient := fakePolicyClient.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, nil, nil)
+			c := NewPolicyController(informerCollection, nil, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -519,7 +519,7 @@ func TestGetAccessControlPolicy(t *testing.T) {
 			fakeClient := fakePolicyClient.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, nil, nil)
+			c := NewPolicyController(informerCollection, nil, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -668,7 +668,7 @@ func TestListRetryPolicy(t *testing.T) {
 			fakeClient := fakePolicyClient.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, mockKubeController, nil)
+			c := NewPolicyController(informerCollection, nil, mockKubeController, nil)
 			a.Nil(err)
 			a.NotNil(c)
 
@@ -814,7 +814,7 @@ func TestGetUpstreamTrafficSetting(t *testing.T) {
 			fakeClient := fakePolicyClient.NewSimpleClientset()
 			informerCollection, err := informers.NewInformerCollection("osm", nil, informers.WithPolicyClient(fakeClient))
 			a.Nil(err)
-			c := NewPolicyController(informerCollection, nil, nil)
+			c := NewPolicyController(informerCollection, nil, nil, nil)
 			a.Nil(err)
 			a.NotNil(c)
 

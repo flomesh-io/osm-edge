@@ -67,6 +67,41 @@ spec:
                       namespace:
                         description: Namespace of this source.
                         type: string
+                      mtls:
+                        description: MTLS defines the certificate specification for the egress source.
+                        type: object
+                        required:
+                          - sn
+                          - expiration
+                          - secret
+                        properties:
+                          sn:
+                            description: SerialNumber defines the serial number of the certificate.
+                            type: integer
+                            minimum: 1
+                            maximum: 65535
+                          subjectAltNames:
+                            description: Subject Alternative Names secured by the certificate
+                            type: array
+                            items:
+                              type: string
+                            minItems: 1
+                          expiration:
+                            description: Expiration defines the expiration of the certificate.
+                            type: string
+                          secret:
+                            description: Secret reference to store the certificate in
+                            type: object
+                            required:
+                              - name
+                              - namespace
+                            properties:
+                              name:
+                                description: Name of the secret
+                                type: string
+                              namespace:
+                                description: Namespace of the secret
+                                type: string
                 hosts:
                   description: Hosts that the sources are allowed to direct external traffic to.
                   type: array
