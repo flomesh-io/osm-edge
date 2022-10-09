@@ -131,7 +131,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 		tm.setServiceIdentity(proxyIdentity)
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
-			tm.addDestinationIPRange(DestinationIPRange(ipRange))
+			tm.addDestinationIPRange(DestinationIPRange(ipRange), nil)
 		}
 
 		if destinationProtocol == constants.ProtocolHTTP ||
@@ -197,7 +197,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 	return dependClusters
 }
 
-func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*WeightedCluster {
+func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*WeightedCluster {
 	if len(egressPolicy.TrafficMatches) == 0 {
 		return nil
 	}
@@ -211,8 +211,35 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 		tm.setPort(Port(trafficMatch.DestinationPort))
 		tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
 
+		var destinationSpec *DestinationSecuritySpec
+		if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
+			if clusterConfig.SourceCert != nil {
+				secretReference := corev1.SecretReference{
+					Name:      clusterConfig.SourceCert.Secret.Name,
+					Namespace: clusterConfig.SourceCert.Secret.Namespace,
+				}
+				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+					destinationSpec = new(DestinationSecuritySpec)
+					destinationSpec.SourceCert = new(Certificate)
+					destinationSpec.SourceCert.SubjectAltNames = clusterConfig.SourceCert.SubjectAltNames
+					destinationSpec.SourceCert.Expiration = clusterConfig.SourceCert.Expiration
+					if caCrt, ok := secret.Data["ca.crt"]; ok {
+						destinationSpec.SourceCert.IssuingCA = string(caCrt)
+					}
+					if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+						destinationSpec.SourceCert.CertChain = string(tlsCrt)
+					}
+					if tlsKey, ok := secret.Data["tls.key"]; ok {
+						destinationSpec.SourceCert.PrivateKey = string(tlsKey)
+					}
+				} else {
+					log.Error().Err(err)
+				}
+			}
+		}
+
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
-			tm.addDestinationIPRange(DestinationIPRange(ipRange))
+			tm.addDestinationIPRange(DestinationIPRange(ipRange), destinationSpec)
 		}
 
 		if destinationProtocol == constants.ProtocolHTTP || destinationProtocol == constants.ProtocolGRPC {
@@ -259,7 +286,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 					}
 
 					for _, allowedIPRange := range rule.AllowedDestinationIPRanges {
-						tm.addDestinationIPRange(DestinationIPRange(allowedIPRange))
+						tm.addDestinationIPRange(DestinationIPRange(allowedIPRange), destinationSpec)
 					}
 				}
 			}
@@ -389,7 +416,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
+			tm.addSourceIPRange(SourceIPRange(ipRange), &SourceSecuritySpec{
 				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
 				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
 				AuthenticatedPrincipals:  authenticatedPrincipals,

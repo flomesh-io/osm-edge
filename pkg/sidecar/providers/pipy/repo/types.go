@@ -116,21 +116,26 @@ type HTTPHostPort2Service map[HTTPHostPort]HTTPRouteRuleName
 // DestinationIPRange is a string wrapper type
 type DestinationIPRange string
 
-// DestinationIPRanges is a wrapper type of []DestinationIPRange
-type DestinationIPRanges []DestinationIPRange
+// DestinationSecuritySpec is the security spec of destination
+type DestinationSecuritySpec struct {
+	SourceCert *Certificate `json:"SourceCert,omitempty"`
+}
+
+// DestinationIPRanges is a wrapper type of map[DestinationIPRange]*DestinationSecuritySpec
+type DestinationIPRanges map[DestinationIPRange]*DestinationSecuritySpec
 
 // SourceIPRange is a string wrapper type
 type SourceIPRange string
 
-// SecuritySpec is the security spec of source
-type SecuritySpec struct {
+// SourceSecuritySpec is the security spec of source
+type SourceSecuritySpec struct {
 	HTTPS                    bool `json:"mTLS"`
 	SkipClientCertValidation bool
 	AuthenticatedPrincipals  []string
 }
 
-// SourceIPRanges is a wrapper type of map[SourceIPRange]*SecuritySpec
-type SourceIPRanges map[SourceIPRange]*SecuritySpec
+// SourceIPRanges is a wrapper type of map[SourceIPRange]*SourceSecuritySpec
+type SourceIPRanges map[SourceIPRange]*SourceSecuritySpec
 
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
