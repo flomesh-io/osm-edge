@@ -1,6 +1,6 @@
 # Release Notes
 
-## Release v1.1.2
+## Release v1.1.3
 
 ### Notable changes
 
