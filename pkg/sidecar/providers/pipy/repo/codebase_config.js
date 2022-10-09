@@ -1,4 +1,4 @@
-// version: '2022.09.28'
+// version: '2022.10.09'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -35,7 +35,8 @@
       funcShuffle: null,
       forwardMatches: null,
       forwardEgressGateways: null,
-      codeMessage: codeMessage
+      codeMessage: codeMessage,
+      listIssuingCA: []
     },
 
     global.funcShuffle = (arg, out, sort) => (
@@ -185,7 +186,17 @@
                 EgressForwardGateway: o?.EgressForwardGateway,
                 HttpHostPort2Service: o.HttpHostPort2Service,
                 TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
-                DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
+                DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
+                  ([k, v]) => (
+                    v?.SourceCert?.IssuingCA && (
+                      global.listIssuingCA.push(new crypto.Certificate(v.SourceCert.IssuingCA))
+                    ),
+                    {
+                      netmask: new Netmask(k),
+                      cert: v?.SourceCert
+                    }
+                  )
+                ),
                 HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
               })
               )
@@ -233,6 +244,10 @@
                 )
               ),
               obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
+              v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
+                obj.SourceCert = v.SourceCert,
+                global.listIssuingCA.push(new crypto.Certificate(v.SourceCert.IssuingCA))
+              ),
               metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k),
               v.RetryPolicy?.NumRetries && (
                 obj.RetryPolicy = {
