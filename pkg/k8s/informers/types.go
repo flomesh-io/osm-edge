@@ -48,6 +48,8 @@ const (
 	InformerKeyRetry InformerKey = "Retry"
 	// InformerKeyAccessControl is the InformerKey for a AccessControl informer
 	InformerKeyAccessControl InformerKey = "AccessControl"
+	// InformerKeyAccessCert is the InformerKey for a AccessCert informer
+	InformerKeyAccessCert InformerKey = "AccessCert"
 )
 
 const (

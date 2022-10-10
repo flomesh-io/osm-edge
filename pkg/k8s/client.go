@@ -267,6 +267,10 @@ func IsMetricsEnabled(pod *corev1.Pod) bool {
 // The resource within the 'interface{}' must be a pointer to the underlying resource
 func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	switch t := resource.(type) {
+	case *policyv1alpha1.AccessCert:
+		obj := resource.(*policyv1alpha1.AccessCert)
+		return c.policyClient.PolicyV1alpha1().AccessCerts(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+
 	case *policyv1alpha1.AccessControl:
 		obj := resource.(*policyv1alpha1.AccessControl)
 		return c.policyClient.PolicyV1alpha1().AccessControls(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})

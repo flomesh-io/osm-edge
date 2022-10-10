@@ -45,6 +45,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&IngressBackendList{},
 		&AccessControl{},
 		&AccessControlList{},
+		&AccessCert{},
+		&AccessCertList{},
 		&Retry{},
 		&RetryList{},
 		&UpstreamTrafficSetting{},

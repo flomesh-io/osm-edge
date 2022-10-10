@@ -66,6 +66,13 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 	}
 	client.informers.AddEventHandler(informers.InformerKeyAccessControl, k8s.GetEventHandlerFuncs(shouldObserve, aclEventTypes, msgBroker))
 
+	acertEventTypes := k8s.EventTypes{
+		Add:    announcements.AccessCertAdded,
+		Update: announcements.AccessCertUpdated,
+		Delete: announcements.AccessCertDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyAccessCert, k8s.GetEventHandlerFuncs(shouldObserve, acertEventTypes, msgBroker))
+
 	retryEventTypes := k8s.EventTypes{
 		Add:    announcements.RetryPolicyAdded,
 		Update: announcements.RetryPolicyUpdated,

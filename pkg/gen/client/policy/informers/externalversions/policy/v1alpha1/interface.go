@@ -21,6 +21,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// AccessCerts returns a AccessCertInformer.
+	AccessCerts() AccessCertInformer
 	// AccessControls returns a AccessControlInformer.
 	AccessControls() AccessControlInformer
 	// Egresses returns a EgressInformer.
@@ -44,6 +46,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// AccessCerts returns a AccessCertInformer.
+func (v *version) AccessCerts() AccessCertInformer {
+	return &accessCertInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // AccessControls returns a AccessControlInformer.

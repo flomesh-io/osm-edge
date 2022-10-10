@@ -84,6 +84,15 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	return nil, nil
 }
 
+// accessCertValidator validates the AccessCert custom resource
+func (kc *policyValidator) accessCertValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	act := &policyv1alpha1.AccessCert{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(act); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
 // accessControlValidator validates the AccessControl custom resource
 func (kc *policyValidator) accessControlValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	acl := &policyv1alpha1.AccessControl{}

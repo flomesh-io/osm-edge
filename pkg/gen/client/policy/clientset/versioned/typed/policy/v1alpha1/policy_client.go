@@ -25,6 +25,7 @@ import (
 
 type PolicyV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AccessCertsGetter
 	AccessControlsGetter
 	EgressesGetter
 	EgressGatewaysGetter
@@ -36,6 +37,10 @@ type PolicyV1alpha1Interface interface {
 // PolicyV1alpha1Client is used to interact with features provided by the policy.openservicemesh.io group.
 type PolicyV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *PolicyV1alpha1Client) AccessCerts(namespace string) AccessCertInterface {
+	return newAccessCerts(c, namespace)
 }
 
 func (c *PolicyV1alpha1Client) AccessControls(namespace string) AccessControlInterface {

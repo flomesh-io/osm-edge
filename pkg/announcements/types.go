@@ -184,6 +184,15 @@ const (
 	// AccessControlUpdated is the type of announcement emitted when we observe an update to accesscontrols.policy.openservicemesh.io
 	AccessControlUpdated Kind = "accesscontrol-updated"
 
+	// AccessCertAdded is the type of announcement emitted when we observe an addition of accesscerts.policy.openservicemesh.io
+	AccessCertAdded Kind = "accesscert-added"
+
+	// AccessCertDeleted the type of announcement emitted when we observe a deletion of accesscerts.policy.openservicemesh.io
+	AccessCertDeleted Kind = "accesscert-deleted"
+
+	// AccessCertUpdated is the type of announcement emitted when we observe an update to accesscerts.policy.openservicemesh.io
+	AccessCertUpdated Kind = "accesscert-updated"
+
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
 

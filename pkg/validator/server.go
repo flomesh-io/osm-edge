@@ -39,6 +39,7 @@ func NewValidatingWebhook(ctx context.Context, webhookConfigName, osmNamespace, 
 
 	v := &validatingWebhookServer{
 		validators: map[string]validateFunc{
+			policyv1alpha1.SchemeGroupVersion.WithKind("AccessCert").String():             kv.accessCertValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("AccessControl").String():          kv.accessControlValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("IngressBackend").String():         kv.ingressBackendValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("Egress").String():                 egressValidator,

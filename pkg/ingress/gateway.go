@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -73,6 +74,37 @@ func (c *client) createAndStoreGatewayCert(spec configv1alpha2.IngressGatewayCer
 	return nil
 }
 
+// createAndStoreAccessCert creates a certificate for the given certificate spec and stores
+// it in the referenced k8s secret if the spec is valid.
+func (c *client) createAndStoreAccessCert(spec policyv1alpha1.AccessCertSpec) error {
+	if len(spec.SubjectAltNames) == 0 {
+		return fmt.Errorf("Ingress gateway certificate spec must specify at least 1 SAN")
+	}
+
+	// Validate the secret ref
+	if spec.Secret.Name == "" || spec.Secret.Namespace == "" {
+		return fmt.Errorf("Access cert secret's name and namespace cannot be nil, got %s/%s", spec.Secret.Namespace, spec.Secret.Name)
+	}
+
+	// Issue a certificate
+	// OSM only support configuring a single SAN per cert, so pick the first one
+	certCN := spec.SubjectAltNames[0]
+
+	// A certificate for this CN may be cached already. Delete it before issuing a new certificate.
+	c.certProvider.ReleaseCertificate(certCN)
+	issuedCert, err := c.certProvider.IssueCertificate(certCN, certificate.Service, certificate.FullCNProvided())
+	if err != nil {
+		return fmt.Errorf("Error issuing a certificate for access: %w", err)
+	}
+
+	// Store the certificate in the referenced secret
+	if err := c.storeCertInSecret(issuedCert, spec.Secret); err != nil {
+		return fmt.Errorf("Error storing access cert in secret %s/%s: %w", spec.Secret.Namespace, spec.Secret.Name, err)
+	}
+
+	return nil
+}
+
 // storeCertInSecret stores the certificate in the specified k8s TLS secret
 func (c *client) storeCertInSecret(cert *certificate.Certificate, secret corev1.SecretReference) error {
 	secretData := map[string][]byte{
@@ -104,9 +136,14 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
+	accessCertCUDChan := kubePubSub.Sub(announcements.AccessCertAdded.String(), announcements.AccessCertUpdated.String(), announcements.AccessCertDeleted.String())
+	defer c.msgBroker.Unsub(kubePubSub, accessCertCUDChan)
+
 	certPubSub := c.msgBroker.GetCertPubSub()
 	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
 	defer c.msgBroker.Unsub(certPubSub, certRotateChan)
+
+	accessCertCache := make(map[certificate.CommonName]*policyv1alpha1.AccessCert)
 
 	for {
 		select {
@@ -147,6 +184,31 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 			}
 			currentCertSpec = newCertSpec
 
+		case msg, ok := <-accessCertCUDChan:
+			if !ok {
+				log.Warn().Msg("Notification channel closed for AccessCert")
+				continue
+			}
+
+			event, ok := msg.(events.PubSubMessage)
+			if !ok {
+				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
+				continue
+			}
+
+			newAccessCert, newOk := event.NewObj.(*policyv1alpha1.AccessCert)
+			oldAccessCert, oldOk := event.OldObj.(*policyv1alpha1.AccessCert)
+			if oldOk && oldAccessCert != nil {
+				delete(accessCertCache, certificate.CommonName(oldAccessCert.Spec.SubjectAltNames[0]))
+				if err := c.removeAccessCert(oldAccessCert, newOk, newAccessCert); err != nil {
+					continue
+				}
+			}
+
+			if newOk && newAccessCert != nil {
+				c.issueAccessCert(newAccessCert, accessCertCache)
+			}
+
 		// A certificate was rotated
 		case msg, ok := <-certRotateChan:
 			if !ok {
@@ -165,22 +227,19 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 				continue
 			}
 
-			// This should never happen, but guarding against a panic due to the usage of a pointer
-			if currentCertSpec == nil {
-				log.Error().Msgf("Current ingress gateway cert spec is nil, but a certificate for it was rotated - unexpected")
+			if currentCertSpec != nil && cert.GetCommonName() == certificate.CommonName(currentCertSpec.SubjectAltNames[0]) {
+				log.Info().Msg("Ingress gateway certificate was rotated, updating corresponding secret")
+				if err := c.createAndStoreGatewayCert(*currentCertSpec); err != nil {
+					log.Error().Err(err).Msgf("Error updating ingress gateway cert secret after cert rotation")
+				}
 				continue
 			}
 
-			cnInCertSpec := currentCertSpec.SubjectAltNames[0] // Only single SAN is supported in certs
-
-			// Only update the secret if the cert rotated matches the cert spec
-			if cert.GetCommonName() != certificate.CommonName(cnInCertSpec) {
-				continue
-			}
-
-			log.Info().Msg("Ingress gateway certificate was rotated, updating corresponding secret")
-			if err := c.createAndStoreGatewayCert(*currentCertSpec); err != nil {
-				log.Error().Err(err).Msgf("Error updating ingress gateway cert secret after cert rotation")
+			if accessCertSpec, exist := accessCertCache[cert.GetCommonName()]; exist {
+				log.Info().Msg("Access certificate was rotated, updating corresponding secret")
+				if err := c.createAndStoreAccessCert(accessCertSpec.Spec); err != nil {
+					log.Error().Err(err).Msgf("Error updating access cert secret after cert rotation")
+				}
 			}
 
 		case <-stop:
@@ -189,8 +248,59 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 	}
 }
 
+func (c *client) issueAccessCert(newAccessCert *policyv1alpha1.AccessCert, accessCertCache map[certificate.CommonName]*policyv1alpha1.AccessCert) {
+	if err := c.createAndStoreAccessCert(newAccessCert.Spec); err != nil {
+		log.Error().Err(err).Msgf("Error creating new access cert")
+		newAccessCert.Status = policyv1alpha1.AccessCertStatus{
+			CurrentStatus: "error",
+			Reason:        err.Error(),
+		}
+		if _, err := c.kubeController.UpdateStatus(newAccessCert); err != nil {
+			log.Error().Err(err).Msg("Error updating status for AccessCert")
+		}
+	} else {
+		accessCertCache[certificate.CommonName(newAccessCert.Spec.SubjectAltNames[0])] = newAccessCert
+		newAccessCert.Status = policyv1alpha1.AccessCertStatus{
+			CurrentStatus: "committed",
+			Reason:        "successfully committed by the system",
+		}
+		if _, err := c.kubeController.UpdateStatus(newAccessCert); err != nil {
+			log.Error().Err(err).Msg("Error updating status for AccessCert")
+		}
+	}
+}
+
+func (c *client) removeAccessCert(oldAccessCert *policyv1alpha1.AccessCert, newOk bool, newAccessCert *policyv1alpha1.AccessCert) error {
+	err := c.removeAccessCertAndSecret(oldAccessCert.Spec)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error deleting old access cert")
+		if newOk && newAccessCert != nil {
+			newAccessCert.Status = policyv1alpha1.AccessCertStatus{
+				CurrentStatus: "error",
+				Reason:        err.Error(),
+			}
+			if _, statusErr := c.kubeController.UpdateStatus(newAccessCert); statusErr != nil {
+				log.Error().Err(statusErr).Msg("Error updating status for AccessCert")
+			}
+		}
+	}
+	return err
+}
+
 // removeGatewayCertAndSecret removes the secret and certificate corresponding to the existing cert spec
 func (c *client) removeGatewayCertAndSecret(storedCertSpec configv1alpha2.IngressGatewayCertSpec) error {
+	err := c.kubeClient.CoreV1().Secrets(storedCertSpec.Secret.Namespace).Delete(context.Background(), storedCertSpec.Secret.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return err
+	}
+
+	c.certProvider.ReleaseCertificate(storedCertSpec.SubjectAltNames[0]) // Only single SAN is supported in certs
+
+	return nil
+}
+
+// removeAccessCertAndSecret removes the secret and certificate corresponding to the existing cert spec
+func (c *client) removeAccessCertAndSecret(storedCertSpec policyv1alpha1.AccessCertSpec) error {
 	err := c.kubeClient.CoreV1().Secrets(storedCertSpec.Secret.Namespace).Delete(context.Background(), storedCertSpec.Secret.Name, metav1.DeleteOptions{})
 	if err != nil {
 		return err
