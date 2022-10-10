@@ -78,6 +78,20 @@ spec:
                           protocol:
                             description: Protocol served by this port.
                             type: string
+                      tls:
+                        description: TLS configuration for the backend.
+                        type: object
+                        required:
+                          - skipClientCertValidation
+                        properties:
+                          skipClientCertValidation:
+                            description: Skip client certificate validation.
+                            type: boolean
+                          sniHosts:
+                            description: SNI hosts allowed by the backend.
+                            type: array
+                            items:
+                              type: string
                 sources:
                   description: Sources the AccessControl policy is applicable to.
                   type: array
