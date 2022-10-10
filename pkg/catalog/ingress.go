@@ -51,6 +51,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			Name:                     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:                     uint32(backend.Port.Number),
 			Protocol:                 backend.Port.Protocol,
+			TLS:                      &backend.TLS,
 			ServerNames:              backend.TLS.SNIHosts,
 			SkipClientCertValidation: backend.TLS.SkipClientCertValidation,
 		}

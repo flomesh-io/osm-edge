@@ -369,7 +369,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 		}
 
 		securitySpec := &SourceSecuritySpec{
-			HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
+			MTLS:                     trafficMatch.TLS != nil,
 			SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
 		}
 
@@ -506,8 +506,8 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 		}
 
 		securitySpec := &SourceSecuritySpec{
-			HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
-			SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
+			MTLS:                     trafficMatch.TLS != nil,
+			SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {

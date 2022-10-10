@@ -129,7 +129,7 @@ type SourceIPRange string
 
 // SourceSecuritySpec is the security spec of source
 type SourceSecuritySpec struct {
-	HTTPS                    bool `json:"mTLS"`
+	MTLS                     bool `json:"mTLS"`
 	SkipClientCertValidation bool
 	AuthenticatedPrincipals  []string
 }
