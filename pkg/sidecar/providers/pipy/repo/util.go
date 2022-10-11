@@ -235,7 +235,6 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 						if tlsKey, ok := secret.Data["tls.key"]; ok {
 							destinationSpec.SourceCert.PrivateKey = string(tlsKey)
 						}
-
 					} else {
 						log.Error().Err(err)
 					}
@@ -607,7 +606,6 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 					Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
 				}
 				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
-
 					clusterConfigs.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
 					clusterConfigs.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
 					if caCrt, ok := secret.Data["ca.crt"]; ok {
@@ -619,7 +617,6 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 					if tlsKey, ok := secret.Data["tls.key"]; ok {
 						clusterConfigs.SourceCert.PrivateKey = string(tlsKey)
 					}
-
 				} else {
 					log.Error().Err(err)
 				}
