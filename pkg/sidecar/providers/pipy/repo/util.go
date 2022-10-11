@@ -213,17 +213,17 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 
 		var destinationSpec *DestinationSecuritySpec
 		if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
-			if clusterConfig.SourceMTLS != nil && clusterConfig.SourceMTLS.Cert != nil {
-				secretReference := corev1.SecretReference{
-					Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
-					Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
-				}
-				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
-					destinationSpec = new(DestinationSecuritySpec)
-					destinationSpec.SourceCert = new(Certificate)
-					osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
-					destinationSpec.SourceCert.OsmIssued = &osmIssued
-					if !osmIssued {
+			if clusterConfig.SourceMTLS != nil {
+				destinationSpec = new(DestinationSecuritySpec)
+				destinationSpec.SourceCert = new(Certificate)
+				osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
+				destinationSpec.SourceCert.OsmIssued = &osmIssued
+				if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
+					secretReference := corev1.SecretReference{
+						Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
+						Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
+					}
+					if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
 						destinationSpec.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
 						destinationSpec.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
 						if caCrt, ok := secret.Data["ca.crt"]; ok {
@@ -235,9 +235,10 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 						if tlsKey, ok := secret.Data["tls.key"]; ok {
 							destinationSpec.SourceCert.PrivateKey = string(tlsKey)
 						}
+
+					} else {
+						log.Error().Err(err)
 					}
-				} else {
-					log.Error().Err(err)
 				}
 			}
 		}
@@ -596,16 +597,17 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 		if clusterConfig.UpstreamTrafficSetting != nil {
 			clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
 		}
-		if clusterConfig.SourceMTLS != nil && clusterConfig.SourceMTLS.Cert != nil {
-			secretReference := corev1.SecretReference{
-				Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
-				Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
-			}
-			if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
-				clusterConfigs.SourceCert = new(Certificate)
-				osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
-				clusterConfigs.SourceCert.OsmIssued = &osmIssued
-				if !osmIssued {
+		if clusterConfig.SourceMTLS != nil {
+			clusterConfigs.SourceCert = new(Certificate)
+			osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
+			clusterConfigs.SourceCert.OsmIssued = &osmIssued
+			if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
+				secretReference := corev1.SecretReference{
+					Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
+					Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
+				}
+				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+
 					clusterConfigs.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
 					clusterConfigs.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
 					if caCrt, ok := secret.Data["ca.crt"]; ok {
@@ -617,9 +619,10 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 					if tlsKey, ok := secret.Data["tls.key"]; ok {
 						clusterConfigs.SourceCert.PrivateKey = string(tlsKey)
 					}
+
+				} else {
+					log.Error().Err(err)
 				}
-			} else {
-				log.Error().Err(err)
 			}
 		}
 		if cluster.RetryPolicy != nil {
