@@ -9,7 +9,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -17,7 +16,9 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -67,7 +68,9 @@ type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.Admissio
 
 // policyValidator is a validator that has access to a policy
 type policyValidator struct {
-	policyClient policy.Controller
+	policyClient   policy.Controller
+	kubeController k8s.Controller
+	cfg            *configurator.Client
 }
 
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
@@ -81,6 +84,25 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
 	}
 
+	return nil, nil
+}
+
+// accessCertValidator validates the AccessCert custom resource
+func (kc *policyValidator) accessCertValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	act := &policyv1alpha1.AccessCert{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(act); err != nil {
+		return nil, err
+	}
+	if !kc.cfg.GetFeatureFlags().EnableAccessCertPolicy {
+		act.Status = policyv1alpha1.AccessCertStatus{
+			CurrentStatus: "error",
+			Reason:        "OSM is prohibited to issue certificates for external services.",
+		}
+		if _, err := kc.kubeController.UpdateStatus(act); err != nil {
+			log.Error().Err(err).Msg("Error updating status for AccessCert")
+		}
+		return nil, fmt.Errorf("OSM is prohibited to issue certificates for external services")
+	}
 	return nil, nil
 }
 
@@ -118,20 +140,14 @@ func (kc *policyValidator) accessControlValidator(req *admissionv1.AdmissionRequ
 				continue
 			}
 			conflicts := policy.DetectAccessControlConflicts(*acl, *matchingPolicy)
-			fmt.Fprintf(&conflictString, "[+] IngressBackend %s/%s conflicts with %s/%s:\n", ns, acl.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
+			fmt.Fprintf(&conflictString, "[+] AccessControlBackend %s/%s conflicts with %s/%s:\n", ns, acl.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
 			for _, err := range conflicts {
 				fmt.Fprintf(&conflictString, "%s\n", err)
 			}
 			fmt.Fprintf(&conflictString, "\n")
 		}
 
-		// Validate port
-		switch strings.ToLower(backend.Port.Protocol) {
-		case constants.ProtocolHTTP:
-			// Valid
-
-		case constants.ProtocolHTTPS:
-			// Valid
+		if backend.TLS != nil {
 			// If mTLS is enabled, verify there is an AuthenticatedPrincipal specified
 			authenticatedSourceFound := false
 			for _, source := range acl.Spec.Sources {
@@ -144,9 +160,6 @@ func (kc *policyValidator) accessControlValidator(req *admissionv1.AdmissionRequ
 			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
 				return nil, fmt.Errorf("HTTPS acl with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
 			}
-
-		default:
-			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
 		}
 	}
 
@@ -242,7 +255,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 				}
 			}
 
-			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
+			if backend.TLS != nil && backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
 				return nil, fmt.Errorf("HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
 			}
 

@@ -50,7 +50,7 @@ type AccessControlBackendSpec struct {
 
 	// TLS defines the specification for the backend's TLS configuration.
 	// +optional
-	TLS TLSSpec `json:"tls,omitempty"`
+	TLS *TLSSpec `json:"tls,omitempty"`
 }
 
 // AccessControlSourceSpec is the type used to represent the Source in the list of Sources specified in an

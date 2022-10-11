@@ -775,7 +775,7 @@ func TestIngressBackendValidator(t *testing.T) {
 			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			policyClient := policy.NewPolicyController(informerCollection, nil, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -1558,7 +1558,7 @@ func TestAccessControlValidator(t *testing.T) {
 			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			policyClient := policy.NewPolicyController(informerCollection, nil, k8sController, broker)
 			pv := &policyValidator{
 				policyClient: policyClient,
 			}
@@ -2076,7 +2076,7 @@ func TestUpstreamTrafficSettingValidator(t *testing.T) {
 			informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithPolicyClient(fakeClient))
 			assert.NoError(err)
 
-			policyClient := policy.NewPolicyController(informerCollection, k8sController, broker)
+			policyClient := policy.NewPolicyController(informerCollection, nil, k8sController, broker)
 
 			pv := &policyValidator{
 				policyClient: policyClient,

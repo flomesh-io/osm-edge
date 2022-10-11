@@ -47,6 +47,9 @@ type EgressClusterConfig struct {
 
 	// UpstreamTrafficSetting is the traffic setting for the upstream cluster
 	UpstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting
+
+	// SourceMTLS defines the mTLS specification for the egress source.
+	SourceMTLS *policyv1alpha1.EgressSourceMTLSSpec
 }
 
 // EgressHTTPRouteConfig is the type used to represent an HTTP route configuration along with associated routing rules

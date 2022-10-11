@@ -203,9 +203,9 @@ func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegi
 	return ready
 }
 
-func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange, sourceSpec *SecuritySpec) {
+func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange, sourceSpec *SourceSecuritySpec) {
 	if itm.SourceIPRanges == nil {
-		itm.SourceIPRanges = make(map[SourceIPRange]*SecuritySpec)
+		itm.SourceIPRanges = make(map[SourceIPRange]*SourceSecuritySpec)
 	}
 	if _, exists := itm.SourceIPRanges[ipRange]; !exists {
 		itm.SourceIPRanges[ipRange] = sourceSpec
@@ -229,8 +229,13 @@ func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *v1alpha1.RateL
 	}
 }
 
-func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange) {
-	otm.DestinationIPRanges = append(otm.DestinationIPRanges, ipRange)
+func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange, destinationSpec *DestinationSecuritySpec) {
+	if otm.DestinationIPRanges == nil {
+		otm.DestinationIPRanges = make(map[DestinationIPRange]*DestinationSecuritySpec)
+	}
+	if _, exists := otm.DestinationIPRanges[ipRange]; !exists {
+		otm.DestinationIPRanges[ipRange] = destinationSpec
+	}
 }
 
 func (otm *OutboundTrafficMatch) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {

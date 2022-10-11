@@ -256,6 +256,9 @@ type FeatureFlags struct {
 	// service mesh backends.
 	EnableAccessControlPolicy bool `json:"enableAccessControlPolicy"`
 
+	// EnableAccessCertPolicy defines if OSM can issue certificates for external services..
+	EnableAccessCertPolicy bool `json:"enableAccessCertPolicy"`
+
 	// EnableSidecarActiveHealthChecks defines if OSM will Sidecar active health
 	// checks between services allowed to communicate.
 	EnableSidecarActiveHealthChecks bool `json:"enableSidecarActiveHealthChecks"`

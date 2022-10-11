@@ -11,6 +11,7 @@ import (
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockController is a mock of Controller interface.
@@ -48,6 +49,21 @@ func (m *MockController) GetAccessControlPolicy(arg0 service.MeshService) *v1alp
 func (mr *MockControllerMockRecorder) GetAccessControlPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessControlPolicy", reflect.TypeOf((*MockController)(nil).GetAccessControlPolicy), arg0)
+}
+
+// GetEgressSourceSecret mocks base method.
+func (m *MockController) GetEgressSourceSecret(arg0 v1.SecretReference) (*v1.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEgressSourceSecret", arg0)
+	ret0, _ := ret[0].(*v1.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEgressSourceSecret indicates an expected call of GetEgressSourceSecret.
+func (mr *MockControllerMockRecorder) GetEgressSourceSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressSourceSecret", reflect.TypeOf((*MockController)(nil).GetEgressSourceSecret), arg0)
 }
 
 // GetIngressBackendPolicy mocks base method.

@@ -1,4 +1,4 @@
-// version: '2022.08.30'
+// version: '2022.10.09'
 ((
   {
     config,
@@ -6,7 +6,8 @@
     debugLogLevel,
     tlsCertChain,
     tlsPrivateKey,
-    tlsIssuingCA
+    tlsIssuingCA,
+    listIssuingCA
   } = pipy.solve('config.js')) => (
 
   pipy({})
@@ -14,6 +15,7 @@
     .import({
       _egressMode: 'main',
       _egressEndpoint: 'main',
+      _outSourceCert: 'main',
       _outTarget: 'main',
       _upstreamClusterName: 'main'
     })
@@ -24,7 +26,7 @@
     .pipeline()
     .onStart(
       () => (
-        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint', Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint),
+        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint/_outSourceCert', Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint, Boolean(_outSourceCert)),
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase(),
         config?.outClustersBreakers?.[_upstreamClusterName]?.incConnections?.(),
         null
@@ -47,6 +49,16 @@
       )
     )
     .branch(
+      () => Boolean(_outSourceCert), $ => $
+        .connectTLS({
+          certificate: () => ({
+            cert: new crypto.Certificate(_outSourceCert.CertChain),
+            key: new crypto.PrivateKey(_outSourceCert.PrivateKey),
+          }),
+          trusted: listIssuingCA
+        }).to($ => $
+          .connect(() => _outTarget?.id)
+        ),
       () => (Boolean(tlsCertChain) && !Boolean(_egressMode)), $ => $
         .connectTLS({
           certificate: () => ({

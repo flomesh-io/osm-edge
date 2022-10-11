@@ -1,4 +1,4 @@
-// version: '2022.09.28'
+// version: '2022.10.11'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -35,8 +35,20 @@
       funcShuffle: null,
       forwardMatches: null,
       forwardEgressGateways: null,
-      codeMessage: codeMessage
+      codeMessage: codeMessage,
+      mapIssuingCA: {},
+      listIssuingCA: []
     },
+
+    global.addIssuingCA = ca => (
+      (md5 => (
+        md5 = '' + algo.hash(ca),
+        !global.mapIssuingCA[md5] && (
+          global.listIssuingCA.push(new crypto.Certificate(ca)),
+          global.mapIssuingCA[md5] = true
+        )
+      ))()
+    ),
 
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
@@ -185,7 +197,18 @@
                 EgressForwardGateway: o?.EgressForwardGateway,
                 HttpHostPort2Service: o.HttpHostPort2Service,
                 TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
-                DestinationIPRanges: o.DestinationIPRanges && o.DestinationIPRanges.map(e => new Netmask(e)),
+                DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
+                  ([k, v]) => (
+                    v?.SourceCert?.IssuingCA && (
+                      global.addIssuingCA(v.SourceCert.IssuingCA)
+                    ),
+                    {
+                      netmask: new Netmask(k),
+                      cert: v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey ?
+                        ({ CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }) : v?.SourceCert
+                    }
+                  )
+                ),
                 HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
               })
               )
@@ -233,6 +256,13 @@
                 )
               ),
               obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
+              v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
+                obj.SourceCert = v.SourceCert,
+                global.addIssuingCA(v.SourceCert.IssuingCA)
+              ),
+              v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey && (
+                obj.SourceCert = { CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }
+              ),
               metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k),
               v.RetryPolicy?.NumRetries && (
                 obj.RetryPolicy = {
@@ -288,6 +318,10 @@
 
     global.config = config,
     global.metrics = metrics,
+
+    global.tlsIssuingCA && (
+      global.addIssuingCA(global.tlsIssuingCA)
+    ),
 
     global
   )

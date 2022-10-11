@@ -114,6 +114,7 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		ic.informers[InformerKeyUpstreamTrafficSetting] = informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer()
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
 		ic.informers[InformerKeyAccessControl] = informerFactory.Policy().V1alpha1().AccessControls().Informer()
+		ic.informers[InformerKeyAccessCert] = informerFactory.Policy().V1alpha1().AccessCerts().Informer()
 	}
 }
 

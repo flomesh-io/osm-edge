@@ -1,7 +1,11 @@
 package policy
 
 import (
+	"context"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -19,9 +23,10 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(informerCollection *informers.InformerCollection, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+func NewPolicyController(informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
 	client := &Client{
 		informers:      informerCollection,
+		kubeClient:     kubeClient,
 		kubeController: kubeController,
 	}
 
@@ -60,6 +65,13 @@ func NewPolicyController(informerCollection *informers.InformerCollection, kubeC
 		Delete: announcements.AccessControlDeleted,
 	}
 	client.informers.AddEventHandler(informers.InformerKeyAccessControl, k8s.GetEventHandlerFuncs(shouldObserve, aclEventTypes, msgBroker))
+
+	acertEventTypes := k8s.EventTypes{
+		Add:    announcements.AccessCertAdded,
+		Update: announcements.AccessCertUpdated,
+		Delete: announcements.AccessCertDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyAccessCert, k8s.GetEventHandlerFuncs(shouldObserve, acertEventTypes, msgBroker))
 
 	retryEventTypes := k8s.EventTypes{
 		Add:    announcements.RetryPolicyAdded,
@@ -108,6 +120,12 @@ func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceA
 	}
 
 	return policies
+}
+
+// GetEgressSourceSecret returns the secret resource that matches the given options
+func (c *Client) GetEgressSourceSecret(secretReference corev1.SecretReference) (*corev1.Secret, error) {
+	return c.kubeClient.CoreV1().Secrets(secretReference.Namespace).
+		Get(context.Background(), secretReference.Name, metav1.GetOptions{})
 }
 
 // GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService

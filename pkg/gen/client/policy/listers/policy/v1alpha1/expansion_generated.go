@@ -15,6 +15,14 @@ limitations under the License.
 
 package v1alpha1
 
+// AccessCertListerExpansion allows custom methods to be added to
+// AccessCertLister.
+type AccessCertListerExpansion interface{}
+
+// AccessCertNamespaceListerExpansion allows custom methods to be added to
+// AccessCertNamespaceLister.
+type AccessCertNamespaceListerExpansion interface{}
+
 // AccessControlListerExpansion allows custom methods to be added to
 // AccessControlLister.
 type AccessControlListerExpansion interface{}

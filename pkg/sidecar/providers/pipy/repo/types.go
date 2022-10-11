@@ -116,21 +116,26 @@ type HTTPHostPort2Service map[HTTPHostPort]HTTPRouteRuleName
 // DestinationIPRange is a string wrapper type
 type DestinationIPRange string
 
-// DestinationIPRanges is a wrapper type of []DestinationIPRange
-type DestinationIPRanges []DestinationIPRange
+// DestinationSecuritySpec is the security spec of destination
+type DestinationSecuritySpec struct {
+	SourceCert *Certificate `json:"SourceCert,omitempty"`
+}
+
+// DestinationIPRanges is a wrapper type of map[DestinationIPRange]*DestinationSecuritySpec
+type DestinationIPRanges map[DestinationIPRange]*DestinationSecuritySpec
 
 // SourceIPRange is a string wrapper type
 type SourceIPRange string
 
-// SecuritySpec is the security spec of source
-type SecuritySpec struct {
-	HTTPS                    bool `json:"mTLS"`
+// SourceSecuritySpec is the security spec of source
+type SourceSecuritySpec struct {
+	MTLS                     bool `json:"mTLS"`
 	SkipClientCertValidation bool
 	AuthenticatedPrincipals  []string
 }
 
-// SourceIPRanges is a wrapper type of map[SourceIPRange]*SecuritySpec
-type SourceIPRanges map[SourceIPRange]*SecuritySpec
+// SourceIPRanges is a wrapper type of map[SourceIPRange]*SourceSecuritySpec
+type SourceIPRanges map[SourceIPRange]*SourceSecuritySpec
 
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
@@ -172,8 +177,15 @@ type MeshConfigSpec struct {
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
+	// If issued by osm ca
+	OsmIssued *bool `json:"OsmIssued,omitempty"`
+
 	// The CommonName of the certificate
-	CommonName certificate.CommonName
+	CommonName *certificate.CommonName `json:"CommonName,omitempty"`
+
+	// SubjectAltNames defines the Subject Alternative Names (domain names and IP addresses) secured by the certificate.
+	SubjectAltNames []string `json:"SubjectAltNames,omitempty"`
+
 	// When the cert expires
 	Expiration string
 
@@ -273,6 +285,7 @@ type ClusterConfigs struct {
 	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
+	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
 }
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic

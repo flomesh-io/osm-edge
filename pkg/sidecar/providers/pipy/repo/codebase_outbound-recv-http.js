@@ -1,4 +1,4 @@
-// version: '2022.09.30'
+// version: '2022.10.09'
 ((
   {
     config,
@@ -22,6 +22,7 @@
       _outMatch: 'main',
       _outTarget: 'main',
       _egressMode: 'main',
+      _outSourceCert: 'main',
       _outRequestTime: 'main',
       _outBytesStruct: 'main',
       _outLoggingData: 'main',
@@ -66,6 +67,9 @@
             outClustersConfigs?.[_upstreamClusterName]?.RateLimit && (
               (index = outClustersConfigs[_upstreamClusterName].RateLimit.next()) && (connIdx = outClustersConfigs[_upstreamClusterName].RateLimitObject[index.id])
             ),
+
+            // Egress mTLS certs
+            _outSourceCert = outClustersConfigs?.[_upstreamClusterName]?.SourceCert,
 
             outClustersConfigs?.[
               _upstreamClusterName

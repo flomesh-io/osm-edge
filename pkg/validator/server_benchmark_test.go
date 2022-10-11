@@ -52,7 +52,7 @@ func BenchmarkDoValidation(b *testing.B) {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
 	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
 	kv := &policyValidator{
 		policyClient: policyController,
 	}

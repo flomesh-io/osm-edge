@@ -42,11 +42,10 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 		}
 
 		trafficMatch := &trafficpolicy.AccessControlTrafficMatch{
-			Name:                     service.AccessControlTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
-			Port:                     uint32(backend.Port.Number),
-			Protocol:                 backend.Port.Protocol,
-			ServerNames:              backend.TLS.SNIHosts,
-			SkipClientCertValidation: backend.TLS.SkipClientCertValidation,
+			Name:     service.AccessControlTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
+			Port:     uint32(backend.Port.Number),
+			Protocol: backend.Port.Protocol,
+			TLS:      backend.TLS,
 		}
 
 		var sourceIPRanges []string
@@ -89,7 +88,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				if backend.TLS.SkipClientCertValidation {
+				if backend.TLS != nil && backend.TLS.SkipClientCertValidation {
 					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
 					sourcePrincipals.Add(source.Name)
@@ -133,6 +132,14 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 		// MeshService does not map to this AccessControl config.
 		log.Debug().Msgf("No acl traffic matches exist for MeshService %s, no acl config required", svc.SidecarLocalClusterName())
 		return nil, nil
+	}
+
+	aclWithStatus.Status = policyV1alpha1.AccessControlStatus{
+		CurrentStatus: "committed",
+		Reason:        "successfully committed by the system",
+	}
+	if _, err := mc.kubeController.UpdateStatus(&aclWithStatus); err != nil {
+		log.Error().Err(err).Msg("Error updating status for AccessControl")
 	}
 
 	// Create an inbound traffic policy from the routing rules

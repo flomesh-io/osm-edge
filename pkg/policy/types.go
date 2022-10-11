@@ -2,7 +2,9 @@
 package policy
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -20,6 +22,7 @@ var (
 // Client is the type used to represent the Kubernetes Client for the policy.openservicemesh.io API group
 type Client struct {
 	informers      *informers.InformerCollection
+	kubeClient     kubernetes.Interface
 	kubeController k8s.Controller
 }
 
@@ -30,6 +33,9 @@ type Controller interface {
 
 	// ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity
 	ListEgressPoliciesForSourceIdentity(identity.K8sServiceAccount) []*policyv1alpha1.Egress
+
+	// GetEgressSourceSecret returns the secret resource that matches the given options
+	GetEgressSourceSecret(corev1.SecretReference) (*corev1.Secret, error)
 
 	// GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
 	GetIngressBackendPolicy(service.MeshService) *policyv1alpha1.IngressBackend

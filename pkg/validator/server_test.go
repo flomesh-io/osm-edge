@@ -159,9 +159,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		kube := fake.NewSimpleClientset(webhook)
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
-		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		policyClient := policy.NewPolicyController(informerCollection, nil, nil, broker)
 		ctx, cancel := context.WithCancel(context.Background())
-		err = NewValidatingWebhook(ctx, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(ctx, nil, webhook.Name, testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, nil, policyClient)
 		tassert.NoError(t, err)
 		cancel()
 	})
@@ -176,9 +176,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		kube := fake.NewSimpleClientset()
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
-		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		policyClient := policy.NewPolicyController(informerCollection, nil, nil, broker)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), nil, "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, nil, policyClient)
 		tassert.NoError(t, err)
 	})
 
@@ -194,9 +194,9 @@ func TestNewValidatingWebhook(t *testing.T) {
 		kube := fake.NewSimpleClientset()
 		informerCollection, err := informers.NewInformerCollection("osm", stop, informers.WithKubeClient(kube))
 		tassert.NoError(t, err)
-		policyClient := policy.NewPolicyController(informerCollection, nil, broker)
+		policyClient := policy.NewPolicyController(informerCollection, nil, nil, broker)
 
-		err = NewValidatingWebhook(context.Background(), "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, policyClient)
+		err = NewValidatingWebhook(context.Background(), nil, "my-webhook", testNamespace, testVersion, testMeshName, enableReconciler, validateTrafficTarget, certManager, kube, nil, policyClient)
 		tassert.NoError(t, err)
 	})
 }

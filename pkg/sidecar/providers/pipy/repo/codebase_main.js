@@ -1,4 +1,4 @@
-// version: '2022.09.30'
+// version: '2022.10.11'
 ((
   {
     config,
@@ -20,11 +20,15 @@
     probePath,
     logZipkin,
     metrics,
-    logLogging
+    logLogging,
+    mapIssuingCA
   } = pipy.solve('config.js')) => (
 
   // Turn On Activity Metrics
   metrics.serverLiveGauge.increase(),
+  debugLogLevel && (
+    console.log('[mTLS] - Number of CA :', Object.keys(mapIssuingCA).length)
+  ),
 
   metrics.tracingAddress &&
   (logZipkin = new logging.JSONLogger('zipkin').toHTTP('http://' + metrics.tracingAddress + metrics.tracingEndpoint, {
@@ -70,6 +74,7 @@
       _outTarget: null,
       _egressMode: null,
       _egressEndpoint: null,
+      _outSourceCert: null,
       _outRequestTime: null,
       _outBytesStruct: null,
       _outZipkinData: null,
@@ -190,7 +195,9 @@
 
           _outMatch = (outTrafficMatches && outTrafficMatches[_outPort] && (
             // Strict matching Destination IP address
-            outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(e => e.contains(_outIP)))) ||
+            outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(
+              e => (e.netmask?.contains?.(_outIP) ? (_outSourceCert = e.cert, true) : false)
+            ))) ||
             // EGRESS mode - does not check the IP
             (_egressMode = true) && outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
               (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
@@ -210,10 +217,11 @@
               _outMatch &&
               _outMatch.Protocol !== 'http' && _outMatch.Protocol !== 'grpc'
             ) && (
+              _upstreamClusterName = _outMatch.TargetClusters?.next?.()?.id,
+              // Egress mTLS certs
+              !_outSourceCert && (_outSourceCert = outClustersConfigs?.[_upstreamClusterName]?.SourceCert),
               // Load balance
-              outClustersConfigs?.[
-                _upstreamClusterName = _outMatch.TargetClusters?.next?.()?.id
-              ]?.Endpoints?.next?.()
+              outClustersConfigs?.[_upstreamClusterName]?.Endpoints?.next?.()
             )
           ),
 

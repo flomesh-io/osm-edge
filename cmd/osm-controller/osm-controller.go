@@ -254,7 +254,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
 
-	policyController := policy.NewPolicyController(informerCollection, k8sClient, msgBroker)
+	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,
@@ -288,7 +288,7 @@ func main() {
 
 	clientset := extensionsClientset.NewForConfigOrDie(kubeConfig)
 
-	if err := validator.NewValidatingWebhook(ctx, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, policyController); err != nil {
+	if err := validator.NewValidatingWebhook(ctx, cfg, validatorWebhookConfigName, osmNamespace, osmVersion, meshName, enableReconciler, validateTrafficTarget, certManager, kubeClient, k8sClient, policyController); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error starting the validating webhook server")
 	}
 

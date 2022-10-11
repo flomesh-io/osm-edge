@@ -333,6 +333,8 @@ spec:
                       type: boolean
                     enableAccessControlPolicy:
                       type: boolean
+                    enableAccessCertPolicy:
+                      type: boolean
                     enableSidecarActiveHealthChecks:
                       type: boolean
                     enableRetryPolicy:
@@ -587,6 +589,8 @@ spec:
                     enableIngressBackendPolicy:
                       type: boolean
                     enableAccessControlPolicy:
+                      type: boolean
+                    enableAccessCertPolicy:
                       type: boolean
                     enableSidecarActiveHealthChecks:
                       type: boolean

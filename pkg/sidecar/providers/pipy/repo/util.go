@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -130,7 +131,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 		tm.setServiceIdentity(proxyIdentity)
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
-			tm.addDestinationIPRange(DestinationIPRange(ipRange))
+			tm.addDestinationIPRange(DestinationIPRange(ipRange), nil)
 		}
 
 		if destinationProtocol == constants.ProtocolHTTP ||
@@ -196,7 +197,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 	return dependClusters
 }
 
-func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*WeightedCluster {
+func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy) map[service.ClusterName]*WeightedCluster {
 	if len(egressPolicy.TrafficMatches) == 0 {
 		return nil
 	}
@@ -210,8 +211,39 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 		tm.setPort(Port(trafficMatch.DestinationPort))
 		tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
 
+		var destinationSpec *DestinationSecuritySpec
+		if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
+			if clusterConfig.SourceMTLS != nil {
+				destinationSpec = new(DestinationSecuritySpec)
+				destinationSpec.SourceCert = new(Certificate)
+				osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
+				destinationSpec.SourceCert.OsmIssued = &osmIssued
+				if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
+					secretReference := corev1.SecretReference{
+						Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
+						Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
+					}
+					if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+						destinationSpec.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
+						destinationSpec.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
+						if caCrt, ok := secret.Data["ca.crt"]; ok {
+							destinationSpec.SourceCert.IssuingCA = string(caCrt)
+						}
+						if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+							destinationSpec.SourceCert.CertChain = string(tlsCrt)
+						}
+						if tlsKey, ok := secret.Data["tls.key"]; ok {
+							destinationSpec.SourceCert.PrivateKey = string(tlsKey)
+						}
+					} else {
+						log.Error().Err(err)
+					}
+				}
+			}
+		}
+
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
-			tm.addDestinationIPRange(DestinationIPRange(ipRange))
+			tm.addDestinationIPRange(DestinationIPRange(ipRange), destinationSpec)
 		}
 
 		if destinationProtocol == constants.ProtocolHTTP || destinationProtocol == constants.ProtocolGRPC {
@@ -258,7 +290,7 @@ func generatePipyEgressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.Se
 					}
 
 					for _, allowedIPRange := range rule.AllowedDestinationIPRanges {
-						tm.addDestinationIPRange(DestinationIPRange(allowedIPRange))
+						tm.addDestinationIPRange(DestinationIPRange(allowedIPRange), destinationSpec)
 					}
 				}
 			}
@@ -340,6 +372,18 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			continue
 		}
 
+		var securitySpec *SourceSecuritySpec
+		if trafficMatch.TLS != nil {
+			securitySpec = &SourceSecuritySpec{
+				MTLS:                     true,
+				SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+			}
+		}
+
+		for _, ipRange := range trafficMatch.SourceIPRanges {
+			tm.addSourceIPRange(SourceIPRange(ipRange), securitySpec)
+		}
+
 		var authenticatedPrincipals []string
 		protocol := strings.ToLower(trafficMatch.Protocol)
 		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
@@ -387,12 +431,8 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			}
 		}
 
-		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange), &SecuritySpec{
-				HTTPS:                    strings.EqualFold(constants.ProtocolHTTPS, trafficMatch.Protocol),
-				SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
-				AuthenticatedPrincipals:  authenticatedPrincipals,
-			})
+		if securitySpec != nil {
+			securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
 		}
 	}
 }
@@ -453,7 +493,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 	return success
 }
 
-func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy, trustDomain string) {
+func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, aclPolicy *trafficpolicy.AccessControlTrafficPolicy) {
 	if len(aclPolicy.TrafficMatches) == 0 {
 		return
 	}
@@ -474,11 +514,21 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			continue
 		}
 
-		for _, ipRange := range trafficMatch.SourceIPRanges {
-			tm.addSourceIPRange(SourceIPRange(ipRange), nil)
+		var securitySpec *SourceSecuritySpec
+		if trafficMatch.TLS != nil {
+			securitySpec = &SourceSecuritySpec{
+				MTLS:                     true,
+				SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+			}
 		}
+
+		for _, ipRange := range trafficMatch.SourceIPRanges {
+			tm.addSourceIPRange(SourceIPRange(ipRange), securitySpec)
+		}
+
+		var authenticatedPrincipals []string
 		protocol := strings.ToLower(trafficMatch.Protocol)
-		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolGRPC {
+		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
 			continue
 		}
 		for _, httpRouteConfig := range aclPolicy.HTTPRoutePolicies {
@@ -517,11 +567,14 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
 						servicePrincipal := allowedPrincipal.(string)
-						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
-						hsrr.addAllowedService(ServiceName(serviceIdentity))
+						authenticatedPrincipals = append(authenticatedPrincipals, servicePrincipal)
 					}
 				}
 			}
+		}
+
+		if securitySpec != nil {
+			securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
 		}
 	}
 }
@@ -542,6 +595,32 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 		clusterConfigs.addWeightedEndpoint(address, port, weight)
 		if clusterConfig.UpstreamTrafficSetting != nil {
 			clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
+		}
+		if clusterConfig.SourceMTLS != nil {
+			clusterConfigs.SourceCert = new(Certificate)
+			osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
+			clusterConfigs.SourceCert.OsmIssued = &osmIssued
+			if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
+				secretReference := corev1.SecretReference{
+					Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
+					Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
+				}
+				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+					clusterConfigs.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
+					clusterConfigs.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
+					if caCrt, ok := secret.Data["ca.crt"]; ok {
+						clusterConfigs.SourceCert.IssuingCA = string(caCrt)
+					}
+					if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+						clusterConfigs.SourceCert.CertChain = string(tlsCrt)
+					}
+					if tlsKey, ok := secret.Data["tls.key"]; ok {
+						clusterConfigs.SourceCert.PrivateKey = string(tlsKey)
+					}
+				} else {
+					log.Error().Err(err)
+				}
+			}
 		}
 		if cluster.RetryPolicy != nil {
 			clusterConfigs.setRetryPolicy(cluster.RetryPolicy)

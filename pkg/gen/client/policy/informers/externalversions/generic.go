@@ -50,6 +50,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=policy.openservicemesh.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("accesscerts"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().AccessCerts().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("accesscontrols"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().AccessControls().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("egresses"):
