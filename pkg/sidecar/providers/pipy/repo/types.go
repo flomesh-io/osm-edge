@@ -177,6 +177,9 @@ type MeshConfigSpec struct {
 
 // Certificate represents an x509 certificate.
 type Certificate struct {
+	// If issued by osm ca
+	OsmIssued *bool `json:"OsmIssued,omitempty"`
+
 	// The CommonName of the certificate
 	CommonName *certificate.CommonName `json:"CommonName,omitempty"`
 

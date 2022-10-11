@@ -71,7 +71,13 @@ type EgressSourceSpec struct {
 
 	// MTLS defines the certificate specification for the egress source.
 	// +optional
-	MTLS *EgressSourceCertSpec `json:"mtls,omitempty"`
+	MTLS *EgressSourceMTLSSpec `json:"mtls,omitempty"`
+}
+
+// EgressSourceMTLSSpec is the type to represent the mTLS specification for an egress source.
+type EgressSourceMTLSSpec struct {
+	Issuer string                `json:"issuer,omitempty"`
+	Cert   *EgressSourceCertSpec `json:"cert,omitempty"`
 }
 
 // EgressSourceCertSpec is the type to represent the certificate specification for an egress source.

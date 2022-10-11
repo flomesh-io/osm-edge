@@ -50,14 +50,14 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 		}
 
 		egressGateway := mc.getGatewayForEgress(egress)
-		sourceCert := mc.getEgressSourceCert(egress, serviceIdentity.ToK8sServiceAccount())
+		sourceMTLS := mc.getEgressSourceMTLS(egress, serviceIdentity.ToK8sServiceAccount())
 
 		for _, portSpec := range egress.Spec.Ports {
 			switch strings.ToLower(portSpec.Protocol) {
 			case constants.ProtocolHTTP:
 				// ---
 				// Build the HTTP route configs for the given Egress policy
-				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number, upstreamTrafficSetting, sourceCert)
+				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number, upstreamTrafficSetting, sourceMTLS)
 				portToRouteConfigMap[portSpec.Number] = append(portToRouteConfigMap[portSpec.Number], httpRouteConfigs...)
 				clusterConfigs = append(clusterConfigs, httpClusterConfigs...)
 
@@ -76,7 +76,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                   fmt.Sprintf("%d", portSpec.Number),
 					Port:                   portSpec.Number,
 					UpstreamTrafficSetting: upstreamTrafficSetting,
-					SourceCert:             sourceCert,
+					SourceMTLS:             sourceMTLS,
 				})
 
 				// Configure port + IP range TrafficMatches
@@ -97,7 +97,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                   fmt.Sprintf("%d", portSpec.Number),
 					Port:                   portSpec.Number,
 					UpstreamTrafficSetting: upstreamTrafficSetting,
-					SourceCert:             sourceCert,
+					SourceMTLS:             sourceMTLS,
 				})
 
 				// Configure port + IP range TrafficMatches
@@ -138,7 +138,7 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	}, nil
 }
 
-func (mc *MeshCatalog) getEgressSourceCert(egressPolicy *policyv1alpha1.Egress, source identity.K8sServiceAccount) *policyv1alpha1.EgressSourceCertSpec {
+func (mc *MeshCatalog) getEgressSourceMTLS(egressPolicy *policyv1alpha1.Egress, source identity.K8sServiceAccount) *policyv1alpha1.EgressSourceMTLSSpec {
 	if egressPolicy == nil {
 		return nil
 	}
@@ -180,7 +180,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 
 func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress, port int,
 	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting,
-	sourceCert *policyv1alpha1.EgressSourceCertSpec) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
+	sourceMTLS *policyv1alpha1.EgressSourceMTLSSpec) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
 	if egressPolicy == nil {
 		return nil, nil
 	}
@@ -249,7 +249,7 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress
 			Host:                   host,
 			Port:                   port,
 			UpstreamTrafficSetting: upstreamTrafficSetting,
-			SourceCert:             sourceCert,
+			SourceMTLS:             sourceMTLS,
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfig)
 
