@@ -1,4 +1,4 @@
-// version: '2022.10.09'
+// version: '2022.10.11'
 ((
   {
     config,
@@ -20,11 +20,15 @@
     probePath,
     logZipkin,
     metrics,
-    logLogging
+    logLogging,
+    mapIssuingCA
   } = pipy.solve('config.js')) => (
 
   // Turn On Activity Metrics
   metrics.serverLiveGauge.increase(),
+  debugLogLevel && (
+    console.log('[mTLS] - Number of CA :', Object.keys(mapIssuingCA).length)
+  ),
 
   metrics.tracingAddress &&
   (logZipkin = new logging.JSONLogger('zipkin').toHTTP('http://' + metrics.tracingAddress + metrics.tracingEndpoint, {

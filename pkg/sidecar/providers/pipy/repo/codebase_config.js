@@ -1,4 +1,4 @@
-// version: '2022.10.09'
+// version: '2022.10.11'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -36,8 +36,19 @@
       forwardMatches: null,
       forwardEgressGateways: null,
       codeMessage: codeMessage,
+      mapIssuingCA: {},
       listIssuingCA: []
     },
+
+    global.addIssuingCA = ca => (
+      (md5 => (
+        md5 = '' + algo.hash(ca),
+        !global.mapIssuingCA[md5] && (
+          global.listIssuingCA.push(new crypto.Certificate(ca)),
+          global.mapIssuingCA[md5] = true
+        )
+      ))()
+    ),
 
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
@@ -189,11 +200,12 @@
                 DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
                   ([k, v]) => (
                     v?.SourceCert?.IssuingCA && (
-                      global.listIssuingCA.push(new crypto.Certificate(v.SourceCert.IssuingCA))
+                      global.addIssuingCA(v.SourceCert.IssuingCA)
                     ),
                     {
                       netmask: new Netmask(k),
-                      cert: v?.SourceCert
+                      cert: v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey ?
+                        ({ CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }) : v?.SourceCert
                     }
                   )
                 ),
@@ -246,7 +258,10 @@
               obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
               v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
                 obj.SourceCert = v.SourceCert,
-                global.listIssuingCA.push(new crypto.Certificate(v.SourceCert.IssuingCA))
+                global.addIssuingCA(v.SourceCert.IssuingCA)
+              ),
+              v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey && (
+                obj.SourceCert = { CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }
               ),
               metrics.funcInitClusterNameMetrics(global.namespace, global.kind, global.name, global.pod, k),
               v.RetryPolicy?.NumRetries && (
@@ -303,6 +318,10 @@
 
     global.config = config,
     global.metrics = metrics,
+
+    global.tlsIssuingCA && (
+      global.addIssuingCA(global.tlsIssuingCA)
+    ),
 
     global
   )
