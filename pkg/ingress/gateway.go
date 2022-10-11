@@ -136,8 +136,8 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 	meshConfigUpdateChan := kubePubSub.Sub(announcements.MeshConfigUpdated.String())
 	defer c.msgBroker.Unsub(kubePubSub, meshConfigUpdateChan)
 
-	accessCertCUDChan := kubePubSub.Sub(announcements.AccessCertAdded.String(), announcements.AccessCertUpdated.String(), announcements.AccessCertDeleted.String())
-	defer c.msgBroker.Unsub(kubePubSub, accessCertCUDChan)
+	accessCertChan := kubePubSub.Sub(announcements.AccessCertAdded.String(), announcements.AccessCertUpdated.String(), announcements.AccessCertDeleted.String())
+	defer c.msgBroker.Unsub(kubePubSub, accessCertChan)
 
 	certPubSub := c.msgBroker.GetCertPubSub()
 	certRotateChan := certPubSub.Sub(announcements.CertificateRotated.String())
@@ -149,103 +149,137 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 		select {
 		// MeshConfig was updated
 		case msg, ok := <-meshConfigUpdateChan:
-			if !ok {
-				log.Warn().Msgf("Notification channel closed for MeshConfig")
-				continue
+			if newCertSpec := c.doMeshConfigUpdateChan(currentCertSpec, ok, msg); newCertSpec != nil {
+				currentCertSpec = newCertSpec
 			}
 
-			event, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-				continue
-			}
-
-			updatedMeshConfig, ok := event.NewObj.(*configv1alpha2.MeshConfig)
-			if !ok {
-				log.Error().Msgf("Received unexpected object %T, expected MeshConfig", updatedMeshConfig)
-				continue
-			}
-			newCertSpec := updatedMeshConfig.Spec.Certificate.IngressGateway
-			if reflect.DeepEqual(currentCertSpec, newCertSpec) {
-				log.Debug().Msg("Ingress gateway certificate spec was not updated")
-				continue
-			}
-			if newCertSpec == nil && currentCertSpec != nil {
-				// Implies the certificate reference was removed, delete the corresponding secret and certificate
-				if err := c.removeGatewayCertAndSecret(*currentCertSpec); err != nil {
-					log.Error().Err(err).Msg("Error removing stale gateway certificate/secret")
-				}
-			} else if newCertSpec != nil {
-				// New cert spec is not nil and is not the same as the current cert spec, update required
-				err := c.createAndStoreGatewayCert(*newCertSpec)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
-				}
-			}
-			currentCertSpec = newCertSpec
-
-		case msg, ok := <-accessCertCUDChan:
-			if !ok {
-				log.Warn().Msg("Notification channel closed for AccessCert")
-				continue
-			}
-
-			event, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-				continue
-			}
-
-			newAccessCert, newOk := event.NewObj.(*policyv1alpha1.AccessCert)
-			oldAccessCert, oldOk := event.OldObj.(*policyv1alpha1.AccessCert)
-			if oldOk && oldAccessCert != nil {
-				delete(accessCertCache, certificate.CommonName(oldAccessCert.Spec.SubjectAltNames[0]))
-				if err := c.removeAccessCert(oldAccessCert, newOk, newAccessCert); err != nil {
-					continue
-				}
-			}
-
-			if newOk && newAccessCert != nil {
-				c.issueAccessCert(newAccessCert, accessCertCache)
-			}
+		// AccessCert was updated
+		case msg, ok := <-accessCertChan:
+			c.doAccessCertChan(ok, msg, accessCertCache)
 
 		// A certificate was rotated
 		case msg, ok := <-certRotateChan:
-			if !ok {
-				log.Warn().Msg("Notification channel closed for certificate rotation")
-				continue
-			}
-
-			event, ok := msg.(events.PubSubMessage)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-				continue
-			}
-			cert, ok := event.NewObj.(*certificate.Certificate)
-			if !ok {
-				log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificate", cert)
-				continue
-			}
-
-			if currentCertSpec != nil && cert.GetCommonName() == certificate.CommonName(currentCertSpec.SubjectAltNames[0]) {
-				log.Info().Msg("Ingress gateway certificate was rotated, updating corresponding secret")
-				if err := c.createAndStoreGatewayCert(*currentCertSpec); err != nil {
-					log.Error().Err(err).Msgf("Error updating ingress gateway cert secret after cert rotation")
-				}
-				continue
-			}
-
-			if accessCertSpec, exist := accessCertCache[cert.GetCommonName()]; exist {
-				log.Info().Msg("Access certificate was rotated, updating corresponding secret")
-				if err := c.createAndStoreAccessCert(accessCertSpec.Spec); err != nil {
-					log.Error().Err(err).Msgf("Error updating access cert secret after cert rotation")
-				}
-			}
+			c.doCertRotateChan(currentCertSpec, ok, msg, accessCertCache)
 
 		case <-stop:
 			return
 		}
 	}
+}
+
+func (c *client) doMeshConfigUpdateChan(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, ok bool, msg interface{}) *configv1alpha2.IngressGatewayCertSpec {
+	if !ok {
+		log.Warn().Msgf("Notification channel closed for MeshConfig")
+		return nil
+	}
+
+	event, ok := msg.(events.PubSubMessage)
+	if !ok {
+		log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
+		return nil
+	}
+
+	updatedMeshConfig, ok := event.NewObj.(*configv1alpha2.MeshConfig)
+	if !ok {
+		log.Error().Msgf("Received unexpected object %T, expected MeshConfig", updatedMeshConfig)
+		return nil
+	}
+	newCertSpec := updatedMeshConfig.Spec.Certificate.IngressGateway
+	if reflect.DeepEqual(currentCertSpec, newCertSpec) {
+		log.Debug().Msg("Ingress gateway certificate spec was not updated")
+		return nil
+	}
+	if newCertSpec == nil && currentCertSpec != nil {
+		// Implies the certificate reference was removed, delete the corresponding secret and certificate
+		if err := c.removeGatewayCertAndSecret(*currentCertSpec); err != nil {
+			log.Error().Err(err).Msg("Error removing stale gateway certificate/secret")
+		}
+	} else if newCertSpec != nil {
+		// New cert spec is not nil and is not the same as the current cert spec, update required
+		err := c.createAndStoreGatewayCert(*newCertSpec)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
+		}
+	}
+	return newCertSpec
+}
+
+func (c *client) doAccessCertChan(ok bool, msg interface{}, accessCertCache map[certificate.CommonName]*policyv1alpha1.AccessCert) {
+	if !ok {
+		log.Warn().Msg("Notification channel closed for AccessCert")
+		return
+	}
+
+	event, ok := msg.(events.PubSubMessage)
+	if !ok {
+		log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
+		return
+	}
+
+	newAccessCert, newOk := event.NewObj.(*policyv1alpha1.AccessCert)
+	if !c.checkAccessCertPermission(newOk, newAccessCert) {
+		log.Warn().Msg("OSM is prohibited to issue certificates for external services.")
+		return
+	}
+
+	oldAccessCert, oldOk := event.OldObj.(*policyv1alpha1.AccessCert)
+	if oldOk && oldAccessCert != nil {
+		delete(accessCertCache, certificate.CommonName(oldAccessCert.Spec.SubjectAltNames[0]))
+		if err := c.removeAccessCert(oldAccessCert, newOk, newAccessCert); err != nil {
+			return
+		}
+	}
+
+	if newOk && newAccessCert != nil {
+		c.issueAccessCert(newAccessCert, accessCertCache)
+	}
+}
+
+func (c *client) doCertRotateChan(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, ok bool, msg interface{}, accessCertCache map[certificate.CommonName]*policyv1alpha1.AccessCert) {
+	if !ok {
+		log.Warn().Msg("Notification channel closed for certificate rotation")
+		return
+	}
+
+	event, ok := msg.(events.PubSubMessage)
+	if !ok {
+		log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
+		return
+	}
+	cert, ok := event.NewObj.(*certificate.Certificate)
+	if !ok {
+		log.Error().Msgf("Received unexpected message %T on cert rotation channel, expected Certificate", cert)
+		return
+	}
+
+	if currentCertSpec != nil && cert.GetCommonName() == certificate.CommonName(currentCertSpec.SubjectAltNames[0]) {
+		log.Info().Msg("Ingress gateway certificate was rotated, updating corresponding secret")
+		if err := c.createAndStoreGatewayCert(*currentCertSpec); err != nil {
+			log.Error().Err(err).Msgf("Error updating ingress gateway cert secret after cert rotation")
+		}
+		return
+	}
+
+	if accessCertSpec, exist := accessCertCache[cert.GetCommonName()]; exist {
+		log.Info().Msg("Access certificate was rotated, updating corresponding secret")
+		if err := c.createAndStoreAccessCert(accessCertSpec.Spec); err != nil {
+			log.Error().Err(err).Msgf("Error updating access cert secret after cert rotation")
+		}
+	}
+}
+
+func (c *client) checkAccessCertPermission(newOk bool, newAccessCert *policyv1alpha1.AccessCert) bool {
+	if newOk && newAccessCert != nil && !c.cfg.GetFeatureFlags().EnableAccessCertPolicy {
+		newAccessCert.Status = policyv1alpha1.AccessCertStatus{
+			CurrentStatus: "error",
+			Reason:        "OSM is prohibited to issue certificates for external services.",
+		}
+		if _, err := c.kubeController.UpdateStatus(newAccessCert); err != nil {
+			log.Error().Err(err).Msg("Error updating status for AccessCert")
+		}
+		return false
+	}
+	return true
 }
 
 func (c *client) issueAccessCert(newAccessCert *policyv1alpha1.AccessCert, accessCertCache map[certificate.CommonName]*policyv1alpha1.AccessCert) {

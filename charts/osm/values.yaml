@@ -511,6 +511,8 @@ osm:
     # -- Enables OSM's AccessControl policy API.
     # When enabled, OSM will use the AccessControl API allow access control traffic to mesh backends
     enableAccessControlPolicy: false
+    # When enabled, OSM can issue certificates for external services.
+    enableAccessCertPolicy: false
     # -- Enable Sidecar active health checks
     enableSidecarActiveHealthChecks: false
     # -- Enables SnapshotCache feature for Sidecar xDS server.

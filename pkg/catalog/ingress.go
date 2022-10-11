@@ -48,12 +48,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		}
 
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
-			Port:                     uint32(backend.Port.Number),
-			Protocol:                 backend.Port.Protocol,
-			TLS:                      &backend.TLS,
-			ServerNames:              backend.TLS.SNIHosts,
-			SkipClientCertValidation: backend.TLS.SkipClientCertValidation,
+			Name:     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
+			Port:     uint32(backend.Port.Number),
+			Protocol: backend.Port.Protocol,
+			TLS:      backend.TLS,
+		}
+
+		if backend.TLS != nil {
+			trafficMatch.ServerNames = backend.TLS.SNIHosts
+			trafficMatch.SkipClientCertValidation = backend.TLS.SkipClientCertValidation
 		}
 
 		var sourceIPRanges []string
@@ -96,7 +99,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				if backend.TLS.SkipClientCertValidation {
+				if backend.TLS != nil && backend.TLS.SkipClientCertValidation {
 					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
 					sourcePrincipals.Add(source.Name)

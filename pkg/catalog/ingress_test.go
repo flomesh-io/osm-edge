@@ -125,7 +125,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 								Number:   80,
 								Protocol: "https",
 							},
-							TLS: policyV1alpha1.TLSSpec{
+							TLS: &policyV1alpha1.TLSSpec{
 								SkipClientCertValidation: false,
 								SNIHosts:                 []string{"foo.org"},
 							},
@@ -195,7 +195,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 								Number:   80,
 								Protocol: "https",
 							},
-							TLS: policyV1alpha1.TLSSpec{
+							TLS: &policyV1alpha1.TLSSpec{
 								SkipClientCertValidation: true,
 							},
 						},

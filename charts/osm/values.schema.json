@@ -1090,6 +1090,7 @@
                         "enableAsyncProxyServiceMapping",
                         "enableIngressBackendPolicy",
                         "enableAccessControlPolicy",
+                        "enableAccessCertPolicy",
                         "enableSidecarActiveHealthChecks",
                         "enableSnapshotCacheMode",
                         "enableRetryPolicy",
@@ -1137,6 +1138,15 @@
                             "type": "boolean",
                             "title": "Enable OSM to use the AccessControl API",
                             "description": "Enable OSM to use the AccessControl API for allowing access control traffic to mesh backends",
+                            "examples": [
+                                true
+                            ]
+                        },
+                        "enableAccessCertPolicy": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enableAccessCertPolicy",
+                            "type": "boolean",
+                            "title": "Enable OSM to issue certificates for external services",
+                            "description": "Enable OSM to issue certificates for external services",
                             "examples": [
                                 true
                             ]

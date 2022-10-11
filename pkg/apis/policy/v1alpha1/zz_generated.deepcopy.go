@@ -155,7 +155,11 @@ func (in *AccessControl) DeepCopyObject() runtime.Object {
 func (in *AccessControlBackendSpec) DeepCopyInto(out *AccessControlBackendSpec) {
 	*out = *in
 	out.Port = in.Port
-	in.TLS.DeepCopyInto(&out.TLS)
+	if in.TLS != nil {
+		in, out := &in.TLS, &out.TLS
+		*out = new(TLSSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 
@@ -273,7 +277,11 @@ func (in *AccessControlStatus) DeepCopy() *AccessControlStatus {
 func (in *BackendSpec) DeepCopyInto(out *BackendSpec) {
 	*out = *in
 	out.Port = in.Port
-	in.TLS.DeepCopyInto(&out.TLS)
+	if in.TLS != nil {
+		in, out := &in.TLS, &out.TLS
+		*out = new(TLSSpec)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 

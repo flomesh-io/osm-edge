@@ -45,7 +45,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 			Name:     service.AccessControlTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:     uint32(backend.Port.Number),
 			Protocol: backend.Port.Protocol,
-			TLS:      &backend.TLS,
+			TLS:      backend.TLS,
 		}
 
 		var sourceIPRanges []string
@@ -88,7 +88,7 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				if backend.TLS.SkipClientCertValidation {
+				if backend.TLS != nil && backend.TLS.SkipClientCertValidation {
 					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
 					sourcePrincipals.Add(source.Name)

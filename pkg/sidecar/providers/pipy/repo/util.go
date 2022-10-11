@@ -368,9 +368,12 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			continue
 		}
 
-		securitySpec := &SourceSecuritySpec{
-			MTLS:                     trafficMatch.TLS != nil,
-			SkipClientCertValidation: trafficMatch.SkipClientCertValidation,
+		var securitySpec *SourceSecuritySpec
+		if trafficMatch.TLS != nil {
+			securitySpec = &SourceSecuritySpec{
+				MTLS:                     true,
+				SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+			}
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
@@ -424,7 +427,9 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			}
 		}
 
-		securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
+		if securitySpec != nil {
+			securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
+		}
 	}
 }
 
@@ -505,9 +510,12 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			continue
 		}
 
-		securitySpec := &SourceSecuritySpec{
-			MTLS:                     trafficMatch.TLS != nil,
-			SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+		var securitySpec *SourceSecuritySpec
+		if trafficMatch.TLS != nil {
+			securitySpec = &SourceSecuritySpec{
+				MTLS:                     true,
+				SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+			}
 		}
 
 		for _, ipRange := range trafficMatch.SourceIPRanges {
@@ -561,7 +569,9 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			}
 		}
 
-		securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
+		if securitySpec != nil {
+			securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
+		}
 	}
 }
 

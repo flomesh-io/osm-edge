@@ -37,20 +37,6 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
-// GetAccessCertPolicies mocks base method.
-func (m *MockController) GetAccessCertPolicies() []*v1alpha1.AccessCert {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccessCertPolicies")
-	ret0, _ := ret[0].([]*v1alpha1.AccessCert)
-	return ret0
-}
-
-// GetAccessCertPolicies indicates an expected call of GetAccessCertPolicies.
-func (mr *MockControllerMockRecorder) GetAccessCertPolicies() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessCertPolicies", reflect.TypeOf((*MockController)(nil).GetAccessCertPolicies))
-}
-
 // GetAccessControlPolicy mocks base method.
 func (m *MockController) GetAccessControlPolicy(arg0 service.MeshService) *v1alpha1.AccessControl {
 	m.ctrl.T.Helper()

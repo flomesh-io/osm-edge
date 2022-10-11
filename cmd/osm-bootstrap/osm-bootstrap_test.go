@@ -82,6 +82,7 @@ var testPresetMeshConfigMap = &corev1.ConfigMap{
 	"enableAsyncProxyServiceMapping": false,
 	"enableIngressBackendPolicy": true,
 	"enableAccessControlPolicy": true,
+	"enableAccessCertPolicy": true,
 	"enableSidecarActiveHealthChecks": true,
 	"enableSnapshotCacheMode": true,
 	"enableRetryPolicy": false
@@ -143,6 +144,7 @@ func TestBuildDefaultMeshConfig(t *testing.T) {
 	assert.Equal(meshConfig.Spec.Certificate.ServiceCertValidityDuration, "23h")
 	assert.True(meshConfig.Spec.FeatureFlags.EnableIngressBackendPolicy)
 	assert.True(meshConfig.Spec.FeatureFlags.EnableAccessControlPolicy)
+	assert.True(meshConfig.Spec.FeatureFlags.EnableAccessCertPolicy)
 	assert.True(meshConfig.Spec.FeatureFlags.EnableSidecarActiveHealthChecks)
 	assert.False(meshConfig.Spec.FeatureFlags.EnableRetryPolicy)
 }
