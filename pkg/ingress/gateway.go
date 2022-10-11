@@ -149,7 +149,7 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 		select {
 		// MeshConfig was updated
 		case msg, ok := <-meshConfigUpdateChan:
-			if newCertSpec := c.doMeshConfigUpdateChan(currentCertSpec, ok, msg); newCertSpec != nil {
+			if success, newCertSpec := c.doMeshConfigUpdateChan(currentCertSpec, ok, msg); success {
 				currentCertSpec = newCertSpec
 			}
 
@@ -167,27 +167,27 @@ func (c *client) handleCertificateChange(currentCertSpec *configv1alpha2.Ingress
 	}
 }
 
-func (c *client) doMeshConfigUpdateChan(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, ok bool, msg interface{}) *configv1alpha2.IngressGatewayCertSpec {
+func (c *client) doMeshConfigUpdateChan(currentCertSpec *configv1alpha2.IngressGatewayCertSpec, ok bool, msg interface{}) (bool, *configv1alpha2.IngressGatewayCertSpec) {
 	if !ok {
 		log.Warn().Msgf("Notification channel closed for MeshConfig")
-		return nil
+		return false, nil
 	}
 
 	event, ok := msg.(events.PubSubMessage)
 	if !ok {
 		log.Error().Msgf("Received unexpected message %T on channel, expected PubSubMessage", event)
-		return nil
+		return false, nil
 	}
 
 	updatedMeshConfig, ok := event.NewObj.(*configv1alpha2.MeshConfig)
 	if !ok {
 		log.Error().Msgf("Received unexpected object %T, expected MeshConfig", updatedMeshConfig)
-		return nil
+		return false, nil
 	}
 	newCertSpec := updatedMeshConfig.Spec.Certificate.IngressGateway
 	if reflect.DeepEqual(currentCertSpec, newCertSpec) {
 		log.Debug().Msg("Ingress gateway certificate spec was not updated")
-		return nil
+		return false, nil
 	}
 	if newCertSpec == nil && currentCertSpec != nil {
 		// Implies the certificate reference was removed, delete the corresponding secret and certificate
@@ -201,7 +201,7 @@ func (c *client) doMeshConfigUpdateChan(currentCertSpec *configv1alpha2.IngressG
 			log.Error().Err(err).Msgf("Error updating ingress gateway cert and secret")
 		}
 	}
-	return newCertSpec
+	return true, newCertSpec
 }
 
 func (c *client) doAccessCertChan(ok bool, msg interface{}, accessCertCache map[certificate.CommonName]*policyv1alpha1.AccessCert) {
