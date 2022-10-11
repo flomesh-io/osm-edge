@@ -167,10 +167,14 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 				},
 				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
 					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						Name:           "ingress_testns/foo_80_https",
+						Protocol:       "https",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						TLS: &policyV1alpha1.TLSSpec{
+							SkipClientCertValidation: false,
+							SNIHosts:                 []string{"foo.org"},
+						},
 						SkipClientCertValidation: false,
 						ServerNames:              []string{"foo.org"},
 					},
@@ -236,10 +240,13 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 				},
 				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
 					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						Name:           "ingress_testns/foo_80_https",
+						Protocol:       "https",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						TLS: &policyV1alpha1.TLSSpec{
+							SkipClientCertValidation: true,
+						},
 						SkipClientCertValidation: true,
 					},
 				},
