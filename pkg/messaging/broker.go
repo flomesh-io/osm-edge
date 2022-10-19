@@ -40,8 +40,22 @@ func NewBroker(stopCh <-chan struct{}) *Broker {
 
 	go b.runWorkqueueProcessor(stopCh)
 	go b.runProxyUpdateDispatcher(stopCh)
+	go b.queueLenMetric(stopCh, 5*time.Second)
 
 	return b
+}
+
+func (b *Broker) queueLenMetric(stop <-chan struct{}, interval time.Duration) {
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+	for {
+		select {
+		case <-stop:
+			return
+		case <-tick.C:
+			metricsstore.DefaultMetricsStore.EventsQueued.Set(float64(b.queue.Len()))
+		}
+	}
 }
 
 // GetProxyUpdatePubSub returns the PubSub instance corresponding to proxy update events
@@ -262,14 +276,16 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		//
 		// Egress event
 		announcements.EgressAdded, announcements.EgressDeleted, announcements.EgressUpdated,
+		// EgressGateway event
+		announcements.EgressGatewayAdded, announcements.EgressGatewayDeleted, announcements.EgressGatewayUpdated,
 		// IngressBackend event
 		announcements.IngressBackendAdded, announcements.IngressBackendDeleted, announcements.IngressBackendUpdated,
+		// AccessControl event
+		announcements.AccessControlAdded, announcements.AccessControlDeleted, announcements.AccessControlUpdated,
 		// Retry event
 		announcements.RetryPolicyAdded, announcements.RetryPolicyDeleted, announcements.RetryPolicyUpdated,
 		// UpstreamTrafficSetting event
 		announcements.UpstreamTrafficSettingAdded, announcements.UpstreamTrafficSettingDeleted, announcements.UpstreamTrafficSettingUpdated,
-		// MulticlusterService event
-		announcements.MultiClusterServiceAdded, announcements.MultiClusterServiceDeleted, announcements.MultiClusterServiceUpdated,
 		//
 		// SMI resource events
 		//

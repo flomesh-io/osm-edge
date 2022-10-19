@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
@@ -185,6 +187,14 @@ func TestGetProxyUpdateEvent(t *testing.T) {
 			name: "egress event",
 			msg: events.PubSubMessage{
 				Kind: announcements.EgressAdded,
+			},
+			expectEvent:   true,
+			expectedTopic: announcements.ProxyUpdate.String(),
+		},
+		{
+			name: "egress gateway event",
+			msg: events.PubSubMessage{
+				Kind: announcements.EgressGatewayAdded,
 			},
 			expectEvent:   true,
 			expectedTopic: announcements.ProxyUpdate.String(),
@@ -480,4 +490,24 @@ osm_resource_namespace_count %s
 			a.Contains(rr.Body.String(), expectedResp)
 		})
 	}
+}
+
+func TestQueueLenMetric(t *testing.T) {
+	stop := make(chan struct{})
+	defer close(stop)
+
+	b := &Broker{
+		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+	}
+	go b.queueLenMetric(stop, 10*time.Millisecond)
+	metricsstore.DefaultMetricsStore.Start(metricsstore.DefaultMetricsStore.EventsQueued)
+
+	numEvents := 10
+	for i := 0; i < numEvents; i++ {
+		b.queue.Add(i)
+	}
+
+	assert.Eventually(t, func() bool {
+		return metricsstore.DefaultMetricsStore.Contains(`osm_events_queued ` + strconv.Itoa(numEvents) + "\n")
+	}, 100*time.Millisecond, 10*time.Millisecond)
 }

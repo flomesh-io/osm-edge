@@ -1,13 +1,14 @@
 package policy
 
 import (
-	"github.com/pkg/errors"
+	"context"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/kubernetes"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
-	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
-	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -22,30 +23,10 @@ const (
 )
 
 // NewPolicyController returns a policy.Controller interface related to functionality provided by the resources in the policy.openservicemesh.io API group
-func NewPolicyController(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}, msgBroker *messaging.Broker) (Controller, error) {
-	return newClient(kubeController, policyClient, stop, msgBroker)
-}
-
-func newClient(kubeController k8s.Controller, policyClient policyClientset.Interface, stop chan struct{}, msgBroker *messaging.Broker) (client, error) {
-	informerFactory := policyInformers.NewSharedInformerFactory(policyClient, k8s.DefaultKubeEventResyncInterval)
-
-	informerCollection := informerCollection{
-		egress:                 informerFactory.Policy().V1alpha1().Egresses().Informer(),
-		ingressBackend:         informerFactory.Policy().V1alpha1().IngressBackends().Informer(),
-		retry:                  informerFactory.Policy().V1alpha1().Retries().Informer(),
-		upstreamTrafficSetting: informerFactory.Policy().V1alpha1().UpstreamTrafficSettings().Informer(),
-	}
-
-	cacheCollection := cacheCollection{
-		egress:                 informerCollection.egress.GetStore(),
-		ingressBackend:         informerCollection.ingressBackend.GetStore(),
-		retry:                  informerCollection.retry.GetStore(),
-		upstreamTrafficSetting: informerCollection.upstreamTrafficSetting.GetStore(),
-	}
-
-	client := client{
-		informers:      &informerCollection,
-		caches:         &cacheCollection,
+func NewPolicyController(informerCollection *informers.InformerCollection, kubeClient kubernetes.Interface, kubeController k8s.Controller, msgBroker *messaging.Broker) *Client {
+	client := &Client{
+		informers:      informerCollection,
+		kubeClient:     kubeClient,
 		kubeController: kubeController,
 	}
 
@@ -62,77 +43,69 @@ func newClient(kubeController k8s.Controller, policyClient policyClientset.Inter
 		Update: announcements.EgressUpdated,
 		Delete: announcements.EgressDeleted,
 	}
-	informerCollection.egress.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, egressEventTypes, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyEgress, k8s.GetEventHandlerFuncs(shouldObserve, egressEventTypes, msgBroker))
+
+	egressGatewayEventTypes := k8s.EventTypes{
+		Add:    announcements.EgressGatewayAdded,
+		Update: announcements.EgressGatewayUpdated,
+		Delete: announcements.EgressGatewayDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyEgressGateway, k8s.GetEventHandlerFuncs(shouldObserve, egressGatewayEventTypes, msgBroker))
+
 	ingressBackendEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressBackendAdded,
 		Update: announcements.IngressBackendUpdated,
 		Delete: announcements.IngressBackendDeleted,
 	}
-	informerCollection.ingressBackend.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyIngressBackend, k8s.GetEventHandlerFuncs(shouldObserve, ingressBackendEventTypes, msgBroker))
+
+	aclEventTypes := k8s.EventTypes{
+		Add:    announcements.AccessControlAdded,
+		Update: announcements.AccessControlUpdated,
+		Delete: announcements.AccessControlDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyAccessControl, k8s.GetEventHandlerFuncs(shouldObserve, aclEventTypes, msgBroker))
+
+	acertEventTypes := k8s.EventTypes{
+		Add:    announcements.AccessCertAdded,
+		Update: announcements.AccessCertUpdated,
+		Delete: announcements.AccessCertDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyAccessCert, k8s.GetEventHandlerFuncs(shouldObserve, acertEventTypes, msgBroker))
 
 	retryEventTypes := k8s.EventTypes{
 		Add:    announcements.RetryPolicyAdded,
 		Update: announcements.RetryPolicyUpdated,
 		Delete: announcements.RetryPolicyDeleted,
 	}
-	informerCollection.retry.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, retryEventTypes, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyRetry, k8s.GetEventHandlerFuncs(shouldObserve, retryEventTypes, msgBroker))
 
 	upstreamTrafficSettingEventTypes := k8s.EventTypes{
 		Add:    announcements.UpstreamTrafficSettingAdded,
 		Update: announcements.UpstreamTrafficSettingUpdated,
 		Delete: announcements.UpstreamTrafficSettingDeleted,
 	}
-	informerCollection.upstreamTrafficSetting.AddEventHandler(k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
+	client.informers.AddEventHandler(informers.InformerKeyUpstreamTrafficSetting, k8s.GetEventHandlerFuncs(shouldObserve, upstreamTrafficSettingEventTypes, msgBroker))
 
-	err := client.run(stop)
-	if err != nil {
-		return client, errors.Errorf("Could not start %s informer clients: %s", policyV1alpha1.SchemeGroupVersion, err)
-	}
-
-	return client, err
+	return client
 }
 
-func (c client) run(stop <-chan struct{}) error {
-	log.Info().Msgf("Starting informer clients for API group %s", policyV1alpha1.SchemeGroupVersion)
-
-	if c.informers == nil {
-		return errInitInformers
+// ListEgressGateways lists egress gateways
+func (c *Client) ListEgressGateways() []*policyV1alpha1.EgressGateway {
+	var egressGateways []*policyV1alpha1.EgressGateway
+	for _, egressGatewayIface := range c.informers.List(informers.InformerKeyEgressGateway) {
+		egressGateway := egressGatewayIface.(*policyV1alpha1.EgressGateway)
+		egressGateways = append(egressGateways, egressGateway)
 	}
 
-	sharedInformers := map[string]cache.SharedInformer{
-		"Egress":                 c.informers.egress,
-		"IngressBackend":         c.informers.ingressBackend,
-		"Retry":                  c.informers.retry,
-		"UpstreamTrafficSetting": c.informers.upstreamTrafficSetting,
-	}
-
-	var informerNames []string
-	var hasSynced []cache.InformerSynced
-	for name, informer := range sharedInformers {
-		if informer == nil {
-			log.Error().Msgf("Informer for '%s' not initialized, ignoring it", name) // TODO: log with errcode
-			continue
-		}
-		informerNames = append(informerNames, name)
-		log.Info().Msgf("Starting informer: %s", name)
-		go informer.Run(stop)
-		hasSynced = append(hasSynced, informer.HasSynced)
-	}
-
-	log.Info().Msgf("Waiting for informers %v caches to sync", informerNames)
-	if !cache.WaitForCacheSync(stop, hasSynced...) {
-		return errSyncingCaches
-	}
-
-	log.Info().Msgf("Cache sync finished for %v informers in API group %s", informerNames, policyV1alpha1.SchemeGroupVersion)
-	return nil
+	return egressGateways
 }
 
 // ListEgressPoliciesForSourceIdentity lists the Egress policies for the given source identity based on service accounts
-func (c client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyV1alpha1.Egress {
+func (c *Client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAccount) []*policyV1alpha1.Egress {
 	var policies []*policyV1alpha1.Egress
 
-	for _, egressIface := range c.caches.egress.List() {
+	for _, egressIface := range c.informers.List(informers.InformerKeyEgress) {
 		egressPolicy := egressIface.(*policyV1alpha1.Egress)
 
 		if !c.kubeController.IsMonitoredNamespace(egressPolicy.Namespace) {
@@ -149,9 +122,15 @@ func (c client) ListEgressPoliciesForSourceIdentity(source identity.K8sServiceAc
 	return policies
 }
 
+// GetEgressSourceSecret returns the secret resource that matches the given options
+func (c *Client) GetEgressSourceSecret(secretReference corev1.SecretReference) (*corev1.Secret, error) {
+	return c.kubeClient.CoreV1().Secrets(secretReference.Namespace).
+		Get(context.Background(), secretReference.Name, metav1.GetOptions{})
+}
+
 // GetIngressBackendPolicy returns the IngressBackend policy for the given backend MeshService
-func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1.IngressBackend {
-	for _, ingressBackendIface := range c.caches.ingressBackend.List() {
+func (c *Client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1.IngressBackend {
+	for _, ingressBackendIface := range c.informers.List(informers.InformerKeyIngressBackend) {
 		ingressBackend := ingressBackendIface.(*policyV1alpha1.IngressBackend)
 
 		if ingressBackend.Namespace != svc.Namespace {
@@ -162,7 +141,8 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 		// Multiple IngressBackend policies for the same backend will be prevented
 		// using a validating webhook.
 		for _, backend := range ingressBackend.Spec.Backends {
-			if backend.Name == svc.Name {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
 				return ingressBackend
 			}
 		}
@@ -172,14 +152,11 @@ func (c client) GetIngressBackendPolicy(svc service.MeshService) *policyV1alpha1
 }
 
 // ListRetryPolicies returns the retry policies for the given source identity based on service accounts.
-func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1alpha1.Retry {
+func (c *Client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1alpha1.Retry {
 	var retries []*policyV1alpha1.Retry
 
-	for _, retryInterface := range c.caches.retry.List() {
+	for _, retryInterface := range c.informers.List(informers.InformerKeyRetry) {
 		retry := retryInterface.(*policyV1alpha1.Retry)
-		if !c.kubeController.IsMonitoredNamespace(retry.Namespace) {
-			continue
-		}
 		if retry.Spec.Source.Kind == kindSvcAccount && retry.Spec.Source.Name == source.Name && retry.Spec.Source.Namespace == source.Namespace {
 			retries = append(retries, retry)
 		}
@@ -188,16 +165,39 @@ func (c client) ListRetryPolicies(source identity.K8sServiceAccount) []*policyV1
 	return retries
 }
 
+// GetAccessControlPolicy returns the AccessControl policy for the given backend MeshService
+func (c *Client) GetAccessControlPolicy(svc service.MeshService) *policyV1alpha1.AccessControl {
+	for _, aclIface := range c.informers.List(informers.InformerKeyAccessControl) {
+		acl := aclIface.(*policyV1alpha1.AccessControl)
+
+		if acl.Namespace != svc.Namespace {
+			continue
+		}
+
+		// Return the first IngressBackend corresponding to the given MeshService.
+		// Multiple IngressBackend policies for the same backend will be prevented
+		// using a validating webhook.
+		for _, backend := range acl.Spec.Backends {
+			// we need to check ports to allow ingress to multiple ports on the same svc
+			if backend.Name == svc.Name && backend.Port.Number == int(svc.TargetPort) {
+				return acl
+			}
+		}
+	}
+
+	return nil
+}
+
 // GetUpstreamTrafficSetting returns the UpstreamTrafficSetting resource that matches the given options
-func (c client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
-	if options.MeshService == nil && options.NamespacedName == nil {
+func (c *Client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) *policyV1alpha1.UpstreamTrafficSetting {
+	if options.MeshService == nil && options.NamespacedName == nil && options.Host == "" {
 		log.Error().Msgf("No option specified to get UpstreamTrafficSetting resource")
 		return nil
 	}
 
 	if options.NamespacedName != nil {
 		// Filter by namespaced name
-		resource, exists, err := c.caches.upstreamTrafficSetting.GetByKey(options.NamespacedName.String())
+		resource, exists, err := c.informers.GetByKey(informers.InformerKeyUpstreamTrafficSetting, options.NamespacedName.String())
 		if exists && err == nil {
 			return resource.(*policyV1alpha1.UpstreamTrafficSetting)
 		}
@@ -205,8 +205,12 @@ func (c client) GetUpstreamTrafficSetting(options UpstreamTrafficSettingGetOpt) 
 	}
 
 	// Filter by MeshService
-	for _, resource := range c.caches.upstreamTrafficSetting.List() {
+	for _, resource := range c.informers.List(informers.InformerKeyUpstreamTrafficSetting) {
 		upstreamTrafficSetting := resource.(*policyV1alpha1.UpstreamTrafficSetting)
+
+		if upstreamTrafficSetting.Spec.Host == options.Host {
+			return upstreamTrafficSetting
+		}
 
 		if upstreamTrafficSetting.Namespace == options.MeshService.Namespace &&
 			upstreamTrafficSetting.Spec.Host == options.MeshService.FQDN() {

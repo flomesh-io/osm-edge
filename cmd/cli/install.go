@@ -3,12 +3,12 @@ package main
 import (
 	"bytes"
 	"context"
+
 	_ "embed" // required to embed resources
 	"fmt"
 	"io"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -49,7 +49,7 @@ Example:
 
 The mesh name is used in various ways like for naming Kubernetes resources as
 well as for adding a Kubernetes Namespace to the list of Namespaces a control
-plane should watch for sidecar injection of proxies.
+plane should watch for sidecar injection of Envoy proxies.
 `
 const (
 	defaultChartPath         = ""
@@ -59,6 +59,7 @@ const (
 
 // chartTGZSource is the `helm package`d representation of the default Helm chart.
 // Its value is embedded at build time.
+//
 //go:embed chart.tgz
 var chartTGZSource []byte
 
@@ -73,6 +74,7 @@ type installCmd struct {
 	atomic         bool
 	// Toggle this to enforce only one mesh in this cluster
 	enforceSingleMesh bool
+	disableSpinner    bool
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -87,12 +89,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig: %s", err)
+				return fmt.Errorf("Error fetching kubeconfig: %w", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
+				return fmt.Errorf("Could not access Kubernetes cluster, check kubeconfig: %w", err)
 			}
 			inst.clientSet = clientset
 			return inst.run(config)
@@ -130,19 +132,32 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.Timeout = i.timeout
 
 	debug("Beginning OSM installation")
-	if _, err = installClient.Run(i.chartRequested, values); err != nil {
-		if !settings.Verbose() {
+	if i.disableSpinner || settings.Verbose() {
+		if _, err = installClient.Run(i.chartRequested, values); err != nil {
+			if !settings.Verbose() {
+				return err
+			}
+
+			pods, _ := i.clientSet.CoreV1().Pods(settings.Namespace()).List(context.Background(), metav1.ListOptions{})
+
+			for _, pod := range pods.Items {
+				fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
+			}
 			return err
 		}
-
-		pods, _ := i.clientSet.CoreV1().Pods(settings.Namespace()).List(context.Background(), metav1.ListOptions{})
-
-		for _, pod := range pods.Items {
-			fmt.Fprintf(i.out, "Status for pod %s in namespace %s:\n %v\n\n", pod.Name, pod.Namespace, pod.Status)
+	} else {
+		spinner := new(cli.Spinner)
+		spinner.Init(i.clientSet, settings.Namespace(), values)
+		err = spinner.Run(func() error {
+			_, installErr := installClient.Run(i.chartRequested, values)
+			return installErr
+		})
+		if err != nil {
+			if !settings.Verbose() {
+				return err
+			}
 		}
-		return err
 	}
-
 	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
 	return nil
 }
@@ -156,10 +171,8 @@ func (i *installCmd) loadOSMChart() error {
 		i.chartRequested, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
 	}
 
-	cli.EnsureNodeSelector(i.chartRequested)
-
 	if err != nil {
-		return fmt.Errorf("Error loading chart for installation: %s", err)
+		return fmt.Errorf("error loading chart for installation: %w", err)
 	}
 
 	return nil
@@ -169,7 +182,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	finalValues := map[string]interface{}{}
 
 	if err := parseVal(i.setOptions, finalValues); err != nil {
-		return nil, errors.Wrap(err, "invalid format for --set")
+		return nil, fmt.Errorf("invalid format for --set: %w", err)
 	}
 
 	valuesConfig := []string{

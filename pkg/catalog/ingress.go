@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 
 	policyV1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
@@ -25,6 +24,10 @@ const (
 // Depending on if the IngressBackend API is enabled, the policies will be generated either from the IngressBackend
 // or Kubernetes Ingress API.
 func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error) {
+	if !mc.configurator.GetFeatureFlags().EnableIngressBackendPolicy {
+		return nil, nil
+	}
+
 	ingressBackendPolicy := mc.policyController.GetIngressBackendPolicy(svc)
 	if ingressBackendPolicy == nil {
 		log.Trace().Msgf("Did not find IngressBackend policy for service %s", svc)
@@ -36,7 +39,8 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 	ingressBackendWithStatus := *ingressBackendPolicy
 
 	var trafficRoutingRules []*trafficpolicy.Rule
-	sourceServiceIdentities := mapset.NewSet()
+	// The ingress backend deals with principals (not identities). Principals have the trust domain included.
+	sourcePrincipals := mapset.NewSet()
 	var trafficMatches []*trafficpolicy.IngressTrafficMatch
 	for _, backend := range ingressBackendPolicy.Spec.Backends {
 		if backend.Name != svc.Name || backend.Port.Number != int(svc.TargetPort) {
@@ -44,11 +48,15 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		}
 
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
-			Name:                     fmt.Sprintf("ingress_%s_%d_%s", svc, backend.Port.Number, backend.Port.Protocol),
-			Port:                     uint32(backend.Port.Number),
-			Protocol:                 backend.Port.Protocol,
-			ServerNames:              backend.TLS.SNIHosts,
-			SkipClientCertValidation: backend.TLS.SkipClientCertValidation,
+			Name:     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
+			Port:     uint32(backend.Port.Number),
+			Protocol: backend.Port.Protocol,
+			TLS:      backend.TLS,
+		}
+
+		if backend.TLS != nil {
+			trafficMatch.ServerNames = backend.TLS.SNIHosts
+			trafficMatch.SkipClientCertValidation = backend.TLS.SkipClientCertValidation
 		}
 
 		var sourceIPRanges []string
@@ -56,7 +64,10 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		for _, source := range ingressBackendPolicy.Spec.Sources {
 			switch source.Kind {
 			case policyV1alpha1.KindService:
-				sourceMeshSvc := service.MeshService{Name: source.Name, Namespace: source.Namespace}
+				sourceMeshSvc := service.MeshService{
+					Name:      source.Name,
+					Namespace: source.Namespace,
+				}
 				endpoints := mc.listEndpointsForService(sourceMeshSvc)
 				if len(endpoints) == 0 {
 					ingressBackendWithStatus.Status = policyV1alpha1.IngressBackendStatus{
@@ -66,7 +77,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 					if _, err := mc.kubeController.UpdateStatus(&ingressBackendWithStatus); err != nil {
 						log.Error().Err(err).Msg("Error updating status for IngressBackend")
 					}
-					return nil, errors.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
+					return nil, fmt.Errorf("Could not list endpoints of the source service %s/%s specified in the IngressBackend %s/%s",
 						source.Namespace, source.Name, ingressBackendPolicy.Namespace, ingressBackendPolicy.Name)
 				}
 
@@ -88,13 +99,11 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				sourceIPRanges = append(sourceIPRanges, source.Name)
 
 			case policyV1alpha1.KindAuthenticatedPrincipal:
-				var sourceIdentity identity.ServiceIdentity
-				if backend.TLS.SkipClientCertValidation {
-					sourceIdentity = identity.WildcardServiceIdentity
+				if backend.TLS != nil && backend.TLS.SkipClientCertValidation {
+					sourcePrincipals.Add(identity.WildcardServiceIdentity.String())
 				} else {
-					sourceIdentity = identity.ServiceIdentity(source.Name)
+					sourcePrincipals.Add(source.Name)
 				}
-				sourceServiceIdentities.Add(sourceIdentity)
 			}
 		}
 
@@ -102,7 +111,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 		// because the identity cannot be verified for HTTP traffic. HTTP based ingress can
 		// restrict downstreams based on their endpoint's IP address.
 		if strings.EqualFold(backend.Port.Protocol, constants.ProtocolHTTP) {
-			sourceServiceIdentities.Add(identity.WildcardServiceIdentity)
+			sourcePrincipals.Add(identity.WildcardPrincipal)
 		}
 
 		trafficMatch.SourceIPRanges = sourceIPRanges
@@ -121,7 +130,7 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 				HTTPRouteMatch:   trafficpolicy.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(backendCluster),
 			},
-			AllowedServiceIdentities: sourceServiceIdentities,
+			AllowedPrincipals: sourcePrincipals,
 		}
 		trafficRoutingRules = append(trafficRoutingRules, routingRule)
 	}

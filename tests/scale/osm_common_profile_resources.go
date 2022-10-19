@@ -1,3 +1,4 @@
+// Package scale implements scale test's methods.
 package scale
 
 import (

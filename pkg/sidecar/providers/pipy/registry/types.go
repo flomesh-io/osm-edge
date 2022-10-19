@@ -14,20 +14,15 @@ var log = logger.New("proxy-registry")
 type ProxyRegistry struct {
 	ProxyServiceMapper
 
-	// Maintain a mapping of pod CN to Proxy of the Sidecar on the given pod
-	PodCNtoProxy sync.Map
+	connectedProxies sync.Map
 
-	// Maintain a mapping of pod CN to Pipy Repo Codebase ETag
-	PodCNtoETag sync.Map
-
-	// Maintain a mapping of pod UID to CN of the Sidecar on the given pod
-	PodUIDToCN sync.Map
-
-	// Maintain a mapping of pod UID to certificate SerialNumber of the Sidecar on the given pod
-	PodUIDToCertificateSerialNumber sync.Map
+	msgBroker *messaging.Broker
 
 	// Fire a inform to update proxies
 	UpdateProxies func()
+}
 
-	msgBroker *messaging.Broker
+// A simple interface to release certificates. Created to abstract the certificate.Manager struct for testing purposes.
+type certificateReleaser interface {
+	ReleaseCertificate(key string)
 }

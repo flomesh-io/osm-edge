@@ -62,10 +62,6 @@ type MetricsStore struct {
 	// generated for both validating and mutating webhooks
 	AdmissionWebhookResponseTotal *prometheus.CounterVec
 
-	// ConversionWebhookResponseTotal counts the resources converted by
-	// conversion webhooks
-	ConversionWebhookResourceTotal *prometheus.CounterVec
-
 	/*
 	 * Certificate metrics
 	 */
@@ -92,6 +88,16 @@ type MetricsStore struct {
 	// FeatureFlagEnabled represents whether each feature flag is enabled (1) or
 	// disabled (0)
 	FeatureFlagEnabled *prometheus.GaugeVec
+
+	// VersionInfo contains the static version information of OSM as labels. The gauge is always set to 1.
+	VersionInfo *prometheus.GaugeVec
+
+	// EventsQueued represents the number of events seen but not yet processed
+	// by the control plane
+	EventsQueued prometheus.Gauge
+
+	// ReconciliationTotal counts the number of resource reconciliations invoked
+	ReconciliationTotal *prometheus.CounterVec
 
 	/*
 	 * MetricsStore internals should be defined below --------------
@@ -150,14 +156,14 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "response_send_success_count",
 		Help:      "Represents the number of responses successfully sent to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyResponseSendErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "proxy",
 		Name:      "response_send_error_count",
 		Help:      "Represents the number of responses that errored when being set to proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -184,7 +190,7 @@ func init() {
 		Subsystem: "proxy",
 		Name:      "xds_request_count",
 		Help:      "Represents the number of XDS requests made by proxies",
-	}, []string{"common_name", "type"})
+	}, []string{"proxy_uuid", "identity", "type"})
 
 	defaultMetricsStore.ProxyMaxConnectionsRejected = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
@@ -198,12 +204,6 @@ func init() {
 		Name:      "admission_webhook_response_total",
 		Help:      "Counter for responses sent by admission webhooks",
 	}, []string{"kind", "success"})
-
-	defaultMetricsStore.ConversionWebhookResourceTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Namespace: metricsRootNamespace,
-		Name:      "conversion_webhook_resource_total",
-		Help:      "Counter for resources converted by conversion webhooks",
-	}, []string{"kind", "from_version", "to_version", "success"})
 
 	/*
 	 * Certificate metrics
@@ -256,6 +256,24 @@ func init() {
 		Name:      "feature_flag_enabled",
 		Help:      "Represents whether a feature flag is enabled (1) or disabled (0)",
 	}, []string{"feature_flag"})
+
+	defaultMetricsStore.VersionInfo = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "version_info",
+		Help:      "Contains the static information denoting the version of this OSM instance",
+	}, []string{"version", "build_date", "git_commit"})
+
+	defaultMetricsStore.EventsQueued = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "events_queued",
+		Help:      "Number of events seen but not yet processed by the control plane",
+	})
+
+	defaultMetricsStore.ReconciliationTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Name:      "reconciliation_total",
+		Help:      "Counter of resource reconciliations invoked",
+	}, []string{"kind"})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }

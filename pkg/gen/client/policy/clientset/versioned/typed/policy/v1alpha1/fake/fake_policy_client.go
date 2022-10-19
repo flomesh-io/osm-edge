@@ -25,8 +25,20 @@ type FakePolicyV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakePolicyV1alpha1) AccessCerts(namespace string) v1alpha1.AccessCertInterface {
+	return &FakeAccessCerts{c, namespace}
+}
+
+func (c *FakePolicyV1alpha1) AccessControls(namespace string) v1alpha1.AccessControlInterface {
+	return &FakeAccessControls{c, namespace}
+}
+
 func (c *FakePolicyV1alpha1) Egresses(namespace string) v1alpha1.EgressInterface {
 	return &FakeEgresses{c, namespace}
+}
+
+func (c *FakePolicyV1alpha1) EgressGateways(namespace string) v1alpha1.EgressGatewayInterface {
+	return &FakeEgressGateways{c, namespace}
 }
 
 func (c *FakePolicyV1alpha1) IngressBackends(namespace string) v1alpha1.IngressBackendInterface {

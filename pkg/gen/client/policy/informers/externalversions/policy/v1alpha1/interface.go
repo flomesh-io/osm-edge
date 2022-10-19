@@ -21,8 +21,14 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// AccessCerts returns a AccessCertInformer.
+	AccessCerts() AccessCertInformer
+	// AccessControls returns a AccessControlInformer.
+	AccessControls() AccessControlInformer
 	// Egresses returns a EgressInformer.
 	Egresses() EgressInformer
+	// EgressGateways returns a EgressGatewayInformer.
+	EgressGateways() EgressGatewayInformer
 	// IngressBackends returns a IngressBackendInformer.
 	IngressBackends() IngressBackendInformer
 	// Retries returns a RetryInformer.
@@ -42,9 +48,24 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
+// AccessCerts returns a AccessCertInformer.
+func (v *version) AccessCerts() AccessCertInformer {
+	return &accessCertInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AccessControls returns a AccessControlInformer.
+func (v *version) AccessControls() AccessControlInformer {
+	return &accessControlInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
 // Egresses returns a EgressInformer.
 func (v *version) Egresses() EgressInformer {
 	return &egressInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// EgressGateways returns a EgressGatewayInformer.
+func (v *version) EgressGateways() EgressGatewayInformer {
+	return &egressGatewayInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // IngressBackends returns a IngressBackendInformer.

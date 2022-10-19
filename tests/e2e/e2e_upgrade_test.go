@@ -49,7 +49,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			// release branches, it should specify the most recent patch of the
 			// previous minor release. e.g. on the release-v1.0 branch, this
 			// should be "0.11".
-			i.Version = "1.1.3"
+			i.Version = "1.1.1"
 			i.Namespace = Td.OsmNamespace
 			i.Wait = true
 			i.ReleaseName = releaseName
@@ -91,7 +91,6 @@ var _ = OSMDescribe("Upgrade from latest",
 			chartPath, err := i.LocateChart("osm-edge", helmEnv)
 			Expect(err).NotTo(HaveOccurred())
 			ch, err := loader.Load(chartPath)
-			ensureNodeSelector(ch)
 			Expect(err).NotTo(HaveOccurred())
 			Td.T.Log("testing upgrade from chart version", ch.Metadata.Version)
 

@@ -126,7 +126,7 @@ const (
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
 	CertificateRotated Kind = "certificate-rotated"
 
-	// ---
+	// --- config.openservicemesh.io API events
 
 	// MeshConfigAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshConfig
 	MeshConfigAdded Kind = "meshconfig-added"
@@ -136,6 +136,15 @@ const (
 
 	// MeshConfigUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshConfig
 	MeshConfigUpdated Kind = "meshconfig-updated"
+
+	// MeshRootCertificateAdded is the type of announcement emitted when we observe an addition of a Kubernetes MeshRootCertificate
+	MeshRootCertificateAdded Kind = "meshrootcertificate-added"
+
+	// MeshRootCertificateDeleted is the type of announcement emitted when we observe the deletion of a Kubernetes MeshRootCertificate
+	MeshRootCertificateDeleted Kind = "meshrootcertificate-deleted"
+
+	// MeshRootCertificateUpdated is the type of announcement emitted when we observe an update to a Kubernetes MeshRootCertificate
+	MeshRootCertificateUpdated Kind = "meshrootcertificate-updated"
 
 	// --- policy.openservicemesh.io API events
 
@@ -148,6 +157,15 @@ const (
 	// EgressUpdated is the type of announcement emitted when we observe an update to egresses.policy.openservicemesh.io
 	EgressUpdated Kind = "egress-updated"
 
+	// EgressGatewayAdded is the type of announcement emitted when we observe an addition of egressgateways.policy.openservicemesh.io
+	EgressGatewayAdded Kind = "egressgateway-added"
+
+	// EgressGatewayDeleted the type of announcement emitted when we observe a deletion of egressgateways.policy.openservicemesh.io
+	EgressGatewayDeleted Kind = "egressgateway-deleted"
+
+	// EgressGatewayUpdated is the type of announcement emitted when we observe an update to egressgateways.policy.openservicemesh.io
+	EgressGatewayUpdated Kind = "egressgateway-updated"
+
 	// IngressBackendAdded is the type of announcement emitted when we observe an addition of ingressbackends.policy.openservicemesh.io
 	IngressBackendAdded Kind = "ingressbackend-added"
 
@@ -156,6 +174,24 @@ const (
 
 	// IngressBackendUpdated is the type of announcement emitted when we observe an update to ingressbackends.policy.openservicemesh.io
 	IngressBackendUpdated Kind = "ingressbackend-updated"
+
+	// AccessControlAdded is the type of announcement emitted when we observe an addition of accesscontrols.policy.openservicemesh.io
+	AccessControlAdded Kind = "accesscontrol-added"
+
+	// AccessControlDeleted the type of announcement emitted when we observe a deletion of accesscontrols.policy.openservicemesh.io
+	AccessControlDeleted Kind = "accesscontrol-deleted"
+
+	// AccessControlUpdated is the type of announcement emitted when we observe an update to accesscontrols.policy.openservicemesh.io
+	AccessControlUpdated Kind = "accesscontrol-updated"
+
+	// AccessCertAdded is the type of announcement emitted when we observe an addition of accesscerts.policy.openservicemesh.io
+	AccessCertAdded Kind = "accesscert-added"
+
+	// AccessCertDeleted the type of announcement emitted when we observe a deletion of accesscerts.policy.openservicemesh.io
+	AccessCertDeleted Kind = "accesscert-deleted"
+
+	// AccessCertUpdated is the type of announcement emitted when we observe an update to accesscerts.policy.openservicemesh.io
+	AccessCertUpdated Kind = "accesscert-updated"
 
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
@@ -174,17 +210,6 @@ const (
 
 	// UpstreamTrafficSettingUpdated is the type of announcement emitted when we observe an update of upstreamtrafficsettings.policy.openservicemesh.io
 	UpstreamTrafficSettingUpdated Kind = "upstreamtrafficsetting-updated"
-
-	// ---
-
-	// MultiClusterServiceAdded is the type of announcement emitted when we observe an addition of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceAdded Kind = "multiclusterservice-added"
-
-	// MultiClusterServiceDeleted is the type of announcement emitted when we observe an deletion of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceDeleted Kind = "multiclusterservice-deleted"
-
-	// MultiClusterServiceUpdated is the type of announcement emitted when we observe an update of a multiclusterservice.config.openservicemesh.io
-	MultiClusterServiceUpdated Kind = "multiclusterservice-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Sidecar proxy configuration

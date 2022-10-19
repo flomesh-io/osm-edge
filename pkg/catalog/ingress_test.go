@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/policy"
 
+	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -91,7 +92,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -124,7 +125,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 								Number:   80,
 								Protocol: "https",
 							},
-							TLS: policyV1alpha1.TLSSpec{
+							TLS: &policyV1alpha1.TLSSpec{
 								SkipClientCertValidation: false,
 								SNIHosts:                 []string{"foo.org"},
 							},
@@ -159,17 +160,21 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.ServiceIdentity("ingressGw.ingressGwNs.cluster.local")),
+								AllowedPrincipals: mapset.NewSet("ingressGw.ingressGwNs.cluster.local"),
 							},
 						},
 					},
 				},
 				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
 					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						Name:           "ingress_testns/foo_80_https",
+						Protocol:       "https",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						TLS: &policyV1alpha1.TLSSpec{
+							SkipClientCertValidation: false,
+							SNIHosts:                 []string{"foo.org"},
+						},
 						SkipClientCertValidation: false,
 						ServerNames:              []string{"foo.org"},
 					},
@@ -194,7 +199,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 								Number:   80,
 								Protocol: "https",
 							},
-							TLS: policyV1alpha1.TLSSpec{
+							TLS: &policyV1alpha1.TLSSpec{
 								SkipClientCertValidation: true,
 							},
 						},
@@ -228,17 +233,20 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
 				},
 				TrafficMatches: []*trafficpolicy.IngressTrafficMatch{
 					{
-						Name:                     "ingress_testns/foo_80_https",
-						Protocol:                 "https",
-						Port:                     80,
-						SourceIPRanges:           []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						Name:           "ingress_testns/foo_80_https",
+						Protocol:       "https",
+						Port:           80,
+						SourceIPRanges: []string{"10.0.0.10/32"}, // Endpoint of 'ingressSourceSvc' referenced as a source
+						TLS: &policyV1alpha1.TLSSpec{
+							SkipClientCertValidation: true,
+						},
 						SkipClientCertValidation: true,
 					},
 				},
@@ -327,7 +335,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 										Weight:      100,
 									}),
 								},
-								AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+								AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 							},
 						},
 					},
@@ -412,6 +420,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			mockEndpointsProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()
 			mockEndpointsProvider.EXPECT().GetID().Return("mock").AnyTimes()
 			mockKubeController.EXPECT().UpdateStatus(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{EnableIngressBackendPolicy: true}).AnyTimes()
 
 			actual, err := meshCatalog.GetIngressTrafficPolicy(tc.meshSvc)
 			assert.Equal(tc.expectError, err != nil)

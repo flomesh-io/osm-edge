@@ -6,14 +6,12 @@ import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	tassert "github.com/stretchr/testify/assert"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -45,7 +43,7 @@ var _ = Describe("Construct inbound listeners", func() {
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.SidecarInboundListenerPort)))
 			Expect(listener.AccessLog).NotTo(BeEmpty())
 			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
-			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
+			Expect(listener.ListenerFilters[0].Name).To(Equal(envoy.TLSInspectorFilterName))
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})
 	})
@@ -196,7 +194,7 @@ func TestNewOutboundListener(t *testing.T) {
 		EnableEgressPolicy: true,
 	}).Times(1)
 
-	lb := newListenerBuilder(meshCatalog, identity, cfg, nil)
+	lb := newListenerBuilder(meshCatalog, identity, cfg, nil, "cluster.local")
 
 	assert := tassert.New(t)
 	listener, err := lb.newOutboundListener()
@@ -204,7 +202,7 @@ func TestNewOutboundListener(t *testing.T) {
 
 	assert.Len(listener.ListenerFilters, 3) // OriginalDst, TlsInspector, HttpInspector
 	assert.NotEmpty(listener.AccessLog)
-	assert.Equal(wellknown.TlsInspector, listener.ListenerFilters[1].Name)
+	assert.Equal(envoy.TLSInspectorFilterName, listener.ListenerFilters[1].Name)
 	assert.Equal(&xds_listener.ListenerFilterChainMatchPredicate{
 		Rule: &xds_listener.ListenerFilterChainMatchPredicate_DestinationPortRange{
 			DestinationPortRange: &xds_type.Int32Range{
@@ -213,6 +211,6 @@ func TestNewOutboundListener(t *testing.T) {
 			},
 		},
 	}, listener.ListenerFilters[1].FilterDisabled)
-	assert.Equal(wellknown.HttpInspector, listener.ListenerFilters[2].Name)
+	assert.Equal(envoy.HTTPInspectorFilterName, listener.ListenerFilters[2].Name)
 	assert.Equal(listener.ListenerFilters[1].FilterDisabled, listener.ListenerFilters[2].FilterDisabled)
 }

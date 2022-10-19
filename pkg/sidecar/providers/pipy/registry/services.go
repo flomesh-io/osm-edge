@@ -44,22 +44,14 @@ func (k *KubeProxyServiceMapper) ListProxyPods() []v1.Pod {
 	return matchedPods
 }
 
-// ListProxyServices retrives mesh services by proxy
+// ListProxyServices maps an Pipy instance to a number of Kubernetes services.
 func (k *KubeProxyServiceMapper) ListProxyServices(p *pipy.Proxy) ([]service.MeshService, error) {
-	cn := p.GetCertificateCommonName()
-
-	pod, err := pipy.GetPodFromCertificate(cn, k.KubeController)
+	pod, err := k.KubeController.GetPodForProxy(p)
 	if err != nil {
 		return nil, err
 	}
 
-	services := listServicesForPod(pod, k.KubeController)
-
-	if len(services) == 0 {
-		return nil, nil
-	}
-
-	meshServices := kubernetesServicesToMeshServices(k.KubeController, services)
+	meshServices := listServicesForPod(pod, k.KubeController)
 
 	servicesForPod := strings.Join(listServiceNames(meshServices), ",")
 	log.Trace().Msgf("Services associated with Pod with UID=%s Name=%s/%s: %+v",
@@ -68,9 +60,13 @@ func (k *KubeProxyServiceMapper) ListProxyServices(p *pipy.Proxy) ([]service.Mes
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubeController k8s.Controller, kubernetesServices []v1.Service, subdomainFilter string) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
-		meshServices = append(meshServices, k8s.ServiceToMeshServices(kubeController, svc)...)
+		for _, meshSvc := range k8s.ServiceToMeshServices(kubeController, svc) {
+			if meshSvc.Subdomain() == subdomainFilter || meshSvc.Subdomain() == "" {
+				meshServices = append(meshServices, meshSvc)
+			}
+		}
 	}
 	return meshServices
 }
@@ -83,7 +79,7 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service {
+func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []service.MeshService {
 	var serviceList []v1.Service
 	svcList := kubeController.ListServices()
 
@@ -102,5 +98,11 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) []v1.Service
 		}
 	}
 
-	return serviceList
+	if len(serviceList) == 0 {
+		return nil
+	}
+
+	meshServices := kubernetesServicesToMeshServices(kubeController, serviceList, pod.GetName())
+
+	return meshServices
 }

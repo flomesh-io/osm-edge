@@ -8,8 +8,6 @@ set -aueo pipefail
 source .env
 
 CTR_TAG="${CTR_TAG:-latest}"
-KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
-KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
 
 echo -e "Create tcp-client service account"
 kubectl apply -f - <<EOF
@@ -43,9 +41,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: tcp-client
-      nodeSelector:
-        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
-        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
       - name: tcp-client
         image: "${CTR_REGISTRY}/osm-edge-demo-tcp-client:${CTR_TAG}"

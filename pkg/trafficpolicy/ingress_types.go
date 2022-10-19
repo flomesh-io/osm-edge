@@ -1,5 +1,7 @@
 package trafficpolicy
 
+import policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 // IngressTrafficPolicy defines the ingress traffic match and routes for a given backend
 type IngressTrafficPolicy struct {
 	TrafficMatches    []*IngressTrafficMatch
@@ -12,6 +14,7 @@ type IngressTrafficMatch struct {
 	Port                     uint32
 	Protocol                 string
 	SourceIPRanges           []string
+	TLS                      *policyv1alpha1.TLSSpec
 	ServerNames              []string
 	SkipClientCertValidation bool
 }

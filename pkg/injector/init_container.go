@@ -7,10 +7,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-func getInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
+// GetInitContainerSpec returns the spec of init container.
+func GetInitContainerSpec(containerName string, cfg configurator.Configurator, outboundIPRangeExclusionList []string,
 	outboundIPRangeInclusionList []string, outboundPortExclusionList []int,
-	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy) corev1.Container {
-	iptablesInitCommand := GenerateIptablesCommands(outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList)
+	inboundPortExclusionList []int, enablePrivilegedInitContainer bool, pullPolicy corev1.PullPolicy, networkInterfaceExclusionList []string) corev1.Container {
+	proxyMode := cfg.GetMeshConfig().Spec.Sidecar.LocalProxyMode
+	iptablesInitCommand := GenerateIptablesCommands(proxyMode, outboundIPRangeExclusionList, outboundIPRangeInclusionList, outboundPortExclusionList, inboundPortExclusionList, networkInterfaceExclusionList)
 
 	return corev1.Container{
 		Name:            containerName,
@@ -31,6 +33,17 @@ func getInitContainerSpec(containerName string, cfg configurator.Configurator, o
 		Args: []string{
 			"-c",
 			iptablesInitCommand,
+		},
+		Env: []corev1.EnvVar{
+			{
+				Name: "POD_IP",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						APIVersion: "v1",
+						FieldPath:  "status.podIP",
+					},
+				},
+			},
 		},
 	}
 }

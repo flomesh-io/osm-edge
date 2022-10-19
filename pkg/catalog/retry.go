@@ -6,9 +6,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// getRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
+// GetRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
 // TODO: Add support for wildcard destinations
-func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec {
+func (mc *MeshCatalog) GetRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec {
 	if !mc.configurator.GetFeatureFlags().EnableRetryPolicy {
 		log.Trace().Msgf("Retry policy flag not enabled")
 		return nil
@@ -29,7 +29,9 @@ func (mc *MeshCatalog) getRetryPolicy(downstreamIdentity identity.ServiceIdentit
 				continue
 			}
 			destMeshSvc := service.MeshService{Name: dest.Name, Namespace: dest.Namespace}
-			if upstreamSvc == destMeshSvc {
+			// we want all statefulset replicas to have the same retry policy regardless of how they're accessed
+			// for the default use-case, this is equivalent to a name + namespace equality check
+			if upstreamSvc.SiblingTo(destMeshSvc) {
 				// Will return retry policy that applies to the specific upstream service
 				return &retryCRD.Spec.RetryPolicy
 			}

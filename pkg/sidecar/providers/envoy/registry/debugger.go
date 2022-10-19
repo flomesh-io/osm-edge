@@ -1,17 +1,16 @@
 package registry
 
 import (
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/sidecar"
+	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/envoy"
 )
 
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-func (pr *ProxyRegistry) ListConnectedProxies() map[certificate.CommonName]sidecar.Proxy {
-	proxies := make(map[certificate.CommonName]sidecar.Proxy)
-	pr.connectedProxies.Range(func(cnIface, propsIface interface{}) bool {
-		cn := cnIface.(certificate.CommonName)
-		props := propsIface.(connectedProxy)
-		proxies[cn] = props.proxy
+func (pr *ProxyRegistry) ListConnectedProxies() map[string]models.Proxy {
+	proxies := make(map[string]models.Proxy)
+	pr.connectedProxies.Range(func(keyIface, propsIface interface{}) bool {
+		uuid := keyIface.(string)
+		proxies[uuid] = propsIface.(*envoy.Proxy)
 		return true // continue the iteration
 	})
 	return proxies

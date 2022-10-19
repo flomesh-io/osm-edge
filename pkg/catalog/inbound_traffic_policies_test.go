@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
@@ -14,18 +15,37 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 	upstreamSvcAccount := identity.K8sServiceAccount{Namespace: "ns1", Name: "sa1"}
+	perRouteRateLimitConfig := &policyv1alpha1.HTTPPerRouteRateLimitSpec{
+		Local: &policyv1alpha1.HTTPLocalRateLimitSpec{
+			Requests: 10,
+			Unit:     "second",
+		},
+	}
+	virtualHostRateLimitConfig := &policyv1alpha1.RateLimitSpec{
+		Local: &policyv1alpha1.LocalRateLimitSpec{
+			HTTP: &policyv1alpha1.HTTPLocalRateLimitSpec{
+				Requests: 100,
+				Unit:     "minute",
+			},
+		},
+	}
 
 	testCases := []struct {
 		name                      string
@@ -34,7 +54,9 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 		permissiveMode            bool
 		trafficTargets            []*access.TrafficTarget
 		httpRouteGroups           []*spec.HTTPRouteGroup
+		tcpRoutes                 []*spec.TCPRoute
 		trafficSplits             []*split.TrafficSplit
+		upstreamTrafficSetting    *policyv1alpha1.UpstreamTrafficSetting
 		prepare                   func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit)
 		expectedInboundMeshPolicy *trafficpolicy.InboundMeshTrafficPolicy
 	}{
@@ -148,10 +170,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -187,10 +209,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -202,6 +224,108 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
 						Address: "127.0.0.1",
 						Port:    8080,
+					},
+					{
+						Name:    "ns1/s2|9090|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    9090,
+					},
+				},
+			},
+		},
+		{
+			name:             "multiple services, statefulset, SMI mode, 1 TrafficTarget, 1 TCPRoute, 0 TrafficSplit",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "mysql-0.mysql",
+					Namespace:  "ns1",
+					Port:       3306,
+					TargetPort: 3306,
+					Protocol:   "tcp",
+				},
+				{
+					Name:       "s2",
+					Namespace:  "ns1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode: false,
+			trafficTargets: []*access.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha3",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "t1",
+						Namespace: "ns1",
+					},
+					Spec: access.TrafficTargetSpec{
+						Destination: access.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa1",
+							Namespace: "ns1",
+						},
+						Sources: []access.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa2",
+							Namespace: "ns2",
+						}},
+						Rules: []access.TrafficTargetRule{{
+							Kind: "TCPRoute",
+							Name: "rule-1",
+						}},
+					},
+				},
+			},
+			tcpRoutes: []*spec.TCPRoute{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "specs.smi-spec.io/v1alpha4",
+						Kind:       "TCPRoute",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "rule-1",
+					},
+					Spec: spec.TCPRouteSpec{
+						Matches: spec.TCPMatch{
+							Ports: []int{3306},
+						},
+					},
+				},
+			},
+			trafficSplits: nil,
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				TrafficMatches: []*trafficpolicy.TrafficMatch{
+					{
+						Name:                "inbound_ns1/mysql-0.mysql_3306_tcp",
+						DestinationPort:     3306,
+						DestinationProtocol: "tcp",
+						ServerNames:         []string{"mysql-0.mysql.ns1.svc.cluster.local"},
+						Cluster:             "ns1/mysql-0.mysql|3306|local",
+					},
+					{
+						Name:                "inbound_ns1/s2_9090_http",
+						DestinationPort:     9090,
+						DestinationProtocol: "http",
+						ServerNames:         []string{"s2.ns1.svc.cluster.local"},
+						Cluster:             "ns1/s2|9090|local",
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/mysql-0.mysql|3306|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "mysql-0.mysql", Port: 3306, TargetPort: 3306, Protocol: "tcp"},
+						Address: "127.0.0.1",
+						Port:    3306,
 					},
 					{
 						Name:    "ns1/s2|9090|local",
@@ -351,10 +475,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -371,10 +495,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -410,10 +534,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 								{
 									Route: trafficpolicy.RouteWeightedClusters{
@@ -430,10 +554,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -599,10 +723,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -636,10 +760,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -675,10 +799,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -792,7 +916,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -819,7 +943,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -848,7 +972,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -994,10 +1118,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
-										Name:      "sa2",
-										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									AllowedPrincipals: mapset.NewSet("sa2.ns2.cluster.local"),
 								},
 							},
 						},
@@ -1165,15 +1286,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(
+									AllowedPrincipals: mapset.NewSet(
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.AsPrincipal("cluster.local"),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1209,15 +1330,15 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(
+									AllowedPrincipals: mapset.NewSet(
 										identity.K8sServiceAccount{
 											Name:      "sa2",
 											Namespace: "ns2",
-										}.ToServiceIdentity(),
+										}.AsPrincipal("cluster.local"),
 										identity.K8sServiceAccount{
 											Name:      "sa3",
 											Namespace: "ns3",
-										}.ToServiceIdentity()),
+										}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1381,10 +1502,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1420,10 +1541,10 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.K8sServiceAccount{
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
 										Name:      "sa2",
 										Namespace: "ns2",
-									}.ToServiceIdentity()),
+									}.AsPrincipal("cluster.local")),
 								},
 							},
 						},
@@ -1531,7 +1652,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1558,7 +1679,7 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 											Weight:      100,
 										}),
 									},
-									AllowedServiceIdentities: mapset.NewSet(identity.WildcardServiceIdentity),
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
 								},
 							},
 						},
@@ -1580,6 +1701,310 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:             "multiple services, SMI mode, 1 TrafficTarget, 1 HTTPRouteGroup, 0 TrafficSplit, with rate limiting",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "s1",
+					Namespace:  "ns1",
+					Port:       80,
+					TargetPort: 8080,
+					Protocol:   "http",
+				},
+				{
+					Name:       "s2",
+					Namespace:  "ns1",
+					Port:       90,
+					TargetPort: 9090,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode: false,
+			trafficTargets: []*access.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha3",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "t1",
+						Namespace: "ns1",
+					},
+					Spec: access.TrafficTargetSpec{
+						Destination: access.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa1",
+							Namespace: "ns1",
+						},
+						Sources: []access.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa2",
+							Namespace: "ns2",
+						}},
+						Rules: []access.TrafficTargetRule{{
+							Kind:    "HTTPRouteGroup",
+							Name:    "rule-1",
+							Matches: []string{"route-1"},
+						}},
+					},
+				},
+			},
+			httpRouteGroups: []*spec.HTTPRouteGroup{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "specs.smi-spec.io/v1alpha4",
+						Kind:       "HTTPRouteGroup",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "ns1",
+						Name:      "rule-1",
+					},
+					Spec: spec.HTTPRouteGroupSpec{
+						Matches: []spec.HTTPMatch{
+							{
+								Name:      "route-1",
+								PathRegex: "/get",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"foo": "bar",
+								},
+							},
+						},
+					},
+				},
+			},
+			trafficSplits: nil,
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					RateLimit: virtualHostRateLimitConfig,
+					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+						{
+							Path:      "/get", // matches route allowed by HTTPRouteGroup
+							RateLimit: perRouteRateLimitConfig,
+						},
+					},
+				},
+			},
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					8080: {
+						{
+							Name: "s1.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s1",
+								"s1:80",
+								"s1.ns1",
+								"s1.ns1:80",
+								"s1.ns1.svc",
+								"s1.ns1.svc:80",
+								"s1.ns1.svc.cluster",
+								"s1.ns1.svc.cluster:80",
+								"s1.ns1.svc.cluster.local",
+								"s1.ns1.svc.cluster.local:80",
+							},
+							RateLimit: virtualHostRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+											Path:          "/get",
+											PathMatchType: trafficpolicy.PathMatchRegex,
+											Methods:       []string{"GET"},
+											Headers: map[string]string{
+												"foo": "bar",
+											},
+										},
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s1|8080|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+										Name:      "sa2",
+										Namespace: "ns2",
+									}.AsPrincipal("cluster.local")),
+								},
+							},
+						},
+					},
+					9090: {
+						{
+							Name: "s2.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s2",
+								"s2:90",
+								"s2.ns1",
+								"s2.ns1:90",
+								"s2.ns1.svc",
+								"s2.ns1.svc:90",
+								"s2.ns1.svc.cluster",
+								"s2.ns1.svc.cluster:90",
+								"s2.ns1.svc.cluster.local",
+								"s2.ns1.svc.cluster.local:90",
+							},
+							RateLimit: virtualHostRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+											Path:          "/get",
+											PathMatchType: trafficpolicy.PathMatchRegex,
+											Methods:       []string{"GET"},
+											Headers: map[string]string{
+												"foo": "bar",
+											},
+										},
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s2|9090|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.K8sServiceAccount{
+										Name:      "sa2",
+										Namespace: "ns2",
+									}.AsPrincipal("cluster.local")),
+								},
+							},
+						},
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/s1|8080|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 8080, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    8080,
+					},
+					{
+						Name:    "ns1/s2|9090|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 9090, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    9090,
+					},
+				},
+			},
+		},
+		{
+			name:             "multiple services, permissive mode, 0 TrafficSplit, with rate limiting",
+			upstreamIdentity: upstreamSvcAccount.ToServiceIdentity(),
+			upstreamServices: []service.MeshService{
+				{
+					Name:       "s1",
+					Namespace:  "ns1",
+					Port:       80,
+					TargetPort: 80,
+					Protocol:   "http",
+				},
+				{
+					Name:       "s2",
+					Namespace:  "ns1",
+					Port:       90,
+					TargetPort: 90,
+					Protocol:   "http",
+				},
+			},
+			permissiveMode: true,
+			upstreamTrafficSetting: &policyv1alpha1.UpstreamTrafficSetting{
+				Spec: policyv1alpha1.UpstreamTrafficSettingSpec{
+					RateLimit: virtualHostRateLimitConfig,
+					HTTPRoutes: []policyv1alpha1.HTTPRouteSpec{
+						{
+							Path:      ".*", // matches wildcard path regex for permissive mode
+							RateLimit: perRouteRateLimitConfig,
+						},
+					},
+				},
+			},
+			prepare: func(mockMeshSpec *smi.MockMeshSpec, trafficSplits []*split.TrafficSplit) {
+				mockMeshSpec.EXPECT().ListTrafficSplits(gomock.Any()).Return(trafficSplits).AnyTimes()
+			},
+			expectedInboundMeshPolicy: &trafficpolicy.InboundMeshTrafficPolicy{
+				HTTPRouteConfigsPerPort: map[int][]*trafficpolicy.InboundTrafficPolicy{
+					80: {
+						{
+							Name: "s1.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s1",
+								"s1:80",
+								"s1.ns1",
+								"s1.ns1:80",
+								"s1.ns1.svc",
+								"s1.ns1.svc:80",
+								"s1.ns1.svc.cluster",
+								"s1.ns1.svc.cluster:80",
+								"s1.ns1.svc.cluster.local",
+								"s1.ns1.svc.cluster.local:80",
+							},
+							RateLimit: virtualHostRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s1|80|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								},
+							},
+						},
+					},
+					90: {
+						{
+							Name: "s2.ns1.svc.cluster.local",
+							Hostnames: []string{
+								"s2",
+								"s2:90",
+								"s2.ns1",
+								"s2.ns1:90",
+								"s2.ns1.svc",
+								"s2.ns1.svc:90",
+								"s2.ns1.svc.cluster",
+								"s2.ns1.svc.cluster:90",
+								"s2.ns1.svc.cluster.local",
+								"s2.ns1.svc.cluster.local:90",
+							},
+							RateLimit: virtualHostRateLimitConfig,
+							Rules: []*trafficpolicy.Rule{
+								{
+									Route: trafficpolicy.RouteWeightedClusters{
+										HTTPRouteMatch: trafficpolicy.WildCardRouteMatch,
+										WeightedClusters: mapset.NewSet(service.WeightedCluster{
+											ClusterName: "ns1/s2|90|local",
+											Weight:      100,
+										}),
+										RateLimit: perRouteRateLimitConfig,
+									},
+									AllowedPrincipals: mapset.NewSet(identity.WildcardPrincipal),
+								},
+							},
+						},
+					},
+				},
+				ClustersConfigs: []*trafficpolicy.MeshClusterConfig{
+					{
+						Name:    "ns1/s1|80|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s1", Port: 80, TargetPort: 80, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    80,
+					},
+					{
+						Name:    "ns1/s2|90|local",
+						Service: service.MeshService{Namespace: "ns1", Name: "s2", Port: 90, TargetPort: 90, Protocol: "http"},
+						Address: "127.0.0.1",
+						Port:    90,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1588,19 +2013,25 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			mockCtrl := gomock.NewController(t)
 			defer mockCtrl.Finish()
 
+			fakeCertManager := tresorFake.NewFake(nil, 1*time.Hour)
+
 			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockPolicyController := policy.NewMockController(mockCtrl)
 			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
 			mockServiceProvider := service.NewMockProvider(mockCtrl)
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mc := MeshCatalog{
 				kubeController:     mockKubeController,
+				policyController:   mockPolicyController,
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 				serviceProviders:   []service.Provider{mockServiceProvider},
+				certManager:        fakeCertManager,
 				configurator:       mockCfg,
 				meshSpec:           mockMeshSpec,
 			}
 
+			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(tc.upstreamTrafficSetting).AnyTimes()
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode)
 			mockMeshSpec.EXPECT().ListTrafficTargets(gomock.Any()).Return(tc.trafficTargets).AnyTimes()
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.httpRouteGroups).AnyTimes()
@@ -1613,13 +2044,16 @@ func TestGetInboundMeshTrafficPolicy(t *testing.T) {
 			for expectedKey, expectedVal := range tc.expectedInboundMeshPolicy.HTTPRouteConfigsPerPort {
 				assert.ElementsMatch(expectedVal, actual.HTTPRouteConfigsPerPort[expectedKey])
 			}
+			if len(tc.expectedInboundMeshPolicy.TrafficMatches) != 0 {
+				assert.ElementsMatch(tc.expectedInboundMeshPolicy.TrafficMatches, actual.TrafficMatches)
+			}
 		})
 	}
 }
 
 func TestRoutesFromRules(t *testing.T) {
 	assert := tassert.New(t)
-	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+	mc := MeshCatalog{meshSpec: smiFake.NewFakeMeshSpecClient()}
 
 	testCases := []struct {
 		name           string
@@ -1861,9 +2295,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 func TestGetTrafficSpecName(t *testing.T) {
 	assert := tassert.New(t)
 
-	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
-
-	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+	actual := getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
 }

@@ -56,12 +56,12 @@ data:
         metric_relabel_configs:
         {{- if eq .Values.osm.sidecarClass "pipy" }}
         - source_labels: [__name__]
-          regex: '(sidecar_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|^osm.*)'
+          regex: '(sidecar_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|socks_active_connection|socks_total_connection|socks_send_bytes_total|socks_receive_bytes_total|^osm.*)'
           action: keep
         {{- end }}
         {{- if eq .Values.osm.sidecarClass "envoy" }}
         - source_labels: [__name__]
-          regex: '(envoy_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|^osm.*)'
+          regex: '(envoy_server_live|envoy_cluster_health_check_.*|sidecar_cluster_upstream_rq_xx|sidecar_cluster_upstream_cx_active|sidecar_cluster_upstream_cx_tx_bytes_total|sidecar_cluster_upstream_cx_rx_bytes_total|sidecar_cluster_upstream_rq_total|sidecar_cluster_upstream_cx_destroy_remote_with_active_rq|sidecar_cluster_upstream_cx_connect_timeout|sidecar_cluster_upstream_cx_destroy_local_with_active_rq|sidecar_cluster_upstream_rq_pending_failure_eject|sidecar_cluster_upstream_rq_pending_overflow|sidecar_cluster_upstream_rq_timeout|sidecar_cluster_upstream_rq_rx_reset|socks_active_connection|socks_total_connection|socks_send_bytes_total|socks_receive_bytes_total|^osm.*)'
           action: keep
         {{- end }}
         relabel_configs:
@@ -241,19 +241,19 @@ data:
           target_label: source_pod
         - source_labels: [__name__]
           action: replace
-          regex: envoy_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_(.*)_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
+          regex: source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_(.*)_destination_kind_.*_destination_name_.*_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
           target_label: destination_namespace
         - source_labels: [__name__]
           action: replace
-          regex: envoy_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_(.*)_destination_name_.*_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
+          regex: source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_(.*)_destination_name_.*_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
           target_label: destination_kind
         - source_labels: [__name__]
           action: replace
-          regex: envoy_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_(.*)_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
+          regex: source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_(.*)_destination_pod_.*_osm_request_duration_ms_(bucket|sum|count)
           target_label: destination_name
         - source_labels: [__name__]
           action: replace
-          regex: envoy_source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_(.*)_osm_request_duration_ms_(bucket|sum|count)
+          regex: source_namespace_.*_source_kind_.*_source_name_.*_source_pod_.*_destination_namespace_.*_destination_kind_.*_destination_name_.*_destination_pod_(.*)_osm_request_duration_ms_(bucket|sum|count)
           target_label: destination_pod
         - source_labels: [__name__]
           action: replace

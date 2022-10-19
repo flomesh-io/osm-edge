@@ -82,12 +82,6 @@ func (s *Server) informTrafficPolicies(proxy *pipy.Proxy, wg *sync.WaitGroup) er
 // Proxy identity corresponds to the k8s service account, while the workload certificate is of the form
 // <svc-account>.<namespace>.<trust-domain>.
 func isCNforProxy(proxy *pipy.Proxy, cn certificate.CommonName) bool {
-	proxyIdentity, err := pipy.GetServiceIdentityFromProxyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Str("proxy", proxy.String()).Err(err).Msg("Error looking up proxy identity")
-		return false
-	}
-
 	// Workload certificate CN is of the form <svc-account>.<namespace>.<trust-domain>
 	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
 	if len(chunks) < 3 {
@@ -95,20 +89,14 @@ func isCNforProxy(proxy *pipy.Proxy, cn certificate.CommonName) bool {
 	}
 
 	identityForCN := identity.K8sServiceAccount{Name: chunks[0], Namespace: chunks[1]}
-	return identityForCN == proxyIdentity.ToK8sServiceAccount()
+	return identityForCN == proxy.Identity.ToK8sServiceAccount()
 }
 
 // recordPodMetadata records pod metadata and verifies the certificate issued for this pod
 // is for the same service account as seen on the pod's service account
 func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
-	if p.Kind() == pipy.KindGateway {
-		log.Debug().Str(constants.LogFieldContext, constants.LogContextMulticluster).Str("proxy", p.String()).
-			Msgf("Proxy is a Multicluster gateway, skipping recording pod metadata")
-		return nil
-	}
-
 	if p.PodMetadata == nil {
-		pod, err := pipy.GetPodFromCertificate(p.GetCertificateCommonName(), s.kubeController)
+		pod, err := s.kubeController.GetPodForProxy(p)
 		if err != nil {
 			log.Warn().Str("proxy", p.String()).Msg("Could not find pod for connecting proxy. No metadata was recorded.")
 			return nil
@@ -150,21 +138,14 @@ func (s *Server) recordPodMetadata(p *pipy.Proxy) error {
 		}
 
 		if len(pod.Status.PodIP) > 0 {
-			p.PodIP = pod.Status.PodIP
+			p.Addr = pipy.NewNetAddress(pod.Status.PodIP)
 		}
 	}
 
 	// Verify Service account matches (cert to pod Service Account)
-	cn := p.GetCertificateCommonName()
-	certSA, err := pipy.GetServiceIdentityFromProxyCertificate(cn)
-	if err != nil {
-		log.Error().Err(err).Str("proxy", p.String()).Msgf("Error getting service account from certificate with CommonName=%s", cn)
-		return err
-	}
-
-	if certSA.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
+	if p.Identity.ToK8sServiceAccount() != p.PodMetadata.ServiceAccount {
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMismatchedServiceAccount)).Str("proxy", p.String()).
-			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, certSA)
+			Msgf("Service Account referenced in NodeID (%s) does not match Service Account in Certificate (%s). This proxy is not allowed to join the mesh.", p.PodMetadata.ServiceAccount, p.Identity.ToK8sServiceAccount())
 		return errServiceAccountMismatch
 	}
 

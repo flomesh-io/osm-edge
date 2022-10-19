@@ -2,9 +2,6 @@ package framework
 
 import (
 	"fmt"
-	"runtime"
-
-	"github.com/pkg/errors"
 )
 
 // HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
@@ -15,12 +12,12 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 		}
 	}
 
-	values := fmt.Sprintf("osm.image.registry=%s,osm.image.tag=%s,osm.meshName=%s,osm.nodeSelector.arch=%s", td.CtrRegistryServer, td.OsmImageTag, release, runtime.GOARCH)
+	values := fmt.Sprintf("osm.image.registry=%s,osm.image.tag=%s,osm.meshName=%s", td.CtrRegistryServer, td.OsmImageTag, release)
 	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
 	stdout, stderr, err := td.RunLocal("helm", args...)
 	if err != nil {
 		td.T.Logf("stdout:\n%s", stdout)
-		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
+		return fmt.Errorf("failed to run helm install with osm chart: %s", stderr)
 	}
 
 	return nil

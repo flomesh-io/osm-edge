@@ -15,6 +15,22 @@ limitations under the License.
 
 package v1alpha1
 
+// AccessCertListerExpansion allows custom methods to be added to
+// AccessCertLister.
+type AccessCertListerExpansion interface{}
+
+// AccessCertNamespaceListerExpansion allows custom methods to be added to
+// AccessCertNamespaceLister.
+type AccessCertNamespaceListerExpansion interface{}
+
+// AccessControlListerExpansion allows custom methods to be added to
+// AccessControlLister.
+type AccessControlListerExpansion interface{}
+
+// AccessControlNamespaceListerExpansion allows custom methods to be added to
+// AccessControlNamespaceLister.
+type AccessControlNamespaceListerExpansion interface{}
+
 // EgressListerExpansion allows custom methods to be added to
 // EgressLister.
 type EgressListerExpansion interface{}
@@ -22,6 +38,14 @@ type EgressListerExpansion interface{}
 // EgressNamespaceListerExpansion allows custom methods to be added to
 // EgressNamespaceLister.
 type EgressNamespaceListerExpansion interface{}
+
+// EgressGatewayListerExpansion allows custom methods to be added to
+// EgressGatewayLister.
+type EgressGatewayListerExpansion interface{}
+
+// EgressGatewayNamespaceListerExpansion allows custom methods to be added to
+// EgressGatewayNamespaceLister.
+type EgressGatewayNamespaceListerExpansion interface{}
 
 // IngressBackendListerExpansion allows custom methods to be added to
 // IngressBackendLister.

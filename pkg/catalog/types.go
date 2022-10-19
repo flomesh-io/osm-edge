@@ -5,6 +5,10 @@
 package catalog
 
 import (
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -26,6 +30,7 @@ type MeshCatalog struct {
 	serviceProviders   []service.Provider
 	meshSpec           smi.MeshSpec
 	configurator       configurator.Configurator
+	certManager        *certificate.Manager
 
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local
@@ -41,9 +46,6 @@ type MeshCatalog struct {
 type MeshCataloger interface {
 	// ListOutboundServicesForIdentity list the services the given service identity is allowed to initiate outbound connections to
 	ListOutboundServicesForIdentity(identity.ServiceIdentity) []service.MeshService
-
-	// ListOutboundServicesForMulticlusterGateway lists the upstream services for the multicluster gateway
-	ListOutboundServicesForMulticlusterGateway() []service.MeshService
 
 	// ListInboundServiceIdentities lists the downstream service identities that are allowed to connect to the given service identity
 	ListInboundServiceIdentities(identity.ServiceIdentity) []identity.ServiceIdentity
@@ -61,11 +63,20 @@ type MeshCataloger interface {
 	// GetIngressTrafficPolicy returns the ingress traffic policy for the given mesh service
 	GetIngressTrafficPolicy(service.MeshService) (*trafficpolicy.IngressTrafficPolicy, error)
 
+	// GetAccessControlTrafficPolicy returns the access control traffic policy for the given mesh service
+	GetAccessControlTrafficPolicy(service.MeshService) (*trafficpolicy.AccessControlTrafficPolicy, error)
+
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service identity
 	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 
+	// GetEgressGatewayPolicy returns the Egress gateway policy.
+	GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPolicy, error)
+
 	// GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity.
 	GetEgressTrafficPolicy(identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error)
+
+	// GetEgressSourceSecret returns the secret resource that matches the given options
+	GetEgressSourceSecret(corev1.SecretReference) (*corev1.Secret, error)
 
 	// GetKubeController returns the kube controller instance handling the current cluster
 	GetKubeController() k8s.Controller
@@ -75,6 +86,9 @@ type MeshCataloger interface {
 
 	// GetInboundMeshTrafficPolicy returns the inbound mesh traffic policy for the given upstream identity and services
 	GetInboundMeshTrafficPolicy(identity.ServiceIdentity, []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy
+
+	// GetRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
+	GetRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec
 }
 
 type trafficDirection string

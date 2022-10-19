@@ -50,7 +50,7 @@ type BackendSpec struct {
 
 	// TLS defines the specification for the backend's TLS configuration.
 	// +optional
-	TLS TLSSpec `json:"tls,omitempty"`
+	TLS *TLSSpec `json:"tls,omitempty"`
 }
 
 const (

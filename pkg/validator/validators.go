@@ -3,19 +3,24 @@ package validator
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
-	"github.com/pkg/errors"
+	mapset "github.com/deckarep/golang-set"
+	xds_type "github.com/envoyproxy/go-control-plane/envoy/type/v3"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // validateFunc is a function type that accepts an AdmissionRequest and returns an AdmissionResponse.
@@ -61,6 +66,13 @@ func FakeValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionRes
 */
 type validateFunc func(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error)
 
+// policyValidator is a validator that has access to a policy
+type policyValidator struct {
+	policyClient   policy.Controller
+	kubeController k8s.Controller
+	cfg            *configurator.Client
+}
+
 func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	trafficTarget := &smiAccess.TrafficTarget{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(trafficTarget); err != nil {
@@ -68,21 +80,165 @@ func trafficTargetValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Adm
 	}
 
 	if trafficTarget.Spec.Destination.Namespace != trafficTarget.Namespace {
-		return nil, errors.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
+		return nil, fmt.Errorf("The traffic target namespace (%s) must match spec.Destination.Namespace (%s)",
 			trafficTarget.Namespace, trafficTarget.Spec.Destination.Namespace)
 	}
 
 	return nil, nil
 }
 
+// accessCertValidator validates the AccessCert custom resource
+func (kc *policyValidator) accessCertValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	act := &policyv1alpha1.AccessCert{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(act); err != nil {
+		return nil, err
+	}
+	if !kc.cfg.GetFeatureFlags().EnableAccessCertPolicy {
+		act.Status = policyv1alpha1.AccessCertStatus{
+			CurrentStatus: "error",
+			Reason:        "OSM is prohibited to issue certificates for external services.",
+		}
+		if _, err := kc.kubeController.UpdateStatus(act); err != nil {
+			log.Error().Err(err).Msg("Error updating status for AccessCert")
+		}
+		return nil, fmt.Errorf("OSM is prohibited to issue certificates for external services")
+	}
+	return nil, nil
+}
+
+// accessControlValidator validates the AccessControl custom resource
+func (kc *policyValidator) accessControlValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	acl := &policyv1alpha1.AccessControl{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(acl); err != nil {
+		return nil, err
+	}
+	ns := acl.Namespace
+
+	type setEntry struct {
+		name string
+		port int
+	}
+
+	backends := mapset.NewSet()
+	var conflictString strings.Builder
+	conflictingAcls := mapset.NewSet()
+	for _, backend := range acl.Spec.Backends {
+		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
+			return nil, fmt.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+		}
+
+		fakeMeshSvc := service.MeshService{
+			Name:       backend.Name,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
+		if matchingPolicy := kc.policyClient.GetAccessControlPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != acl.Name {
+			// we've found a duplicate
+			if unique := conflictingAcls.Add(matchingPolicy); !unique {
+				// we've already found the conflicts for this resource
+				continue
+			}
+			conflicts := policy.DetectAccessControlConflicts(*acl, *matchingPolicy)
+			fmt.Fprintf(&conflictString, "[+] AccessControlBackend %s/%s conflicts with %s/%s:\n", ns, acl.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
+			for _, err := range conflicts {
+				fmt.Fprintf(&conflictString, "%s\n", err)
+			}
+			fmt.Fprintf(&conflictString, "\n")
+		}
+
+		if backend.TLS != nil {
+			// If mTLS is enabled, verify there is an AuthenticatedPrincipal specified
+			authenticatedSourceFound := false
+			for _, source := range acl.Spec.Sources {
+				if source.Kind == policyv1alpha1.KindAuthenticatedPrincipal {
+					authenticatedSourceFound = true
+					break
+				}
+			}
+
+			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
+				return nil, fmt.Errorf("HTTPS acl with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
+			}
+		}
+	}
+
+	if conflictString.Len() != 0 {
+		return nil, fmt.Errorf("duplicate backends detected\n%s", conflictString.String())
+	}
+
+	// Validate sources
+	for _, source := range acl.Spec.Sources {
+		switch source.Kind {
+		// Add validation for source kinds here
+		case policyv1alpha1.KindService:
+			if source.Name == "" {
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
+			}
+			if source.Namespace == "" {
+				return nil, fmt.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
+			}
+
+		case policyv1alpha1.KindAuthenticatedPrincipal:
+			if source.Name == "" {
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
+			}
+
+		case policyv1alpha1.KindIPRange:
+			if _, _, err := net.ParseCIDR(source.Name); err != nil {
+				return nil, fmt.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+			}
+
+		default:
+			return nil, fmt.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
+				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
+		}
+	}
+
+	return nil, nil
+}
+
 // ingressBackendValidator validates the IngressBackend custom resource
-func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
 	ingressBackend := &policyv1alpha1.IngressBackend{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(ingressBackend); err != nil {
 		return nil, err
 	}
+	ns := ingressBackend.Namespace
 
+	type setEntry struct {
+		name string
+		port int
+	}
+
+	backends := mapset.NewSet()
+	var conflictString strings.Builder
+	conflictingIngressBackends := mapset.NewSet()
 	for _, backend := range ingressBackend.Spec.Backends {
+		if unique := backends.Add(setEntry{backend.Name, backend.Port.Number}); !unique {
+			return nil, fmt.Errorf("Duplicate backends detected with service name: %s and port: %d", backend.Name, backend.Port.Number)
+		}
+
+		fakeMeshSvc := service.MeshService{
+			Name:       backend.Name,
+			TargetPort: uint16(backend.Port.Number),
+			Protocol:   backend.Port.Protocol,
+		}
+
+		if matchingPolicy := kc.policyClient.GetIngressBackendPolicy(fakeMeshSvc); matchingPolicy != nil && matchingPolicy.Name != ingressBackend.Name {
+			// we've found a duplicate
+			if unique := conflictingIngressBackends.Add(matchingPolicy); !unique {
+				// we've already found the conflicts for this resource
+				continue
+			}
+			conflicts := policy.DetectIngressBackendConflicts(*ingressBackend, *matchingPolicy)
+			fmt.Fprintf(&conflictString, "[+] IngressBackend %s/%s conflicts with %s/%s:\n", ns, ingressBackend.ObjectMeta.GetName(), ns, matchingPolicy.ObjectMeta.GetName())
+			for _, err := range conflicts {
+				fmt.Fprintf(&conflictString, "%s\n", err)
+			}
+			fmt.Fprintf(&conflictString, "\n")
+		}
+
 		// Validate port
 		switch strings.ToLower(backend.Port.Protocol) {
 		case constants.ProtocolHTTP:
@@ -99,13 +255,17 @@ func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 				}
 			}
 
-			if backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
-				return nil, errors.Errorf("HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
+			if backend.TLS != nil && backend.TLS.SkipClientCertValidation && !authenticatedSourceFound {
+				return nil, fmt.Errorf("HTTPS ingress with client certificate validation enabled must specify at least one 'AuthenticatedPrincipal` source")
 			}
 
 		default:
-			return nil, errors.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
+			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
 		}
+	}
+
+	if conflictString.Len() != 0 {
+		return nil, fmt.Errorf("duplicate backends detected\n%s", conflictString.String())
 	}
 
 	// Validate sources
@@ -114,24 +274,24 @@ func ingressBackendValidator(req *admissionv1.AdmissionRequest) (*admissionv1.Ad
 		// Add validation for source kinds here
 		case policyv1alpha1.KindService:
 			if source.Name == "" {
-				return nil, errors.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindService)
 			}
 			if source.Namespace == "" {
-				return nil, errors.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
+				return nil, fmt.Errorf("'source.namespace' not specified for source kind %s", policyv1alpha1.KindService)
 			}
 
 		case policyv1alpha1.KindAuthenticatedPrincipal:
 			if source.Name == "" {
-				return nil, errors.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
+				return nil, fmt.Errorf("'source.name' not specified for source kind %s", policyv1alpha1.KindAuthenticatedPrincipal)
 			}
 
 		case policyv1alpha1.KindIPRange:
 			if _, _, err := net.ParseCIDR(source.Name); err != nil {
-				return nil, errors.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
+				return nil, fmt.Errorf("Invalid 'source.name' value specified for IPRange. Expected CIDR notation 'a.b.c.d/x', got '%s'", source.Name)
 			}
 
 		default:
-			return nil, errors.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
+			return nil, fmt.Errorf("Invalid 'source.kind' value specified. Must be one of: %s, %s, %s",
 				policyv1alpha1.KindService, policyv1alpha1.KindAuthenticatedPrincipal, policyv1alpha1.KindIPRange)
 		}
 	}
@@ -157,7 +317,7 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				// no additional validation
 
 			default:
-				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'HTTPRouteGroup', got: %s", m.Name, m.Kind)
 			}
 
 		case policyv1alpha1.SchemeGroupVersion.String():
@@ -166,50 +326,78 @@ func egressValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionR
 				upstreamTrafficSettingMatchCount++
 
 			default:
-				return nil, errors.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
+				return nil, fmt.Errorf("Expected 'matches.kind' for match '%s' to be 'UpstreamTrafficSetting', got: %s", m.Name, m.Kind)
 			}
 
 		default:
-			return nil, errors.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
+			return nil, fmt.Errorf("Expected 'matches.apiGroup' to be one of %v, got: %s", allowedAPIGroups, *m.APIGroup)
 		}
 	}
 
 	// Can't have more than 1 UpstreamTrafficSetting match for an Egress policy
 	if upstreamTrafficSettingMatchCount > 1 {
-		return nil, errors.New("Cannot have more than 1 UpstreamTrafficSetting match")
+		return nil, fmt.Errorf("Cannot have more than 1 UpstreamTrafficSetting match")
 	}
 
 	return nil, nil
 }
 
-// MultiClusterServiceValidator validates the MultiClusterService CRD.
-func MultiClusterServiceValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
-	config := &configv1alpha2.MultiClusterService{}
-	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(config); err != nil {
+// upstreamTrafficSettingValidator validates the UpstreamTrafficSetting custom resource
+func (kc *policyValidator) upstreamTrafficSettingValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	upstreamTrafficSetting := &policyv1alpha1.UpstreamTrafficSetting{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(upstreamTrafficSetting); err != nil {
 		return nil, err
 	}
 
-	clusterNames := make(map[string]bool)
+	ns := upstreamTrafficSetting.Namespace
+	hostComponents := strings.Split(upstreamTrafficSetting.Spec.Host, ".")
+	if len(hostComponents) < 2 {
+		return nil, field.Invalid(field.NewPath("spec").Child("host"), upstreamTrafficSetting.Spec.Host, "invalid FQDN specified as host")
+	}
 
-	for _, cluster := range config.Spec.Clusters {
-		if len(strings.TrimSpace(cluster.Name)) == 0 {
-			return nil, errors.New("Cluster name is not valid")
+	opt := policy.UpstreamTrafficSettingGetOpt{Host: upstreamTrafficSetting.Spec.Host}
+	if matchingUpstreamTrafficSetting := kc.policyClient.GetUpstreamTrafficSetting(opt); matchingUpstreamTrafficSetting != nil && matchingUpstreamTrafficSetting.Name != upstreamTrafficSetting.Name {
+		// duplicate detected
+		return nil, fmt.Errorf("UpstreamTrafficSetting %s/%s conflicts with %s/%s since they have the same host %s", ns, upstreamTrafficSetting.ObjectMeta.GetName(), ns, matchingUpstreamTrafficSetting.ObjectMeta.GetName(), matchingUpstreamTrafficSetting.Spec.Host)
+	}
+
+	// Validate rate limiting config
+	rl := upstreamTrafficSetting.Spec.RateLimit
+	if rl != nil && rl.Local != nil && rl.Local.HTTP != nil {
+		if _, ok := xds_type.StatusCode_name[int32(rl.Local.HTTP.ResponseStatusCode)]; !ok {
+			return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+				rl.Local.HTTP.ResponseStatusCode)
 		}
-		if _, ok := clusterNames[cluster.Name]; ok {
-			return nil, errors.Errorf("Cluster named %s already exists", cluster.Name)
+	}
+	for _, route := range upstreamTrafficSetting.Spec.HTTPRoutes {
+		if route.RateLimit != nil && route.RateLimit.Local != nil {
+			if _, ok := xds_type.StatusCode_name[int32(route.RateLimit.Local.ResponseStatusCode)]; !ok {
+				return nil, fmt.Errorf("Invalid responseStatusCode %d. See https://www.envoyproxy.io/docs/envoy/latest/api-v3/type/v3/http_status.proto#enum-type-v3-statuscode for allowed values",
+					route.RateLimit.Local.ResponseStatusCode)
+			}
 		}
-		if len(strings.TrimSpace(cluster.Address)) == 0 {
-			return nil, errors.Errorf("Cluster address %s is not valid", cluster.Address)
+	}
+
+	return nil, nil
+}
+
+// egressGatewayValidator validates the EgressGateway custom resource
+func (kc *policyValidator) egressGatewayValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	egressGateway := &policyv1alpha1.EgressGateway{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(egressGateway); err != nil {
+		return nil, err
+	}
+
+	if len(egressGateway.Spec.GlobalEgressGateways) > 0 {
+		existEgressGateways := kc.policyClient.ListEgressGateways()
+		for _, p := range existEgressGateways {
+			if strings.EqualFold(egressGateway.Name, p.Name) && strings.EqualFold(egressGateway.Namespace, p.Namespace) {
+				continue
+			}
+			if len(p.Spec.GlobalEgressGateways) > 0 {
+				return nil, fmt.Errorf("Redefinition of global egress gateway policy and conflict with %s.%s", p.Namespace, p.Name)
+			}
 		}
-		clusterAddress := strings.Split(cluster.Address, ":")
-		if net.ParseIP(clusterAddress[0]) == nil {
-			return nil, errors.Errorf("Error parsing IP address %s", cluster.Address)
-		}
-		_, err := strconv.ParseUint(clusterAddress[1], 10, 32)
-		if err != nil {
-			return nil, errors.Errorf("Error parsing port value %s", cluster.Address)
-		}
-		clusterNames[cluster.Name] = true
 	}
 
 	return nil, nil

@@ -1,3 +1,4 @@
+// Package main implements generate chart application.
 package main
 
 import (

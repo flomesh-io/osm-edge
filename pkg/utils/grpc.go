@@ -16,7 +16,7 @@ const (
 )
 
 // NewGrpc creates a new gRPC server
-func NewGrpc(serverType string, port uint32, certPem, keyPem, rootCertPem []byte) (*grpc.Server, net.Listener, error) {
+func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (*grpc.Server, net.Listener, error) {
 	log.Info().Msgf("Setting up %s gRPC server...", serverType)
 	addr := fmt.Sprintf(":%d", port)
 	lis, err := net.Listen("tcp", addr)

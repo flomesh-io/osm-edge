@@ -47,7 +47,7 @@ func NewDebugConfig(certDebugger CertificateManagerDebugger, meshCatalogDebugger
 		kubeClient:          kubeClient,
 		kubeController:      kubeController,
 
-		// We need the Kubernetes config to be able to establish port forwarding to the Envoy pod we want to debug.
+		// We need the Kubernetes config to be able to establish port forwarding to the Sidecar pod we want to debug.
 		kubeConfig: kubeConfig,
 
 		configurator: cfg,

@@ -15,7 +15,13 @@ limitations under the License.
 
 package v1alpha1
 
+type AccessCertExpansion interface{}
+
+type AccessControlExpansion interface{}
+
 type EgressExpansion interface{}
+
+type EgressGatewayExpansion interface{}
 
 type IngressBackendExpansion interface{}
 

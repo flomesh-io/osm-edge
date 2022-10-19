@@ -1,8 +1,8 @@
 package repo
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
 )
 
-var errTooManyConnections = errors.New("too many connections")
-var errServiceAccountMismatch = errors.New("service account mismatch in nodeid vs xds certificate common name")
+var errTooManyConnections = fmt.Errorf("too many connections")
+var errServiceAccountMismatch = fmt.Errorf("service account mismatch in nodeid vs xds certificate common name")

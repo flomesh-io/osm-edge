@@ -1,3 +1,4 @@
+// Package secrets defines the secrets errors.
 package secrets
 
 import (

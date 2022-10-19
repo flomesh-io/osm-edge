@@ -11,6 +11,7 @@ import (
 	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockController is a mock of Controller interface.
@@ -34,6 +35,35 @@ func NewMockController(ctrl *gomock.Controller) *MockController {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
+}
+
+// GetAccessControlPolicy mocks base method.
+func (m *MockController) GetAccessControlPolicy(arg0 service.MeshService) *v1alpha1.AccessControl {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccessControlPolicy", arg0)
+	ret0, _ := ret[0].(*v1alpha1.AccessControl)
+	return ret0
+}
+
+// GetAccessControlPolicy indicates an expected call of GetAccessControlPolicy.
+func (mr *MockControllerMockRecorder) GetAccessControlPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccessControlPolicy", reflect.TypeOf((*MockController)(nil).GetAccessControlPolicy), arg0)
+}
+
+// GetEgressSourceSecret mocks base method.
+func (m *MockController) GetEgressSourceSecret(arg0 v1.SecretReference) (*v1.Secret, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEgressSourceSecret", arg0)
+	ret0, _ := ret[0].(*v1.Secret)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEgressSourceSecret indicates an expected call of GetEgressSourceSecret.
+func (mr *MockControllerMockRecorder) GetEgressSourceSecret(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressSourceSecret", reflect.TypeOf((*MockController)(nil).GetEgressSourceSecret), arg0)
 }
 
 // GetIngressBackendPolicy mocks base method.
@@ -62,6 +92,20 @@ func (m *MockController) GetUpstreamTrafficSetting(arg0 UpstreamTrafficSettingGe
 func (mr *MockControllerMockRecorder) GetUpstreamTrafficSetting(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUpstreamTrafficSetting", reflect.TypeOf((*MockController)(nil).GetUpstreamTrafficSetting), arg0)
+}
+
+// ListEgressGateways mocks base method.
+func (m *MockController) ListEgressGateways() []*v1alpha1.EgressGateway {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEgressGateways")
+	ret0, _ := ret[0].([]*v1alpha1.EgressGateway)
+	return ret0
+}
+
+// ListEgressGateways indicates an expected call of ListEgressGateways.
+func (mr *MockControllerMockRecorder) ListEgressGateways() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEgressGateways", reflect.TypeOf((*MockController)(nil).ListEgressGateways))
 }
 
 // ListEgressPoliciesForSourceIdentity mocks base method.

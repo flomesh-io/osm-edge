@@ -20,6 +20,9 @@ const (
 	// defaultServiceCertValidityDuration is the default validity duration for service certificates
 	defaultServiceCertValidityDuration = 24 * time.Hour
 
+	// defaultIngressGatewayCertValidityDuration is the default validity duration for ingress gateway certificates
+	defaultIngressGatewayCertValidityDuration = 24 * time.Hour
+
 	// defaultCertKeyBitSize is the default certificate key bit size
 	defaultCertKeyBitSize = 2048
 
@@ -33,12 +36,12 @@ const (
 // The functions in this file implement the configurator.Configurator interface
 
 // GetMeshConfig returns the MeshConfig resource corresponding to the control plane
-func (c *client) GetMeshConfig() configv1alpha2.MeshConfig {
+func (c *Client) GetMeshConfig() configv1alpha2.MeshConfig {
 	return c.getMeshConfig()
 }
 
 // GetOSMNamespace returns the namespace in which the OSM controller pod resides.
-func (c *client) GetOSMNamespace() string {
+func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
@@ -51,7 +54,7 @@ func marshalConfigToJSON(config configv1alpha2.MeshConfigSpec) (string, error) {
 }
 
 // GetMeshConfigJSON returns the MeshConfig in pretty JSON.
-func (c *client) GetMeshConfigJSON() (string, error) {
+func (c *Client) GetMeshConfigJSON() (string, error) {
 	cm, err := marshalConfigToJSON(c.getMeshConfig().Spec)
 	if err != nil {
 		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMeshConfigMarshaling)).Msgf("Error marshaling MeshConfig %s: %+v", c.getMeshConfigCacheKey(), c.getMeshConfig())
@@ -64,27 +67,27 @@ func (c *client) GetMeshConfigJSON() (string, error) {
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
 // referenced in SMI policies is allowed.
-func (c *client) IsPermissiveTrafficPolicyMode() bool {
+func (c *Client) IsPermissiveTrafficPolicyMode() bool {
 	return c.getMeshConfig().Spec.Traffic.EnablePermissiveTrafficPolicyMode
 }
 
 // IsEgressEnabled determines whether egress is globally enabled in the mesh or not.
-func (c *client) IsEgressEnabled() bool {
+func (c *Client) IsEgressEnabled() bool {
 	return c.getMeshConfig().Spec.Traffic.EnableEgress
 }
 
 // IsDebugServerEnabled determines whether osm debug HTTP server is enabled
-func (c *client) IsDebugServerEnabled() bool {
+func (c *Client) IsDebugServerEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.EnableDebugServer
 }
 
 // IsTracingEnabled returns whether tracing is enabled
-func (c *client) IsTracingEnabled() bool {
+func (c *Client) IsTracingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.Tracing.Enable
 }
 
 // GetTracingHost is the host to which we send tracing spans
-func (c *client) GetTracingHost() string {
+func (c *Client) GetTracingHost() string {
 	tracingAddress := c.getMeshConfig().Spec.Observability.Tracing.Address
 	if tracingAddress != "" {
 		return tracingAddress
@@ -93,7 +96,7 @@ func (c *client) GetTracingHost() string {
 }
 
 // GetTracingPort returns the tracing listener port
-func (c *client) GetTracingPort() uint32 {
+func (c *Client) GetTracingPort() uint32 {
 	tracingPort := c.getMeshConfig().Spec.Observability.Tracing.Port
 	if tracingPort != 0 {
 		return uint32(tracingPort)
@@ -102,7 +105,7 @@ func (c *client) GetTracingPort() uint32 {
 }
 
 // GetTracingEndpoint returns the listener's collector endpoint
-func (c *client) GetTracingEndpoint() string {
+func (c *Client) GetTracingEndpoint() string {
 	tracingEndpoint := c.getMeshConfig().Spec.Observability.Tracing.Endpoint
 	if tracingEndpoint != "" {
 		return tracingEndpoint
@@ -111,12 +114,12 @@ func (c *client) GetTracingEndpoint() string {
 }
 
 // IsRemoteLoggingEnabled returns whether remote logging is enabled
-func (c *client) IsRemoteLoggingEnabled() bool {
+func (c *Client) IsRemoteLoggingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.RemoteLogging.Enable
 }
 
 // GetRemoteLoggingHost is the host to which we send logging spans
-func (c *client) GetRemoteLoggingHost() string {
+func (c *Client) GetRemoteLoggingHost() string {
 	remoteLoggingAddress := c.getMeshConfig().Spec.Observability.RemoteLogging.Address
 	if remoteLoggingAddress != "" {
 		return remoteLoggingAddress
@@ -125,7 +128,7 @@ func (c *client) GetRemoteLoggingHost() string {
 }
 
 // GetRemoteLoggingPort returns the remote logging listener port
-func (c *client) GetRemoteLoggingPort() uint32 {
+func (c *Client) GetRemoteLoggingPort() uint32 {
 	remoteLoggingPort := c.getMeshConfig().Spec.Observability.RemoteLogging.Port
 	if remoteLoggingPort != 0 {
 		return uint32(remoteLoggingPort)
@@ -134,7 +137,7 @@ func (c *client) GetRemoteLoggingPort() uint32 {
 }
 
 // GetRemoteLoggingEndpoint returns the collector endpoint
-func (c *client) GetRemoteLoggingEndpoint() string {
+func (c *Client) GetRemoteLoggingEndpoint() string {
 	remoteLoggingEndpoint := c.getMeshConfig().Spec.Observability.RemoteLogging.Endpoint
 	if remoteLoggingEndpoint != "" {
 		return remoteLoggingEndpoint
@@ -143,7 +146,7 @@ func (c *client) GetRemoteLoggingEndpoint() string {
 }
 
 // GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
-func (c *client) GetRemoteLoggingAuthorization() string {
+func (c *Client) GetRemoteLoggingAuthorization() string {
 	remoteLoggingAuthorization := c.getMeshConfig().Spec.Observability.RemoteLogging.Authorization
 	if remoteLoggingAuthorization != "" {
 		return remoteLoggingAuthorization
@@ -152,12 +155,12 @@ func (c *client) GetRemoteLoggingAuthorization() string {
 }
 
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
-func (c *client) GetMaxDataPlaneConnections() int {
+func (c *Client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections
 }
 
 // GetSidecarLogLevel returns the sidecar log level
-func (c *client) GetSidecarLogLevel() string {
+func (c *Client) GetSidecarLogLevel() string {
 	logLevel := c.getMeshConfig().Spec.Sidecar.LogLevel
 	if logLevel != "" {
 		return logLevel
@@ -166,7 +169,7 @@ func (c *client) GetSidecarLogLevel() string {
 }
 
 // GetSidecarClass returns the sidecar class
-func (c *client) GetSidecarClass() string {
+func (c *Client) GetSidecarClass() string {
 	class := c.getMeshConfig().Spec.Sidecar.SidecarClass
 	if class == "" {
 		class = os.Getenv("OSM_DEFAULT_SIDECAR_CLASS")
@@ -178,7 +181,7 @@ func (c *client) GetSidecarClass() string {
 }
 
 // GetSidecarImage returns the sidecar image
-func (c *client) GetSidecarImage() string {
+func (c *Client) GetSidecarImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.SidecarImage
 	if len(image) == 0 {
 		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
@@ -197,7 +200,7 @@ func (c *client) GetSidecarImage() string {
 }
 
 // GetSidecarWindowsImage returns the sidecar windows image
-func (c *client) GetSidecarWindowsImage() string {
+func (c *Client) GetSidecarWindowsImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.SidecarWindowsImage
 	if len(image) == 0 {
 		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
@@ -216,7 +219,7 @@ func (c *client) GetSidecarWindowsImage() string {
 }
 
 // GetInitContainerImage returns the init container image
-func (c *client) GetInitContainerImage() string {
+func (c *Client) GetInitContainerImage() string {
 	image := c.getMeshConfig().Spec.Sidecar.InitContainerImage
 	if len(image) == 0 {
 		sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
@@ -235,7 +238,7 @@ func (c *client) GetInitContainerImage() string {
 }
 
 // GetProxyServerPort returns the port on which the Discovery Service listens for new connections from Sidecars
-func (c *client) GetProxyServerPort() uint32 {
+func (c *Client) GetProxyServerPort() uint32 {
 	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
 	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
 	for _, sidecarDriver := range sidecarDrivers {
@@ -247,7 +250,7 @@ func (c *client) GetProxyServerPort() uint32 {
 }
 
 // GetSidecarDisabledMTLS returns the status of mTLS
-func (c *client) GetSidecarDisabledMTLS() bool {
+func (c *Client) GetSidecarDisabledMTLS() bool {
 	disabledMTLS := false
 	sidecarClass := c.getMeshConfig().Spec.Sidecar.SidecarClass
 	sidecarDrivers := c.getMeshConfig().Spec.Sidecar.SidecarDrivers
@@ -261,7 +264,7 @@ func (c *client) GetSidecarDisabledMTLS() bool {
 }
 
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
-func (c *client) GetServiceCertValidityPeriod() time.Duration {
+func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getMeshConfig().Spec.Certificate.ServiceCertValidityDuration
 	validityDuration, err := time.ParseDuration(durationStr)
 	if err != nil {
@@ -272,8 +275,24 @@ func (c *client) GetServiceCertValidityPeriod() time.Duration {
 	return validityDuration
 }
 
+// GetIngressGatewayCertValidityPeriod returns the validity duration for ingress gateway certificates, and a default in case of unspecified or invalid duration
+func (c *Client) GetIngressGatewayCertValidityPeriod() time.Duration {
+	ingressGatewayCertSpec := c.getMeshConfig().Spec.Certificate.IngressGateway
+	if ingressGatewayCertSpec == nil {
+		log.Warn().Msgf("Attempting to get the ingress gateway certificate validity duration even though a cert has not been specified in the mesh config")
+		return defaultIngressGatewayCertValidityDuration
+	}
+	validityDuration, err := time.ParseDuration(ingressGatewayCertSpec.ValidityDuration)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing ingress gateway certificate validity duration %s", ingressGatewayCertSpec.ValidityDuration)
+		return defaultServiceCertValidityDuration
+	}
+
+	return validityDuration
+}
+
 // GetCertKeyBitSize returns the certificate key bit size to be used
-func (c *client) GetCertKeyBitSize() int {
+func (c *Client) GetCertKeyBitSize() int {
 	bitSize := c.getMeshConfig().Spec.Certificate.CertKeyBitSize
 	if bitSize < minCertKeyBitSize || bitSize > maxCertKeyBitSize {
 		log.Error().Msgf("Invalid key bit size: %d", bitSize)
@@ -284,13 +303,13 @@ func (c *client) GetCertKeyBitSize() int {
 }
 
 // IsPrivilegedInitContainer returns whether init containers should be privileged
-func (c *client) IsPrivilegedInitContainer() bool {
+func (c *Client) IsPrivilegedInitContainer() bool {
 	return c.getMeshConfig().Spec.Sidecar.EnablePrivilegedInitContainer
 }
 
 // GetConfigResyncInterval returns the duration for resync interval.
 // If error or non-parsable value, returns 0 duration
-func (c *client) GetConfigResyncInterval() time.Duration {
+func (c *Client) GetConfigResyncInterval() time.Duration {
 	resyncDuration := c.getMeshConfig().Spec.Sidecar.ConfigResyncInterval
 	duration, err := time.ParseDuration(resyncDuration)
 	if err != nil {
@@ -301,12 +320,12 @@ func (c *client) GetConfigResyncInterval() time.Duration {
 }
 
 // GetProxyResources returns the `Resources` configured for proxies, if any
-func (c *client) GetProxyResources() corev1.ResourceRequirements {
+func (c *Client) GetProxyResources() corev1.ResourceRequirements {
 	return c.getMeshConfig().Spec.Sidecar.Resources
 }
 
 // GetInboundExternalAuthConfig returns the External Authentication configuration for incoming traffic, if any
-func (c *client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
+func (c *Client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 	extAuthConfig := auth.ExtAuthConfig{}
 	inboundExtAuthzMeshConfig := c.getMeshConfig().Spec.Traffic.InboundExternalAuthorization
 
@@ -327,11 +346,11 @@ func (c *client) GetInboundExternalAuthConfig() auth.ExtAuthConfig {
 }
 
 // GetFeatureFlags returns OSM's feature flags
-func (c *client) GetFeatureFlags() configv1alpha2.FeatureFlags {
+func (c *Client) GetFeatureFlags() configv1alpha2.FeatureFlags {
 	return c.getMeshConfig().Spec.FeatureFlags
 }
 
 // GetOSMLogLevel returns the configured OSM log level
-func (c *client) GetOSMLogLevel() string {
+func (c *Client) GetOSMLogLevel() string {
 	return c.getMeshConfig().Spec.Observability.OSMLogLevel
 }

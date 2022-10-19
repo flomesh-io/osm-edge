@@ -8,8 +8,6 @@ set -aueo pipefail
 source .env
 
 CTR_TAG="${CTR_TAG:-latest}"
-KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
-KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
 
 echo -e "Create tcp-echo service"
 kubectl apply -f - <<EOF
@@ -61,9 +59,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: tcp-echo
-      nodeSelector:
-        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
-        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
       - name: tcp-echo-server
         image: "${CTR_REGISTRY}/osm-edge-demo-tcp-echo-server:${CTR_TAG}"

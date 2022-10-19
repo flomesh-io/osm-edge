@@ -51,19 +51,24 @@ func testTCPTraffic(permissiveMode bool) {
 			}
 		}
 
-		// Load TCP server image
-		Expect(Td.LoadImagesToKind([]string{"osm-edge-demo-tcp-echo-server"})).To(Succeed())
-
 		// Create Test NS
 		for _, n := range ns {
 			Expect(Td.CreateNs(n, nil)).To(Succeed())
 			Expect(Td.AddNsToMesh(true, n)).To(Succeed())
 		}
 
-		destinationPort := 80
+		destinationPort := fortioTCPPort
 
 		// Get simple pod definitions for the TCP server
-		svcAccDef, podDef, svcDef, err := Td.GetOSSpecificTCPEchoPod(framework.RandomNameWithPrefix("pod"), destNs, destinationPort)
+		svcAccDef, podDef, svcDef, err := Td.SimplePodApp(
+			SimplePodAppDef{
+				PodName:     destNs,
+				Namespace:   destNs,
+				Image:       fortioImageName,
+				Ports:       []int{destinationPort},
+				AppProtocol: constants.ProtocolTCP,
+				OS:          Td.ClusterOS,
+			})
 
 		Expect(err).NotTo(HaveOccurred())
 
@@ -77,7 +82,7 @@ func testTCPTraffic(permissiveMode bool) {
 		// Expect it to be up and running in it's receiver namespace
 		Expect(Td.WaitForPodsRunningReady(destNs, 120*time.Second, 1, nil)).To(Succeed())
 
-		srcPod := setupSource(sourceNs, false /* no kubernetes service for the client */)
+		srcPod := setupFortioSource(sourceNs, false /* no kubernetes service for the client */)
 
 		trafficTargetName := "test-target"
 		trafficRouteName := "routes"
@@ -107,7 +112,7 @@ func testTCPTraffic(permissiveMode bool) {
 		}
 
 		// All ready. Expect client to reach server
-		requestMsg := "test request"
+		requestMsg := "test-request"
 		clientToServer := TCPRequestDef{
 			SourceNs:        sourceNs,
 			SourcePod:       srcPod.Name,
@@ -123,21 +128,24 @@ func testTCPTraffic(permissiveMode bool) {
 			clientToServer.DestinationHost, clientToServer.DestinationPort)
 
 		cond := Td.WaitForRepeatedSuccess(func() bool {
-			result := Td.TCPRequest(clientToServer)
+			result := Td.FortioTCPLoadTest(FortioTCPLoadTestDef{TCPRequestDef: clientToServer, FortioLoadTestSpec: fortioSingleCallSpec})
 
 			if result.Err != nil {
-				Td.T.Logf("> (%s) TCP Req failed, response: %s, err: %s",
-					srcToDestStr, result.Response, result.Err)
+				Td.T.Logf("> (%s) TCP Req failed, return codes: %v, err: %s",
+					srcToDestStr, result.AllReturnCodes(), result.Err)
 				return false
 			}
 
-			// Ensure the echo response contains request message
-			if !strings.Contains(result.Response, requestMsg) {
-				Td.T.Logf("> (%s) Unexpected response: %s.\n Response expected to contain: %s", srcToDestStr, result.Response, requestMsg)
-				return false
+			// Ensure the correct TCP return code
+			for retCode := range result.ReturnCodes {
+				if retCode != fortioTCPRetCodeSuccess {
+					Td.T.Logf("> (%s) Unexpected return code: %s.\n Return code expected to contain: %s. Skip.", srcToDestStr, retCode, fortioTCPRetCodeSuccess)
+					continue
+				}
+				Td.T.Logf("> (%s) TCP Req succeeded, return code: %s", srcToDestStr, retCode)
+				return true
 			}
-			Td.T.Logf("> (%s) TCP Req succeeded, response: %s", srcToDestStr, result.Response)
-			return true
+			return false
 		}, 5, Td.ReqSuccessTimeout)
 
 		Expect(cond).To(BeTrue(), "Failed testing TCP traffic from %s", srcToDestStr)
@@ -149,14 +157,18 @@ func testTCPTraffic(permissiveMode bool) {
 
 			// Expect client not to reach server
 			cond = Td.WaitForRepeatedSuccess(func() bool {
-				result := Td.TCPRequest(clientToServer)
+				result := Td.FortioTCPLoadTest(FortioTCPLoadTestDef{TCPRequestDef: clientToServer, FortioLoadTestSpec: fortioSingleCallSpec})
 
-				if result.Err == nil {
-					Td.T.Logf("> (%s) TCP Req did not fail, expected it to fail,  response: %s", srcToDestStr, result.Response)
-					return false
+				// Look for failed TCP return code
+				for retCode := range result.ReturnCodes {
+					if retCode != fortioTCPRetCodeSuccess {
+						Td.T.Logf("> (%s) TCP Req failed correctly, return codes: %s, err: %s", srcToDestStr, retCode, result.Err)
+						return true
+					}
 				}
-				Td.T.Logf("> (%s) TCP Req failed correctly, response: %s, err: %s", srcToDestStr, result.Response, result.Err)
-				return true
+
+				Td.T.Logf("> (%s) TCP Req did not fail, expected it to fail, return codes: %v", srcToDestStr, result.AllReturnCodes())
+				return false
 			}, 5, 150*time.Second)
 			Expect(cond).To(BeTrue())
 		}

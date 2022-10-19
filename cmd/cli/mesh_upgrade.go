@@ -6,14 +6,11 @@ import (
 	"io"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
-
-	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 const upgradeDesc = `
@@ -73,7 +70,6 @@ func newMeshUpgradeCmd(config *helm.Configuration, out io.Writer) *cobra.Command
 			if chartPath != "" {
 				var err error
 				upg.chart, err = loader.Load(chartPath)
-				cli.EnsureNodeSelector(upg.chart)
 				if err != nil {
 					return err
 				}
@@ -96,7 +92,6 @@ func (u *meshUpgradeCmd) run(config *helm.Configuration) error {
 	if u.chart == nil {
 		var err error
 		u.chart, err = loader.LoadArchive(bytes.NewReader(chartTGZSource))
-		cli.EnsureNodeSelector(u.chart)
 		if err != nil {
 			return err
 		}
@@ -124,7 +119,7 @@ func (u *meshUpgradeCmd) resolveValues() (map[string]interface{}, error) {
 	vals := make(map[string]interface{})
 	for _, val := range u.setOptions {
 		if err := strvals.ParseInto(val, vals); err != nil {
-			return nil, errors.Wrap(err, "invalid format for --set")
+			return nil, fmt.Errorf("invalid format for --set: %w", err)
 		}
 	}
 	return vals, nil

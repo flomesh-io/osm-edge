@@ -10,9 +10,7 @@ CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
 DEPLOY_ON_OPENSHIFT="${DEPLOY_ON_OPENSHIFT:-false}"
-USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-true}"
-KUBERNETES_NODE_ARCH="${KUBERNETES_NODE_ARCH:-amd64}"
-KUBERNETES_NODE_OS="${KUBERNETES_NODE_OS:-linux}"
+USE_PRIVATE_REGISTRY="${USE_PRIVATE_REGISTRY:-false}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
@@ -52,9 +50,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookbuyer
-      nodeSelector:
-        kubernetes.io/arch: ${KUBERNETES_NODE_ARCH}
-        kubernetes.io/os: ${KUBERNETES_NODE_OS}
       containers:
         # Main container with APP
         - name: bookbuyer

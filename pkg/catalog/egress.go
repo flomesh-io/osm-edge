@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -25,6 +25,11 @@ const (
 	// upstreamTrafficSettingKind is the upstreamTrafficSettingKind API kind
 	upstreamTrafficSettingKind = "UpstreamTrafficSetting"
 )
+
+// GetEgressSourceSecret returns the secret resource that matches the given options
+func (mc *MeshCatalog) GetEgressSourceSecret(secretReference corev1.SecretReference) (*corev1.Secret, error) {
+	return mc.policyController.GetEgressSourceSecret(secretReference)
+}
 
 // GetEgressTrafficPolicy returns the Egress traffic policy associated with the given service identity
 func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceIdentity) (*trafficpolicy.EgressTrafficPolicy, error) {
@@ -44,19 +49,24 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 			continue
 		}
 
+		egressGateway := mc.getGatewayForEgress(egress)
+		sourceMTLS := mc.getEgressSourceMTLS(egress, serviceIdentity.ToK8sServiceAccount())
+
 		for _, portSpec := range egress.Spec.Ports {
 			switch strings.ToLower(portSpec.Protocol) {
 			case constants.ProtocolHTTP:
 				// ---
 				// Build the HTTP route configs for the given Egress policy
-				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number, upstreamTrafficSetting)
+				httpRouteConfigs, httpClusterConfigs := mc.buildHTTPRouteConfigs(egress, portSpec.Number, upstreamTrafficSetting, sourceMTLS)
 				portToRouteConfigMap[portSpec.Number] = append(portToRouteConfigMap[portSpec.Number], httpRouteConfigs...)
 				clusterConfigs = append(clusterConfigs, httpClusterConfigs...)
 
 				// Configure port based TrafficMatch for HTTP port
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
+					EgressGateWay:       egressGateway,
 				})
 
 			case constants.ProtocolTCP, constants.ProtocolTCPServerFirst:
@@ -66,14 +76,17 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                   fmt.Sprintf("%d", portSpec.Number),
 					Port:                   portSpec.Number,
 					UpstreamTrafficSetting: upstreamTrafficSetting,
+					SourceMTLS:             sourceMTLS,
 				})
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
 					Cluster:             fmt.Sprintf("%d", portSpec.Number),
+					EgressGateWay:       egressGateway,
 				})
 
 			case constants.ProtocolHTTPS:
@@ -84,15 +97,18 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 					Name:                   fmt.Sprintf("%d", portSpec.Number),
 					Port:                   portSpec.Number,
 					UpstreamTrafficSetting: upstreamTrafficSetting,
+					SourceMTLS:             sourceMTLS,
 				})
 
 				// Configure port + IP range TrafficMatches
 				trafficMatches = append(trafficMatches, &trafficpolicy.TrafficMatch{
+					Name:                trafficpolicy.GetEgressTrafficMatchName(portSpec.Number, portSpec.Protocol),
 					DestinationPort:     portSpec.Number,
 					DestinationProtocol: portSpec.Protocol,
 					DestinationIPRanges: egress.Spec.IPAddresses,
 					ServerNames:         egress.Spec.Hosts,
 					Cluster:             fmt.Sprintf("%d", portSpec.Number),
+					EgressGateWay:       egressGateway,
 				})
 			}
 		}
@@ -122,6 +138,20 @@ func (mc *MeshCatalog) GetEgressTrafficPolicy(serviceIdentity identity.ServiceId
 	}, nil
 }
 
+func (mc *MeshCatalog) getEgressSourceMTLS(egressPolicy *policyv1alpha1.Egress, source identity.K8sServiceAccount) *policyv1alpha1.EgressSourceMTLSSpec {
+	if egressPolicy == nil {
+		return nil
+	}
+
+	for _, sourceSpec := range egressPolicy.Spec.Sources {
+		if sourceSpec.Name == source.Name && sourceSpec.Namespace == source.Namespace {
+			return sourceSpec.MTLS
+		}
+	}
+
+	return nil
+}
+
 func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1alpha1.Egress) (*policyv1alpha1.UpstreamTrafficSetting, error) {
 	if egressPolicy == nil {
 		return nil, nil
@@ -137,7 +167,7 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 				policy.UpstreamTrafficSettingGetOpt{NamespacedName: &namespacedName})
 
 			if upstreamtrafficSetting == nil {
-				return nil, errors.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
+				return nil, fmt.Errorf("UpstreamTrafficSetting %s specified in Egress policy %s/%s could not be found, ignoring it",
 					namespacedName.String(), egressPolicy.Namespace, egressPolicy.Name)
 			}
 
@@ -149,7 +179,8 @@ func (mc *MeshCatalog) getUpstreamTrafficSettingForEgress(egressPolicy *policyv1
 }
 
 func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress, port int,
-	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
+	upstreamTrafficSetting *policyv1alpha1.UpstreamTrafficSetting,
+	sourceMTLS *policyv1alpha1.EgressSourceMTLSSpec) ([]*trafficpolicy.EgressHTTPRouteConfig, []*trafficpolicy.EgressClusterConfig) {
 	if egressPolicy == nil {
 		return nil, nil
 	}
@@ -218,6 +249,7 @@ func (mc *MeshCatalog) buildHTTPRouteConfigs(egressPolicy *policyv1alpha1.Egress
 			Host:                   host,
 			Port:                   port,
 			UpstreamTrafficSetting: upstreamTrafficSetting,
+			SourceMTLS:             sourceMTLS,
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfig)
 
