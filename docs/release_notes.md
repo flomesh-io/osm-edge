@@ -24,7 +24,7 @@
 - Multi-arch installation supported by the Chart Helm by customizing the `affinity` and `nodeSelector` fields
 - Root service in a `TrafficSplit` configuration must have a selector matching the pods backing the leaf services. The legacy behavior where a root service without a selector matching the pods backing the leaf services is able to split traffic, has been removed.
 
-## Release v1.1.0
+## Release v1.2.0
 
 ### Notable changes
 
