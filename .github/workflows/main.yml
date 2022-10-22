@@ -211,7 +211,7 @@ jobs:
           fi
       - name: Upload test logs
         if: ${{ steps.test.conclusion != 'skipped' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: /tmp/test**/*
