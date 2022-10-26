@@ -12,7 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-// SidecarVerifier implements the Verifier interface for Envoy sidecar
+// SidecarVerifier implements the Verifier interface for sidecar
 type SidecarVerifier struct {
 	stdout        io.Writer
 	stderr        io.Writer
@@ -24,7 +24,7 @@ type SidecarVerifier struct {
 // SidecarVerifierOpt exposes a way to modify the behavior of the sidecar verifier without modifying the base contract
 type SidecarVerifierOpt func(*SidecarVerifier)
 
-// NewSidecarVerifier returns a Verifier for Envoy sidecar verification
+// NewSidecarVerifier returns a Verifier for sidecar verification
 func NewSidecarVerifier(stdout io.Writer, stderr io.Writer, kubeClient kubernetes.Interface, pod types.NamespacedName, opts ...SidecarVerifierOpt) Verifier {
 	baseVerifier := &SidecarVerifier{
 		stdout:     stdout,
@@ -43,7 +43,7 @@ func NewSidecarVerifier(stdout io.Writer, stderr io.Writer, kubeClient kubernete
 // Run executes the sidecar verifier
 func (v *SidecarVerifier) Run() Result {
 	result := Result{
-		Context: fmt.Sprintf("Verify Envoy sidecar on pod %q", v.pod),
+		Context: fmt.Sprintf("Verify sidecar on pod %q", v.pod),
 	}
 
 	p, err := v.kubeClient.CoreV1().Pods(v.pod.Namespace).Get(context.Background(), v.pod.Name, metav1.GetOptions{})
@@ -54,27 +54,27 @@ func (v *SidecarVerifier) Run() Result {
 		return result
 	}
 
-	// Check if the Envoy sidecar is present
-	foundEnvoy := false
+	// Check if the sidecar is present
+	foundSidecar := false
 	for _, container := range p.Spec.Containers {
 		if container.Name == constants.SidecarContainerName {
-			foundEnvoy = true
+			foundSidecar = true
 			break
 		}
 	}
 
 	// we found a sidecar when one wasn't expected (e.g. for ingress)
-	if foundEnvoy && v.verifyAbsence {
+	if foundSidecar && v.verifyAbsence {
 		result.Status = Failure
-		result.Reason = fmt.Sprintf("Found Envoy sidecar on pod %q when one wasn't expected", v.pod)
+		result.Reason = fmt.Sprintf("Found sidecar on pod %q when one wasn't expected", v.pod)
 		result.Suggestion = fmt.Sprintf("Ensure pod %q does not have sidecar injection enabled", v.pod)
 		return result
 	}
 
 	// we did not find a sidecar when one was expected (base case)
-	if !foundEnvoy && !v.verifyAbsence {
+	if !foundSidecar && !v.verifyAbsence {
 		result.Status = Failure
-		result.Reason = fmt.Sprintf("Did not find Envoy sidecar on pod %q", v.pod)
+		result.Reason = fmt.Sprintf("Did not find sidecar on pod %q", v.pod)
 		result.Suggestion = fmt.Sprintf("Ensure pod %q has sidecar injection enabled", v.pod)
 		return result
 	}

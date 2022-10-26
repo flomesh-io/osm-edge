@@ -71,7 +71,7 @@ func (v *PodConnectivityVerifier) Run() Result {
 		NewNamespaceMonitorVerifier(v.stdout, v.stderr, v.kubeClient, v.trafficAttr.SrcPod.Namespace, v.meshName),
 		NewNamespaceMonitorVerifier(v.stdout, v.stderr, v.kubeClient, v.trafficAttr.DstPod.Namespace, v.meshName),
 		//
-		// Envoy sidecar verification
+		// Sidecar verification
 		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.SrcPod),
 		NewSidecarVerifier(v.stdout, v.stderr, v.kubeClient, *v.trafficAttr.DstPod),
 		//

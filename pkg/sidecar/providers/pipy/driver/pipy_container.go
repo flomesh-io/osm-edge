@@ -181,18 +181,18 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 	if injCtx.Configurator.IsLocalDNSProxyEnabled() {
 		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 			Name:  "LOCAL_DNS_PROXY",
-			Value: fmt.Sprintf("%t", injCtx.Configurator.IsLocalDNSProxyEnabled()),
+			Value: "true",
 		})
 		if len(injCtx.Configurator.GetLocalDNSProxyPrimaryUpstream()) > 0 {
 			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 				Name:  "LOCAL_DNS_PROXY_PRIMARY_UPSTREAM",
-				Value: fmt.Sprintf("%s", injCtx.Configurator.GetLocalDNSProxyPrimaryUpstream()),
+				Value: injCtx.Configurator.GetLocalDNSProxyPrimaryUpstream(),
 			})
 		}
 		if len(injCtx.Configurator.GetLocalDNSProxySecondaryUpstream()) > 0 {
 			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 				Name:  "LOCAL_DNS_PROXY_SECONDARY_UPSTREAM",
-				Value: fmt.Sprintf("%s", injCtx.Configurator.GetLocalDNSProxySecondaryUpstream()),
+				Value: injCtx.Configurator.GetLocalDNSProxySecondaryUpstream(),
 			})
 		}
 		if osmControllerSvc, err := getOSMControllerSvc(injCtx.KubeClient, injCtx.OsmNamespace); err == nil {
