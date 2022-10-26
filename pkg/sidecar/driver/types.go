@@ -35,6 +35,7 @@ type InjectorContext struct {
 	OsmNamespace                 string
 	OsmContainerPullPolicy       corev1.PullPolicy
 	Configurator                 configurator.Configurator
+	CertManager                  *certificate.Manager
 	Pod                          *corev1.Pod
 	PodOS                        string
 	PodNamespace                 string
