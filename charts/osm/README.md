@@ -175,7 +175,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.injector.resource | object | `{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}` | Sidecar injector's container resource parameters |
 | osm.injector.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.injector.webhookTimeoutSeconds | int | `20` | Mutating webhook timeout |
-| osm.localDNSProxy | object | `{"enable":true}` | Local DNS Proxy improves the performance of your computer by caching the responses coming from your DNS servers |
+| osm.localDNSProxy | object | `{"enable":false}` | Local DNS Proxy improves the performance of your computer by caching the responses coming from your DNS servers |
 | osm.localProxyMode | string | `"Localhost"` | Proxy mode for the proxy sidecar. Acceptable values are ['Localhost', 'PodIP'] |
 | osm.maxDataPlaneConnections | int | `0` | Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits |
 | osm.meshName | string | `"osm"` | Identifier for the instance of a service mesh within a cluster |

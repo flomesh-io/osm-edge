@@ -121,6 +121,34 @@ func (mr *MockConfiguratorMockRecorder) GetInitContainerImage() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInitContainerImage", reflect.TypeOf((*MockConfigurator)(nil).GetInitContainerImage))
 }
 
+// GetLocalDNSProxyPrimaryUpstream mocks base method.
+func (m *MockConfigurator) GetLocalDNSProxyPrimaryUpstream() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLocalDNSProxyPrimaryUpstream")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetLocalDNSProxyPrimaryUpstream indicates an expected call of GetLocalDNSProxyPrimaryUpstream.
+func (mr *MockConfiguratorMockRecorder) GetLocalDNSProxyPrimaryUpstream() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLocalDNSProxyPrimaryUpstream", reflect.TypeOf((*MockConfigurator)(nil).GetLocalDNSProxyPrimaryUpstream))
+}
+
+// GetLocalDNSProxySecondaryUpstream mocks base method.
+func (m *MockConfigurator) GetLocalDNSProxySecondaryUpstream() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLocalDNSProxySecondaryUpstream")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetLocalDNSProxySecondaryUpstream indicates an expected call of GetLocalDNSProxySecondaryUpstream.
+func (mr *MockConfiguratorMockRecorder) GetLocalDNSProxySecondaryUpstream() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLocalDNSProxySecondaryUpstream", reflect.TypeOf((*MockConfigurator)(nil).GetLocalDNSProxySecondaryUpstream))
+}
+
 // GetMaxDataPlaneConnections mocks base method.
 func (m *MockConfigurator) GetMaxDataPlaneConnections() int {
 	m.ctrl.T.Helper()

@@ -166,6 +166,12 @@ spec:
                         enable:
                           description: Enables local DNS proxy for the mesh.
                           type: boolean
+                        primaryUpstreamDNSServerIPAddr:
+                          description: Primary upstream DNS server for local DNS Proxy.
+                          type: string
+                        secondaryUpstreamDNSServerIPAddr:
+                          description: Secondary upstream DNS server for local DNS Proxy.
+                          type: string
                 traffic:
                   description: Configuration for traffic management
                   type: object

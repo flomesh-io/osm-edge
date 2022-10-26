@@ -54,6 +54,12 @@ const (
 type LocalDNSProxy struct {
 	// Enable defines a boolean indicating if the sidecars are enabled for local DNS Proxy.
 	Enable bool `json:"enable"`
+
+	// PrimaryUpstreamDNSServerIPAddr defines a primary upstream DNS server for local DNS Proxy.
+	PrimaryUpstreamDNSServerIPAddr string `json:"primaryUpstreamDNSServerIPAddr,omitempty"`
+
+	// SecondaryUpstreamDNSServerIPAddr defines a secondary upstream DNS server for local DNS Proxy.
+	SecondaryUpstreamDNSServerIPAddr string `json:"secondaryUpstreamDNSServerIPAddr,omitempty"`
 }
 
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.

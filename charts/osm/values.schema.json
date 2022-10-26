@@ -793,6 +793,18 @@
                             "examples": [
                                 true
                             ]
+                        },
+                        "primaryUpstreamDNSServerIPAddr": {
+                            "$id": "#/properties/osm/properties/localDNSProxy/properties/primaryUpstreamDNSServerIPAddr",
+                            "type": "string",
+                            "title": "Primary upstream DNS server for local DNS Proxy",
+                            "description": "Primary upstream DNS server for local DNS Proxy"
+                        },
+                        "secondaryUpstreamDNSServerIPAddr": {
+                            "$id": "#/properties/osm/properties/localDNSProxy/properties/secondaryUpstreamDNSServerIPAddr",
+                            "type": "string",
+                            "title": "Secondary upstream DNS server for local DNS Proxy",
+                            "description": "Secondary upstream DNS server for local DNS Proxy"
                         }
                     },
                     "additionalProperties": false

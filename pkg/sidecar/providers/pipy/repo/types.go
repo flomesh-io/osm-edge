@@ -163,6 +163,23 @@ type TrafficSpec struct {
 	enablePermissiveTrafficPolicyMode bool
 }
 
+// UpstreamDNSServers defines upstream DNS servers for local DNS Proxy.
+type UpstreamDNSServers struct {
+	// Primary defines a primary upstream DNS server for local DNS Proxy.
+	Primary *string `json:"Primary,omitempty"`
+	// Secondary defines a secondary upstream DNS server for local DNS Proxy.
+	Secondary *string `json:"Secondary,omitempty"`
+}
+
+// LocalDNSProxy is the type to represent OSM's local DNS proxy configuration.
+type LocalDNSProxy struct {
+	// Enable defines a boolean indicating if the sidecars are enabled for local DNS Proxy.
+	Enable bool
+
+	// UpstreamDNSServers defines upstream DNS servers for local DNS Proxy.
+	UpstreamDNSServers *UpstreamDNSServers `json:"UpstreamDNSServers,omitempty"`
+}
+
 // MeshConfigSpec represents the spec of mesh config
 type MeshConfigSpec struct {
 	SidecarLogLevel string
@@ -173,6 +190,7 @@ type MeshConfigSpec struct {
 		LivenessProbes  []v1.Probe
 		StartupProbes   []v1.Probe
 	}
+	LocalDNSProxy *LocalDNSProxy `json:"LocalDNSProxy,omitempty"`
 }
 
 // Certificate represents an x509 certificate.

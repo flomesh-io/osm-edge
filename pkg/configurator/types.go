@@ -50,6 +50,12 @@ type Configurator interface {
 	// IsLocalDNSProxyEnabled returns whether local DNS proxy is enabled
 	IsLocalDNSProxyEnabled() bool
 
+	// GetLocalDNSProxyPrimaryUpstream returns the primary upstream DNS server for local DNS Proxy
+	GetLocalDNSProxyPrimaryUpstream() string
+
+	// GetLocalDNSProxySecondaryUpstream returns the secondary upstream DNS server for local DNS Proxy
+	GetLocalDNSProxySecondaryUpstream() string
+
 	// GetTracingHost is the host to which we send tracing spans
 	GetTracingHost() string
 
