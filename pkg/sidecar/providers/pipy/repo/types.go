@@ -173,9 +173,6 @@ type UpstreamDNSServers struct {
 
 // LocalDNSProxy is the type to represent OSM's local DNS proxy configuration.
 type LocalDNSProxy struct {
-	// Enable defines a boolean indicating if the sidecars are enabled for local DNS Proxy.
-	Enable bool
-
 	// UpstreamDNSServers defines upstream DNS servers for local DNS Proxy.
 	UpstreamDNSServers *UpstreamDNSServers `json:"UpstreamDNSServers,omitempty"`
 }
