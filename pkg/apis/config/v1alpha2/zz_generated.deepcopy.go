@@ -420,11 +420,7 @@ func (in *SidecarSpec) DeepCopyInto(out *SidecarSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.LocalDNSProxy != nil {
-		in, out := &in.LocalDNSProxy, &out.LocalDNSProxy
-		*out = new(LocalDNSProxy)
-		**out = **in
-	}
+	out.LocalDNSProxy = in.LocalDNSProxy
 	return
 }
 

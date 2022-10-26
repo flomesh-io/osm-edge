@@ -104,7 +104,7 @@ type SidecarSpec struct {
 	LocalProxyMode LocalProxyMode `json:"localProxyMode,omitempty"`
 
 	// LocalDNSProxy improves the performance of your computer by caching the responses coming from your DNS servers
-	LocalDNSProxy *LocalDNSProxy `json:"localDNSProxy,omitempty"`
+	LocalDNSProxy LocalDNSProxy `json:"localDNSProxy,omitempty"`
 }
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.

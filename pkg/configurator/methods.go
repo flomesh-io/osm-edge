@@ -88,10 +88,7 @@ func (c *Client) IsTracingEnabled() bool {
 
 // IsLocalDNSProxyEnabled returns whether local DNS proxy is enabled
 func (c *Client) IsLocalDNSProxyEnabled() bool {
-	if c.getMeshConfig().Spec.Sidecar.LocalDNSProxy != nil {
-		return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.Enable
-	}
-	return false
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.Enable
 }
 
 // GetTracingHost is the host to which we send tracing spans
