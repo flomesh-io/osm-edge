@@ -183,9 +183,9 @@ type MeshConfigSpec struct {
 	Traffic         TrafficSpec
 	FeatureFlags    FeatureFlags
 	Probes          struct {
-		ReadinessProbes []v1.Probe
-		LivenessProbes  []v1.Probe
-		StartupProbes   []v1.Probe
+		ReadinessProbes []v1.Probe `json:"ReadinessProbes,omitempty"`
+		LivenessProbes  []v1.Probe `json:"LivenessProbes,omitempty"`
+		StartupProbes   []v1.Probe `json:"StartupProbes,omitempty"`
 	}
 	LocalDNSProxy *LocalDNSProxy `json:"LocalDNSProxy,omitempty"`
 }
