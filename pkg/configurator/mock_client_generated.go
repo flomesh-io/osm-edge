@@ -430,6 +430,20 @@ func (mr *MockConfiguratorMockRecorder) IsEgressEnabled() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEgressEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsEgressEnabled))
 }
 
+// IsLocalDNSProxyEnabled mocks base method.
+func (m *MockConfigurator) IsLocalDNSProxyEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsLocalDNSProxyEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsLocalDNSProxyEnabled indicates an expected call of IsLocalDNSProxyEnabled.
+func (mr *MockConfiguratorMockRecorder) IsLocalDNSProxyEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsLocalDNSProxyEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsLocalDNSProxyEnabled))
+}
+
 // IsPermissiveTrafficPolicyMode mocks base method.
 func (m *MockConfigurator) IsPermissiveTrafficPolicyMode() bool {
 	m.ctrl.T.Helper()

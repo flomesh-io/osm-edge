@@ -159,6 +159,13 @@ spec:
                         - Localhost
                         - PodIP
                       default: Localhost
+                    localDNSProxy:
+                      description: LocalDNSProxy improves the performance of your computer by caching the responses coming from your DNS servers
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables local DNS proxy for the mesh.
+                          type: boolean
                 traffic:
                   description: Configuration for traffic management
                   type: object

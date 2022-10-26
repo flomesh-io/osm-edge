@@ -771,6 +771,32 @@
                         "Localhost"
                     ]
                 },
+                "localDNSProxy": {
+                    "$id": "#/properties/osm/properties/localDNSProxy",
+                    "type": "object",
+                    "title": "The local DNS Proxy schema",
+                    "description": "Local DNS Proxy improves the performance of your computer by caching the responses coming from your DNS servers.",
+                    "examples": [
+                        {
+                            "enable": true
+                        }
+                    ],
+                    "required": [
+                        "enable"
+                    ],
+                    "properties": {
+                        "enable": {
+                            "$id": "#/properties/osm/properties/localDNSProxy/properties/enable",
+                            "type": "boolean",
+                            "title": "The enable schema for local DNS Proxy",
+                            "description": "Indicates whether local DNS Proxy is enabled or not",
+                            "examples": [
+                                true
+                            ]
+                        }
+                    },
+                    "additionalProperties": false
+                },
                 "controllerLogLevel": {
                     "$id": "#/properties/osm/properties/controllerLogLevel",
                     "type": "string",

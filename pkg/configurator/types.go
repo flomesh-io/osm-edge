@@ -47,6 +47,9 @@ type Configurator interface {
 	// IsTracingEnabled returns whether tracing is enabled
 	IsTracingEnabled() bool
 
+	// IsLocalDNSProxyEnabled returns whether local DNS proxy is enabled
+	IsLocalDNSProxyEnabled() bool
+
 	// GetTracingHost is the host to which we send tracing spans
 	GetTracingHost() string
 
