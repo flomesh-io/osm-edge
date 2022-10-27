@@ -132,6 +132,10 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 					Filename: "outbound-recv-http.js",
 					Content:  codebaseOutboundRecvHTTPJS,
 				},
+				{
+					Filename: "dns-main.js",
+					Content:  codebaseDNSMainJS,
+				},
 			},
 		},
 	})

@@ -1,4 +1,4 @@
-// version: '2022.10.11'
+// version: '2022.10.27'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -19,6 +19,9 @@
       kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
       name: (os.env.SERVICE_ACCOUNT || ''),
       pod: (os.env.POD_NAME || ''),
+      dnsProxy: (os.env.LOCAL_DNS_PROXY == 'true'),
+      dnsServers: { primary: config?.Spec?.LocalDNSProxy?.UpstreamDNSServers?.Primary, secondary: config?.Spec?.LocalDNSProxy?.UpstreamDNSServers?.Secondary },
+      dnsSvcAddress: null,
       tlsCertChain: config?.Certificate?.CertChain,
       tlsPrivateKey: config?.Certificate?.PrivateKey,
       tlsIssuingCA: config?.Certificate?.IssuingCA,
@@ -39,6 +42,8 @@
       mapIssuingCA: {},
       listIssuingCA: []
     },
+
+    global.dnsSvcAddress = (global.dnsServers?.primary || global.dnsServers?.secondary || os.env.LOCAL_DNS_PROXY_PRIMARY_UPSTREAM || '10.96.0.10') + ":53",
 
     global.addIssuingCA = ca => (
       (md5 => (
