@@ -29,6 +29,9 @@ const (
 	// ErrFetchingControllerPod indicates the osm-controller pod resource could not be fetched
 	ErrFetchingControllerPod
 
+	// ErrFetchingControllerSvc indicates the osm-controller svc resource could not be fetched
+	ErrFetchingControllerSvc
+
 	// ErrFetchingInjectorPod indicates the osm-injector pod resource could not be fetched
 	ErrFetchingInjectorPod
 

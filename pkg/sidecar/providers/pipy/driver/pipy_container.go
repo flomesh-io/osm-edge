@@ -1,14 +1,19 @@
 package driver
 
 import (
+	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/models"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
@@ -173,6 +178,42 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		}
 	}
 
+	if injCtx.Configurator.IsLocalDNSProxyEnabled() {
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "LOCAL_DNS_PROXY",
+			Value: "true",
+		})
+		if len(injCtx.Configurator.GetLocalDNSProxyPrimaryUpstream()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "LOCAL_DNS_PROXY_PRIMARY_UPSTREAM",
+				Value: injCtx.Configurator.GetLocalDNSProxyPrimaryUpstream(),
+			})
+		}
+		if len(injCtx.Configurator.GetLocalDNSProxySecondaryUpstream()) > 0 {
+			sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+				Name:  "LOCAL_DNS_PROXY_SECONDARY_UPSTREAM",
+				Value: injCtx.Configurator.GetLocalDNSProxySecondaryUpstream(),
+			})
+		}
+		if osmControllerSvc, err := getOSMControllerSvc(injCtx.KubeClient, injCtx.OsmNamespace); err == nil {
+			pod.Spec.HostAliases = append(pod.Spec.HostAliases, corev1.HostAlias{
+				IP:        osmControllerSvc.Spec.ClusterIP,
+				Hostnames: []string{fmt.Sprintf("%s.%s", constants.OSMControllerName, injCtx.OsmNamespace)},
+			})
+		}
+
+		pod.Spec.DNSPolicy = "None"
+		trustDomain := injCtx.CertManager.GetTrustDomain()
+		ndots := "5"
+		pod.Spec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{"127.0.0.153"},
+			Searches:    []string{fmt.Sprintf("svc.%s", trustDomain), trustDomain},
+			Options: []corev1.PodDNSConfigOption{
+				{Name: "ndots", Value: &ndots},
+			},
+		}
+	}
+
 	return sidecarContainer
 }
 
@@ -220,4 +261,23 @@ func getPipyContainerPorts(originalHealthProbes models.HealthProbes) []corev1.Co
 	}
 
 	return containerPorts
+}
+
+// getOSMControllerSvc returns the osm-controller service.
+// The pod name is inferred from the 'CONTROLLER_SVC_NAME' env variable which is set during deployment.
+func getOSMControllerSvc(kubeClient kubernetes.Interface, osmNamespace string) (*corev1.Service, error) {
+	svcName := os.Getenv("CONTROLLER_SVC_NAME")
+	if svcName == "" {
+		return nil, fmt.Errorf("CONTROLLER_SVC_NAME env variable cannot be empty")
+	}
+
+	svc, err := kubeClient.CoreV1().Services(osmNamespace).Get(context.TODO(), svcName, metav1.GetOptions{})
+	if err != nil {
+		// TODO(#3962): metric might not be scraped before process restart resulting from this error
+		log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrFetchingControllerSvc)).
+			Msgf("Error retrieving osm-controller service %s", svcName)
+		return nil, err
+	}
+
+	return svc, nil
 }

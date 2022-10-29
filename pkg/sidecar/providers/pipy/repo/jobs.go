@@ -206,6 +206,7 @@ func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 		pipyConf.setEnableSidecarActiveHealthChecks((*meshConf).GetFeatureFlags().EnableSidecarActiveHealthChecks)
 		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
+		pipyConf.setLocalDNSProxy((*meshConf).IsLocalDNSProxyEnabled(), (*meshConf).GetLocalDNSProxyPrimaryUpstream(), (*meshConf).GetLocalDNSProxySecondaryUpstream())
 	}
 }
 

@@ -50,6 +50,18 @@ const (
 	LocalProxyModePodIP LocalProxyMode = "PodIP"
 )
 
+// LocalDNSProxy is the type to represent OSM's local DNS proxy configuration.
+type LocalDNSProxy struct {
+	// Enable defines a boolean indicating if the sidecars are enabled for local DNS Proxy.
+	Enable bool `json:"enable"`
+
+	// PrimaryUpstreamDNSServerIPAddr defines a primary upstream DNS server for local DNS Proxy.
+	PrimaryUpstreamDNSServerIPAddr string `json:"primaryUpstreamDNSServerIPAddr,omitempty"`
+
+	// SecondaryUpstreamDNSServerIPAddr defines a secondary upstream DNS server for local DNS Proxy.
+	SecondaryUpstreamDNSServerIPAddr string `json:"secondaryUpstreamDNSServerIPAddr,omitempty"`
+}
+
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.
 type SidecarSpec struct {
 	// EnablePrivilegedInitContainer defines a boolean indicating whether the init container for a meshed pod should run as privileged.
@@ -96,6 +108,9 @@ type SidecarSpec struct {
 
 	// LocalProxyMode defines the network interface the proxy will use to send traffic to the backend service application. Acceptable values are [`Localhost`, `PodIP`]. The default is `Localhost`
 	LocalProxyMode LocalProxyMode `json:"localProxyMode,omitempty"`
+
+	// LocalDNSProxy improves the performance of your computer by caching the responses coming from your DNS servers
+	LocalDNSProxy LocalDNSProxy `json:"localDNSProxy,omitempty"`
 }
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.

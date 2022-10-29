@@ -14,7 +14,8 @@ data:
         "sidecarClass": {{.Values.osm.sidecarClass | mustToJson }},
         "sidecarImage": {{.Values.osm.sidecarImage | mustToJson }},
         "sidecarDrivers": {{.Values.osm.sidecarDrivers | mustToJson }},
-        "localProxyMode": {{.Values.osm.localProxyMode | mustToJson}}
+        "localProxyMode": {{.Values.osm.localProxyMode | mustToJson}},
+        "localDNSProxy": {{.Values.osm.localDNSProxy | mustToJson}}
       },
       "traffic": {
         "enableEgress": {{.Values.osm.enableEgress | mustToJson}},

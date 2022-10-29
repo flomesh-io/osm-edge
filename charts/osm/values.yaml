@@ -323,6 +323,10 @@ osm:
   # -- Proxy mode for the proxy sidecar. Acceptable values are ['Localhost', 'PodIP']
   localProxyMode: Localhost
 
+  # -- Local DNS Proxy improves the performance of your computer by caching the responses coming from your DNS servers
+  localDNSProxy:
+    enable: false
+
   # -- Sets the max data plane connections allowed for an instance of osm-controller, set to 0 to not enforce limits
   maxDataPlaneConnections: 0
 

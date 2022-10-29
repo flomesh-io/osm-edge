@@ -1,4 +1,4 @@
-// version: '2022.10.11'
+// version: '2022.10.27'
 ((
   {
     config,
@@ -21,7 +21,8 @@
     logZipkin,
     metrics,
     logLogging,
-    mapIssuingCA
+    mapIssuingCA,
+    dnsProxy
   } = pipy.solve('config.js')) => (
 
   // Turn On Activity Metrics
@@ -394,5 +395,11 @@
     .to(
       $ => $.chain(['stats.js'])
     )
+
+    //
+    // Local DNS server
+    //
+    .listen(dnsProxy ? '127.0.0.153:5300' : 0, { protocol: 'udp', transparent: true })
+    .chain(['dns-main.js'])
 
 ))()

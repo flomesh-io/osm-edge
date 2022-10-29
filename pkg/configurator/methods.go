@@ -86,6 +86,21 @@ func (c *Client) IsTracingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.Tracing.Enable
 }
 
+// IsLocalDNSProxyEnabled returns whether local DNS proxy is enabled
+func (c *Client) IsLocalDNSProxyEnabled() bool {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.Enable
+}
+
+// GetLocalDNSProxyPrimaryUpstream returns the primary upstream DNS server for local DNS Proxy
+func (c *Client) GetLocalDNSProxyPrimaryUpstream() string {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.PrimaryUpstreamDNSServerIPAddr
+}
+
+// GetLocalDNSProxySecondaryUpstream returns the secondary upstream DNS server for local DNS Proxy
+func (c *Client) GetLocalDNSProxySecondaryUpstream() string {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.SecondaryUpstreamDNSServerIPAddr
+}
+
 // GetTracingHost is the host to which we send tracing spans
 func (c *Client) GetTracingHost() string {
 	tracingAddress := c.getMeshConfig().Spec.Observability.Tracing.Address

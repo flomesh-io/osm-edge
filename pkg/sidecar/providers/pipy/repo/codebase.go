@@ -51,3 +51,6 @@ var codebaseOutboundProxyTCPJS []byte
 
 //go:embed codebase_outbound-recv-http.js
 var codebaseOutboundRecvHTTPJS []byte
+
+//go:embed codebase_dns-main.js
+var codebaseDNSMainJS []byte
