@@ -21,7 +21,7 @@ GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
-DOCKER_GO_VERSION = 1.17
+DOCKER_GO_VERSION = 1.19
 DOCKER_BUILDX_PLATFORM ?= linux/amd64
 # Value for the --output flag on docker buildx build.
 # https://docs.docker.com/engine/reference/commandline/buildx_build/#output
@@ -103,7 +103,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint: embed-files-test
-	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.47 golangci-lint run --config .golangci.yml
+	docker run --rm -v $$(pwd):/app -w /app golangci/golangci-lint:v1.50 golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:
