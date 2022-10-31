@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/providers/fsm"
 	"net/http"
 	"os"
 	"path"
@@ -249,18 +250,18 @@ func main() {
 		}
 	}
 
-	kubeProvider := kube.NewClient(k8sClient, cfg)
+	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
+	multiclusterController := multicluster.NewMultiClusterController(informerCollection, kubeClient, k8sClient, msgBroker)
 
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-	serviceProviders := []service.Provider{kubeProvider}
+	kubeProvider := kube.NewClient(k8sClient, cfg)
+	multiclusterProvider := fsm.NewClient(multiclusterController, cfg)
+
+	endpointsProviders := []endpoint.Provider{kubeProvider, multiclusterProvider}
+	serviceProviders := []service.Provider{kubeProvider, multiclusterProvider}
 
 	if err := ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
-
-	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
-
-	multiclusterController := multicluster.NewMultiClusterController(informerCollection, kubeClient, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,

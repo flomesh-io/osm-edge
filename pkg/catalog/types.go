@@ -7,8 +7,6 @@ package catalog
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
-
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -84,9 +82,6 @@ type MeshCataloger interface {
 
 	// GetEgressSourceSecret returns the secret resource that matches the given options
 	GetEgressSourceSecret(corev1.SecretReference) (*corev1.Secret, error)
-
-	// ListImportedServices lists imported services
-	ListImportedServices() []*multiclusterv1alpha1.ServiceImport
 
 	// GetKubeController returns the kube controller instance handling the current cluster
 	GetKubeController() k8s.Controller

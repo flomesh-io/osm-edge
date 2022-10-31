@@ -2,9 +2,11 @@
 package multicluster
 
 import (
+	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/service"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
-	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 )
@@ -18,6 +20,21 @@ type Client struct {
 
 // Controller is the interface for the functionality provided by the resources part of the flomesh.io API group
 type Controller interface {
-	// ListImportedServices lists imported services
-	ListImportedServices() []*multiclusterv1alpha1.ServiceImport
+	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
+	ListServices() []*corev1.Service
+
+	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
+	ListServiceAccounts() []*corev1.ServiceAccount
+
+	// GetService returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
+	GetService(service.MeshService) *corev1.Service
+
+	// ListPods returns a list of pods part of the mesh
+	ListPods() []*corev1.Pod
+
+	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
+	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
+
+	// GetEndpoints returns the endpoints for a given service, if found
+	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
 }

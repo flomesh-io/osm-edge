@@ -72,8 +72,17 @@ type client struct {
 	msgBroker    *messaging.Broker
 }
 
+// CoreController is the controller interface for K8s services
+type CoreController interface {
+	// GetEndpoints returns the endpoints for a given service, if found
+	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
+}
+
 // Controller is the controller interface for K8s services
 type Controller interface {
+	// CoreController is the controller interface for K8s services
+	CoreController
+
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 
@@ -98,9 +107,6 @@ type Controller interface {
 
 	// ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 	ListServiceIdentitiesForService(service.MeshService) ([]identity.K8sServiceAccount, error)
-
-	// GetEndpoints returns the endpoints for a given service, if found
-	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
 
 	// UpdateStatus updates the status subresource for the given resource and GroupVersionKind
 	// The object within the 'interface{}' must be a pointer to the underlying resource
