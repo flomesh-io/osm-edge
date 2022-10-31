@@ -306,6 +306,7 @@ type ClusterConfigs struct {
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
 	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
+	Zone               string              `json:"Zone,omitempty"`
 }
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic

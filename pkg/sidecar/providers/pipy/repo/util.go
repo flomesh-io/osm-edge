@@ -347,6 +347,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 			}
 			weight := Weight(upstreamEndpoint.Weight)
 			clusterConfigs.addWeightedEndpoint(address, port, weight)
+			clusterConfigs.Zone = upstreamEndpoint.Zone
 			if clusterConfig.UpstreamTrafficSetting != nil {
 				if clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings != nil {
 					clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)

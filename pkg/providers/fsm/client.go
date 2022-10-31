@@ -72,6 +72,7 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				ept := endpoint.Endpoint{
 					IP:   ip,
 					Port: endpoint.Port(port.Port),
+					Zone: kubernetesEndpoints.ClusterName,
 				}
 				endpoints = append(endpoints, ept)
 			}

@@ -165,6 +165,7 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 		importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
 
 		endpoints := new(corev1.Endpoints)
+		endpoints.ClusterName = "default/default/default/cluster1"
 		endpoints.Namespace = importedService.Namespace
 		endpoints.Name = importedService.Name
 		endpoints.Subsets = append(endpoints.Subsets, corev1.EndpointSubset{
