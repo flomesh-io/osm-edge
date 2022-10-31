@@ -376,15 +376,26 @@ func (itp *InboundTrafficPolicy) getTrafficMatch(port Port) *InboundTrafficMatch
 	return nil
 }
 
-func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMatch {
-	trafficMatch := new(OutboundTrafficMatch)
+func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*OutboundTrafficMatch, bool) {
+	namedPort := fmt.Sprintf(`%d=%s`, port, name)
+	if otp.namedTrafficMatches == nil {
+		otp.namedTrafficMatches = make(namedOutboundTrafficMatches)
+	}
+	trafficMatch, exists := otp.namedTrafficMatches[namedPort]
+	if exists {
+		return trafficMatch, true
+	}
+
+	trafficMatch = new(OutboundTrafficMatch)
+	otp.namedTrafficMatches[namedPort] = trafficMatch
+
 	if otp.TrafficMatches == nil {
 		otp.TrafficMatches = make(OutboundTrafficMatches)
 	}
 	trafficMatches := otp.TrafficMatches[port]
 	trafficMatches = append(trafficMatches, trafficMatch)
 	otp.TrafficMatches[port] = trafficMatches
-	return trafficMatch
+	return trafficMatch, false
 }
 
 func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {

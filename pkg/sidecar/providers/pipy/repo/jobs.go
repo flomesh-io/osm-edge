@@ -125,6 +125,7 @@ func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 
 func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
 	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(serviceIdentity)
+	pipyConf.Z = outboundTrafficPolicy
 	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
 		outboundTrafficPolicy)
 	if len(outboundDependClusters) > 0 {

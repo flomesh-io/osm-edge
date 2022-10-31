@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"sync"
 	"time"
 
@@ -150,6 +151,7 @@ type PipyConf struct {
 	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
 	Forward          *ForwardTrafficPolicy  `json:"Forward"`
 	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
+	Z                *trafficpolicy.OutboundMeshTrafficPolicy
 }
 
 // FeatureFlags represents the flags of feature
@@ -289,6 +291,9 @@ type OutboundTrafficMatch struct {
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
 type OutboundTrafficMatches map[Port][]*OutboundTrafficMatch
 
+// namedOutboundTrafficMatches is a wrapper type of map[string]*OutboundTrafficMatch
+type namedOutboundTrafficMatches map[string]*OutboundTrafficMatch
+
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {
 	TrafficMatches  InboundTrafficMatches             `json:"TrafficMatches"`
@@ -305,8 +310,9 @@ type ClusterConfigs struct {
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
-	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
-	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+	namedTrafficMatches namedOutboundTrafficMatches
+	TrafficMatches      OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs     map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
 // ForwardTrafficMatches is a wrapper type of map[Port][]WeightedClusters

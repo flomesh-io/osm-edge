@@ -125,10 +125,12 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 
 	for _, trafficMatch := range outboundPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
-		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
-		tm.setProtocol(Protocol(destinationProtocol))
-		tm.setPort(Port(trafficMatch.DestinationPort))
-		tm.setServiceIdentity(proxyIdentity)
+		tm, exist := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatch.Name)
+		if !exist {
+			tm.setProtocol(Protocol(destinationProtocol))
+			tm.setPort(Port(trafficMatch.DestinationPort))
+			tm.setServiceIdentity(proxyIdentity)
+		}
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
 			tm.addDestinationIPRange(DestinationIPRange(ipRange), nil)
@@ -139,46 +141,48 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
-			httpRouteConfig := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
+			httpRouteConfigs := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
 				int(upstreamSvc.TargetPort),
 				upstreamSvcFQDN)
-			if httpRouteConfig == nil {
+			if len(httpRouteConfigs) == 0 {
 				continue
 			}
 
-			ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
-			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
-			for _, hostname := range httpRouteConfig.Hostnames {
-				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
-			}
-			for _, route := range httpRouteConfig.Routes {
-				pathRegexp := URIPathRegexp(route.HTTPRouteMatch.Path)
-				if len(pathRegexp) == 0 {
-					pathRegexp = ".*"
+			for _, httpRouteConfig := range httpRouteConfigs {
+				ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
+				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+				for _, hostname := range httpRouteConfig.Hostnames {
+					tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 				}
-
-				hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
-				for k, v := range route.HTTPRouteMatch.Headers {
-					hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-				}
-
-				if len(route.HTTPRouteMatch.Methods) == 0 {
-					hsrr.addMethodMatch("*")
-				} else {
-					for _, method := range route.HTTPRouteMatch.Methods {
-						hsrr.addMethodMatch(Method(method))
+				for _, route := range httpRouteConfig.Routes {
+					pathRegexp := URIPathRegexp(route.HTTPRouteMatch.Path)
+					if len(pathRegexp) == 0 {
+						pathRegexp = ".*"
 					}
-				}
 
-				for cluster := range route.WeightedClusters.Iter() {
-					serviceCluster := cluster.(service.WeightedCluster)
-					weightedCluster := new(WeightedCluster)
-					weightedCluster.WeightedCluster = serviceCluster
-					weightedCluster.RetryPolicy = route.RetryPolicy
-					if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-						dependClusters[weightedCluster.ClusterName] = weightedCluster
+					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					for k, v := range route.HTTPRouteMatch.Headers {
+						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
-					hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						hsrr.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							hsrr.addMethodMatch(Method(method))
+						}
+					}
+
+					for cluster := range route.WeightedClusters.Iter() {
+						serviceCluster := cluster.(service.WeightedCluster)
+						weightedCluster := new(WeightedCluster)
+						weightedCluster.WeightedCluster = serviceCluster
+						weightedCluster.RetryPolicy = route.RetryPolicy
+						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+							dependClusters[weightedCluster.ClusterName] = weightedCluster
+						}
+						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+					}
 				}
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
@@ -206,10 +210,12 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 	dependClusters := make(map[service.ClusterName]*WeightedCluster)
 	for _, trafficMatch := range egressPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
-		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
-		tm.setProtocol(Protocol(destinationProtocol))
-		tm.setPort(Port(trafficMatch.DestinationPort))
-		tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
+		tm, exists := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatch.Name)
+		if !exists {
+			tm.setProtocol(Protocol(destinationProtocol))
+			tm.setPort(Port(trafficMatch.DestinationPort))
+			tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
+		}
 
 		var destinationSpec *DestinationSecuritySpec
 		if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
@@ -649,15 +655,16 @@ func getInboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy
 }
 
 func getOutboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy,
-	targetPort int, upstreamSvcFQDN string) *trafficpolicy.OutboundTrafficPolicy {
+	targetPort int, upstreamSvcFQDN string) []*trafficpolicy.OutboundTrafficPolicy {
+	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
 		for _, httpRouteConfig := range httpRouteConfigs {
 			if httpRouteConfig.Name == upstreamSvcFQDN {
-				return httpRouteConfig
+				outboundTrafficPolicies = append(outboundTrafficPolicies, httpRouteConfig)
 			}
 		}
 	}
-	return nil
+	return outboundTrafficPolicies
 }
 
 func getEgressHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.EgressHTTPRouteConfig,
