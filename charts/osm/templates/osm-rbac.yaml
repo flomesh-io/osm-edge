@@ -64,6 +64,11 @@ rules:
     resources: ["ingressbackends/status", "accesscontrols/status", "accesscerts/status", "upstreamtrafficsettings/status"]
     verbs: ["update"]
 
+  # FSM's custom resource API
+  - apiGroups: ["flomesh.io"]
+    resources: ["serviceimports"]
+    verbs: ["list", "get", "watch"]
+
   # Used for interacting with cert-manager CertificateRequest resources.
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]

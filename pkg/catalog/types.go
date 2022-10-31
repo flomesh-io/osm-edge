@@ -7,6 +7,8 @@ package catalog
 import (
 	corev1 "k8s.io/api/core/v1"
 
+	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -14,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -40,6 +43,10 @@ type MeshCatalog struct {
 	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.
 	policyController policy.Controller
+
+	// multiclusterController implements the functionality related to the resources part of the flomesh.io
+	// API group, such a serviceimport.
+	multiclusterController multicluster.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all sidecar proxies connected to the catalog.
@@ -77,6 +84,9 @@ type MeshCataloger interface {
 
 	// GetEgressSourceSecret returns the secret resource that matches the given options
 	GetEgressSourceSecret(corev1.SecretReference) (*corev1.Secret, error)
+
+	// ListImportedServices lists imported services
+	ListImportedServices() []*multiclusterv1alpha1.ServiceImport
 
 	// GetKubeController returns the kube controller instance handling the current cluster
 	GetKubeController() k8s.Controller

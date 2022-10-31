@@ -193,6 +193,15 @@ const (
 	// AccessCertUpdated is the type of announcement emitted when we observe an update to accesscerts.policy.openservicemesh.io
 	AccessCertUpdated Kind = "accesscert-updated"
 
+	// ServiceImportAdded is the type of announcement emitted when we observe an addition of serviceimports.flomesh.io
+	ServiceImportAdded Kind = "serviceimport-added"
+
+	// ServiceImportDeleted the type of announcement emitted when we observe a deletion of serviceimports.flomesh.io
+	ServiceImportDeleted Kind = "serviceimport-deleted"
+
+	// ServiceImportUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
+	ServiceImportUpdated Kind = "serviceimport-updated"
+
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
 

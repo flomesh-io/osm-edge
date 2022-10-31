@@ -76,3 +76,6 @@ generate_client "config" "v1alpha1,v1alpha2"
 
 echo "##### Generating policy.openservicemesh.io client ######"
 generate_client "policy" "v1alpha1"
+
+echo "##### Generating flomesh.io client ######"
+generate_client "multicluster" "v1alpha1"

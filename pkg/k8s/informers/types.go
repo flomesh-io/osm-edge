@@ -50,6 +50,8 @@ const (
 	InformerKeyAccessControl InformerKey = "AccessControl"
 	// InformerKeyAccessCert is the InformerKey for a AccessCert informer
 	InformerKeyAccessCert InformerKey = "AccessCert"
+	// InformerKeyServiceImport is the InformerKey for a ServiceImport informer
+	InformerKeyServiceImport InformerKey = "ServiceImport"
 )
 
 const (

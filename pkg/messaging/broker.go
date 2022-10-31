@@ -300,6 +300,11 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		//
 		// Proxy events
 		//
+		// MultiCluster events
+		//
+		// ServiceImport event
+		announcements.ServiceImportAdded, announcements.ServiceImportDeleted, announcements.ServiceImportUpdated,
+		//
 		announcements.ProxyUpdate:
 		return &proxyUpdateEvent{
 			msg:   msg,
