@@ -11,6 +11,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 )
 
+const (
+	// ServiceImportClusterKeyAnnotation is the annotation used to configure context path for imported service
+	ServiceImportClusterKeyAnnotation = "flomesh.io/ServiceImport/ClusterKey"
+
+	// ServiceImportContextPathAnnotation is the annotation used to configure context path for imported service
+	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath"
+)
+
 // Client is the type used to represent the Kubernetes Client for the flomesh.io API group
 type Client struct {
 	informers      *informers.InformerCollection

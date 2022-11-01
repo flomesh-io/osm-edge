@@ -507,26 +507,50 @@ func (otp *OutboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *Cl
 	return cluster
 }
 
-func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, zone string) {
+func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weight Weight) {
 	if otp.Endpoints == nil {
 		weightedEndpoints := make(WeightedEndpoints)
 		otp.Endpoints = &weightedEndpoints
 	}
-	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, zone)
+	otp.Endpoints.addWeightedEndpoint(address, port, weight)
 }
 
-func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, zone string) {
+func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+	if otp.Endpoints == nil {
+		weightedEndpoints := make(WeightedEndpoints)
+		otp.Endpoints = &weightedEndpoints
+	}
+	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, cluster, contextPath)
+}
+
+func (wes *WeightedEndpoints) addWeightedEndpoint(address Address, port Port, weight Weight) {
 	if addrWithPort.MatchString(string(address)) {
 		httpHostPort := HTTPHostPort(address)
 		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
 			Weight: weight,
-			Zone:   zone,
 		}
 	} else {
 		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
 		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
 			Weight: weight,
-			Zone:   zone,
+		}
+	}
+}
+
+func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			ContextPath: contextPath,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			ContextPath: contextPath,
 		}
 	}
 }

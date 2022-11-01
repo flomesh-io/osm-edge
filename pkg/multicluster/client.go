@@ -108,7 +108,7 @@ func (c *Client) ListServices() []*corev1.Service {
 				Port:        port.Port,
 				TargetPort: intstr.IntOrString{
 					Type:   intstr.Int,
-					IntVal: 8091,
+					IntVal: 8080,
 				},
 			}
 			svc.Spec.Ports = append(svc.Spec.Ports, svcPort)
@@ -165,7 +165,9 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 		importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
 
 		endpoints := new(corev1.Endpoints)
-		endpoints.ClusterName = "default/default/default/cluster1"
+		endpoints.Annotations = make(map[string]string)
+		endpoints.Annotations[ServiceImportClusterKeyAnnotation] = "default/default/default/cluster1"
+		endpoints.Annotations[ServiceImportContextPathAnnotation] = "/pipy"
 		endpoints.Namespace = importedService.Namespace
 		endpoints.Name = importedService.Name
 		endpoints.Subsets = append(endpoints.Subsets, corev1.EndpointSubset{
@@ -180,7 +182,7 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 					Name:     "pipy",
 					Protocol: "tcp",
 					//AppProtocol: "http",
-					Port: 8091,
+					Port: 8080,
 				},
 			},
 		})
