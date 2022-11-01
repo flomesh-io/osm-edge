@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -151,7 +150,6 @@ type PipyConf struct {
 	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
 	Forward          *ForwardTrafficPolicy  `json:"Forward"`
 	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
-	Z                *trafficpolicy.OutboundMeshTrafficPolicy
 }
 
 // FeatureFlags represents the flags of feature
