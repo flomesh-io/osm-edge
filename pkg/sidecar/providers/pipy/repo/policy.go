@@ -100,21 +100,20 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		}
 		missingWeightNb := 0
 		availableWeight := uint32(100)
-		for _, weight := range *weightedEndpoints {
-			if weight == 0 {
+		for _, wze := range *weightedEndpoints {
+			if wze.Weight == 0 {
 				missingWeightNb++
 			} else {
-				availableWeight = availableWeight - uint32(weight)
+				availableWeight = availableWeight - uint32(wze.Weight)
 			}
 		}
 
 		if missingWeightNb == len(*weightedEndpoints) {
-			for upstreamEndpoint, weight := range *weightedEndpoints {
-				if weight == 0 {
-					weight = Weight(availableWeight / uint32(missingWeightNb))
+			for _, wze := range *weightedEndpoints {
+				if wze.Weight == 0 {
+					wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
 					missingWeightNb--
-					availableWeight = availableWeight - uint32(weight)
-					(*weightedEndpoints)[upstreamEndpoint] = weight
+					availableWeight = availableWeight - uint32(wze.Weight)
 				}
 			}
 		}
@@ -160,21 +159,20 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			}
 			missingWeightNb := 0
 			availableWeight := uint32(100)
-			for _, weight := range *weightedEndpoints {
-				if weight == 0 {
+			for _, wze := range *weightedEndpoints {
+				if wze.Weight == 0 {
 					missingWeightNb++
 				} else {
-					availableWeight = availableWeight - uint32(weight)
+					availableWeight = availableWeight - uint32(wze.Weight)
 				}
 			}
 
 			if missingWeightNb == len(*weightedEndpoints) {
-				for upstreamEndpoint, weight := range *weightedEndpoints {
-					if weight == 0 {
-						weight = Weight(availableWeight / uint32(missingWeightNb))
+				for _, wze := range *weightedEndpoints {
+					if wze.Weight == 0 {
+						wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
 						missingWeightNb--
-						availableWeight = availableWeight - uint32(weight)
-						(*weightedEndpoints)[upstreamEndpoint] = weight
+						availableWeight = availableWeight - uint32(wze.Weight)
 					}
 				}
 			}
@@ -509,12 +507,28 @@ func (otp *OutboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *Cl
 	return cluster
 }
 
-func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weight Weight) {
+func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, zone string) {
 	if otp.Endpoints == nil {
-		weightedEndpoints := make(WeightedEndpoint)
+		weightedEndpoints := make(WeightedEndpoints)
 		otp.Endpoints = &weightedEndpoints
 	}
-	otp.Endpoints.addWeightedEndpoint(address, port, weight)
+	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, zone)
+}
+
+func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, zone string) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+			Zone:   zone,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+			Zone:   zone,
+		}
+	}
 }
 
 func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weight Weight) {

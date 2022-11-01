@@ -300,13 +300,21 @@ type InboundTrafficPolicy struct {
 	ClustersConfigs map[ClusterName]*WeightedEndpoint `json:"ClustersConfigs"`
 }
 
+// WeightedZoneEndpoint represents the endpoint with zone and weight
+type WeightedZoneEndpoint struct {
+	Weight Weight `json:"Weight"`
+	Zone   string `json:"Zone,omitempty"`
+}
+
+// WeightedEndpoints is a wrapper type of map[HTTPHostPort]WeightedZoneEndpoint
+type WeightedEndpoints map[HTTPHostPort]*WeightedZoneEndpoint
+
 // ClusterConfigs represents the configs of Cluster
 type ClusterConfigs struct {
-	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
+	Endpoints          *WeightedEndpoints  `json:"Endpoints"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
 	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
-	Zone               string              `json:"Zone,omitempty"`
 }
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic

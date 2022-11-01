@@ -310,7 +310,7 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 				address := Address(serverName)
 				port := Port(trafficMatch.DestinationPort)
 				weight := Weight(constants.ClusterWeightAcceptAll)
-				clusterConfigs.addWeightedEndpoint(address, port, weight)
+				clusterConfigs.addWeightedZoneEndpoint(address, port, weight, "")
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
 			destinationProtocol == constants.ProtocolTCPServerFirst {
@@ -346,8 +346,7 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 				port = targetPort
 			}
 			weight := Weight(upstreamEndpoint.Weight)
-			clusterConfigs.addWeightedEndpoint(address, port, weight)
-			clusterConfigs.Zone = upstreamEndpoint.Zone
+			clusterConfigs.addWeightedZoneEndpoint(address, port, weight, upstreamEndpoint.Zone)
 			if clusterConfig.UpstreamTrafficSetting != nil {
 				if clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings != nil {
 					clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
@@ -469,7 +468,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 					address := Address(endPeer.IP.String())
 					port := Port(endPeer.Port)
 					weight := Weight(0)
-					clusterConfigs.addWeightedEndpoint(address, port, weight)
+					clusterConfigs.addWeightedZoneEndpoint(address, port, weight, endPeer.Zone)
 				}
 			}
 		}
@@ -491,7 +490,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 						address := Address(endPeer.IP.String())
 						port := Port(endPeer.Port)
 						weight := Weight(0)
-						clusterConfigs.addWeightedEndpoint(address, port, weight)
+						clusterConfigs.addWeightedZoneEndpoint(address, port, weight, endPeer.Zone)
 					}
 				} else {
 					success = false
@@ -602,7 +601,7 @@ func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _
 		address := Address(clusterConfig.Name)
 		port := Port(clusterConfig.Port)
 		weight := Weight(constants.ClusterWeightAcceptAll)
-		clusterConfigs.addWeightedEndpoint(address, port, weight)
+		clusterConfigs.addWeightedZoneEndpoint(address, port, weight, "")
 		if clusterConfig.UpstreamTrafficSetting != nil {
 			clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)
 		}
