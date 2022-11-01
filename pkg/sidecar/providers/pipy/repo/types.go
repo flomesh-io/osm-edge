@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"sync"
 	"time"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 

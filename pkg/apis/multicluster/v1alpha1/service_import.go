@@ -128,10 +128,18 @@ func (p *ServicePort) String() string {
 	return s
 }
 
-// Endpoint imported service's endpoint
+// Endpoint imported service's endpoints
 type Endpoint struct {
-	Targets    []string `json:"targets"`
-	ClusterKey string   `json:"clusterKey"`
+	Target     Target `json:"target"`
+	ClusterKey string `json:"clusterKey"`
+}
+
+// Target imported service's endpoint target.
+type Target struct {
+	Host string `json:"host"`
+	IP   string `json:"ip"`
+	Port int32  `json:"port"`
+	Path string `json:"path"`
 }
 
 // ServiceImportStatus describes derived state of an imported service.

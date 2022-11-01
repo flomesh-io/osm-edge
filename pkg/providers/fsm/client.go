@@ -3,21 +3,22 @@ package fsm
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/multicluster"
-	"github.com/rs/zerolog/log"
-	"k8s.io/utils/pointer"
 	"net"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/rs/zerolog/log"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/pointer"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 

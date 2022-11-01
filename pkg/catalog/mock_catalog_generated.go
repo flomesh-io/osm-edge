@@ -8,8 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
-	v1alpha10 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/k8s"
@@ -159,10 +158,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 }
 
 // GetRetryPolicy mocks base method.
-func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha10.RetryPolicySpec {
+func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha1.RetryPolicySpec {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRetryPolicy", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha10.RetryPolicySpec)
+	ret0, _ := ret[0].(*v1alpha1.RetryPolicySpec)
 	return ret0
 }
 
@@ -184,20 +183,6 @@ func (m *MockMeshCataloger) ListAllowedUpstreamEndpointsForService(arg0 identity
 func (mr *MockMeshCatalogerMockRecorder) ListAllowedUpstreamEndpointsForService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedUpstreamEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedUpstreamEndpointsForService), arg0, arg1)
-}
-
-// ListImportedServices mocks base method.
-func (m *MockMeshCataloger) ListImportedServices() []*v1alpha1.ServiceImport {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListImportedServices")
-	ret0, _ := ret[0].([]*v1alpha1.ServiceImport)
-	return ret0
-}
-
-// ListImportedServices indicates an expected call of ListImportedServices.
-func (mr *MockMeshCatalogerMockRecorder) ListImportedServices() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImportedServices", reflect.TypeOf((*MockMeshCataloger)(nil).ListImportedServices))
 }
 
 // ListInboundServiceIdentities mocks base method.
