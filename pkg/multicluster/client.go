@@ -1,7 +1,6 @@
 package multicluster
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -48,8 +47,6 @@ func NewMultiClusterController(informerCollection *informers.InformerCollection,
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c *Client) GetService(svc service.MeshService) *corev1.Service {
-	bytes, _ := json.Marshal(svc)
-	fmt.Println("GetService:", string(bytes))
 	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, svc.NamespacedKey())
 	if !exists || err != nil {
 		return nil
@@ -84,8 +81,6 @@ func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 						},
 					}
 					targetSvc.Spec.Ports = append(targetSvc.Spec.Ports, targetSvcPort)
-					bytes, _ := json.Marshal(targetSvc)
-					fmt.Println("GetService:", string(bytes))
 					return targetSvc
 				}
 			}
@@ -96,7 +91,6 @@ func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 
 // ListServices returns a list of services that are imported from other clusters.
 func (c *Client) ListServices() []*corev1.Service {
-	fmt.Println("ListServices:")
 	importedServiceIfs := c.informers.List(informers.InformerKeyServiceImport)
 	if len(importedServiceIfs) == 0 {
 		return nil
@@ -136,13 +130,12 @@ func (c *Client) ListServices() []*corev1.Service {
 			}
 		}
 	}
-	bytes, _ := json.Marshal(services)
-	fmt.Println("ListServices:", string(bytes))
 	return services
 }
 
 // ListServiceAccounts returns a list of service accounts that are part of monitored namespaces
 func (c *Client) ListServiceAccounts() []*corev1.ServiceAccount {
+	fmt.Println("ListServiceAccounts:")
 	return nil
 }
 
@@ -170,14 +163,13 @@ func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 // Kubecontroller does not currently segment pod notifications, hence it receives notifications
 // for all k8s Pods.
 func (c *Client) ListPods() []*corev1.Pod {
+	fmt.Println("ListPods:")
 	return nil
 }
 
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	bytes, _ := json.Marshal(svc)
-	fmt.Println("GetEndpoints:", string(bytes))
 	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, svc.NamespacedKey())
 	if err != nil || !exists {
 		return nil, nil
@@ -218,8 +210,6 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 						},
 					},
 				})
-				bytes, _ := json.Marshal(targetEndpoints)
-				fmt.Println("GetEndpoints:", string(bytes))
 				return targetEndpoints, nil
 			}
 		}
@@ -230,5 +220,6 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
+	fmt.Println("ListServiceIdentitiesForService:")
 	return nil, nil
 }
