@@ -15,6 +15,14 @@ limitations under the License.
 
 package v1alpha1
 
+// ServiceExportListerExpansion allows custom methods to be added to
+// ServiceExportLister.
+type ServiceExportListerExpansion interface{}
+
+// ServiceExportNamespaceListerExpansion allows custom methods to be added to
+// ServiceExportNamespaceLister.
+type ServiceExportNamespaceListerExpansion interface{}
+
 // ServiceImportListerExpansion allows custom methods to be added to
 // ServiceImportLister.
 type ServiceImportListerExpansion interface{}

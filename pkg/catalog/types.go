@@ -94,6 +94,9 @@ type MeshCataloger interface {
 
 	// GetRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
 	GetRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec
+
+	// GetExportTrafficPolicy returns the export policy for the given mesh service
+	GetExportTrafficPolicy(svc service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error)
 }
 
 type trafficDirection string

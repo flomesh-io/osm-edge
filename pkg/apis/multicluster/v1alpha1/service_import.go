@@ -59,13 +59,11 @@ type ServiceImportSpec struct {
 	Ports []ServicePort `json:"ports"`
 
 	// ip will be used as the VIP for this service when type is ClusterSetIP.
-	// +kubebuilder:validation:MaxItems:=1
 	// +optional
 	IPs []string `json:"ips,omitempty"`
 
 	// type defines the type of this service.
 	// Must be ClusterSetIP or Headless.
-	// +kubebuilder:validation:Enum=ClusterSetIP;Headless
 	// +optional
 	Type ServiceImportType `json:"type"`
 

@@ -588,6 +588,92 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 	}
 }
 
+func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.ServiceIdentity, pipyConf *PipyConf, expPolicy *trafficpolicy.ServiceExportTrafficPolicy) {
+	if len(expPolicy.TrafficMatches) == 0 {
+		return
+	}
+
+	if pipyConf.Inbound == nil {
+		return
+	}
+
+	if len(pipyConf.Inbound.ClustersConfigs) == 0 {
+		return
+	}
+
+	itp := pipyConf.newInboundTrafficPolicy()
+
+	for _, trafficMatch := range expPolicy.TrafficMatches {
+		tm := itp.getTrafficMatch(Port(trafficMatch.Port))
+		if tm == nil {
+			continue
+		}
+
+		var securitySpec *SourceSecuritySpec
+		if trafficMatch.TLS != nil {
+			securitySpec = &SourceSecuritySpec{
+				MTLS:                     true,
+				SkipClientCertValidation: trafficMatch.TLS.SkipClientCertValidation,
+			}
+		}
+
+		for _, ipRange := range trafficMatch.SourceIPRanges {
+			tm.addSourceIPRange(SourceIPRange(ipRange), securitySpec)
+		}
+
+		var authenticatedPrincipals []string
+		protocol := strings.ToLower(trafficMatch.Protocol)
+		if protocol != constants.ProtocolHTTP && protocol != constants.ProtocolHTTPS && protocol != constants.ProtocolGRPC {
+			continue
+		}
+		for _, httpRouteConfig := range expPolicy.HTTPRoutePolicies {
+			if len(httpRouteConfig.Rules) == 0 {
+				continue
+			}
+			for _, hostname := range httpRouteConfig.Hostnames {
+				ruleName := HTTPRouteRuleName(hostname)
+				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
+
+				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+				for _, rule := range httpRouteConfig.Rules {
+					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
+					if len(pathRegexp) == 0 {
+						continue
+					}
+
+					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					for k, v := range rule.Route.HTTPRouteMatch.Headers {
+						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+
+					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+						hsrr.addMethodMatch("*")
+					} else {
+						for _, method := range rule.Route.HTTPRouteMatch.Methods {
+							hsrr.addMethodMatch(Method(method))
+						}
+					}
+
+					for routeCluster := range rule.Route.WeightedClusters.Iter() {
+						weightedCluster := routeCluster.(service.WeightedCluster)
+						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+							Weight(weightedCluster.Weight))
+					}
+
+					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+						servicePrincipal := allowedPrincipal.(string)
+						authenticatedPrincipals = append(authenticatedPrincipals, servicePrincipal)
+					}
+				}
+			}
+		}
+
+		if securitySpec != nil {
+			securitySpec.AuthenticatedPrincipals = authenticatedPrincipals
+		}
+	}
+}
+
 func generatePipyEgressTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _ *pipy.Proxy, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, egressPolicy *trafficpolicy.EgressTrafficPolicy, dependClusters map[service.ClusterName]*WeightedCluster) bool {
 	ready := true
 	otp := pipyConf.newOutboundTrafficPolicy()

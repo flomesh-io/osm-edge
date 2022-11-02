@@ -271,6 +271,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.EndpointAdded, announcements.EndpointDeleted, announcements.EndpointUpdated,
 		// k8s Ingress event
 		announcements.IngressAdded, announcements.IngressDeleted, announcements.IngressUpdated,
+		// k8s IngressClass event
+		announcements.IngressClassAdded, announcements.IngressClassDeleted, announcements.IngressClassUpdated,
 		//
 		// OSM resource events
 		//
@@ -304,6 +306,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		//
 		// ServiceImport event
 		announcements.ServiceImportAdded, announcements.ServiceImportDeleted, announcements.ServiceImportUpdated,
+		// ServiceExport event
+		announcements.ServiceExportAdded, announcements.ServiceExportDeleted, announcements.ServiceExportUpdated,
 		//
 		announcements.ProxyUpdate:
 		return &proxyUpdateEvent{

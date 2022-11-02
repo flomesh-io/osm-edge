@@ -39,6 +39,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&ServiceImport{},
 		&ServiceImportList{},
+		&ServiceExport{},
+		&ServiceExportList{},
 	)
 
 	metav1.AddToGroupVersion(

@@ -5,6 +5,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -45,4 +47,10 @@ type Controller interface {
 
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
+
+	// GetExportedRule retrieves the export rule for the given MeshService
+	GetExportedRule(svc service.MeshService) (*multiclusterv1alpha1.ServiceExportRule, error)
+
+	// GetIngressControllerServices returns ingress controller services.
+	GetIngressControllerServices() []service.MeshService
 }

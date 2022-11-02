@@ -25,12 +25,17 @@ import (
 
 type FlomeshV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	ServiceExportsGetter
 	ServiceImportsGetter
 }
 
 // FlomeshV1alpha1Client is used to interact with features provided by the flomesh.io group.
 type FlomeshV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *FlomeshV1alpha1Client) ServiceExports(namespace string) ServiceExportInterface {
+	return newServiceExports(c, namespace)
 }
 
 func (c *FlomeshV1alpha1Client) ServiceImports(namespace string) ServiceImportInterface {

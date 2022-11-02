@@ -26,6 +26,8 @@ import (
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
 	multiclusterClientset "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned"
 	multiclusterInformers "github.com/openservicemesh/osm/pkg/gen/client/multicluster/informers/externalversions"
+	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
+	networkingInformers "github.com/openservicemesh/osm/pkg/gen/client/networking/informers/externalversions"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
@@ -125,7 +127,17 @@ func WithMultiClusterClient(multiclusterClient multiclusterClientset.Interface) 
 	return func(ic *InformerCollection) {
 		informerFactory := multiclusterInformers.NewSharedInformerFactory(multiclusterClient, DefaultKubeEventResyncInterval)
 
+		ic.informers[InformerKeyServiceExport] = informerFactory.Flomesh().V1alpha1().ServiceExports().Informer()
 		ic.informers[InformerKeyServiceImport] = informerFactory.Flomesh().V1alpha1().ServiceImports().Informer()
+	}
+}
+
+// WithNetworkingClient sets the networking client for the InformerCollection
+func WithNetworkingClient(networkingClient networkingClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		informerFactory := networkingInformers.NewSharedInformerFactory(networkingClient, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyIngressClass] = informerFactory.Networking().V1().IngressClasses().Informer()
 	}
 }
 

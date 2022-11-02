@@ -1,4 +1,4 @@
-// version: '2022.10.09'
+// version: '2022.11.02'
 ((
   {
     config,
@@ -39,7 +39,7 @@
     .pipeline()
     .handleMessageStart(
       (msg) => (
-        ((service, route, match, target, headers) => (
+        ((service, route, match, target, headers, attrs) => (
           headers = msg.head.headers,
 
           service = _outMatch.HttpHostPort2Service?.[headers.host],
@@ -75,6 +75,11 @@
               _upstreamClusterName
             ]?.Endpoints?.next?.(connIdx)
           ))(),
+
+          _outTarget && (attrs = outClustersConfigs[_upstreamClusterName]?.EndpointAttributes[_outTarget.id]) && attrs?.Path && (
+            _egressMode = true,
+            msg.head.path = attrs.Path + msg.head.path
+          ),
 
           // no HttpHostPort2Service
           _outMatch && !service && console.log(codeMessage('NoService'), headers?.host),

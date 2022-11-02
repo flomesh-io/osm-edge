@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
@@ -49,6 +50,35 @@ func (m *MockController) GetEndpoints(arg0 service.MeshService) (*v1.Endpoints, 
 func (mr *MockControllerMockRecorder) GetEndpoints(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEndpoints", reflect.TypeOf((*MockController)(nil).GetEndpoints), arg0)
+}
+
+// GetExportedRule mocks base method.
+func (m *MockController) GetExportedRule(arg0 service.MeshService) (*v1alpha1.ServiceExportRule, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExportedRule", arg0)
+	ret0, _ := ret[0].(*v1alpha1.ServiceExportRule)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetExportedRule indicates an expected call of GetExportedRule.
+func (mr *MockControllerMockRecorder) GetExportedRule(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExportedRule", reflect.TypeOf((*MockController)(nil).GetExportedRule), arg0)
+}
+
+// GetIngressControllerServices mocks base method.
+func (m *MockController) GetIngressControllerServices() []service.MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetIngressControllerServices")
+	ret0, _ := ret[0].([]service.MeshService)
+	return ret0
+}
+
+// GetIngressControllerServices indicates an expected call of GetIngressControllerServices.
+func (mr *MockControllerMockRecorder) GetIngressControllerServices() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressControllerServices", reflect.TypeOf((*MockController)(nil).GetIngressControllerServices))
 }
 
 // GetService mocks base method.

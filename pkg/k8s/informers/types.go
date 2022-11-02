@@ -52,6 +52,10 @@ const (
 	InformerKeyAccessCert InformerKey = "AccessCert"
 	// InformerKeyServiceImport is the InformerKey for a ServiceImport informer
 	InformerKeyServiceImport InformerKey = "ServiceImport"
+	// InformerKeyServiceExport is the InformerKey for a ServiceExport informer
+	InformerKeyServiceExport InformerKey = "ServiceExport"
+	// InformerKeyIngressClass is the InformerKey for a IngressClass informer
+	InformerKeyIngressClass InformerKey = "IngressClass"
 )
 
 const (

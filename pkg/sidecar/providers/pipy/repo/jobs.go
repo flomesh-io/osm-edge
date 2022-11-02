@@ -161,6 +161,11 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, aclTrafficPolicy)
 				}
 			}
+			if expTrafficPolicy, expErr := cataloger.GetExportTrafficPolicy(svc); expErr == nil {
+				if expTrafficPolicy != nil {
+					generatePipyServiceExportTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, expTrafficPolicy)
+				}
+			}
 		}
 	}
 }

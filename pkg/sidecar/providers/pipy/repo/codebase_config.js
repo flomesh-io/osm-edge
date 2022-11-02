@@ -1,4 +1,4 @@
-// version: '2022.10.27'
+// version: '2022.11.02'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -40,10 +40,32 @@
       forwardEgressGateways: null,
       codeMessage: codeMessage,
       mapIssuingCA: {},
-      listIssuingCA: []
+      listIssuingCA: [],
+      dnsRecordSets: {}
     },
 
     global.dnsSvcAddress = (global.dnsServers?.primary || global.dnsServers?.secondary || os.env.LOCAL_DNS_PROXY_PRIMARY_UPSTREAM || '10.96.0.10') + ":53",
+
+    config?.DNSResolveDB && (
+      Object.entries(config.DNSResolveDB).map(
+        ([k, v]) => (
+          ((rr) => (
+            rr = [],
+            v.map(
+              ip => (
+                rr.push({
+                  'name': k,
+                  'type': 'A',
+                  'ttl': 600, // TTL : 10 minutes
+                  'rdata': ip
+                })
+              )
+            ),
+            global.dnsRecordSets[k] = rr
+          ))()
+        )
+      )
+    ),
 
     global.addIssuingCA = ca => (
       (md5 => (
@@ -260,7 +282,16 @@
                   metrics.sidecarInsideStats[obj.HttpMaxPendingStatsKey] = 0
                 )
               ),
-              obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
+              ((ep = {}) => (
+                obj.EndpointAttributes = {},
+                Object.entries(global.funcShuffle(v.Endpoints)).map(
+                  ([k, v]) => (
+                    ep[k] = v?.Weight,
+                    obj.EndpointAttributes[k] = v
+                  )
+                ),
+                obj.Endpoints = new algo.RoundRobinLoadBalancer(ep)
+              ))(),
               v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
                 obj.SourceCert = v.SourceCert,
                 global.addIssuingCA(v.SourceCert.IssuingCA)

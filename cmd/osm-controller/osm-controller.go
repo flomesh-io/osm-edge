@@ -30,6 +30,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	multiclusterClientset "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned"
+	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -170,6 +171,7 @@ func main() {
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
 	multiclusterClient := multiclusterClientset.NewForConfigOrDie(kubeConfig)
+	networkingClient := networkingClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -211,6 +213,7 @@ func main() {
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
 		informers.WithMultiClusterClient(multiclusterClient),
+		informers.WithNetworkingClient(networkingClient),
 	)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")

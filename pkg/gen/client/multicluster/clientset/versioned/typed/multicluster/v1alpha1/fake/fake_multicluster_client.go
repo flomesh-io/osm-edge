@@ -25,6 +25,10 @@ type FakeFlomeshV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeFlomeshV1alpha1) ServiceExports(namespace string) v1alpha1.ServiceExportInterface {
+	return &FakeServiceExports{c, namespace}
+}
+
 func (c *FakeFlomeshV1alpha1) ServiceImports(namespace string) v1alpha1.ServiceImportInterface {
 	return &FakeServiceImports{c, namespace}
 }
