@@ -108,6 +108,9 @@ type OutboundMeshTrafficPolicy struct {
 	// The specified config is used to program clusters corresponding to
 	// mesh destinations.
 	ClustersConfigs []*MeshClusterConfig
+
+	// ServicesResolvableSet defines the dns database
+	ServicesResolvableSet map[string][]interface{}
 }
 
 // InboundMeshTrafficPolicy is the type used to represent the inbound mesh traffic policy configurations

@@ -198,8 +198,9 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 
 	for _, svcPort := range kubeService.Spec.Ports {
 		endpoints = append(endpoints, endpoint.Endpoint{
-			IP:   ip,
-			Port: endpoint.Port(svcPort.Port),
+			IP:      ip,
+			Port:    endpoint.Port(svcPort.Port),
+			Cluster: c.GetID(),
 		})
 	}
 

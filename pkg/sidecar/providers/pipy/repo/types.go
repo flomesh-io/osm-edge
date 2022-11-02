@@ -146,10 +146,11 @@ type PipyConf struct {
 	Version          *string
 	Spec             MeshConfigSpec
 	Certificate      *Certificate
-	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
-	Forward          *ForwardTrafficPolicy  `json:"Forward"`
-	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
+	Inbound          *InboundTrafficPolicy    `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
+	Forward          *ForwardTrafficPolicy    `json:"Forward"`
+	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
+	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
 }
 
 // FeatureFlags represents the flags of feature
