@@ -13,6 +13,9 @@ func (mc *MeshCatalog) GetExportTrafficPolicy(svc service.MeshService) (*traffic
 	if err != nil {
 		return nil, err
 	}
+	if exportedRule == nil {
+		return nil, nil
+	}
 
 	exportTrafficPolicy := new(trafficpolicy.ServiceExportTrafficPolicy)
 
