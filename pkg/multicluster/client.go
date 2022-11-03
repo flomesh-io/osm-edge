@@ -22,16 +22,13 @@ func NewMultiClusterController(informerCollection *informers.InformerCollection,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
-		_, object := obj.(metav1.Object)
-		if !object {
+		if _, object := obj.(metav1.Object); !object {
 			return false
 		}
-		_, serviceExport := obj.(*multiclusterv1alpha1.ServiceExport)
-		if serviceExport {
+		if _, serviceExport := obj.(*multiclusterv1alpha1.ServiceExport); serviceExport {
 			return true
 		}
-		_, serviceImport := obj.(*multiclusterv1alpha1.ServiceImport)
-		if serviceImport {
+		if _, serviceImport := obj.(*multiclusterv1alpha1.ServiceImport); serviceImport {
 			return true
 		}
 		_, ingressClass := obj.(*networkingv1.IngressClass)
