@@ -4,6 +4,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
+	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
+	networkingv1 "github.com/openservicemesh/osm/pkg/apis/networking/v1"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -19,11 +22,20 @@ func NewMultiClusterController(informerCollection *informers.InformerCollection,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
-		object, ok := obj.(metav1.Object)
-		if !ok {
+		_, object := obj.(metav1.Object)
+		if !object {
 			return false
 		}
-		return kubeController.IsMonitoredNamespace(object.GetNamespace())
+		_, serviceExport := obj.(*multiclusterv1alpha1.ServiceExport)
+		if serviceExport {
+			return true
+		}
+		_, serviceImport := obj.(*multiclusterv1alpha1.ServiceImport)
+		if serviceImport {
+			return true
+		}
+		_, ingressClass := obj.(*networkingv1.IngressClass)
+		return ingressClass
 	}
 
 	svcExportEventTypes := k8s.EventTypes{
