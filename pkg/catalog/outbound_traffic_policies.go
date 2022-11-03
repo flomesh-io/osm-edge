@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-
 	mapset "github.com/deckarep/golang-set"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -65,8 +63,6 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				resolvableIPSet.Add(endp.IP.String())
 			}
 			if resolvableIPSet.Cardinality() > 0 {
-				meshSvcDomain := fmt.Sprintf("%s.%s", meshSvc.Name, meshSvc.Namespace)
-				servicesResolvableSet[meshSvcDomain] = resolvableIPSet.ToSlice()
 				servicesResolvableSet[meshSvc.FQDN()] = resolvableIPSet.ToSlice()
 			}
 		}
