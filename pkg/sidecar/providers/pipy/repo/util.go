@@ -342,11 +342,13 @@ func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger,
 		for _, upstreamEndpoint := range upstreamEndpoints {
 			address := Address(upstreamEndpoint.IP.String())
 			port := Port(clusterConfig.Service.Port)
-			if targetPort := Port(clusterConfig.Service.TargetPort); targetPort > 0 {
-				port = targetPort
+			if len(upstreamEndpoint.ClusterKey) > 0 {
+				if targetPort := Port(clusterConfig.Service.TargetPort); targetPort > 0 {
+					port = targetPort
+				}
 			}
 			weight := Weight(upstreamEndpoint.Weight)
-			clusterConfigs.addWeightedZoneEndpoint(address, port, weight, upstreamEndpoint.Cluster, upstreamEndpoint.Path)
+			clusterConfigs.addWeightedZoneEndpoint(address, port, weight, upstreamEndpoint.ClusterKey, upstreamEndpoint.Path)
 			if clusterConfig.UpstreamTrafficSetting != nil {
 				if clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings != nil {
 					clusterConfigs.setConnectionSettings(clusterConfig.UpstreamTrafficSetting.Spec.ConnectionSettings)

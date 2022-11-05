@@ -71,10 +71,10 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 					continue
 				}
 				ept := endpoint.Endpoint{
-					IP:      ip,
-					Port:    endpoint.Port(port.Port),
-					Cluster: kubernetesEndpoints.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
-					Path:    kubernetesEndpoints.Annotations[multicluster.ServiceImportContextPathAnnotation],
+					IP:         ip,
+					Port:       endpoint.Port(port.Port),
+					ClusterKey: kubernetesEndpoints.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
+					Path:       kubernetesEndpoints.Annotations[multicluster.ServiceImportContextPathAnnotation],
 				}
 				endpoints = append(endpoints, ept)
 			}
@@ -198,9 +198,9 @@ func (c *client) GetResolvableEndpointsForService(svc service.MeshService) []end
 
 	for _, svcPort := range kubeService.Spec.Ports {
 		endpoints = append(endpoints, endpoint.Endpoint{
-			IP:      ip,
-			Port:    endpoint.Port(svcPort.Port),
-			Cluster: c.GetID(),
+			IP:         ip,
+			Port:       endpoint.Port(svcPort.Port),
+			ClusterKey: c.GetID(),
 		})
 	}
 
@@ -235,7 +235,7 @@ func (c *client) ListServiceIdentitiesForService(svc service.MeshService) []iden
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
 // MeshService objects per port.
-func ServiceToMeshServices(c k8s.CoreController, svc corev1.Service) []service.MeshService {
+func ServiceToMeshServices(c multicluster.Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {

@@ -51,7 +51,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
 			}
 			if !existIntraEndpoints {
-				if len(endp.Cluster) == 0 {
+				if len(endp.ClusterKey) == 0 {
 					existIntraEndpoints = true
 				}
 			}

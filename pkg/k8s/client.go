@@ -290,7 +290,7 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 
 // ServiceToMeshServices translates a k8s service with one or more ports to one or more
 // MeshService objects per port.
-func ServiceToMeshServices(c CoreController, svc corev1.Service) []service.MeshService {
+func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshService {
 	var meshServices []service.MeshService
 
 	for _, portSpec := range svc.Spec.Ports {
@@ -438,7 +438,6 @@ func (c client) GetPodForProxy(proxy models.Proxy) (*v1.Pod, error) {
 // GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
 // to communicate with it.
 func (c client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
-	fmt.Println("GetTargetPortForServicePort:", namespacedSvc, port)
 	// Lookup the k8s service corresponding to the given service name.
 	// The k8s service is necessary to lookup the TargetPort from the Endpoint whose name
 	// matches the name of the port on the k8s Service object.
