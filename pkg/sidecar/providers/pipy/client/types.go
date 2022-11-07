@@ -30,13 +30,6 @@ var (
 	log = logger.New("flomesh-pipy")
 )
 
-const (
-	// defaultPipyRepoAPIPath is default Pipy Repo api path
-	defaultPipyRepoAPIPath = "/api/v1/repo"
-	// defaultHTTPSchema is default http schema
-	defaultHTTPSchema = "http"
-)
-
 // Codebase is Pipy's logic unit
 type Codebase struct {
 	Version     uint64   `json:"version,omitempty"`
@@ -48,10 +41,6 @@ type Codebase struct {
 	ErasedFiles []string `json:"erasedFiles,omitempty"`
 	Derived     []string `json:"derived,omitempty"`
 }
-
-const (
-	pipyRepoAPIBaseURLTemplate = "%s://%s" + defaultPipyRepoAPIPath
-)
 
 // Batch submits multiple resources at once
 type Batch struct {
