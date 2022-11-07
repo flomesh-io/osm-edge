@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
@@ -133,7 +135,36 @@ func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 // for all k8s Pods.
 func (c *Client) ListPods() []*corev1.Pod {
 	fmt.Println("ListPods:")
-	return nil
+	importedServiceIfs := c.informers.List(informers.InformerKeyServiceImport)
+	if len(importedServiceIfs) == 0 {
+		return nil
+	}
+
+	var pods []*corev1.Pod
+
+	for _, importedServiceIf := range importedServiceIfs {
+		importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
+		if len(importedService.Spec.Ports) == 0 {
+			continue
+		}
+		for _, port := range importedService.Spec.Ports {
+			if len(port.Endpoints) == 0 {
+				continue
+			}
+			for _, endpoint := range port.Endpoints {
+				pod := new(corev1.Pod)
+				pod.Namespace = "pipy"
+				pod.Name = endpoint.Target.Host
+				pod.Labels = make(map[string]string)
+				pod.Labels["app"] = importedService.Name
+				pod.Spec.ServiceAccountName = "pipy"
+				pod.Status.PodIP = endpoint.Target.IP
+				pod.Status.PodIPs = append(pod.Status.PodIPs, corev1.PodIP{IP: pod.Status.PodIP})
+				pods = append(pods, pod)
+			}
+		}
+	}
+	return pods
 }
 
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
@@ -190,5 +221,33 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
 	fmt.Println("ListServiceIdentitiesForService:")
-	return nil, nil
+	var svcAccounts []identity.K8sServiceAccount
+
+	k8sSvc := c.GetService(svc)
+	if k8sSvc == nil {
+		return nil, fmt.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+	}
+
+	svcAccountsSet := mapset.NewSet()
+	pods := c.ListPods()
+	for _, pod := range pods {
+		svcRawSelector := k8sSvc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		// service has no selectors, we do not need to match against the pod label
+		if len(svcRawSelector) == 0 {
+			continue
+		}
+		if selector.Matches(labels.Set(pod.Labels)) {
+			podSvcAccount := identity.K8sServiceAccount{
+				Name:      pod.Spec.ServiceAccountName,
+				Namespace: pod.Namespace, // ServiceAccount must belong to the same namespace as the pod
+			}
+			svcAccountsSet.Add(podSvcAccount)
+		}
+	}
+
+	for svcAcc := range svcAccountsSet.Iter() {
+		svcAccounts = append(svcAccounts, svcAcc.(identity.K8sServiceAccount))
+	}
+	return svcAccounts, nil
 }
