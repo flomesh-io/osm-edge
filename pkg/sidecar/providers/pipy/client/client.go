@@ -10,17 +10,64 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+const (
+	// relativeAPIath is default Pipy api relative path
+	relativeAPIath = "api"
+	// relativeRepoPath is default Pipy repo api relative path
+	relativeRepoPath = "repo"
+	// relativeRepoPath is default Pipy repo files api relative path
+	relativeRepoFilePath = "repo-files"
+
+	apiVersion1 = "v1"
+
+	defaultHTTPSchema = "http"
+)
+
+type repoAPIURI struct {
+	serverAddr   string
+	serverPort   uint16
+	schema       string
+	version      string
+	apiURI       string
+	repoURI      string
+	repoFilesURI string
+
+	baseRepoURI      string
+	baseRepoFilesURI string
+}
+
+// newRepoAPIURI creates a Repo Api URIs
+func newRepoAPIURI(serverAddr string, serverPort uint16) *repoAPIURI {
+	return (&repoAPIURI{
+		serverAddr:   serverAddr,
+		serverPort:   serverPort,
+		schema:       defaultHTTPSchema,
+		version:      apiVersion1,
+		apiURI:       relativeAPIath,
+		repoURI:      relativeRepoPath,
+		repoFilesURI: relativeRepoFilePath,
+	}).init()
+}
+
+func (api *repoAPIURI) init() *repoAPIURI {
+	api.baseRepoURI = fmt.Sprintf(`%s://%s:%d/%s/%s/%s`,
+		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version, api.repoURI)
+	api.baseRepoFilesURI = fmt.Sprintf(`%s://%s:%d/%s/%s/%s`,
+		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version, api.repoFilesURI)
+	return api
+}
+
 // PipyRepoClient Pipy Repo Client
 type PipyRepoClient struct {
-	baseURL          string
+	apiURI           *repoAPIURI
 	defaultTransport *http.Transport
 	httpClient       *resty.Client
 }
 
 // NewRepoClient creates a Repo Client
-func NewRepoClient(repoRootAddr string) *PipyRepoClient {
+func NewRepoClient(serverAddr string, serverPort uint16) *PipyRepoClient {
 	return NewRepoClientWithTransport(
-		repoRootAddr,
+		serverAddr, serverPort,
 		&http.Transport{
 			DisableKeepAlives:  false,
 			MaxIdleConns:       10,
@@ -30,25 +77,22 @@ func NewRepoClient(repoRootAddr string) *PipyRepoClient {
 }
 
 // NewRepoClientWithTransport creates a Repo Client with Transport
-func NewRepoClientWithTransport(repoRootAddr string, transport *http.Transport) *PipyRepoClient {
-	return NewRepoClientWithAPIBaseURLAndTransport(
-		fmt.Sprintf(pipyRepoAPIBaseURLTemplate, defaultHTTPSchema, repoRootAddr),
-		transport,
-	)
+func NewRepoClientWithTransport(serverAddr string, serverPort uint16, transport *http.Transport) *PipyRepoClient {
+	return NewRepoClientWithAPIBaseURLAndTransport(serverAddr, serverPort, transport)
 }
 
 // NewRepoClientWithAPIBaseURLAndTransport creates a Repo Client with ApiBaseUrl and Transport
-func NewRepoClientWithAPIBaseURLAndTransport(repoAPIBaseURL string, transport *http.Transport) *PipyRepoClient {
+func NewRepoClientWithAPIBaseURLAndTransport(serverAddr string, serverPort uint16, transport *http.Transport) *PipyRepoClient {
 	repo := &PipyRepoClient{
-		baseURL:          repoAPIBaseURL,
+		apiURI:           newRepoAPIURI(serverAddr, serverPort),
 		defaultTransport: transport,
 	}
 
 	repo.httpClient = resty.New().
 		SetTransport(repo.defaultTransport).
-		SetScheme(defaultHTTPSchema).
+		SetScheme(repo.apiURI.schema).
 		SetAllowGetMethodPayload(true).
-		SetBaseURL(repo.baseURL).
+		SetBaseURL(repo.apiURI.baseRepoURI).
 		SetTimeout(5 * time.Second).
 		SetDebug(false).
 		EnableTrace()
@@ -56,226 +100,269 @@ func NewRepoClientWithAPIBaseURLAndTransport(repoAPIBaseURL string, transport *h
 	return repo
 }
 
-func (p *PipyRepoClient) isCodebaseExists(path string) (bool, *Codebase) {
-	resp, err := p.httpClient.R().
+func (p *PipyRepoClient) isCodebaseExists(codebaseName string) (success bool, codebase *Codebase, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(path)
+		Get(codebaseName)
 
 	if err == nil {
+		success = true
 		switch resp.StatusCode() {
-		case http.StatusNotFound:
-			return false, nil
 		case http.StatusOK:
-			return true, resp.Result().(*Codebase)
+			codebase = resp.Result().(*Codebase)
+			return
+		default:
+			return
 		}
 	}
 
-	log.Err(err).Msgf("error happened while getting path %q", path)
-	return false, nil
+	log.Err(err).Msgf("error happened while checking Codebase Exists[%s]", codebaseName)
+	return
 }
 
-func (p *PipyRepoClient) get(path string) (*Codebase, error) {
-	resp, err := p.httpClient.R().
-		SetResult(&Codebase{}).
-		Get(path)
+func (p *PipyRepoClient) getCodebase(codebaseName string) (success bool, codebase *Codebase, err error) {
+	var resp *resty.Response
 
-	if err != nil {
-		log.Err(err).Msgf("Failed to get path %q", path)
-		return nil, err
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().
+		SetResult(&Codebase{}).
+		Get(codebaseName)
+
+	if err == nil {
+		success = true
+		switch resp.StatusCode() {
+		case http.StatusOK:
+			codebase = resp.Result().(*Codebase)
+			return
+		default:
+			return
+		}
 	}
 
-	return resp.Result().(*Codebase), nil
+	log.Err(err).Msgf("error happened while getting Codebase[%s]", codebaseName)
+	return
 }
 
-func (p *PipyRepoClient) createCodebase(version uint64, path string) (*Codebase, error) {
-	resp, err := p.httpClient.R().
+func (p *PipyRepoClient) createCodebase(version uint64, codebaseName string) (success bool, codebase *Codebase, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version}).
-		Post(path)
+		Post(codebaseName)
 
-	if err != nil {
-		log.Err(err).Msgf("failed to create codebase %q", path)
-		return nil, err
+	if err == nil {
+		success = true
+		switch resp.StatusCode() {
+		case http.StatusOK, http.StatusCreated:
+			return p.getCodebase(codebaseName)
+		default:
+			err = fmt.Errorf("error happened while creating Codebase[%s], reason: %s", codebaseName, resp.Status())
+			return
+		}
 	}
 
-	if resp.IsError() {
-		return nil, fmt.Errorf("failed to create codebase %q, reason: %s", path, resp.Status())
-	}
-
-	codebase, err := p.get(path)
-	if err != nil {
-		return nil, err
-	}
-
-	return codebase, nil
+	log.Err(err).Msgf("error happened while creating Codebase[%s]", codebaseName)
+	return
 }
 
-func (p *PipyRepoClient) deriveCodebase(path, base string) (*Codebase, error) {
-	resp, err := p.httpClient.R().
+func (p *PipyRepoClient) deriveCodebase(codebaseName, base string) (success bool, codebase *Codebase, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: 1, Base: base}).
-		Post(path)
+		Post(codebaseName)
 
-	if err != nil {
-		log.Err(err).Msgf("Failed to derive codebase codebase: path: %q, base: %q", path, base)
-		return nil, err
+	if err == nil {
+		success = true
+		switch resp.StatusCode() {
+		case http.StatusOK, http.StatusCreated:
+			success, codebase, err = p.getCodebase(codebaseName)
+			return
+		default:
+			err = fmt.Errorf("error happened while deriving Codebase[%s] base[%s], reason: %s", codebaseName, base, resp.Status())
+			return
+		}
 	}
 
-	switch resp.StatusCode() {
-	case http.StatusOK, http.StatusCreated:
-		log.Info().Msgf("Status code is %d, stands for success.", resp.StatusCode())
-	default:
-		log.Error().Msgf("Response contains error: %#v", resp.Status())
-		return nil, fmt.Errorf("failed to derive codebase codebase: path: %q, base: %q, reason: %s", path, base, resp.Status())
-	}
-
-	log.Info().Msgf("Getting info of codebase %q", path)
-	codebase, err := p.get(path)
-	if err != nil {
-		log.Error().Msgf("Failed to get info of codebase %q", path)
-		return nil, err
-	}
-
-	log.Info().Msgf("Successfully derived codebase: %#v", codebase)
-	return codebase, nil
+	log.Err(err).Msgf("error happened while deriving Codebase[%s]", codebaseName)
+	return
 }
 
-func (p *PipyRepoClient) upsertFile(path string, content interface{}) error {
+func (p *PipyRepoClient) upsertFile(path string, content interface{}) (success bool, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoFilesURI)
 	// FIXME: temp solution, refine it later
 	contentType := "text/plain"
 	if strings.HasSuffix(path, ".json") {
 		contentType = "application/json"
 	}
 
-	resp, err := p.httpClient.R().
+	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", contentType).
 		SetBody(content).
 		Post(path)
 
-	if err != nil {
-		log.Err(err).Msgf("error happened while trying to upsert %q to repo", path)
-		return err
+	if err == nil {
+		if resp.IsSuccess() {
+			success = true
+			return
+		}
+		err = fmt.Errorf("error happened while upserting file[%s], reason: %s", path, resp.Status())
+		return
 	}
 
-	if resp.IsSuccess() {
-		return nil
-	}
-
-	errMsg := "repo server responsed with error HTTP code: %d, error: %s"
-	log.Error().Msgf(errMsg, resp.StatusCode(), resp.Status())
-	return fmt.Errorf(errMsg, resp.StatusCode(), resp.Status())
+	log.Err(err).Msgf("error happened while upserting file[%s]", path)
+	return
 }
 
 // Delete codebase
-func (p *PipyRepoClient) Delete(path string) {
-	resp, err := p.httpClient.R().Delete(path)
-	if err != nil {
-		log.Err(err).Msgf("failed to create codebase %q", path)
-	} else if resp.IsError() {
-		log.Err(fmt.Errorf("failed to delete codebase %q, reason: %s", path, resp.Status()))
+func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().Delete(codebaseName)
+
+	if err == nil {
+		if resp.IsSuccess() {
+			success = true
+			return
+		}
+		err = fmt.Errorf("error happened while deleting codebase[%s], reason: %s", codebaseName, resp.Status())
+		return
 	}
+
+	log.Err(err).Msgf("error happened while deleting codebase[%s]", codebaseName)
+	return
 }
 
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
-func (p *PipyRepoClient) commit(path string, version uint64) error {
-	resp, err := p.httpClient.R().
+func (p *PipyRepoClient) commit(codebaseName string, version uint64) (success bool, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
+
+	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version + 1}).
 		SetResult(&Codebase{}).
-		Post(path)
+		Patch(codebaseName)
 
-	if err != nil {
-		return err
+	if err == nil {
+		if resp.IsSuccess() {
+			success = true
+			return
+		}
+		err = fmt.Errorf("error happened while committing codebase[%s], reason: %s", codebaseName, resp.Status())
+		return
 	}
 
-	if resp.IsSuccess() {
-		return nil
-	}
-
-	err = fmt.Errorf("failed to commit codebase %q, reason: %s", path, resp.Status())
-	log.Err(err)
-
-	return err
+	log.Err(err).Msgf("error happened while committing codebase[%s]", codebaseName)
+	return
 }
 
 // Batch submits multiple resources at once
-func (p *PipyRepoClient) Batch(version uint64, batches []Batch) error {
+func (p *PipyRepoClient) Batch(version uint64, batches []Batch) (success bool, err error) {
 	if len(batches) == 0 {
-		return nil
+		return
 	}
 
 	for _, batch := range batches {
 		// 1. batch.Basepath, if not exists, create it
 		log.Info().Msgf("batch.Basepath = %q", batch.Basepath)
 		var codebaseV uint64
-		exists, codebase := p.isCodebaseExists(batch.Basepath)
-		if exists {
-			// just get the version of codebase
+		var codebase *Codebase
+		success, codebase, err = p.isCodebaseExists(batch.Basepath)
+		if err != nil {
+			return
+		}
+		if codebase != nil {
+			// just getCodebase the version of codebase
 			codebaseV = uint64(codebase.Version)
 		} else {
 			log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
-			result, err := p.createCodebase(version, batch.Basepath)
-			if err != nil {
-				log.Err(err).Msgf("Not able to create the codebase %q", batch.Basepath)
-				return err
+			success, codebase, err = p.createCodebase(version, batch.Basepath)
+
+			if err != nil || !success || codebase == nil {
+				log.Info().Msgf("Failure! Result = %#v", codebase)
+				return
 			}
 
-			log.Info().Msgf("Result = %#v", result)
+			log.Info().Msgf("Success! Result = %#v", codebase)
 
-			codebaseV = result.Version
+			codebaseV = codebase.Version
 		}
 
 		// 2. upload each json to repo
 		for _, item := range batch.Items {
 			fullPath := fmt.Sprintf("%s%s/%s", batch.Basepath, item.Path, item.Filename)
 			log.Info().Msgf("Creating/updating config %q", fullPath)
-			err := p.upsertFile(fullPath, item.Content)
-			if err != nil {
-				log.Err(err).Msgf("Upsert %q error", fullPath)
-				return err
+			success, err = p.upsertFile(fullPath, item.Content)
+			if err != nil || !success {
+				return
 			}
 		}
 
 		// 3. commit the repo, so that changes can take effect
 		log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
-		if err := p.commit(batch.Basepath, codebaseV); err != nil {
-			log.Err(err).Msgf("Error happened while committing the codebase %q", batch.Basepath)
-			return err
+		if success, err = p.commit(batch.Basepath, codebaseV); err != nil || !success {
+			return
 		}
 	}
 
-	return nil
+	return
 }
 
 // DeriveCodebase derives Codebase
-func (p *PipyRepoClient) DeriveCodebase(path, base string) error {
-	log.Info().Msgf("Checking if exists, codebase %q", path)
-	exists, _ := p.isCodebaseExists(path)
+func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string) (success bool, err error) {
+	var codebase *Codebase
+	log.Info().Msgf("Checking if exists, codebase %q", codebaseName)
+	success, codebase, err = p.isCodebaseExists(codebaseName)
 
-	if exists {
-		log.Info().Msgf("Codebase %q already exists, ignore deriving ...", path)
-	} else {
-		log.Info().Msgf("Codebase %q doesn't exist, deriving ...", path)
-		result, err := p.deriveCodebase(path, base)
-		if err != nil {
-			log.Err(err).Msgf("Deriving codebase %q", path)
-			return err
-		}
-		log.Info().Msgf("Successfully derived codebase %q", path)
-
-		log.Info().Msgf("Committing the changes of codebase %q", path)
-		if err = p.commit(path, result.Version); err != nil {
-			log.Err(err).Msgf("Committing codebase %q", path)
-			return err
-		}
-		log.Info().Msgf("Successfully committed codebase %q", path)
+	if err != nil {
+		return
 	}
 
-	return nil
+	if codebase != nil {
+		log.Info().Msgf("Codebase %q already exists, ignore deriving ...", codebaseName)
+		return
+	}
+
+	log.Info().Msgf("Codebase %q doesn't exist, deriving ...", codebaseName)
+	success, codebase, err = p.deriveCodebase(codebaseName, base)
+	if err != nil {
+		log.Err(err).Msgf("Deriving codebase %q", codebaseName)
+		return
+	}
+	log.Info().Msgf("Successfully derived codebase %q", codebaseName)
+
+	log.Info().Msgf("Committing the changes of codebase %q", codebaseName)
+	if success, err = p.commit(codebaseName, codebase.Version); err != nil || !success {
+		log.Err(err).Msgf("Committing codebase %q", codebaseName)
+		return
+	}
+
+	log.Info().Msgf("Successfully committed codebase %q", codebaseName)
+	return
 }
 
 // IsRepoUp checks whether the repo is up
-func (p *PipyRepoClient) IsRepoUp() bool {
-	_, err := p.get("/")
-	return err == nil
+func (p *PipyRepoClient) IsRepoUp() (success bool, err error) {
+	if success, _, err = p.getCodebase("/"); err != nil || !success {
+		log.Err(err).Msgf("Pipy Repo is not UP:")
+		return
+	}
+	return
 }

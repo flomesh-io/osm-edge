@@ -95,7 +95,9 @@ func (s *Server) broadcastListener() {
 				if len(disconnectedProxies) > 0 {
 					for _, proxy := range disconnectedProxies {
 						s.proxyRegistry.UnregisterProxy(proxy)
-						s.repoClient.Delete(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix()))
+						if _, err := s.repoClient.Delete(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())); err != nil {
+							log.Err(err).Msgf("fail to delete %s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
+						}
 					}
 				}
 			}()
