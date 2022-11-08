@@ -294,7 +294,7 @@ type OutboundTrafficPolicy struct {
 	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
-// ForwardTrafficMatches is a wrapper type of map[Port][]WeightedClusters
+// ForwardTrafficMatches is a wrapper type of map[Port]WeightedClusters
 type ForwardTrafficMatches map[string]WeightedClusters
 
 // ForwardTrafficPolicy represents the policy of Egress Gateway
