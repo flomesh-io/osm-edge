@@ -1,7 +1,6 @@
 package repo
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -43,7 +42,7 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
 		msgBroker:      msgBroker,
-		repoClient:     client.NewRepoClient(fmt.Sprintf("127.0.0.1:%d", cfg.GetProxyServerPort())),
+		repoClient:     client.NewRepoClient("127.0.0.1", uint16(cfg.GetProxyServerPort())),
 	}
 
 	return &server
@@ -53,18 +52,19 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	// wait until pipy repo is up
 	err := wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
-		if s.repoClient.IsRepoUp() {
+		success, err := s.repoClient.IsRepoUp()
+		if success {
 			log.Info().Msg("Repo is READY!")
-			return true, nil
+			return success, nil
 		}
-		log.Info().Msg("Repo is not up, sleeping ...")
-		return false, nil
+		log.Error().Msg("Repo is not up, sleeping ...")
+		return success, err
 	})
 	if err != nil {
 		log.Error().Err(err)
 	}
 
-	err = s.repoClient.Batch(0, []client.Batch{
+	_, err = s.repoClient.Batch(0, []client.Batch{
 		{
 			Basepath: osmCodebase,
 			Items: []client.BatchItem{

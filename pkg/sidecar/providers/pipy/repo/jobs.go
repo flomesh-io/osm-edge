@@ -246,8 +246,8 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
-			err := repoClient.DeriveCodebase(codebase, osmCodebase)
-			if err == nil {
+			success, err := repoClient.DeriveCodebase(codebase, osmCodebase)
+			if success {
 				ts := time.Now()
 				pipyConf.Ts = &ts
 				version := fmt.Sprintf("%d", codebaseCurV)
@@ -259,7 +259,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 					pipyConf.Certificate.IssuingCA = string(proxy.SidecarCert.IssuingCA)
 				}
 				bytes, _ = json.MarshalIndent(pipyConf, "", " ")
-				err = repoClient.Batch(codebaseCurV, []client.Batch{
+				_, err = repoClient.Batch(codebaseCurV, []client.Batch{
 					{
 						Basepath: codebase,
 						Items: []client.BatchItem{
