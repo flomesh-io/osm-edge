@@ -238,6 +238,9 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 			Expiration: proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
 		}
 	}
+	if pipyConf.Outbound != nil && pipyConf.Outbound.TrafficMatches != nil {
+		pipyConf.Outbound.TrafficMatches.Sort()
+	}
 	bytes, jsonErr := json.Marshal(pipyConf)
 
 	if jsonErr == nil {
