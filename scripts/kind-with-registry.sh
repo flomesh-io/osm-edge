@@ -6,6 +6,7 @@ set -o pipefail
 
 # desired cluster name; default is "kind"
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-osm}"
+KIND_INGRESS_ENABLE="${KIND_INGRESS_ENABLE:-false}"
 
 # shellcheck disable=SC2086
 if kind get clusters | grep -q ^$KIND_CLUSTER_NAME$ ; then
@@ -38,6 +39,7 @@ if [ "${kind_network}" = "bridge" ]; then
 fi
 echo "Registry Host: ${reg_host}"
 
+if [ "${KIND_INGRESS_ENABLE}" != 'true' ]; then
 # create a cluster with the local registry enabled in containerd
 cat <<EOF | kind create cluster --image kindest/node:v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
 kind: Cluster
@@ -51,6 +53,31 @@ containerdConfigPatches:
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
     endpoint = ["http://${reg_host}:${reg_port}"]
 EOF
+else
+# create a cluster with the local registry enabled in containerd
+cat <<EOF | kind create cluster --image kindest/node:v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "ingress-ready=true"
+  extraPortMappings:
+  - containerPort: 80
+    hostPort: 80
+    protocol: TCP
+- role: worker
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:${reg_port}"]
+    endpoint = ["http://${reg_host}:${reg_port}"]
+EOF
+fi
 
 for node in $(kind get nodes --name "${KIND_CLUSTER_NAME}"); do
   kubectl annotate node "${node}" tilt.dev/registry=localhost:${reg_port};
