@@ -104,12 +104,6 @@ func (c *Client) ListServices() []*corev1.Service {
 	return services
 }
 
-// ListServiceAccounts returns a list of service accounts that are part of monitored namespaces
-func (c *Client) ListServiceAccounts() []*corev1.ServiceAccount {
-	fmt.Println("ListServiceAccounts:")
-	return nil
-}
-
 // GetNamespace returns a Namespace resource if found, nil otherwise.
 func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 	importedServiceIfs := c.informers.List(informers.InformerKeyServiceImport)
@@ -134,7 +128,6 @@ func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 // Kubecontroller does not currently segment pod notifications, hence it receives notifications
 // for all k8s Pods.
 func (c *Client) ListPods() []*corev1.Pod {
-	fmt.Println("ListPods:")
 	importedServiceIfs := c.informers.List(informers.InformerKeyServiceImport)
 	if len(importedServiceIfs) == 0 {
 		return nil
@@ -153,11 +146,11 @@ func (c *Client) ListPods() []*corev1.Pod {
 			}
 			for _, endpoint := range port.Endpoints {
 				pod := new(corev1.Pod)
-				pod.Namespace = "pipy"
+				pod.Namespace = importedService.Namespace
 				pod.Name = endpoint.Target.Host
 				pod.Labels = make(map[string]string)
 				pod.Labels["app"] = importedService.Name
-				pod.Spec.ServiceAccountName = "pipy"
+				pod.Spec.ServiceAccountName = AnyServiceAccount
 				pod.Status.PodIP = endpoint.Target.IP
 				pod.Status.PodIPs = append(pod.Status.PodIPs, corev1.PodIP{IP: pod.Status.PodIP})
 				pods = append(pods, pod)
@@ -220,12 +213,11 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 
 // ListServiceIdentitiesForService lists ServiceAccounts associated with the given service
 func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]identity.K8sServiceAccount, error) {
-	fmt.Println("ListServiceIdentitiesForService:")
 	var svcAccounts []identity.K8sServiceAccount
 
 	k8sSvc := c.GetService(svc)
 	if k8sSvc == nil {
-		return nil, fmt.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+		return nil, fmt.Errorf("error fetching service %q: %s", svc, errServiceNotFound)
 	}
 
 	svcAccountsSet := mapset.NewSet()

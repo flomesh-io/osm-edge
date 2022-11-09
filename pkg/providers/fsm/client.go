@@ -97,7 +97,8 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 		if pod.Namespace != sa.Namespace {
 			continue
 		}
-		if pod.Spec.ServiceAccountName != sa.Name {
+		if pod.Spec.ServiceAccountName != sa.Name &&
+			pod.Spec.ServiceAccountName != multicluster.AnyServiceAccount {
 			continue
 		}
 
@@ -129,7 +130,8 @@ func (c *client) GetServicesForServiceIdentity(svcIdentity identity.ServiceIdent
 			continue
 		}
 
-		if pod.Spec.ServiceAccountName != svcAccount.Name {
+		if pod.Spec.ServiceAccountName != svcAccount.Name &&
+			pod.Spec.ServiceAccountName != multicluster.AnyServiceAccount {
 			continue
 		}
 
