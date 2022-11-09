@@ -21,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/policy"
 	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -33,6 +34,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockMulticlusterController := multicluster.NewMockController(mockCtrl)
 
 	meshSpec := smiFake.NewFakeMeshSpecClient()
 
@@ -120,5 +122,5 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
 	return catalog.NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, mockMulticlusterController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

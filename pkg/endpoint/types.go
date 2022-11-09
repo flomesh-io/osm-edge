@@ -37,6 +37,12 @@ type Endpoint struct {
 
 	// Zone is the zone the endpoint resides in.
 	Zone string `json:"name"`
+
+	// ClusterKey is a cluster key.
+	ClusterKey string `json:"cluster,omitempty"`
+
+	// Path is a name with which a web service is accessed.
+	Path string `json:"path,omitempty"`
 }
 
 func (ep Endpoint) String() string {

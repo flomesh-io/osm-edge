@@ -102,21 +102,20 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		}
 		missingWeightNb := 0
 		availableWeight := uint32(100)
-		for _, weight := range *weightedEndpoints {
-			if weight == 0 {
+		for _, wze := range *weightedEndpoints {
+			if wze.Weight == 0 {
 				missingWeightNb++
 			} else {
-				availableWeight = availableWeight - uint32(weight)
+				availableWeight = availableWeight - uint32(wze.Weight)
 			}
 		}
 
 		if missingWeightNb == len(*weightedEndpoints) {
-			for upstreamEndpoint, weight := range *weightedEndpoints {
-				if weight == 0 {
-					weight = Weight(availableWeight / uint32(missingWeightNb))
+			for _, wze := range *weightedEndpoints {
+				if wze.Weight == 0 {
+					wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
 					missingWeightNb--
-					availableWeight = availableWeight - uint32(weight)
-					(*weightedEndpoints)[upstreamEndpoint] = weight
+					availableWeight = availableWeight - uint32(wze.Weight)
 				}
 			}
 		}
@@ -162,21 +161,20 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			}
 			missingWeightNb := 0
 			availableWeight := uint32(100)
-			for _, weight := range *weightedEndpoints {
-				if weight == 0 {
+			for _, wze := range *weightedEndpoints {
+				if wze.Weight == 0 {
 					missingWeightNb++
 				} else {
-					availableWeight = availableWeight - uint32(weight)
+					availableWeight = availableWeight - uint32(wze.Weight)
 				}
 			}
 
 			if missingWeightNb == len(*weightedEndpoints) {
-				for upstreamEndpoint, weight := range *weightedEndpoints {
-					if weight == 0 {
-						weight = Weight(availableWeight / uint32(missingWeightNb))
+				for _, wze := range *weightedEndpoints {
+					if wze.Weight == 0 {
+						wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
 						missingWeightNb--
-						availableWeight = availableWeight - uint32(weight)
-						(*weightedEndpoints)[upstreamEndpoint] = weight
+						availableWeight = availableWeight - uint32(wze.Weight)
 					}
 				}
 			}
@@ -378,15 +376,26 @@ func (itp *InboundTrafficPolicy) getTrafficMatch(port Port) *InboundTrafficMatch
 	return nil
 }
 
-func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMatch {
-	trafficMatch := new(OutboundTrafficMatch)
+func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*OutboundTrafficMatch, bool) {
+	namedPort := fmt.Sprintf(`%d=%s`, port, name)
+	if otp.namedTrafficMatches == nil {
+		otp.namedTrafficMatches = make(namedOutboundTrafficMatches)
+	}
+	trafficMatch, exists := otp.namedTrafficMatches[namedPort]
+	if exists {
+		return trafficMatch, true
+	}
+
+	trafficMatch = new(OutboundTrafficMatch)
+	otp.namedTrafficMatches[namedPort] = trafficMatch
+
 	if otp.TrafficMatches == nil {
 		otp.TrafficMatches = make(OutboundTrafficMatches)
 	}
 	trafficMatches := otp.TrafficMatches[port]
 	trafficMatches = append(trafficMatches, trafficMatch)
 	otp.TrafficMatches[port] = trafficMatches
-	return trafficMatch
+	return trafficMatch, false
 }
 
 func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
@@ -502,10 +511,50 @@ func (otp *OutboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *Cl
 
 func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weight Weight) {
 	if otp.Endpoints == nil {
-		weightedEndpoints := make(WeightedEndpoint)
+		weightedEndpoints := make(WeightedEndpoints)
 		otp.Endpoints = &weightedEndpoints
 	}
 	otp.Endpoints.addWeightedEndpoint(address, port, weight)
+}
+
+func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+	if otp.Endpoints == nil {
+		weightedEndpoints := make(WeightedEndpoints)
+		otp.Endpoints = &weightedEndpoints
+	}
+	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, cluster, contextPath)
+}
+
+func (wes *WeightedEndpoints) addWeightedEndpoint(address Address, port Port, weight Weight) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+		}
+	}
+}
+
+func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			ContextPath: contextPath,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			ContextPath: contextPath,
+		}
+	}
 }
 
 func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weight Weight) {

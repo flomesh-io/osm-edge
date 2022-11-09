@@ -1,4 +1,4 @@
-// version: '2022.09.24'
+// version: '2022.11.02'
 ((
   {
     metrics,
@@ -51,9 +51,10 @@
           (metrics.sidecarInsideStats[outClustersConfigs[_upstreamClusterName].HttpMaxPendingStatsKey]++,
             new Message({ status: 503 }, 'Service Unavailable'))
           :
-          (msg.head.headers['server'] = 'pipy',
-            msg.head.headers['x-pipy-upstream-service-time'] = Math.ceil(Date.now() - _timestamp),
-            msg)
+          (msg?.head?.headers && (
+            msg.head.headers['server'] = 'pipy',
+            msg.head.headers['x-pipy-upstream-service-time'] = Math.ceil(Date.now() - _timestamp)
+          ), msg)
       )
     )
     .chain()
@@ -83,7 +84,7 @@
     .to($ => $
       .muxHTTP(() => _outTarget, () => _muxHttpOptions).to($ => $.chain(['outbound-proxy-tcp.js']))
       .replaceMessage(
-        msg => ((status = msg.head.status, again = false) => (
+        msg => ((status = msg?.head?.status, again = false) => (
           (_retryPolicy && status >= _retryPolicy.lowerbound && status <= _retryPolicy.upperbound) && (
             _retryCount < _retryPolicy.NumRetries ? (
               metrics.sidecarInsideStats[_retryPolicy.StatsKeyPrefix]++,

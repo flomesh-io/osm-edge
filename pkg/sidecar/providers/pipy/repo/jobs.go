@@ -125,6 +125,9 @@ func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 
 func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
 	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(serviceIdentity)
+	if len(outboundTrafficPolicy.ServicesResolvableSet) > 0 {
+		pipyConf.DNSResolveDB = outboundTrafficPolicy.ServicesResolvableSet
+	}
 	outboundDependClusters := generatePipyOutboundTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf,
 		outboundTrafficPolicy)
 	if len(outboundDependClusters) > 0 {
@@ -155,6 +158,11 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 			if aclTrafficPolicy, aclErr := cataloger.GetAccessControlTrafficPolicy(svc); aclErr == nil {
 				if aclTrafficPolicy != nil {
 					generatePipyAccessControlTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, aclTrafficPolicy)
+				}
+			}
+			if expTrafficPolicy, expErr := cataloger.GetExportTrafficPolicy(svc); expErr == nil {
+				if expTrafficPolicy != nil {
+					generatePipyServiceExportTrafficRoutePolicy(cataloger, serviceIdentity, pipyConf, expTrafficPolicy)
 				}
 			}
 		}

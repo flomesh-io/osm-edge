@@ -123,6 +123,17 @@ const (
 
 	// ---
 
+	// IngressClassAdded is the type of announcement emitted when we observe an addition of a Kubernetes IngressClass
+	IngressClassAdded Kind = "ingressclass-added"
+
+	// IngressClassDeleted the type of announcement emitted when we observe the deletion of a Kubernetes IngressClass
+	IngressClassDeleted Kind = "ingressclass-deleted"
+
+	// IngressClassUpdated is the type of announcement emitted when we observe an update to a Kubernetes IngressClass
+	IngressClassUpdated Kind = "ingressclass-updated"
+
+	// ---
+
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
 	CertificateRotated Kind = "certificate-rotated"
 
@@ -192,6 +203,24 @@ const (
 
 	// AccessCertUpdated is the type of announcement emitted when we observe an update to accesscerts.policy.openservicemesh.io
 	AccessCertUpdated Kind = "accesscert-updated"
+
+	// ServiceExportAdded is the type of announcement emitted when we observe an addition of serviceexports.flomesh.io
+	ServiceExportAdded Kind = "serviceexport-added"
+
+	// ServiceExportDeleted the type of announcement emitted when we observe a deletion of serviceexports.flomesh.io
+	ServiceExportDeleted Kind = "serviceexport-deleted"
+
+	// ServiceExportUpdated is the type of announcement emitted when we observe an update to serviceexports.flomesh.io
+	ServiceExportUpdated Kind = "serviceexport-updated"
+
+	// ServiceImportAdded is the type of announcement emitted when we observe an addition of serviceimports.flomesh.io
+	ServiceImportAdded Kind = "serviceimport-added"
+
+	// ServiceImportDeleted the type of announcement emitted when we observe a deletion of serviceimports.flomesh.io
+	ServiceImportDeleted Kind = "serviceimport-deleted"
+
+	// ServiceImportUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
+	ServiceImportUpdated Kind = "serviceimport-updated"
 
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"

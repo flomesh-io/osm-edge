@@ -13,18 +13,21 @@ import (
 	k8sClientFake "k8s.io/client-go/kubernetes/fake"
 
 	configv1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
+	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	multiclusterFake "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned/fake"
+	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
-	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/models"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -48,15 +51,18 @@ func setupTestServer(b *testing.B) {
 	kubeClient := k8sClientFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
+	multiclusterClient := multiclusterFake.NewSimpleClientset()
 	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
 		informers.WithConfigClient(configClient, tests.OsmMeshConfigName, tests.OsmNamespace),
+		informers.WithMultiClusterClient(multiclusterClient),
 	)
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
 	kubeController := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
 	policyController := policy.NewPolicyController(informerCollection, kubeClient, kubeController, msgBroker)
+	multiclusterController := multicluster.NewMultiClusterController(informerCollection, kubeClient, kubeController, msgBroker)
 	osmConfigurator = configurator.NewConfigurator(informerCollection, tests.OsmNamespace, tests.OsmMeshConfigName, msgBroker)
 	kubeProvider := kube.NewClient(kubeController, osmConfigurator)
 
@@ -119,6 +125,7 @@ func setupTestServer(b *testing.B) {
 		meshSpec,
 		certManager,
 		policyController,
+		multiclusterController,
 		stop,
 		osmConfigurator,
 		[]service.Provider{kubeProvider},

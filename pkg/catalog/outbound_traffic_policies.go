@@ -32,20 +32,38 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	var clusterConfigs []*trafficpolicy.MeshClusterConfig
 	routeConfigPerPort := make(map[int][]*trafficpolicy.OutboundTrafficPolicy)
 	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
+	servicesResolvableSet := make(map[string][]interface{})
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+		existIntraEndpoints := false
 
 		// Retrieve the destination IP address from the endpoints for this service
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
+		endpoints := mc.getDNSResolvableServiceEndpoints(meshSvc)
+		for _, endp := range endpoints {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
+			}
+			if !existIntraEndpoints {
+				if len(endp.ClusterKey) == 0 {
+					existIntraEndpoints = true
+				}
+			}
+		}
+
+		if !existIntraEndpoints {
+			resolvableIPSet := mapset.NewSet()
+			for _, endp := range endpoints {
+				resolvableIPSet.Add(endp.IP.String())
+			}
+			if resolvableIPSet.Cardinality() > 0 {
+				servicesResolvableSet[meshSvc.FQDN()] = resolvableIPSet.ToSlice()
 			}
 		}
 
@@ -139,6 +157,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		TrafficMatches:          trafficMatches,
 		ClustersConfigs:         clusterConfigs,
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
+		ServicesResolvableSet:   servicesResolvableSet,
 	}
 }
 

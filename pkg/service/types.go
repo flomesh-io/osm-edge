@@ -131,6 +131,11 @@ func AccessControlTrafficMatchName(name, namespace string, targetPort uint16, pr
 	return fmt.Sprintf("acl_%s/%s_%d_%s", namespace, name, targetPort, protocol)
 }
 
+// ExportedServiceTrafficMatchName returns the export service traffic match name
+func ExportedServiceTrafficMatchName(name, namespace string, targetPort uint16, protocol string) string {
+	return fmt.Sprintf("exp_%s/%s_%d_%s", namespace, name, targetPort, protocol)
+}
+
 // ClusterName is a type for a service name
 type ClusterName string
 

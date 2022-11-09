@@ -1,4 +1,4 @@
-// version: '2022.10.27'
+// version: '2022.11.03'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -40,10 +40,32 @@
       forwardEgressGateways: null,
       codeMessage: codeMessage,
       mapIssuingCA: {},
-      listIssuingCA: []
+      listIssuingCA: [],
+      dnsRecordSets: {}
     },
 
     global.dnsSvcAddress = (global.dnsServers?.primary || global.dnsServers?.secondary || os.env.LOCAL_DNS_PROXY_PRIMARY_UPSTREAM || '10.96.0.10') + ":53",
+
+    config?.DNSResolveDB && (
+      Object.entries(config.DNSResolveDB).map(
+        ([k, v]) => (
+          ((rr) => (
+            rr = [],
+            v.map(
+              ip => (
+                rr.push({
+                  'name': k,
+                  'type': 'A',
+                  'ttl': 600, // TTL : 10 minutes
+                  'rdata': ip
+                })
+              )
+            ),
+            global.dnsRecordSets[k] = rr
+          ))()
+        )
+      )
+    ),
 
     global.addIssuingCA = ca => (
       (md5 => (
@@ -58,9 +80,9 @@
     global.funcShuffle = (arg, out, sort) => (
       arg && (() => (
         sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
-        global.debugLogLevel && console.log('funcShuffle LB in : ', arg),
-        out = Object.fromEntries(sort(sort(Object.entries(arg)))),
-        global.debugLogLevel && console.log('funcShuffle LB out : ', out)
+        // global.debugLogLevel && console.log('funcShuffle LB in : ', arg),
+        out = Object.fromEntries(sort(sort(Object.entries(arg))))
+        // global.debugLogLevel && console.log('funcShuffle LB out : ', out)
       ))(),
       out || {}
     ),
@@ -187,41 +209,73 @@
       ))
     ),
 
+    global.UniqueTrafficMatches = {},
+
     global.outTrafficMatches = config?.Outbound?.TrafficMatches && Object.fromEntries(
       Object.entries(config.Outbound.TrafficMatches).map(
         ([port, match]) => [
           port,
           (
             match?.map(
-              (o =>
-              ({
-                Port: o.Port,
-                Protocol: o.Protocol,
-                ServiceIdentity: o.ServiceIdentity,
-                AllowedEgressTraffic: o.AllowedEgressTraffic,
-                EgressForwardGateway: o?.EgressForwardGateway,
-                HttpHostPort2Service: o.HttpHostPort2Service,
-                TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
-                DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
-                  ([k, v]) => (
-                    v?.SourceCert?.IssuingCA && (
-                      global.addIssuingCA(v.SourceCert.IssuingCA)
-                    ),
-                    {
-                      netmask: new Netmask(k),
-                      cert: v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey ?
-                        ({ CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }) : v?.SourceCert
-                    }
-                  )
-                ),
-                HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
-              })
+              (o => ((obj, stub) => (
+                (obj = {
+                  Port: o.Port,
+                  Protocol: o.Protocol,
+                  ServiceIdentity: o.ServiceIdentity,
+                  AllowedEgressTraffic: o.AllowedEgressTraffic,
+                  EgressForwardGateway: o?.EgressForwardGateway,
+                  HttpHostPort2Service: o.HttpHostPort2Service,
+                  Identity: o.Port + '|' + o.Protocol + '|' + JSON.stringify(o.DestinationIPRanges),
+                  TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
+                  DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
+                    ([k, v]) => (
+                      v?.SourceCert?.IssuingCA && (
+                        global.addIssuingCA(v.SourceCert.IssuingCA)
+                      ),
+                      {
+                        netmask: new Netmask(k),
+                        cert: v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey ?
+                          ({ CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }) : v?.SourceCert
+                      }
+                    )
+                  ),
+                  HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
+                },
+                  (stub = global.UniqueTrafficMatches[obj.Identity]) && (
+                    stub.HttpHostPort2Service = Object.assign(stub.HttpHostPort2Service, obj.HttpHostPort2Service),
+                    stub.HttpServiceRouteRules = Object.assign(stub.HttpServiceRouteRules, obj.HttpServiceRouteRules)
+                  ),
+                  !stub && (global.UniqueTrafficMatches[obj.Identity] = obj),
+                  obj
+                )
+              ))()
               )
             )
           )
         ]
       )
     ),
+
+    global.UniqueTrafficMatchesFlag = {},
+
+    global.outTrafficMatches = global?.outTrafficMatches && Object.fromEntries(
+      Object.entries(global.outTrafficMatches).map(
+        ([port, match]) => [
+          port,
+          match?.map(
+            o => (
+              global.UniqueTrafficMatchesFlag[o.Identity] ?
+                (console.log('Merge outbound TrafficMatches : ', global.UniqueTrafficMatches[o.Identity]), null)
+                :
+                (global.UniqueTrafficMatchesFlag[o.Identity] = true, global.UniqueTrafficMatches[o.Identity])
+            )
+          ).filter(e => e)
+        ]
+      )
+    ),
+
+    delete global.UniqueTrafficMatches,
+    delete global.UniqueTrafficMatchesFlag,
 
     // Loadbalancer for endpoints
     global.outClustersConfigs = config?.Outbound?.ClustersConfigs && Object.fromEntries(
@@ -260,7 +314,16 @@
                   metrics.sidecarInsideStats[obj.HttpMaxPendingStatsKey] = 0
                 )
               ),
-              obj.Endpoints = new algo.RoundRobinLoadBalancer(global.funcShuffle(v.Endpoints)),
+              ((ep = {}) => (
+                obj.EndpointAttributes = {},
+                Object.entries(global.funcShuffle(v.Endpoints)).map(
+                  ([k, v]) => (
+                    ep[k] = v?.Weight,
+                    obj.EndpointAttributes[k] = v
+                  )
+                ),
+                obj.Endpoints = new algo.RoundRobinLoadBalancer(ep)
+              ))(),
               v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
                 obj.SourceCert = v.SourceCert,
                 global.addIssuingCA(v.SourceCert.IssuingCA)
