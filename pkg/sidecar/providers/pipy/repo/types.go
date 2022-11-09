@@ -286,8 +286,11 @@ type OutboundTrafficMatch struct {
 	EgressForwardGateway  *string
 }
 
+// OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch
+type OutboundTrafficMatchSlice []*OutboundTrafficMatch
+
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
-type OutboundTrafficMatches map[Port][]*OutboundTrafficMatch
+type OutboundTrafficMatches map[Port]OutboundTrafficMatchSlice
 
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {

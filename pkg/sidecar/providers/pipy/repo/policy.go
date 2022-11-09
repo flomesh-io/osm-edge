@@ -3,6 +3,7 @@ package repo
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -10,6 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/utils/cidr"
 )
 
 var (
@@ -599,4 +601,69 @@ func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName) *Clus
 		return newCluster
 	}
 	return cluster
+}
+
+// Len is the number of elements in the collection.
+func (otms OutboundTrafficMatchSlice) Len() int {
+	return len(otms)
+}
+
+// Less reports whether the element with index i
+// must sort before the element with index j.
+func (otms OutboundTrafficMatchSlice) Less(i, j int) bool {
+	a, b := otms[i], otms[j]
+
+	aLen, bLen := len(a.DestinationIPRanges), len(b.DestinationIPRanges)
+	if aLen == 0 && bLen == 0 {
+		return false
+	}
+	if aLen > 0 && bLen == 0 {
+		return false
+	}
+	if aLen == 0 && bLen > 0 {
+		return true
+	}
+
+	var aCidrs, bCidrs []*cidr.CIDR
+	for ipRangea := range a.DestinationIPRanges {
+		cidra, _ := cidr.ParseCIDR(string(ipRangea))
+		aCidrs = append(aCidrs, cidra)
+	}
+	for ipRangeb := range b.DestinationIPRanges {
+		cidrb, _ := cidr.ParseCIDR(string(ipRangeb))
+		bCidrs = append(bCidrs, cidrb)
+	}
+
+	cidr.DescSortCIDRs(aCidrs)
+	cidr.DescSortCIDRs(bCidrs)
+
+	minLen := aLen
+	if aLen > bLen {
+		minLen = aLen
+	}
+
+	for n := 0; n < minLen; n++ {
+		if cidr.CompareCIDR(aCidrs[n], bCidrs[n]) == 1 {
+			return true
+		}
+	}
+
+	return aLen > bLen
+}
+
+// Swap swaps the elements with indexes i and j.
+func (otms OutboundTrafficMatchSlice) Swap(i, j int) {
+	otms[j], otms[i] = otms[i], otms[j]
+}
+
+// Sort sorts data.
+// It makes one call to data.Len to determine n and O(n*log(n)) calls to
+// data.Less and data.Swap. The sort is not guaranteed to be stable.
+func (otms *OutboundTrafficMatches) Sort() {
+	for _, trafficMatches := range *otms {
+		if len(trafficMatches) <= 1 {
+			continue
+		}
+		sort.Sort(trafficMatches)
+	}
 }
