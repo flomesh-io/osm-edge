@@ -16,7 +16,7 @@ jobs:
     env:
       KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
     steps:
-      - name: Checkout v2
+      - name: Checkout v3
         uses: actions/checkout@v3
       - name: Set random cluster name
         run: echo "KIND_CLUSTER_NAME=kind-e2e-$(openssl rand -hex 6)" >> $GITHUB_ENV
