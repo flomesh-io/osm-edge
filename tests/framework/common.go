@@ -1190,6 +1190,7 @@ func (td *OsmTestData) WaitForRepeatedSuccess(f SuccessFunction, minItForSuccess
 	startTime := time.Now()
 
 	By(fmt.Sprintf("[WaitForRepeatedSuccess] waiting %v for %d iterations to succeed", maxWaitTime, minItForSuccess))
+	time.Sleep(10 * time.Second)
 	for time.Since(startTime) < maxWaitTime {
 		if f() {
 			iterations++
@@ -1212,6 +1213,7 @@ func (td *OsmTestData) WaitForSuccessAfterInitialFailure(f SuccessFunction, minI
 	successHasStarted := false
 
 	By(fmt.Sprintf("[WaitForSuccessAfterFailureBuffer] waiting %v for %d iterations to succeed", maxWaitTime, minItForSuccess))
+	time.Sleep(10 * time.Second)
 	for time.Since(startTime) < maxWaitTime {
 		if f() {
 			successHasStarted = true
