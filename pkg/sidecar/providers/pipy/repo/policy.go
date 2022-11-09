@@ -622,7 +622,7 @@ func (otms OutboundTrafficMatchSlice) Less(i, j int) bool {
 
 	minLen := aLen
 	if aLen > bLen {
-		minLen = aLen
+		minLen = bLen
 	}
 
 	for n := 0; n < minLen; n++ {
