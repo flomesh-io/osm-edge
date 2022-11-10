@@ -1,4 +1,4 @@
-// version: '2022.11.03'
+// version: '2022.11.10'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -211,6 +211,20 @@
 
     global.UniqueTrafficMatches = {},
 
+    global.funcUniqueIdentity = (port, protocol, destinationIPRanges,) => (
+      ((id = '',) => (
+        Object.keys(destinationIPRanges).sort().map(k => id += '|' + port + '_' + protocol + '_' + k + '|'),
+        id
+      ))()
+    ),
+
+    global.funcFindIdentity = (id) => (
+      ((key) => (
+        key = Object.keys(global.UniqueTrafficMatches).find(k => (k.indexOf(id) >= 0)),
+        key ? global.UniqueTrafficMatches[key] : null
+      ))()
+    ),
+
     global.outTrafficMatches = config?.Outbound?.TrafficMatches && Object.fromEntries(
       Object.entries(config.Outbound.TrafficMatches).map(
         ([port, match]) => [
@@ -225,7 +239,7 @@
                   AllowedEgressTraffic: o.AllowedEgressTraffic,
                   EgressForwardGateway: o?.EgressForwardGateway,
                   HttpHostPort2Service: o.HttpHostPort2Service,
-                  Identity: o.Port + '|' + o.Protocol + '|' + JSON.stringify(o.DestinationIPRanges),
+                  Identity: global.funcUniqueIdentity(o.Port, o.Protocol, o.DestinationIPRanges),
                   TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
                   DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
                     ([k, v]) => (
@@ -241,9 +255,10 @@
                   ),
                   HttpServiceRouteRules: o.HttpServiceRouteRules && global.funcOutboundHttpServiceRouteRules(o.HttpServiceRouteRules)
                 },
-                  (stub = global.UniqueTrafficMatches[obj.Identity]) && (
+                  (stub = global.funcFindIdentity(obj.Identity)) && (
                     stub.HttpHostPort2Service = Object.assign(stub.HttpHostPort2Service, obj.HttpHostPort2Service),
-                    stub.HttpServiceRouteRules = Object.assign(stub.HttpServiceRouteRules, obj.HttpServiceRouteRules)
+                    stub.HttpServiceRouteRules = Object.assign(stub.HttpServiceRouteRules, obj.HttpServiceRouteRules),
+                    obj.Identity = stub.Identity
                   ),
                   !stub && (global.UniqueTrafficMatches[obj.Identity] = obj),
                   obj
