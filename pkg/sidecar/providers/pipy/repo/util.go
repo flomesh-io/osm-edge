@@ -195,6 +195,31 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				}
 				tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			}
+		} else if destinationProtocol == constants.ProtocolHTTPS {
+			upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
+			upstreamSvcFQDN := upstreamSvc.FQDN()
+
+			httpRouteConfigs := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
+				int(upstreamSvc.TargetPort),
+				upstreamSvcFQDN)
+			if len(httpRouteConfigs) == 0 {
+				continue
+			}
+
+			for _, httpRouteConfig := range httpRouteConfigs {
+				for _, route := range httpRouteConfig.Routes {
+					for cluster := range route.WeightedClusters.Iter() {
+						serviceCluster := cluster.(service.WeightedCluster)
+						weightedCluster := new(WeightedCluster)
+						weightedCluster.WeightedCluster = serviceCluster
+						weightedCluster.RetryPolicy = route.RetryPolicy
+						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+							dependClusters[weightedCluster.ClusterName] = weightedCluster
+						}
+						tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+					}
+				}
+			}
 		}
 	}
 
@@ -885,9 +910,9 @@ func getEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdenti
 	return nil
 }
 
-func hash(bytes []byte) uint64 {
+func hash(bytes []byte) uint32 {
 	if hashCode, err := utils.HashFromString(string(bytes)); err == nil {
 		return hashCode
 	}
-	return uint64(time.Now().Nanosecond())
+	return uint32(time.Now().Nanosecond())
 }

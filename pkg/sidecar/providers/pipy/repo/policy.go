@@ -189,7 +189,6 @@ func (p *PipyConf) copyAllowedEndpoints(kubeController k8s.Controller, proxyRegi
 	for _, pod := range allPods {
 		proxyUUID, err := GetProxyUUIDFromPod(pod)
 		if err != nil {
-			ready = false
 			continue
 		}
 		proxy := proxyRegistry.GetConnectedProxy(proxyUUID)
