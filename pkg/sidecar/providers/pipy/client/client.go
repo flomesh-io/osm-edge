@@ -148,7 +148,7 @@ func (p *PipyRepoClient) getCodebase(codebaseName string) (success bool, codebas
 	return
 }
 
-func (p *PipyRepoClient) createCodebase(version uint64, codebaseName string) (success bool, codebase *Codebase, err error) {
+func (p *PipyRepoClient) createCodebase(version uint32, codebaseName string) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
 	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
@@ -159,12 +159,11 @@ func (p *PipyRepoClient) createCodebase(version uint64, codebaseName string) (su
 		Post(codebaseName)
 
 	if err == nil {
-		success = true
 		switch resp.StatusCode() {
 		case http.StatusOK, http.StatusCreated:
 			return p.getCodebase(codebaseName)
 		default:
-			err = fmt.Errorf("error happened while creating Codebase[%s], reason: %s", codebaseName, resp.Status())
+			err = fmt.Errorf("error happened while creating Codebase[%s], status: %s reason:%s", codebaseName, resp.Status(), string(resp.Body()))
 			return
 		}
 	}
@@ -249,7 +248,7 @@ func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
 }
 
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
-func (p *PipyRepoClient) commit(codebaseName string, version uint64) (success bool, err error) {
+func (p *PipyRepoClient) commit(codebaseName string, version uint32) (success bool, err error) {
 	var resp *resty.Response
 
 	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
@@ -274,7 +273,7 @@ func (p *PipyRepoClient) commit(codebaseName string, version uint64) (success bo
 }
 
 // Batch submits multiple resources at once
-func (p *PipyRepoClient) Batch(version uint64, batches []Batch) (success bool, err error) {
+func (p *PipyRepoClient) Batch(version uint32, batches []Batch) (success bool, err error) {
 	if len(batches) == 0 {
 		return
 	}
@@ -282,7 +281,7 @@ func (p *PipyRepoClient) Batch(version uint64, batches []Batch) (success bool, e
 	for _, batch := range batches {
 		// 1. batch.Basepath, if not exists, create it
 		log.Info().Msgf("batch.Basepath = %q", batch.Basepath)
-		var codebaseV uint64
+		var codebaseV uint32
 		var codebase *Codebase
 		success, codebase, err = p.isCodebaseExists(batch.Basepath)
 		if err != nil {
@@ -290,7 +289,7 @@ func (p *PipyRepoClient) Batch(version uint64, batches []Batch) (success bool, e
 		}
 		if codebase != nil {
 			// just getCodebase the version of codebase
-			codebaseV = uint64(codebase.Version)
+			codebaseV = codebase.Version
 		} else {
 			log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
 			success, codebase, err = p.createCodebase(version, batch.Basepath)

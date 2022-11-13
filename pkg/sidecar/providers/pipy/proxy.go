@@ -44,7 +44,7 @@ type Proxy struct {
 	SidecarCert *certificate.Certificate
 
 	// The version of Pipy Repo Codebase
-	ETag uint64
+	ETag uint32
 
 	Mutex *sync.RWMutex
 	Quit  chan bool
