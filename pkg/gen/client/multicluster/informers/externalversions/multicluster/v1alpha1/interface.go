@@ -21,6 +21,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
+	GlobalTrafficPolicies() GlobalTrafficPolicyInformer
 	// ServiceExports returns a ServiceExportInformer.
 	ServiceExports() ServiceExportInformer
 	// ServiceImports returns a ServiceImportInformer.
@@ -36,6 +38,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakListOptions internalinterfaces.TweakListOptionsFunc) Interface {
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
+}
+
+// GlobalTrafficPolicies returns a GlobalTrafficPolicyInformer.
+func (v *version) GlobalTrafficPolicies() GlobalTrafficPolicyInformer {
+	return &globalTrafficPolicyInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // ServiceExports returns a ServiceExportInformer.

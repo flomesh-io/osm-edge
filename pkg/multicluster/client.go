@@ -49,6 +49,13 @@ func NewMultiClusterController(informerCollection *informers.InformerCollection,
 	}
 	client.informers.AddEventHandler(informers.InformerKeyServiceImport, k8s.GetEventHandlerFuncs(shouldObserve, svcImportEventTypes, msgBroker))
 
+	glbTrafficPolicyTypes := k8s.EventTypes{
+		Add:    announcements.GlobalTrafficPolicyAdded,
+		Update: announcements.GlobalTrafficPolicyUpdated,
+		Delete: announcements.GlobalTrafficPolicyDeleted,
+	}
+	client.informers.AddEventHandler(informers.InformerKeyGlobalTrafficPolicy, k8s.GetEventHandlerFuncs(shouldObserve, glbTrafficPolicyTypes, msgBroker))
+
 	ingressClassEventTypes := k8s.EventTypes{
 		Add:    announcements.IngressClassAdded,
 		Update: announcements.IngressClassUpdated,

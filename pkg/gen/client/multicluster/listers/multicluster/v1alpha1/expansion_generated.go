@@ -15,6 +15,14 @@ limitations under the License.
 
 package v1alpha1
 
+// GlobalTrafficPolicyListerExpansion allows custom methods to be added to
+// GlobalTrafficPolicyLister.
+type GlobalTrafficPolicyListerExpansion interface{}
+
+// GlobalTrafficPolicyNamespaceListerExpansion allows custom methods to be added to
+// GlobalTrafficPolicyNamespaceLister.
+type GlobalTrafficPolicyNamespaceListerExpansion interface{}
+
 // ServiceExportListerExpansion allows custom methods to be added to
 // ServiceExportLister.
 type ServiceExportListerExpansion interface{}

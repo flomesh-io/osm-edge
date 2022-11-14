@@ -222,6 +222,15 @@ const (
 	// ServiceImportUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
 	ServiceImportUpdated Kind = "serviceimport-updated"
 
+	// GlobalTrafficPolicyAdded is the type of announcement emitted when we observe an addition of serviceimports.flomesh.io
+	GlobalTrafficPolicyAdded Kind = "globaltrafficpolicy-added"
+
+	// GlobalTrafficPolicyDeleted the type of announcement emitted when we observe a deletion of serviceimports.flomesh.io
+	GlobalTrafficPolicyDeleted Kind = "globaltrafficpolicy-deleted"
+
+	// GlobalTrafficPolicyUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
+	GlobalTrafficPolicyUpdated Kind = "globaltrafficpolicy-updated"
+
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
 

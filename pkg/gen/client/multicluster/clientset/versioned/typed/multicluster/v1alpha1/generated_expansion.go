@@ -15,6 +15,8 @@ limitations under the License.
 
 package v1alpha1
 
+type GlobalTrafficPolicyExpansion interface{}
+
 type ServiceExportExpansion interface{}
 
 type ServiceImportExpansion interface{}

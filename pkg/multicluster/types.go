@@ -48,9 +48,12 @@ type Controller interface {
 	// GetEndpoints returns the endpoints for a given service, if found
 	GetEndpoints(service.MeshService) (*corev1.Endpoints, error)
 
+	// GetIngressControllerServices returns ingress controller services.
+	GetIngressControllerServices() []service.MeshService
+
 	// GetExportedRule retrieves the export rule for the given MeshService
 	GetExportedRule(svc service.MeshService) (*multiclusterv1alpha1.ServiceExportRule, error)
 
-	// GetIngressControllerServices returns ingress controller services.
-	GetIngressControllerServices() []service.MeshService
+	// GetGlobalTrafficPolicies retrieves global traffic policies
+	GetGlobalTrafficPolicies(svc service.MeshService) (*multiclusterv1alpha1.GlobalTrafficPolicy, error)
 }

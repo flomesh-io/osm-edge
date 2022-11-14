@@ -67,6 +67,21 @@ func (mr *MockControllerMockRecorder) GetExportedRule(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExportedRule", reflect.TypeOf((*MockController)(nil).GetExportedRule), arg0)
 }
 
+// GetGlobalTrafficPolicies mocks base method.
+func (m *MockController) GetGlobalTrafficPolicies(arg0 service.MeshService) (*v1alpha1.GlobalTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGlobalTrafficPolicies", arg0)
+	ret0, _ := ret[0].(*v1alpha1.GlobalTrafficPolicy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGlobalTrafficPolicies indicates an expected call of GetGlobalTrafficPolicies.
+func (mr *MockControllerMockRecorder) GetGlobalTrafficPolicies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGlobalTrafficPolicies", reflect.TypeOf((*MockController)(nil).GetGlobalTrafficPolicies), arg0)
+}
+
 // GetIngressControllerServices mocks base method.
 func (m *MockController) GetIngressControllerServices() []service.MeshService {
 	m.ctrl.T.Helper()
@@ -107,20 +122,6 @@ func (m *MockController) ListPods() []*v1.Pod {
 func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
-}
-
-// ListServiceAccounts mocks base method.
-func (m *MockController) ListServiceAccounts() []*v1.ServiceAccount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccounts")
-	ret0, _ := ret[0].([]*v1.ServiceAccount)
-	return ret0
-}
-
-// ListServiceAccounts indicates an expected call of ListServiceAccounts.
-func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
 }
 
 // ListServiceIdentitiesForService mocks base method.

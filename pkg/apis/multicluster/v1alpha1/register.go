@@ -41,6 +41,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ServiceImportList{},
 		&ServiceExport{},
 		&ServiceExportList{},
+		&GlobalTrafficPolicy{},
+		&GlobalTrafficPolicyList{},
 	)
 
 	metav1.AddToGroupVersion(
