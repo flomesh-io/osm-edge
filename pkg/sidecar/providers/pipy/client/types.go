@@ -32,7 +32,7 @@ var (
 
 // Codebase is Pipy's logic unit
 type Codebase struct {
-	Version     uint32   `json:"version,omitempty"`
+	Version     string   `json:"version,omitempty"`
 	Path        string   `json:"path,omitempty"`
 	Main        string   `json:"main,omitempty"`
 	Base        string   `json:"base,omitempty"`
