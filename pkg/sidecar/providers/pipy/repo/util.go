@@ -810,9 +810,9 @@ func getEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdenti
 	return nil
 }
 
-func hash(bytes []byte) uint32 {
+func hash(bytes []byte) uint64 {
 	if hashCode, err := utils.HashFromString(string(bytes)); err == nil {
 		return hashCode
 	}
-	return uint32(time.Now().Nanosecond())
+	return uint64(time.Now().Nanosecond())
 }

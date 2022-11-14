@@ -261,7 +261,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 					pipyConf.Certificate.IssuingCA = string(proxy.SidecarCert.IssuingCA)
 				}
 				bytes, _ = json.MarshalIndent(pipyConf, "", " ")
-				_, err = repoClient.Batch(codebaseCurV, []client.Batch{
+				_, err = repoClient.Batch(fmt.Sprintf("%d", codebaseCurV), []client.Batch{
 					{
 						Basepath: codebase,
 						Items: []client.BatchItem{
