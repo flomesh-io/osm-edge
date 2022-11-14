@@ -15,7 +15,7 @@ func TestHashFromString(t *testing.T) {
 
 	emptyStringHash, err := HashFromString("")
 	assert.NoError(err)
-	assert.Equal(emptyStringHash, uint32(0x11c9dc5))
+	assert.Equal(emptyStringHash, uint64(14695981039346656037))
 
 	assert.NotEqual(stringHash, emptyStringHash)
 }
