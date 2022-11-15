@@ -116,7 +116,7 @@ func (c *Client) GetNamespace(ns string) *corev1.Namespace {
 		if strings.EqualFold(importedService.Namespace, ns) {
 			namespace := new(corev1.Namespace)
 			namespace.Name = importedService.Namespace
-			namespace.Spec.Finalizers = append(namespace.Spec.Finalizers, "Flomesh")
+			namespace.Spec.Finalizers = append(namespace.Spec.Finalizers, "flomesh.io")
 			return namespace
 		}
 	}
@@ -150,7 +150,7 @@ func (c *Client) ListPods() []*corev1.Pod {
 				pod.Name = endpoint.Target.Host
 				pod.Labels = make(map[string]string)
 				pod.Labels["app"] = importedService.Name
-				pod.Spec.ServiceAccountName = AnyServiceAccount
+				pod.Spec.ServiceAccountName = importedService.Spec.ServiceAccountName
 				pod.Status.PodIP = endpoint.Target.IP
 				pod.Status.PodIPs = append(pod.Status.PodIPs, corev1.PodIP{IP: pod.Status.PodIP})
 				pods = append(pods, pod)
