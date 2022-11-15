@@ -56,5 +56,5 @@ func (c *Certificate) ShouldRotate() bool {
 
 	intNoise := rand.Intn(noiseSeconds) // #nosec G404
 	secondsNoise := time.Duration(intNoise) * time.Second
-	return time.Until(c.GetExpiration()) <= (RenewBeforeCertExpires + secondsNoise)
+	return time.Until(c.GetExpiration().Round(0)) <= (RenewBeforeCertExpires + secondsNoise)
 }
