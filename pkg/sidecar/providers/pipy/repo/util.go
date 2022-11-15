@@ -405,7 +405,10 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 	for _, trafficMatch := range ingressPolicy.TrafficMatches {
 		tm := itp.getTrafficMatch(Port(trafficMatch.Port))
 		if tm == nil {
-			continue
+			tm = itp.newTrafficMatch(Port(trafficMatch.Port))
+			protocol := strings.ToLower(trafficMatch.Protocol)
+			tm.setProtocol(Protocol(protocol))
+			tm.setPort(Port(trafficMatch.Port))
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -547,7 +550,10 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 	for _, trafficMatch := range aclPolicy.TrafficMatches {
 		tm := itp.getTrafficMatch(Port(trafficMatch.Port))
 		if tm == nil {
-			continue
+			tm = itp.newTrafficMatch(Port(trafficMatch.Port))
+			protocol := strings.ToLower(trafficMatch.Protocol)
+			tm.setProtocol(Protocol(protocol))
+			tm.setPort(Port(trafficMatch.Port))
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -633,7 +639,10 @@ func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 	for _, trafficMatch := range expPolicy.TrafficMatches {
 		tm := itp.getTrafficMatch(Port(trafficMatch.Port))
 		if tm == nil {
-			continue
+			tm = itp.newTrafficMatch(Port(trafficMatch.Port))
+			protocol := strings.ToLower(trafficMatch.Protocol)
+			tm.setProtocol(Protocol(protocol))
+			tm.setPort(Port(trafficMatch.Port))
 		}
 
 		var securitySpec *SourceSecuritySpec
