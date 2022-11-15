@@ -1,43 +1,34 @@
-// version: '2022.08.12'
 ((
-  {
-    metrics
-  } = pipy.solve('config.js')) => (
+  metrics = pipy.solve('metrics-init.js')
+) => (
 
   pipy({
   })
 
     .import({
-      _inTarget: 'main',
-      _localClusterName: 'main'
+      _inTarget: 'inbound-classifier',
+      _localClusterName: 'inbound-classifier'
     })
 
     //
     // Connect to local service
     //
     .pipeline()
+
     .onStart(
       () => (
         metrics.activeConnectionGauge.withLabels(_localClusterName).increase()
       )
     )
+    
     .onEnd(
       () => (
         metrics.activeConnectionGauge.withLabels(_localClusterName).decrease()
       )
     )
-    .handleData(
-      (data) => (
-        metrics.sendBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
-      )
-    )
+
     .connect(
       () => _inTarget?.id
-    )
-    .handleData(
-      (data) => (
-        metrics.receiveBytesTotalCounter.withLabels(_localClusterName).increase(data.size)
-      )
     )
 
 ))()

@@ -1,53 +1,81 @@
-// version: '2022.10.09'
 ((
   {
-    config,
-    metrics,
-    debugLogLevel,
     tlsCertChain,
     tlsPrivateKey,
     tlsIssuingCA,
-    listIssuingCA
-  } = pipy.solve('config.js')) => (
+    listIssuingCA,
+    forwardMatches,
+    forwardEgressGateways,
+  } = pipy.solve('config.js'),
 
-  pipy({})
+  metrics = pipy.solve('metrics-init.js'),
+  
+  {
+    debug,
+  } = pipy.solve('utils.js'),
+
+  _forwardMatches = forwardMatches && Object.fromEntries(
+    Object.entries(
+      forwardMatches).map(
+        ([k, v]) => [
+          k, new algo.RoundRobinLoadBalancer(v || {})
+        ]
+      )
+  ),
+
+  _forwardEgressGateways = forwardEgressGateways && Object.fromEntries(
+    Object.entries(
+      forwardEgressGateways).map(
+        ([k, v]) => [
+          k, new algo.RoundRobinLoadBalancer(v?.Endpoints || {})
+        ]
+      )
+  )
+
+) => (
+
+  pipy({
+    _egressEndpoint: null,
+  })
 
     .import({
-      _egressMode: 'main',
-      _egressEndpoint: 'main',
-      _outSourceCert: 'main',
-      _outTarget: 'main',
-      _upstreamClusterName: 'main'
+      _outMatch: 'outbound-classifier',
+      _outTarget: 'outbound-classifier',
+      _egressEnable: 'outbound-classifier',
+      _outSourceCert: 'outbound-classifier',
+      _upstreamClusterName: 'outbound-classifier',
+      _outClustersBreakers: 'outbound-breaker',
     })
 
     //
     // Connect to upstream service
     //
     .pipeline()
+
     .onStart(
       () => (
-        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint/_outSourceCert', Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint, Boolean(_outSourceCert)),
+        // Find egress nat gateway
+        _forwardMatches && ((policy, egw) => (
+          policy = _outMatch?.EgressForwardGateway ? _outMatch?.EgressForwardGateway : '*',
+          egw = _forwardMatches[policy]?.next?.()?.id,
+          egw && (_egressEndpoint = _forwardEgressGateways?.[egw]?.next?.()?.id)
+        ))(),
+
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase(),
-        config?.outClustersBreakers?.[_upstreamClusterName]?.incConnections?.(),
+        _outClustersBreakers?.[_upstreamClusterName]?.incConnections?.(),
+
+        debug(log => log('outbound connectTLS - TLS/_egressEnable/_egressEndpoint/_outSourceCert: ', Boolean(tlsCertChain), _egressEnable, _egressEndpoint, Boolean(_outSourceCert))),
         null
       )
     )
+    
     .onEnd(
       () => (
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).decrease(),
-        config?.outClustersBreakers?.[_upstreamClusterName]?.decConnections?.()
+        _outClustersBreakers?.[_upstreamClusterName]?.decConnections?.()
       )
     )
-    .handleMessageStart(
-      (msg) => (
-        msg?.head?._upstreamClusterName && config?.outClustersBreakers?.[msg?.head?._upstreamClusterName]?.increase?.()
-      )
-    )
-    .handleData(
-      (data) => (
-        metrics.sendBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
-      )
-    )
+
     .branch(
       () => Boolean(_outSourceCert), $ => $
         .connectTLS({
@@ -59,7 +87,8 @@
         }).to($ => $
           .connect(() => _outTarget?.id)
         ),
-      () => (Boolean(tlsCertChain) && !Boolean(_egressMode)), $ => $
+
+      () => (Boolean(tlsCertChain) && !_egressEnable), $ => $
         .connectTLS({
           certificate: () => ({
             cert: new crypto.Certificate(tlsCertChain),
@@ -71,7 +100,8 @@
         }).to($ => $
           .connect(() => _outTarget?.id)
         ),
-      () => (Boolean(_egressMode) && Boolean(_egressEndpoint)), $ => $
+
+      () => (_egressEnable && Boolean(_egressEndpoint)), $ => $
         .connectSOCKS(
           () => _outTarget?.id,
         ).to($ => $
@@ -79,13 +109,10 @@
             () => _egressEndpoint
           )
         ),
+
       $ => $
         .connect(() => _outTarget?.id)
     )
-    .handleData(
-      (data) => (
-        metrics.receiveBytesTotalCounter.withLabels(_upstreamClusterName).increase(data.size)
-      )
-    )
+    .chain()
 
 ))()

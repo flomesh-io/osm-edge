@@ -1,13 +1,13 @@
-// version: '2022.09.19'
 ((
   {
     config,
-    metrics,
-    prometheusTarget
-  } = pipy.solve('config.js')) => (
+    prometheusTarget,
+  } = pipy.solve('config.js'),
+  metrics = pipy.solve('metrics-init.js')
+) => (
 
   pipy({
-    _statsPath: null
+    _statsPath: null,
   })
 
     //
