@@ -19,6 +19,10 @@ import (
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
 func (c *Client) GetService(svc service.MeshService) *corev1.Service {
+	if c.isLocality(svc) {
+		return nil
+	}
+
 	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, svc.NamespacedKey())
 	if !exists || err != nil {
 		return nil
@@ -73,6 +77,13 @@ func (c *Client) ListServices() []*corev1.Service {
 	for _, importedServiceIf := range importedServiceIfs {
 		importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
 		if len(importedService.Spec.Ports) == 0 {
+			continue
+		}
+		svc := service.MeshService{
+			Namespace: importedService.Namespace, // Backends belong to the same namespace as the apex service
+			Name:      importedService.Name,
+		}
+		if c.isLocality(svc) {
 			continue
 		}
 
@@ -164,6 +175,10 @@ func (c *Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
+	if c.isLocality(svc) {
+		return nil, nil
+	}
+
 	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, svc.NamespacedKey())
 	if err != nil || !exists {
 		return nil, nil
@@ -248,6 +263,14 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 // GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
 // to communicate with it.
 func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+	svc := service.MeshService{
+		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
+		Name:      namespacedSvc.Name,
+	}
+	if c.isLocality(svc) {
+		return 0, fmt.Errorf("service %s not found in multi cluster cache", namespacedSvc)
+	}
+
 	meshService := service.MeshService{
 		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
 		Name:      namespacedSvc.Name,

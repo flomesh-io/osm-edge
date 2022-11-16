@@ -57,7 +57,4 @@ type Controller interface {
 
 	//GetTargetPortForServicePort retrieves target for service
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
-
-	// GetGlobalTrafficPolicies retrieves global traffic policies
-	GetGlobalTrafficPolicies(svc service.MeshService) (*multiclusterv1alpha1.GlobalTrafficPolicy, error)
 }

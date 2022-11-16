@@ -31,6 +31,9 @@ func NewMultiClusterController(informerCollection *informers.InformerCollection,
 		if _, serviceImport := obj.(*multiclusterv1alpha1.ServiceImport); serviceImport {
 			return true
 		}
+		if _, gblTrafficPolicy := obj.(*multiclusterv1alpha1.GlobalTrafficPolicy); gblTrafficPolicy {
+			return true
+		}
 		_, ingressClass := obj.(*networkingv1.IngressClass)
 		return ingressClass
 	}

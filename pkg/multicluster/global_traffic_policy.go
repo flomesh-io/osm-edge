@@ -6,14 +6,33 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// GetGlobalTrafficPolicies retrieves global traffic policies
-func (c *Client) GetGlobalTrafficPolicies(svc service.MeshService) (*multiclusterv1alpha1.GlobalTrafficPolicy, error) {
+func (c *Client) getGlobalTrafficPolicy(svc service.MeshService) *multiclusterv1alpha1.GlobalTrafficPolicy {
 	gblTrafficPolicyIf, exists, err := c.informers.GetByKey(informers.InformerKeyGlobalTrafficPolicy, svc.NamespacedKey())
 	if !exists || err != nil {
-		return nil, err
+		return nil
 	}
 
-	gblTrafficPolicy := gblTrafficPolicyIf.(*multiclusterv1alpha1.GlobalTrafficPolicy)
+	return gblTrafficPolicyIf.(*multiclusterv1alpha1.GlobalTrafficPolicy)
+}
 
-	return gblTrafficPolicy, nil
+func (c *Client) isLocality(svc service.MeshService) bool {
+	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
+	if gblTrafficPolicy == nil {
+		return true
+	}
+	if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.LocalityLbType {
+		return true
+	}
+	return false
+}
+
+func (c *Client) isFailOver(svc service.MeshService) bool {
+	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
+	if gblTrafficPolicy == nil {
+		return false
+	}
+	if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.FailOverLbType {
+		return true
+	}
+	return false
 }
