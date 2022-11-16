@@ -12,6 +12,7 @@ import (
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
+	types "k8s.io/apimachinery/pkg/types"
 )
 
 // MockController is a mock of Controller interface.
@@ -67,21 +68,6 @@ func (mr *MockControllerMockRecorder) GetExportedRule(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExportedRule", reflect.TypeOf((*MockController)(nil).GetExportedRule), arg0)
 }
 
-// GetGlobalTrafficPolicies mocks base method.
-func (m *MockController) GetGlobalTrafficPolicies(arg0 service.MeshService) (*v1alpha1.GlobalTrafficPolicy, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGlobalTrafficPolicies", arg0)
-	ret0, _ := ret[0].(*v1alpha1.GlobalTrafficPolicy)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGlobalTrafficPolicies indicates an expected call of GetGlobalTrafficPolicies.
-func (mr *MockControllerMockRecorder) GetGlobalTrafficPolicies(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGlobalTrafficPolicies", reflect.TypeOf((*MockController)(nil).GetGlobalTrafficPolicies), arg0)
-}
-
 // GetIngressControllerServices mocks base method.
 func (m *MockController) GetIngressControllerServices() []service.MeshService {
 	m.ctrl.T.Helper()
@@ -108,6 +94,36 @@ func (m *MockController) GetService(arg0 service.MeshService) *v1.Service {
 func (mr *MockControllerMockRecorder) GetService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetService", reflect.TypeOf((*MockController)(nil).GetService), arg0)
+}
+
+// GetTargetPortForServicePort mocks base method.
+func (m *MockController) GetTargetPortForServicePort(arg0 types.NamespacedName, arg1 uint16) (uint16, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTargetPortForServicePort", arg0, arg1)
+	ret0, _ := ret[0].(uint16)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTargetPortForServicePort indicates an expected call of GetTargetPortForServicePort.
+func (mr *MockControllerMockRecorder) GetTargetPortForServicePort(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetPortForServicePort", reflect.TypeOf((*MockController)(nil).GetTargetPortForServicePort), arg0, arg1)
+}
+
+// GetTargetWeightForService mocks base method.
+func (m *MockController) GetTargetWeightForService(arg0 service.MeshService) (bool, int) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTargetWeightForService", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(int)
+	return ret0, ret1
+}
+
+// GetTargetWeightForService indicates an expected call of GetTargetWeightForService.
+func (mr *MockControllerMockRecorder) GetTargetWeightForService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTargetWeightForService", reflect.TypeOf((*MockController)(nil).GetTargetWeightForService), arg0)
 }
 
 // ListPods mocks base method.

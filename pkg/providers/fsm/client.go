@@ -242,9 +242,10 @@ func ServiceToMeshServices(c multicluster.Controller, svc corev1.Service) []serv
 
 	for _, portSpec := range svc.Spec.Ports {
 		meshSvc := service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-			Port:      uint16(portSpec.Port),
+			Namespace:  svc.Namespace,
+			Name:       svc.Name,
+			Port:       uint16(portSpec.Port),
+			ClusterKey: svc.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
 		}
 
 		// attempt to parse protocol from port name
@@ -288,6 +289,7 @@ func ServiceToMeshServices(c multicluster.Controller, svc corev1.Service) []serv
 					Port:       meshSvc.Port,
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,
+					ClusterKey: svc.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
 				})
 			}
 		}

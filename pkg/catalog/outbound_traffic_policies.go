@@ -138,6 +138,11 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				ClusterName: service.ClusterName(meshSvc.SidecarClusterName()),
 				Weight:      constants.ClusterWeightAcceptAll,
 			}
+			if meshSvc.IsMultiClusterService() {
+				if aaLb, weight := mc.multiclusterController.GetTargetWeightForService(meshSvc); aaLb && weight > 0 {
+					wc.Weight = weight
+				}
+			}
 			// No TrafficSplit for this upstream service, so use a default weighted cluster
 			upstreamClusters = append(upstreamClusters, wc)
 		}

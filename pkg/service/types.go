@@ -49,6 +49,9 @@ type MeshService struct {
 
 	// Protocol is the protocol served by the service's port
 	Protocol string
+
+	// ClusterKey is the cluster key
+	ClusterKey string
 }
 
 // NamespacedKey is the key (i.e. namespace + ProviderKey()) with which to lookup the backing service within the provider
@@ -72,6 +75,11 @@ func (ms *MeshService) ProviderKey() string {
 	nameComponents := strings.Split(ms.Name, ".")
 
 	return nameComponents[len(nameComponents)-1]
+}
+
+// IsMultiClusterService checks whether it is a multi cluster service
+func (ms *MeshService) IsMultiClusterService() bool {
+	return len(ms.ClusterKey) > 0
 }
 
 // SiblingTo returns true if svc and ms are derived from the same resource

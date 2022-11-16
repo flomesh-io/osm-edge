@@ -57,4 +57,7 @@ type Controller interface {
 
 	//GetTargetPortForServicePort retrieves target for service
 	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+
+	// GetTargetWeightForService retrieves weight for service
+	GetTargetWeightForService(svc service.MeshService) (aaLb bool, weight int)
 }

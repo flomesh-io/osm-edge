@@ -26,13 +26,13 @@ func (c *Client) isLocality(svc service.MeshService) bool {
 	return false
 }
 
-func (c *Client) isFailOver(svc service.MeshService) bool {
-	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
-	if gblTrafficPolicy == nil {
-		return false
-	}
-	if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.FailOverLbType {
-		return true
-	}
-	return false
-}
+//func (c *Client) isFailOver(svc service.MeshService) bool {
+//	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
+//	if gblTrafficPolicy == nil {
+//		return false
+//	}
+//	if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.FailOverLbType {
+//		return true
+//	}
+//	return false
+//}

@@ -2,12 +2,12 @@ package multicluster
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
@@ -43,7 +43,10 @@ func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 					targetSvc.Namespace = importedService.Namespace
 					targetSvc.Name = importedService.Name
 					targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
-					targetSvc.Spec.Selector = map[string]string{"app": importedService.Name}
+					targetSvc.Spec.Selector = make(map[string]string)
+					targetSvc.Spec.Selector["app"] = importedService.Name
+					targetSvc.Annotations = make(map[string]string)
+					targetSvc.Annotations[ServiceImportClusterKeyAnnotation] = endpoint.ClusterKey
 					targetSvc.Spec.ClusterIP = endpoint.Target.IP
 					targetSvc.Spec.ClusterIPs = append(targetSvc.Spec.ClusterIPs, targetSvc.Spec.ClusterIP)
 					targetSvcPort := corev1.ServicePort{
@@ -94,7 +97,10 @@ func (c *Client) ListServices() []*corev1.Service {
 					targetSvc.Namespace = importedService.Namespace
 					targetSvc.Name = importedService.Name
 					targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
-					targetSvc.Spec.Selector = map[string]string{"app": importedService.Name}
+					targetSvc.Spec.Selector = make(map[string]string)
+					targetSvc.Spec.Selector["app"] = importedService.Name
+					targetSvc.Annotations = make(map[string]string)
+					targetSvc.Annotations[ServiceImportClusterKeyAnnotation] = endpoint.ClusterKey
 					targetSvc.Spec.ClusterIP = endpoint.Target.IP
 					targetSvc.Spec.ClusterIPs = append(targetSvc.Spec.ClusterIPs, targetSvc.Spec.ClusterIP)
 					targetSvcPort := corev1.ServicePort{
@@ -296,4 +302,19 @@ func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 	}
 
 	return 0, fmt.Errorf("endpoint for service %s not found in multi cluster cache", namespacedSvc)
+}
+
+// GetTargetWeightForService retrieves weight for service
+func (c *Client) GetTargetWeightForService(svc service.MeshService) (aaLb bool, weight int) {
+	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
+	if gblTrafficPolicy != nil {
+		if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.ActiveActiveLbType {
+			for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
+				if lbt.ClusterKey == svc.ClusterKey {
+					return true, lbt.Weight
+				}
+			}
+		}
+	}
+	return false, -1
 }
