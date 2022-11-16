@@ -3,6 +3,7 @@ package multicluster
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
@@ -53,6 +54,9 @@ type Controller interface {
 
 	// GetExportedRule retrieves the export rule for the given MeshService
 	GetExportedRule(svc service.MeshService) (*multiclusterv1alpha1.ServiceExportRule, error)
+
+	//GetTargetPortForServicePort retrieves target for service
+	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 
 	// GetGlobalTrafficPolicies retrieves global traffic policies
 	GetGlobalTrafficPolicies(svc service.MeshService) (*multiclusterv1alpha1.GlobalTrafficPolicy, error)

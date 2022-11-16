@@ -97,19 +97,41 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
 					Name:      backend.Service,
 				}
-				targetPort, err := mc.kubeController.GetTargetPortForServicePort(
-					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
-					continue
-				}
-				backendMeshSvc.TargetPort = targetPort
 
-				wc := service.WeightedCluster{
-					ClusterName: service.ClusterName(backendMeshSvc.SidecarClusterName()),
-					Weight:      backend.Weight,
+				var cns []service.ClusterName
+				var targetPortErrs []error
+				supporters := []TrafficSplitSupporter{mc.kubeController, mc.multiclusterController}
+				for _, supporter := range supporters {
+					targetPort, err := supporter.GetTargetPortForServicePort(
+						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+					if err != nil {
+						targetPortErrs = append(targetPortErrs, err)
+						continue
+					}
+
+					backendMeshSvc.TargetPort = targetPort
+
+					cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
 				}
-				upstreamClusters = append(upstreamClusters, wc)
+
+				if len(cns) > 0 {
+					totalWeight := backend.Weight
+					for index, cn := range cns {
+						weight := totalWeight / (len(cns) - index)
+						totalWeight -= weight
+						wc := service.WeightedCluster{
+							ClusterName: cn,
+							Weight:      weight,
+						}
+						upstreamClusters = append(upstreamClusters, wc)
+					}
+				}
+
+				if len(cns) == 0 && len(targetPortErrs) > 0 {
+					for _, err := range targetPortErrs {
+						log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
+					}
+				}
 			}
 		} else {
 			wc := service.WeightedCluster{

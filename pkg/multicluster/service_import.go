@@ -2,6 +2,7 @@ package multicluster
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -242,4 +243,34 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 		svcAccounts = append(svcAccounts, svcAcc.(identity.K8sServiceAccount))
 	}
 	return svcAccounts, nil
+}
+
+// GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
+// to communicate with it.
+func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+	meshService := service.MeshService{
+		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
+		Name:      namespacedSvc.Name,
+	}
+	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, meshService.NamespacedKey())
+	if !exists || err != nil {
+		return 0, fmt.Errorf("service %s not found in multi cluster cache", namespacedSvc)
+	}
+
+	importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
+	if len(importedService.Spec.Ports) == 0 {
+		return 0, fmt.Errorf("service port %s not found in multi cluster cache", namespacedSvc)
+	}
+
+	for _, svcPort := range importedService.Spec.Ports {
+		if strings.EqualFold(importedService.Name, meshService.Name) &&
+			uint16(svcPort.Port) == port &&
+			len(svcPort.Endpoints) > 0 {
+			for _, endpoint := range svcPort.Endpoints {
+				return uint16(endpoint.Target.Port), nil
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("endpoint for service %s not found in multi cluster cache", namespacedSvc)
 }
