@@ -2,19 +2,17 @@ package multicluster
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
-
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
@@ -37,32 +35,34 @@ func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 		if strings.EqualFold(importedService.Name, svc.Name) &&
 			uint16(port.Port) == svc.Port &&
 			len(port.Endpoints) > 0 {
+			targetSvc := new(corev1.Service)
+			targetSvc.UID = importedService.UID
+			targetSvc.Namespace = importedService.Namespace
+			targetSvc.Name = importedService.Name
+			targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
+			targetSvc.Spec.Selector = make(map[string]string)
+			targetSvc.Spec.Selector["app"] = importedService.Name
 			for _, endpoint := range port.Endpoints {
 				if svc.TargetPort == uint16(endpoint.Target.Port) {
-					targetSvc := new(corev1.Service)
-					targetSvc.Namespace = importedService.Namespace
-					targetSvc.Name = importedService.Name
-					targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
-					targetSvc.Spec.Selector = make(map[string]string)
-					targetSvc.Spec.Selector["app"] = importedService.Name
-					targetSvc.Annotations = make(map[string]string)
-					targetSvc.Annotations[ServiceImportClusterKeyAnnotation] = endpoint.ClusterKey
-					targetSvc.Spec.ClusterIP = endpoint.Target.IP
-					targetSvc.Spec.ClusterIPs = append(targetSvc.Spec.ClusterIPs, targetSvc.Spec.ClusterIP)
-					targetSvcPort := corev1.ServicePort{
-						Name:        port.Name,
-						Protocol:    port.Protocol,
-						AppProtocol: port.AppProtocol,
-						Port:        port.Port,
-						TargetPort: intstr.IntOrString{
-							Type:   intstr.Int,
-							IntVal: endpoint.Target.Port,
-						},
+					if len(targetSvc.Spec.ClusterIP) == 0 {
+						targetSvc.Spec.ClusterIP = endpoint.Target.IP
+						targetSvc.Spec.ClusterIPs = append(targetSvc.Spec.ClusterIPs, targetSvc.Spec.ClusterIP)
+						targetSvcPort := corev1.ServicePort{
+							Name:        port.Name,
+							Protocol:    port.Protocol,
+							AppProtocol: port.AppProtocol,
+							Port:        port.Port,
+							TargetPort: intstr.IntOrString{
+								Type:   intstr.Int,
+								IntVal: endpoint.Target.Port,
+							},
+						}
+						targetSvc.Spec.Ports = append(targetSvc.Spec.Ports, targetSvcPort)
+						break
 					}
-					targetSvc.Spec.Ports = append(targetSvc.Spec.Ports, targetSvcPort)
-					return targetSvc
 				}
 			}
+			return targetSvc
 		}
 	}
 	return nil
@@ -94,13 +94,12 @@ func (c *Client) ListServices() []*corev1.Service {
 			if len(port.Endpoints) > 0 {
 				for _, endpoint := range port.Endpoints {
 					targetSvc := new(corev1.Service)
+					targetSvc.UID = importedService.UID
 					targetSvc.Namespace = importedService.Namespace
 					targetSvc.Name = importedService.Name
 					targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
 					targetSvc.Spec.Selector = make(map[string]string)
 					targetSvc.Spec.Selector["app"] = importedService.Name
-					targetSvc.Annotations = make(map[string]string)
-					targetSvc.Annotations[ServiceImportClusterKeyAnnotation] = endpoint.ClusterKey
 					targetSvc.Spec.ClusterIP = endpoint.Target.IP
 					targetSvc.Spec.ClusterIPs = append(targetSvc.Spec.ClusterIPs, targetSvc.Spec.ClusterIP)
 					targetSvcPort := corev1.ServicePort{
@@ -181,7 +180,8 @@ func (c *Client) ListPods() []*corev1.Pod {
 // GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
 // or error if the API errored out.
 func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
-	if c.isLocality(svc) {
+	lbType, clusterKeys := c.getServiceTrafficPolicy(svc)
+	if lbType == multiclusterv1alpha1.LocalityLbType {
 		return nil, nil
 	}
 
@@ -199,16 +199,21 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 		if strings.EqualFold(importedService.Name, svc.Name) &&
 			(svc.Port == 0 || svc.Port == uint16(port.Port)) &&
 			len(port.Endpoints) > 0 {
+			targetEndpoints := new(corev1.Endpoints)
+			targetEndpoints.Namespace = importedService.Namespace
+			targetEndpoints.Name = importedService.Name
 			for _, endpoint := range port.Endpoints {
 				if svc.TargetPort > 0 && svc.TargetPort != uint16(endpoint.Target.Port) {
 					continue
 				}
-				targetEndpoints := new(corev1.Endpoints)
+				if len(clusterKeys) > 0 {
+					if _, found := clusterKeys[endpoint.ClusterKey]; !found {
+						continue
+					}
+				}
 				targetEndpoints.Annotations = make(map[string]string)
-				targetEndpoints.Annotations[ServiceImportClusterKeyAnnotation] = endpoint.ClusterKey
-				targetEndpoints.Annotations[ServiceImportContextPathAnnotation] = endpoint.Target.Path
-				targetEndpoints.Namespace = importedService.Namespace
-				targetEndpoints.Name = importedService.Name
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportClusterKeyAnnotation, endpoint.Target.Port)] = endpoint.ClusterKey
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportContextPathAnnotation, endpoint.Target.Port)] = endpoint.Target.Path
 				targetEndpoints.Subsets = append(targetEndpoints.Subsets, corev1.EndpointSubset{
 					Addresses: []corev1.EndpointAddress{
 						{
@@ -225,8 +230,8 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 						},
 					},
 				})
-				return targetEndpoints, nil
 			}
+			return targetEndpoints, nil
 		}
 	}
 
@@ -268,53 +273,35 @@ func (c *Client) ListServiceIdentitiesForService(svc service.MeshService) ([]ide
 
 // GetTargetPortForServicePort returns the TargetPort corresponding to the Port used by clients
 // to communicate with it.
-func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, port uint16) map[uint16]bool {
 	svc := service.MeshService{
 		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
 		Name:      namespacedSvc.Name,
 	}
-	if c.isLocality(svc) {
-		return 0, fmt.Errorf("service %s not found in multi cluster cache", namespacedSvc)
+	aa, _, lc, _ := c.GetLbWeightForService(svc)
+	if lc {
+		return nil
 	}
 
-	meshService := service.MeshService{
-		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
-		Name:      namespacedSvc.Name,
-	}
-	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, meshService.NamespacedKey())
+	importedServiceIf, exists, err := c.informers.GetByKey(informers.InformerKeyServiceImport, svc.NamespacedKey())
 	if !exists || err != nil {
-		return 0, fmt.Errorf("service %s not found in multi cluster cache", namespacedSvc)
+		return nil
 	}
 
 	importedService := importedServiceIf.(*multiclusterv1alpha1.ServiceImport)
 	if len(importedService.Spec.Ports) == 0 {
-		return 0, fmt.Errorf("service port %s not found in multi cluster cache", namespacedSvc)
+		return nil
 	}
 
+	targetPorts := make(map[uint16]bool)
 	for _, svcPort := range importedService.Spec.Ports {
-		if strings.EqualFold(importedService.Name, meshService.Name) &&
+		if strings.EqualFold(importedService.Name, namespacedSvc.Name) &&
 			uint16(svcPort.Port) == port &&
 			len(svcPort.Endpoints) > 0 {
 			for _, endpoint := range svcPort.Endpoints {
-				return uint16(endpoint.Target.Port), nil
+				targetPorts[uint16(endpoint.Target.Port)] = aa
 			}
 		}
 	}
-
-	return 0, fmt.Errorf("endpoint for service %s not found in multi cluster cache", namespacedSvc)
-}
-
-// GetTargetWeightForService retrieves weight for service
-func (c *Client) GetTargetWeightForService(svc service.MeshService) (aaLb bool, weight int) {
-	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
-	if gblTrafficPolicy != nil {
-		if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.ActiveActiveLbType {
-			for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
-				if lbt.ClusterKey == svc.ClusterKey {
-					return true, lbt.Weight
-				}
-			}
-		}
-	}
-	return false, -1
+	return targetPorts
 }

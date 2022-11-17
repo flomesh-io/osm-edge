@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
-	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -42,11 +41,9 @@ func (c *client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
-	log.Trace().Msgf("Getting Endpoints for MeshService %s on MultiClusters", svc)
-
 	kubernetesEndpoints, err := c.multiclusterController.GetEndpoints(svc)
 	if err != nil || kubernetesEndpoints == nil {
-		log.Info().Msgf("No k8s endpoints found for MeshService %s", svc)
+		log.Info().Msgf("No mcs endpoints found for MeshService %s", svc)
 		return nil
 	}
 
@@ -73,16 +70,13 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 				ept := endpoint.Endpoint{
 					IP:         ip,
 					Port:       endpoint.Port(port.Port),
-					ClusterKey: kubernetesEndpoints.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
-					Path:       kubernetesEndpoints.Annotations[multicluster.ServiceImportContextPathAnnotation],
+					ClusterKey: kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportClusterKeyAnnotation, port.Port)],
+					Path:       kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportContextPathAnnotation, port.Port)],
 				}
 				endpoints = append(endpoints, ept)
 			}
 		}
 	}
-
-	log.Trace().Msgf("Endpoints for MeshService %s: %v", svc, endpoints)
-
 	return endpoints
 }
 
@@ -90,8 +84,6 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 // Note: ServiceIdentity must be in the format "name.namespace" [https://github.com/openservicemesh/osm/issues/3188]
 func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdentity) []endpoint.Endpoint {
 	sa := serviceIdentity.ToK8sServiceAccount()
-	log.Trace().Msgf("[%s] (ListEndpointsForIdentity) Getting Endpoints for service account %s on Kubernetes", c.GetID(), sa)
-
 	var endpoints []endpoint.Endpoint
 	for _, pod := range c.multiclusterController.ListPods() {
 		if pod.Namespace != sa.Namespace {
@@ -112,9 +104,6 @@ func (c *client) ListEndpointsForIdentity(serviceIdentity identity.ServiceIdenti
 			endpoints = append(endpoints, ept)
 		}
 	}
-
-	log.Trace().Msgf("[%s][ListEndpointsForIdentity] Endpoints for service identity (serviceAccount=%s) %s: %+v", c.GetID(), serviceIdentity, sa, endpoints)
-
 	return endpoints
 }
 
@@ -242,10 +231,10 @@ func ServiceToMeshServices(c multicluster.Controller, svc corev1.Service) []serv
 
 	for _, portSpec := range svc.Spec.Ports {
 		meshSvc := service.MeshService{
-			Namespace:  svc.Namespace,
-			Name:       svc.Name,
-			Port:       uint16(portSpec.Port),
-			ClusterKey: svc.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
+			Namespace:        svc.Namespace,
+			Name:             svc.Name,
+			Port:             uint16(portSpec.Port),
+			ServiceImportUID: svc.UID,
 		}
 
 		// attempt to parse protocol from port name
@@ -267,65 +256,23 @@ func ServiceToMeshServices(c multicluster.Controller, svc corev1.Service) []serv
 		// The endpoints for the kubernetes service carry information that allows
 		// us to retrieve the TargetPort for the MeshService.
 		endpoints, _ := c.GetEndpoints(meshSvc)
-		if endpoints != nil {
-			meshSvc.TargetPort = GetTargetPortFromEndpoints(portSpec.Name, *endpoints)
-		} else {
-			log.Warn().Msgf("k8s service %s/%s does not have endpoints but is being represented as a MeshService", svc.Namespace, svc.Name)
-		}
-
-		if !k8s.IsHeadlessService(svc) || endpoints == nil {
-			meshServices = append(meshServices, meshSvc)
+		if endpoints == nil {
 			continue
 		}
 
 		for _, subset := range endpoints.Subsets {
-			for _, address := range subset.Addresses {
-				if address.Hostname == "" {
-					continue
-				}
+			for _, port := range subset.Ports {
 				meshServices = append(meshServices, service.MeshService{
-					Namespace:  svc.Namespace,
-					Name:       fmt.Sprintf("%s.%s", address.Hostname, svc.Name),
-					Port:       meshSvc.Port,
-					TargetPort: meshSvc.TargetPort,
-					Protocol:   meshSvc.Protocol,
-					ClusterKey: svc.Annotations[multicluster.ServiceImportClusterKeyAnnotation],
+					Namespace:        meshSvc.Namespace,
+					Name:             meshSvc.Name,
+					Port:             meshSvc.Port,
+					TargetPort:       uint16(port.Port),
+					Protocol:         meshSvc.Protocol,
+					ServiceImportUID: meshSvc.ServiceImportUID,
 				})
 			}
 		}
 	}
 
 	return meshServices
-}
-
-// GetTargetPortFromEndpoints returns the endpoint port corresponding to the given endpoint name and endpoints
-func GetTargetPortFromEndpoints(endpointName string, endpoints corev1.Endpoints) (endpointPort uint16) {
-	// Per https://pkg.go.dev/k8s.io/api/core/v1#ServicePort and
-	// https://pkg.go.dev/k8s.io/api/core/v1#EndpointPort, if a service has multiple
-	// ports, then ServicePort.Name must match EndpointPort.Name when considering
-	// matching endpoints for the service's port. ServicePort.Name and EndpointPort.Name
-	// can be unset when the service has a single port exposed, in which case we are
-	// guaranteed to have the same port specified in the list of EndpointPort.Subsets.
-	//
-	// The logic below works as follows:
-	// If the service has multiple ports, retrieve the matching endpoint port using
-	// the given ServicePort.Name specified by `endpointName`.
-	// Otherwise, simply return the only port referenced in EndpointPort.Subsets.
-	for _, subset := range endpoints.Subsets {
-		for _, port := range subset.Ports {
-			if endpointName == "" || len(subset.Ports) == 1 {
-				// ServicePort.Name is not passed or a single port exists on the service.
-				// Both imply that this service has a single ServicePort and EndpointPort.
-				endpointPort = uint16(port.Port)
-				return
-			}
-
-			// If more than 1 port is specified
-			if port.Name == endpointName {
-				endpointPort = uint16(port.Port)
-				return
-			}
-		}
-	}
-	return
 }

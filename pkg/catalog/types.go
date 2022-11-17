@@ -5,9 +5,6 @@
 package catalog
 
 import (
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -20,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -98,12 +96,6 @@ type MeshCataloger interface {
 
 	// GetExportTrafficPolicy returns the export policy for the given mesh service
 	GetExportTrafficPolicy(svc service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error)
-}
-
-// TrafficSplitSupporter is the supporter for Traffic Split policy
-type TrafficSplitSupporter interface {
-	//GetTargetPortForServicePort retrieves target for service
-	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
 }
 
 type trafficDirection string

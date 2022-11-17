@@ -16,10 +16,10 @@ import (
 
 const (
 	// ServiceImportClusterKeyAnnotation is the annotation used to configure context path for imported service
-	ServiceImportClusterKeyAnnotation = "flomesh.io/ServiceImport/ClusterKey"
+	ServiceImportClusterKeyAnnotation = "flomesh.io/ServiceImport/ClusterKey/%d"
 
 	// ServiceImportContextPathAnnotation is the annotation used to configure context path for imported service
-	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath"
+	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath/%d"
 
 	// AnyServiceAccount defines wildcard service account
 	AnyServiceAccount = "*"
@@ -56,8 +56,8 @@ type Controller interface {
 	GetExportedRule(svc service.MeshService) (*multiclusterv1alpha1.ServiceExportRule, error)
 
 	//GetTargetPortForServicePort retrieves target for service
-	GetTargetPortForServicePort(types.NamespacedName, uint16) (uint16, error)
+	GetTargetPortForServicePort(types.NamespacedName, uint16) map[uint16]bool
 
-	// GetTargetWeightForService retrieves weight for service
-	GetTargetWeightForService(svc service.MeshService) (aaLb bool, weight int)
+	// GetLbWeightForService retrieves load balancer type and weight for service
+	GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool, weight int)
 }
