@@ -8,6 +8,8 @@
     forwardEgressGateways,
   } = pipy.solve('config.js'),
 
+  caShallowCopy = {caList: listIssuingCA},
+
   metrics = pipy.solve('metrics-init.js'),
   
   {
@@ -83,7 +85,7 @@
             cert: new crypto.Certificate(_outSourceCert.CertChain),
             key: new crypto.PrivateKey(_outSourceCert.PrivateKey),
           }),
-          trusted: listIssuingCA
+          trusted: caShallowCopy.caList
         }).to($ => $
           .connect(() => _outTarget?.id)
         ),
