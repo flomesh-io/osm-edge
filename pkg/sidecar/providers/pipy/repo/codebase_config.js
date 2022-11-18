@@ -239,7 +239,7 @@
                   AllowedEgressTraffic: o.AllowedEgressTraffic,
                   EgressForwardGateway: o?.EgressForwardGateway,
                   HttpHostPort2Service: o.HttpHostPort2Service,
-                  Identity: global.funcUniqueIdentity(o.Port, o.Protocol, o.DestinationIPRanges),
+                  Identity: global.funcUniqueIdentity(o.Port, o.Protocol, o.DestinationIPRanges || { '*': null }),
                   TargetClusters: o.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(o.TargetClusters)),
                   DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
                     ([k, v]) => (
