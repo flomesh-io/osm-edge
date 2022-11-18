@@ -2,6 +2,8 @@
   {
     outClustersConfigs,
     specEnableEgress,
+    tlsCertChain,
+    tlsPrivateKey,
     addIssuingCA,
   } = pipy.solve('config.js'),
   codeMessage = pipy.solve('codes.js'),
