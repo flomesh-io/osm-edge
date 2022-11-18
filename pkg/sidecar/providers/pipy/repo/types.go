@@ -305,7 +305,8 @@ type InboundTrafficPolicy struct {
 // WeightedZoneEndpoint represents the endpoint with zone and weight
 type WeightedZoneEndpoint struct {
 	Weight      Weight `json:"Weight"`
-	Cluster     string `json:"Cluster,omitempty"`
+	Cluster     string `json:"Key,omitempty"`
+	LBType      string `json:"-"`
 	ContextPath string `json:"Path,omitempty"`
 }
 

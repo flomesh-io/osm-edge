@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/identity"
 	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/openservicemesh/osm/pkg/identity"
 )
 
 // Locality is the relative locality of a service. ie: if a service is being accessed from the same namespace or a

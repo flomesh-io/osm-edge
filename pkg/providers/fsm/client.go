@@ -4,6 +4,7 @@ package fsm
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
@@ -67,10 +68,13 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 					log.Error().Msgf("Error parsing endpoint IP address %s for MeshService %s", address.IP, svc)
 					continue
 				}
+				weight, _ := strconv.ParseUint(kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBWeightAnnotation, port.Port)], 10, 64)
 				ept := endpoint.Endpoint{
 					IP:         ip,
 					Port:       endpoint.Port(port.Port),
 					ClusterKey: kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportClusterKeyAnnotation, port.Port)],
+					LBType:     kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBTypeAnnotation, port.Port)],
+					Weight:     endpoint.Weight(weight),
 					Path:       kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportContextPathAnnotation, port.Port)],
 				}
 				endpoints = append(endpoints, ept)

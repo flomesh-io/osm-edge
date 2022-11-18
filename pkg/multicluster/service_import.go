@@ -2,17 +2,18 @@ package multicluster
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/service"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
@@ -206,14 +207,19 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 				if svc.TargetPort > 0 && svc.TargetPort != uint16(endpoint.Target.Port) {
 					continue
 				}
+				lbWeight := 0
 				if len(clusterKeys) > 0 {
-					if _, found := clusterKeys[endpoint.ClusterKey]; !found {
+					if weight, found := clusterKeys[endpoint.ClusterKey]; !found {
 						continue
+					} else {
+						lbWeight = weight
 					}
 				}
 				targetEndpoints.Annotations = make(map[string]string)
 				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportClusterKeyAnnotation, endpoint.Target.Port)] = endpoint.ClusterKey
 				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportContextPathAnnotation, endpoint.Target.Port)] = endpoint.Target.Path
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBTypeAnnotation, endpoint.Target.Port)] = string(lbType)
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBWeightAnnotation, endpoint.Target.Port)] = fmt.Sprintf("%d", lbWeight)
 				targetEndpoints.Subsets = append(targetEndpoints.Subsets, corev1.EndpointSubset{
 					Addresses: []corev1.EndpointAddress{
 						{
@@ -278,7 +284,7 @@ func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 		Namespace: namespacedSvc.Namespace, // Backends belong to the same namespace as the apex service
 		Name:      namespacedSvc.Name,
 	}
-	aa, _, lc, _ := c.GetLbWeightForService(svc)
+	aa, _, lc, _, clusterKeys := c.GetLbWeightForService(svc)
 	if lc {
 		return nil
 	}
@@ -299,7 +305,13 @@ func (c Client) GetTargetPortForServicePort(namespacedSvc types.NamespacedName, 
 			uint16(svcPort.Port) == port &&
 			len(svcPort.Endpoints) > 0 {
 			for _, endpoint := range svcPort.Endpoints {
-				targetPorts[uint16(endpoint.Target.Port)] = aa
+				if len(clusterKeys) > 0 {
+					if _, exisit := clusterKeys[endpoint.ClusterKey]; exisit {
+						targetPorts[uint16(endpoint.Target.Port)] = aa
+					}
+				} else {
+					targetPorts[uint16(endpoint.Target.Port)] = aa
+				}
 			}
 		}
 	}

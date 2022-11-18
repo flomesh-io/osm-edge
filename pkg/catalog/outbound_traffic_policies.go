@@ -94,6 +94,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 
 			for _, backend := range split.Spec.Backends {
 				var cns []service.ClusterName
+				cnsLocal := make(map[service.ClusterName]bool)
 				var fos []service.ClusterName
 				{
 					backendMeshSvc := service.MeshService{
@@ -105,6 +106,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 					if err == nil {
 						backendMeshSvc.TargetPort = targetPort
 						cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+						cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())] = true
 					}
 				}
 				{
@@ -118,10 +120,12 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 					if len(targetPorts) > 0 {
 						for targetPort, aa := range targetPorts {
 							backendMeshSvc.TargetPort = targetPort
-							if aa {
-								cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
-							} else {
-								fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+							if _, exists := cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())]; !exists {
+								if aa {
+									cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+								} else {
+									fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+								}
 							}
 						}
 					}
@@ -154,7 +158,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				Weight:      constants.ClusterWeightAcceptAll,
 			}
 			if meshSvc.IsMultiClusterService() {
-				aa, fo, _, weight := mc.multiclusterController.GetLbWeightForService(meshSvc)
+				aa, fo, _, weight, _ := mc.multiclusterController.GetLbWeightForService(meshSvc)
 				if aa && weight > 0 {
 					wc.Weight = weight
 				} else if fo {

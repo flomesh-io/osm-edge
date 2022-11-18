@@ -21,6 +21,12 @@ const (
 	// ServiceImportContextPathAnnotation is the annotation used to configure context path for imported service
 	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath/%d"
 
+	// ServiceImportLBTypeAnnotation is the annotation used to configure load balancer type for imported service
+	ServiceImportLBTypeAnnotation = "flomesh.io/ServiceImport/LBType/%d"
+
+	// ServiceImportLBWeightAnnotation is the annotation used to configure load balancer weight for imported service
+	ServiceImportLBWeightAnnotation = "flomesh.io/ServiceImport/LBWeight/%d"
+
 	// AnyServiceAccount defines wildcard service account
 	AnyServiceAccount = "*"
 )
@@ -59,5 +65,5 @@ type Controller interface {
 	GetTargetPortForServicePort(types.NamespacedName, uint16) map[uint16]bool
 
 	// GetLbWeightForService retrieves load balancer type and weight for service
-	GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool, weight int)
+	GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool, weight int, clusterKeys map[string]int)
 }

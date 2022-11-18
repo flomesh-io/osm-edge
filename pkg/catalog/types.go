@@ -5,6 +5,8 @@
 package catalog
 
 import (
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -17,7 +19,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	corev1 "k8s.io/api/core/v1"
 )
 
 var (

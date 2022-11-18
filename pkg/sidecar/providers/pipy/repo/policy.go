@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -100,23 +102,17 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 			continue
 		}
-		missingWeightNb := 0
-		availableWeight := uint32(100)
 		for _, wze := range *weightedEndpoints {
-			if wze.Weight == 0 {
-				missingWeightNb++
-			} else {
-				availableWeight = availableWeight - uint32(wze.Weight)
-			}
-		}
-
-		if missingWeightNb == len(*weightedEndpoints) {
-			for _, wze := range *weightedEndpoints {
-				if wze.Weight == 0 {
-					wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
-					missingWeightNb--
-					availableWeight = availableWeight - uint32(wze.Weight)
+			if len(wze.Cluster) > 0 {
+				if multiclusterv1alpha1.FailOverLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
+					wze.Weight = constants.ClusterWeightFailOver
+				} else if multiclusterv1alpha1.ActiveActiveLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
+					if wze.Weight == 0 {
+						wze.Weight = constants.ClusterWeightAcceptAll
+					}
 				}
+			} else if wze.Weight == 0 {
+				wze.Weight = constants.ClusterWeightAcceptAll
 			}
 		}
 	}
@@ -131,24 +127,9 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			if len(weightedEndpoints) == 0 {
 				continue
 			}
-			missingWeightNb := 0
-			availableWeight := uint32(100)
-			for _, weight := range weightedEndpoints {
+			for upstreamEndpoint, weight := range weightedEndpoints {
 				if weight == 0 {
-					missingWeightNb++
-				} else {
-					availableWeight = availableWeight - uint32(weight)
-				}
-			}
-
-			if missingWeightNb == len(weightedEndpoints) {
-				for upstreamEndpoint, weight := range weightedEndpoints {
-					if weight == 0 {
-						weight = Weight(availableWeight / uint32(missingWeightNb))
-						missingWeightNb--
-						availableWeight = availableWeight - uint32(weight)
-						(weightedEndpoints)[upstreamEndpoint] = weight
-					}
+					(weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
 				}
 			}
 		}
@@ -516,12 +497,12 @@ func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weigh
 	otp.Endpoints.addWeightedEndpoint(address, port, weight)
 }
 
-func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, lbType, contextPath string) {
 	if otp.Endpoints == nil {
 		weightedEndpoints := make(WeightedEndpoints)
 		otp.Endpoints = &weightedEndpoints
 	}
-	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, cluster, contextPath)
+	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, cluster, lbType, contextPath)
 }
 
 func (wes *WeightedEndpoints) addWeightedEndpoint(address Address, port Port, weight Weight) {
@@ -538,12 +519,13 @@ func (wes *WeightedEndpoints) addWeightedEndpoint(address Address, port Port, we
 	}
 }
 
-func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, contextPath string) {
+func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, lbType, contextPath string) {
 	if addrWithPort.MatchString(string(address)) {
 		httpHostPort := HTTPHostPort(address)
 		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
 			Weight:      weight,
 			Cluster:     cluster,
+			LBType:      lbType,
 			ContextPath: contextPath,
 		}
 	} else {
@@ -551,6 +533,7 @@ func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port
 		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
 			Weight:      weight,
 			Cluster:     cluster,
+			LBType:      lbType,
 			ContextPath: contextPath,
 		}
 	}

@@ -19,10 +19,7 @@ func (c *Client) getGlobalTrafficPolicy(svc service.MeshService) *multiclusterv1
 func (c *Client) isLocality(svc service.MeshService) bool {
 	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
 	if gblTrafficPolicy != nil {
-		if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.LocalityLbType {
-			return true
-		}
-		return false
+		return gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.LocalityLbType
 	}
 	return true
 }
@@ -44,7 +41,7 @@ func (c *Client) getServiceTrafficPolicy(svc service.MeshService) (lbType multic
 }
 
 // GetLbWeightForService retrieves load balancer type and weight for service
-func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool, weight int) {
+func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool, weight int, clusterKeys map[string]int) {
 	gblTrafficPolicy := c.getGlobalTrafficPolicy(svc)
 	if gblTrafficPolicy != nil {
 		if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.ActiveActiveLbType {
@@ -52,9 +49,10 @@ func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool
 			if len(gblTrafficPolicy.Spec.LoadBalanceTarget) == 0 {
 				weight = constants.ClusterWeightAcceptAll
 			} else {
+				clusterKeys = make(map[string]int)
 				for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
 					weight += lbt.Weight
-					break
+					clusterKeys[lbt.ClusterKey] = lbt.Weight
 				}
 			}
 			return
@@ -62,6 +60,10 @@ func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool
 		if gblTrafficPolicy.Spec.LbType == multiclusterv1alpha1.FailOverLbType {
 			fo = true
 			weight = constants.ClusterWeightFailOver
+			clusterKeys = make(map[string]int)
+			for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
+				clusterKeys[lbt.ClusterKey] = constants.ClusterWeightFailOver
+			}
 			return
 		}
 	}
