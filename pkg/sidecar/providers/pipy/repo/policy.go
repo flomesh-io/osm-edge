@@ -102,17 +102,30 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 			continue
 		}
+		hasLocalEndpoints := false
+		for _, wze := range *weightedEndpoints {
+			if len(wze.Cluster) == 0 {
+				hasLocalEndpoints = true
+				break
+			}
+		}
 		for _, wze := range *weightedEndpoints {
 			if len(wze.Cluster) > 0 {
 				if multiclusterv1alpha1.FailOverLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
-					wze.Weight = constants.ClusterWeightFailOver
+					if hasLocalEndpoints {
+						wze.Weight = constants.ClusterWeightFailOver
+					} else {
+						wze.Weight = constants.ClusterWeightAcceptAll
+					}
 				} else if multiclusterv1alpha1.ActiveActiveLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
 					if wze.Weight == 0 {
 						wze.Weight = constants.ClusterWeightAcceptAll
 					}
 				}
-			} else if wze.Weight == 0 {
-				wze.Weight = constants.ClusterWeightAcceptAll
+			} else {
+				if wze.Weight == 0 {
+					wze.Weight = constants.ClusterWeightAcceptAll
+				}
 			}
 		}
 	}
