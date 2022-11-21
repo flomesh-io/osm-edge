@@ -3,6 +3,7 @@ package fake
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"github.com/golang/mock/gomock"
@@ -34,7 +35,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
-	mockMulticlusterController := multicluster.NewMockController(mockCtrl)
+	mockMultiClusterController := multicluster.NewMockController(mockCtrl)
 
 	meshSpec := smiFake.NewFakeMeshSpecClient()
 
@@ -114,13 +115,20 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV1Service).Return([]identity.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookstoreV2Service).Return([]identity.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceIdentitiesForService(tests.BookbuyerService).Return([]identity.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
-	mockKubeController.EXPECT().GetTargetPortForServicePort(
-		gomock.Any(), gomock.Any()).Return(uint16(tests.ServicePort), nil).AnyTimes()
 
 	mockPolicyController.EXPECT().ListEgressPoliciesForSourceIdentity(gomock.Any()).Return(nil).AnyTimes()
 	mockPolicyController.EXPECT().GetIngressBackendPolicy(gomock.Any()).Return(nil).AnyTimes()
 	mockPolicyController.EXPECT().GetUpstreamTrafficSetting(gomock.Any()).Return(nil).AnyTimes()
 
+	mockKubeController.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(namespacedSvc types.NamespacedName, port uint16) (uint16, error) {
+			return port, nil
+		}).AnyTimes()
+	mockMultiClusterController.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).DoAndReturn(
+		func(namespacedSvc types.NamespacedName, port uint16) map[uint16]bool {
+			return nil
+		}).AnyTimes()
+
 	return catalog.NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, mockMulticlusterController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, mockMultiClusterController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
