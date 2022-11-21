@@ -1,5 +1,8 @@
 ((
   {
+    addIssuingCA,
+    tlsCertChain,
+    tlsPrivateKey,
     outTrafficMatches,
   } = pipy.solve('config.js'),
   {
@@ -17,12 +20,12 @@
           DestinationIPRanges: o.DestinationIPRanges && Object.entries(o.DestinationIPRanges).map(
             ([k, v]) => (
               v?.SourceCert?.IssuingCA && (
-                global.addIssuingCA(v.SourceCert.IssuingCA)
+                addIssuingCA(v.SourceCert.IssuingCA)
               ),
               {
                 netmask: new Netmask(k),
-                cert: v?.SourceCert?.OsmIssued && global.tlsCertChain && global.tlsPrivateKey ?
-                  ({ CertChain: global.tlsCertChain, PrivateKey: global.tlsPrivateKey }) : v?.SourceCert
+                cert: v?.SourceCert?.OsmIssued && tlsCertChain && tlsPrivateKey ?
+                  ({ CertChain: tlsCertChain, PrivateKey: tlsPrivateKey }) : v?.SourceCert
               }
             )
           ),
@@ -48,7 +51,8 @@
       _outTarget: null,
       _egressEnable: false,
       _outSourceCert: null,
-      _upstreamClusterName: null
+      _upstreamClusterName: null,
+      _outClustersBreakers: null,
     })
 
     .pipeline()
@@ -89,21 +93,21 @@
     .branch(
       () => (_outMatch?.Protocol === 'http' || _outMatch?.Protocol === 'grpc'), $ => $
         .chain([
-          'outbound-demux-http.js', 
+          'outbound-demux-http.js',
           'outbound-http-routing.js',
-          'metrics-http.js', 
-          'tracing.js', 
+          'metrics-http.js',
+          'tracing.js',
           'logging.js',
-          'outbound-breaker.js', 
-          'outbound-mux-http.js', 
-          'metrics-tcp.js', 
+          'outbound-breaker.js',
+          'outbound-mux-http.js',
+          'metrics-tcp.js',
           'outbound-proxy-tcp.js'
         ]),
 
       $ => $
         .chain([
-          'outbound-tcp-load-balance.js', 
-          'metrics-tcp.js', 
+          'outbound-tcp-load-balance.js',
+          'metrics-tcp.js',
           'outbound-proxy-tcp.js'
         ])
     )

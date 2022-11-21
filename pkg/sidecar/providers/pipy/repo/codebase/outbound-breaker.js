@@ -6,7 +6,7 @@
 
   outClustersBreakers = {}
 ) => (
-  
+
   config?.Outbound?.ClustersConfigs && Object.entries(config.Outbound.ClustersConfigs).map(
     ([k, v]) => (
       v?.ConnectionSettings && (v.ConnectionSettings?.http?.CircuitBreaking?.StatTimeWindow > 0) &&
@@ -33,17 +33,18 @@
   })
 
     .import({
-      _upstreamClusterName: 'outbound-classifier'
-    })
-
-    .export('outbound-breaker', {
-      _outClustersBreakers: outClustersBreakers,
+      _upstreamClusterName: 'outbound-classifier',
+      _outClustersBreakers: 'outbound-classifier',
     })
 
     //
     // Update circuit breaker indicators.
     //
     .pipeline()
+
+    .onStart(
+      () => void (!_outClustersBreakers && (_outClustersBreakers = outClustersBreakers))
+    )
 
     .branch(
       () => outClustersBreakers?.[_upstreamClusterName]?.block?.(), $ => $
