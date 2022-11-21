@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -64,7 +65,7 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 		log.Error().Err(err)
 	}
 
-	_, err = s.repoClient.Batch(0, []client.Batch{
+	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
 		{
 			Basepath: osmCodebase,
 			Items: []client.BatchItem{

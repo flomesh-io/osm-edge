@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -40,6 +41,10 @@ type MeshCatalog struct {
 	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.
 	policyController policy.Controller
+
+	// multiclusterController implements the functionality related to the resources part of the flomesh.io
+	// API group, such a serviceimport.
+	multiclusterController multicluster.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all sidecar proxies connected to the catalog.
@@ -89,6 +94,9 @@ type MeshCataloger interface {
 
 	// GetRetryPolicy returns the RetryPolicySpec for the given downstream identity and upstream service
 	GetRetryPolicy(downstreamIdentity identity.ServiceIdentity, upstreamSvc service.MeshService) *v1alpha1.RetryPolicySpec
+
+	// GetExportTrafficPolicy returns the export policy for the given mesh service
+	GetExportTrafficPolicy(svc service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error)
 }
 
 type trafficDirection string

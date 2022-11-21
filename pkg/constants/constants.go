@@ -129,6 +129,9 @@ const (
 	// ClusterWeightAcceptAll is the weight for a cluster that accepts 100 percent of traffic sent to it
 	ClusterWeightAcceptAll = 100
 
+	// ClusterWeightFailOver is the weight for a cluster that accepts 0 percent of traffic sent to it
+	ClusterWeightFailOver = 0
+
 	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
 	PrometheusDefaultRetentionTime = "15d"
 

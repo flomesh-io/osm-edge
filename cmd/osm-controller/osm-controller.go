@@ -29,6 +29,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
+	multiclusterClientset "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned"
+	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -47,7 +49,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/policy"
+	"github.com/openservicemesh/osm/pkg/providers/fsm"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
 	"github.com/openservicemesh/osm/pkg/reconciler"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -166,6 +170,8 @@ func main() {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
+	multiclusterClient := multiclusterClientset.NewForConfigOrDie(kubeConfig)
+	networkingClient := networkingClientset.NewForConfigOrDie(kubeConfig)
 
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
@@ -206,6 +212,8 @@ func main() {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
+		informers.WithMultiClusterClient(multiclusterClient),
+		informers.WithNetworkingClient(networkingClient),
 	)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating informer collection")
@@ -245,22 +253,25 @@ func main() {
 		}
 	}
 
-	kubeProvider := kube.NewClient(k8sClient, cfg)
+	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
+	multiclusterController := multicluster.NewMultiClusterController(informerCollection, kubeClient, k8sClient, msgBroker)
 
-	endpointsProviders := []endpoint.Provider{kubeProvider}
-	serviceProviders := []service.Provider{kubeProvider}
+	kubeProvider := kube.NewClient(k8sClient, cfg)
+	multiclusterProvider := fsm.NewClient(multiclusterController, cfg)
+
+	endpointsProviders := []endpoint.Provider{kubeProvider, multiclusterProvider}
+	serviceProviders := []service.Provider{kubeProvider, multiclusterProvider}
 
 	if err := ingress.Initialize(kubeClient, k8sClient, stop, cfg, certManager, msgBroker); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress client")
 	}
-
-	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		k8sClient,
 		meshSpec,
 		certManager,
 		policyController,
+		multiclusterController,
 		stop,
 		cfg,
 		serviceProviders,

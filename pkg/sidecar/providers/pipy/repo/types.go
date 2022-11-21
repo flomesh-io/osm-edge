@@ -146,10 +146,11 @@ type PipyConf struct {
 	Version          *string
 	Spec             MeshConfigSpec
 	Certificate      *Certificate
-	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
-	Forward          *ForwardTrafficPolicy  `json:"Forward"`
-	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
+	Inbound          *InboundTrafficPolicy    `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
+	Forward          *ForwardTrafficPolicy    `json:"Forward"`
+	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
+	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
 }
 
 // FeatureFlags represents the flags of feature
@@ -292,15 +293,29 @@ type OutboundTrafficMatchSlice []*OutboundTrafficMatch
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
 type OutboundTrafficMatches map[Port]OutboundTrafficMatchSlice
 
+// namedOutboundTrafficMatches is a wrapper type of map[string]*OutboundTrafficMatch
+type namedOutboundTrafficMatches map[string]*OutboundTrafficMatch
+
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {
 	TrafficMatches  InboundTrafficMatches             `json:"TrafficMatches"`
 	ClustersConfigs map[ClusterName]*WeightedEndpoint `json:"ClustersConfigs"`
 }
 
+// WeightedZoneEndpoint represents the endpoint with zone and weight
+type WeightedZoneEndpoint struct {
+	Weight      Weight `json:"Weight"`
+	Cluster     string `json:"Key,omitempty"`
+	LBType      string `json:"-"`
+	ContextPath string `json:"Path,omitempty"`
+}
+
+// WeightedEndpoints is a wrapper type of map[HTTPHostPort]WeightedZoneEndpoint
+type WeightedEndpoints map[HTTPHostPort]*WeightedZoneEndpoint
+
 // ClusterConfigs represents the configs of Cluster
 type ClusterConfigs struct {
-	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
+	Endpoints          *WeightedEndpoints  `json:"Endpoints"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
 	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
@@ -308,8 +323,9 @@ type ClusterConfigs struct {
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
-	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
-	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+	namedTrafficMatches namedOutboundTrafficMatches
+	TrafficMatches      OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs     map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
 // ForwardTrafficMatches is a wrapper type of map[Port]WeightedClusters

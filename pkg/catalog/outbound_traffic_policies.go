@@ -32,20 +32,38 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	var clusterConfigs []*trafficpolicy.MeshClusterConfig
 	routeConfigPerPort := make(map[int][]*trafficpolicy.OutboundTrafficPolicy)
 	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
+	servicesResolvableSet := make(map[string][]interface{})
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+		existIntraEndpoints := false
 
 		// Retrieve the destination IP address from the endpoints for this service
 		// IP range must not have duplicates, use a mapset to only add unique IP ranges
 		var destinationIPRanges []string
 		destinationIPSet := mapset.NewSet()
-		for _, endp := range mc.getDNSResolvableServiceEndpoints(meshSvc) {
+		endpoints := mc.getDNSResolvableServiceEndpoints(meshSvc)
+		for _, endp := range endpoints {
 			ipCIDR := endp.IP.String() + "/32"
 			if added := destinationIPSet.Add(ipCIDR); added {
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
+			}
+			if !existIntraEndpoints {
+				if len(endp.ClusterKey) == 0 {
+					existIntraEndpoints = true
+				}
+			}
+		}
+
+		if !existIntraEndpoints {
+			resolvableIPSet := mapset.NewSet()
+			for _, endp := range endpoints {
+				resolvableIPSet.Add(endp.IP.String())
+			}
+			if resolvableIPSet.Cardinality() > 0 {
+				servicesResolvableSet[meshSvc.FQDN()] = resolvableIPSet.ToSlice()
 			}
 		}
 
@@ -75,28 +93,77 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
 
 			for _, backend := range split.Spec.Backends {
-				backendMeshSvc := service.MeshService{
-					Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-					Name:      backend.Service,
+				var cns []service.ClusterName
+				cnsLocal := make(map[service.ClusterName]bool)
+				var fos []service.ClusterName
+				{
+					backendMeshSvc := service.MeshService{
+						Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
+						Name:      backend.Service,
+					}
+					targetPort, err := mc.kubeController.GetTargetPortForServicePort(
+						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+					if err == nil {
+						backendMeshSvc.TargetPort = targetPort
+						cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+						cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())] = true
+					}
 				}
-				targetPort, err := mc.kubeController.GetTargetPortForServicePort(
-					types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error fetching target port for leaf service %s, ignoring it", backendMeshSvc)
-					continue
+				{
+					backendMeshSvc := service.MeshService{
+						Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
+						Name:      backend.Service,
+						Port:      meshSvc.Port,
+					}
+					targetPorts := mc.multiclusterController.GetTargetPortForServicePort(
+						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+					if len(targetPorts) > 0 {
+						for targetPort, aa := range targetPorts {
+							backendMeshSvc.TargetPort = targetPort
+							if _, exists := cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())]; !exists {
+								if aa {
+									cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+								} else {
+									fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+								}
+							}
+						}
+					}
 				}
-				backendMeshSvc.TargetPort = targetPort
-
-				wc := service.WeightedCluster{
-					ClusterName: service.ClusterName(backendMeshSvc.SidecarClusterName()),
-					Weight:      backend.Weight,
+				if len(cns) > 0 {
+					totalWeight := backend.Weight
+					for index, cn := range cns {
+						weight := totalWeight / (len(cns) - index)
+						totalWeight -= weight
+						wc := service.WeightedCluster{
+							ClusterName: cn,
+							Weight:      weight,
+						}
+						upstreamClusters = append(upstreamClusters, wc)
+					}
 				}
-				upstreamClusters = append(upstreamClusters, wc)
+				if len(fos) > 0 {
+					for _, cn := range fos {
+						wc := service.WeightedCluster{
+							ClusterName: cn,
+							Weight:      constants.ClusterWeightFailOver,
+						}
+						upstreamClusters = append(upstreamClusters, wc)
+					}
+				}
 			}
 		} else {
 			wc := service.WeightedCluster{
 				ClusterName: service.ClusterName(meshSvc.SidecarClusterName()),
 				Weight:      constants.ClusterWeightAcceptAll,
+			}
+			if meshSvc.IsMultiClusterService() {
+				aa, fo, _, weight, _ := mc.multiclusterController.GetLbWeightForService(meshSvc)
+				if aa && weight > 0 {
+					wc.Weight = weight
+				} else if fo {
+					wc.Weight = constants.ClusterWeightFailOver
+				}
 			}
 			// No TrafficSplit for this upstream service, so use a default weighted cluster
 			upstreamClusters = append(upstreamClusters, wc)
@@ -139,6 +206,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		TrafficMatches:          trafficMatches,
 		ClustersConfigs:         clusterConfigs,
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
+		ServicesResolvableSet:   servicesResolvableSet,
 	}
 }
 
