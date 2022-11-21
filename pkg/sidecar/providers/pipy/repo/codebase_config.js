@@ -1,4 +1,4 @@
-// version: '2022.11.10'
+// version: '2022.11.21'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -190,6 +190,19 @@
         )
     ),
 
+    global.funcFailover = json => (
+      json ? ((obj = null) => (
+        obj = Object.fromEntries(
+          Object.entries(json).map(
+            ([k, v]) => (
+              (v === 0) ? ([k, 1]) : null
+            )
+          ).filter(e => e)
+        ),
+        Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
+      ))() : null
+    ),
+
     global.funcOutboundHttpServiceRouteRules = json => (
       Object.fromEntries(Object.entries(json).map(
         ([name, rule]) => [
@@ -202,7 +215,8 @@
               Headers_: condition?.Headers, // for debugLogLevel
               Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
               AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
-              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
+              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)), // Loadbalancer for services
+              FailoverTargetClusters: global.funcFailover(condition.TargetClusters)
             })
           )
         ]
@@ -337,7 +351,8 @@
                     obj.EndpointAttributes[k] = v
                   )
                 ),
-                obj.Endpoints = new algo.RoundRobinLoadBalancer(ep)
+                obj.Endpoints = new algo.RoundRobinLoadBalancer(ep),
+                obj.FailoverEndpoints = global.funcFailover(ep)
               ))(),
               v?.SourceCert?.CertChain && v?.SourceCert?.PrivateKey && v?.SourceCert?.IssuingCA && (
                 obj.SourceCert = v.SourceCert,
