@@ -100,6 +100,21 @@ func (mr *MockMeshCatalogerMockRecorder) GetEgressTrafficPolicy(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressTrafficPolicy), arg0)
 }
 
+// GetExportTrafficPolicy mocks base method.
+func (m *MockMeshCataloger) GetExportTrafficPolicy(arg0 service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExportTrafficPolicy", arg0)
+	ret0, _ := ret[0].(*trafficpolicy.ServiceExportTrafficPolicy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetExportTrafficPolicy indicates an expected call of GetExportTrafficPolicy.
+func (mr *MockMeshCatalogerMockRecorder) GetExportTrafficPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExportTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetExportTrafficPolicy), arg0)
+}
+
 // GetInboundMeshTrafficPolicy mocks base method.
 func (m *MockMeshCataloger) GetInboundMeshTrafficPolicy(arg0 identity.ServiceIdentity, arg1 []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy {
 	m.ctrl.T.Helper()

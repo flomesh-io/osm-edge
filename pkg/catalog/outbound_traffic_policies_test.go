@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -583,14 +584,16 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
+			mockMultiClusterController := multicluster.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
-				policyController:   mockPolicyController,
+				kubeController:         mockKubeController,
+				endpointsProviders:     []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:       []service.Provider{mockServiceProvider},
+				configurator:           mockCfg,
+				meshSpec:               mockMeshSpec,
+				policyController:       mockPolicyController,
+				multiclusterController: mockMultiClusterController,
 			}
 
 			// Mock calls to k8s client caches
@@ -644,6 +647,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
+					return nil
+				}).AnyTimes()
+
+			mockMultiClusterController.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(namespacedSvc types.NamespacedName, port uint16) map[uint16]bool {
 					return nil
 				}).AnyTimes()
 
