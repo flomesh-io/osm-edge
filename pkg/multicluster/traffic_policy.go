@@ -51,8 +51,11 @@ func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool
 			} else {
 				clusterKeys = make(map[string]int)
 				for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
-					weight += lbt.Weight
-					clusterKeys[lbt.ClusterKey] = lbt.Weight
+					if string(svc.ServiceImportUID) == lbt.ClusterKey {
+						weight = lbt.Weight
+						clusterKeys[lbt.ClusterKey] = lbt.Weight
+						break
+					}
 				}
 			}
 			return

@@ -95,7 +95,7 @@ func (c *Client) ListServices() []*corev1.Service {
 			if len(port.Endpoints) > 0 {
 				for _, endpoint := range port.Endpoints {
 					targetSvc := new(corev1.Service)
-					targetSvc.UID = importedService.UID
+					targetSvc.UID = types.UID(endpoint.ClusterKey)
 					targetSvc.Namespace = importedService.Namespace
 					targetSvc.Name = importedService.Name
 					targetSvc.Spec.Type = corev1.ServiceTypeClusterIP
