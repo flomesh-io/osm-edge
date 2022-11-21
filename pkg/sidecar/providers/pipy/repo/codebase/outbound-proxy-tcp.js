@@ -8,10 +8,10 @@
     forwardEgressGateways,
   } = pipy.solve('config.js'),
 
-  caShallowCopy = {caList: listIssuingCA},
+  caShallowCopy = { caList: listIssuingCA },
 
   metrics = pipy.solve('metrics-init.js'),
-  
+
   {
     debug,
   } = pipy.solve('utils.js'),
@@ -46,7 +46,7 @@
       _egressEnable: 'outbound-classifier',
       _outSourceCert: 'outbound-classifier',
       _upstreamClusterName: 'outbound-classifier',
-      _outClustersBreakers: 'outbound-breaker',
+      _outClustersBreakers: 'outbound-classifier',
     })
 
     //
@@ -70,7 +70,7 @@
         null
       )
     )
-    
+
     .onEnd(
       () => (
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).decrease(),
