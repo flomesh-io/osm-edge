@@ -203,6 +203,7 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 			targetEndpoints := new(corev1.Endpoints)
 			targetEndpoints.Namespace = importedService.Namespace
 			targetEndpoints.Name = importedService.Name
+			targetEndpoints.Annotations = make(map[string]string)
 			for _, endpoint := range port.Endpoints {
 				if svc.TargetPort > 0 && svc.TargetPort != uint16(endpoint.Target.Port) {
 					continue
@@ -215,11 +216,10 @@ func (c *Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error
 						lbWeight = weight
 					}
 				}
-				targetEndpoints.Annotations = make(map[string]string)
-				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportClusterKeyAnnotation, endpoint.Target.Port)] = endpoint.ClusterKey
-				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportContextPathAnnotation, endpoint.Target.Port)] = endpoint.Target.Path
-				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBTypeAnnotation, endpoint.Target.Port)] = string(lbType)
-				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBWeightAnnotation, endpoint.Target.Port)] = fmt.Sprintf("%d", lbWeight)
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportClusterKeyAnnotation, endpoint.Target.IP, endpoint.Target.Port)] = endpoint.ClusterKey
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportContextPathAnnotation, endpoint.Target.IP, endpoint.Target.Port)] = endpoint.Target.Path
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBTypeAnnotation, endpoint.Target.IP, endpoint.Target.Port)] = string(lbType)
+				targetEndpoints.Annotations[fmt.Sprintf(ServiceImportLBWeightAnnotation, endpoint.Target.IP, endpoint.Target.Port)] = fmt.Sprintf("%d", lbWeight)
 				targetEndpoints.Subsets = append(targetEndpoints.Subsets, corev1.EndpointSubset{
 					Addresses: []corev1.EndpointAddress{
 						{
