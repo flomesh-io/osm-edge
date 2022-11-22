@@ -50,55 +50,47 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 			for _, hostname := range httpRouteConfig.Hostnames {
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 			}
-			if len(httpRouteConfig.Rules) > 0 {
-				for _, rule := range httpRouteConfig.Rules {
-					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
+			for _, rule := range httpRouteConfig.Rules {
+				pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
+				if len(pathRegexp) == 0 {
+					continue
+				}
+
+				hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+				for k, v := range rule.Route.HTTPRouteMatch.Headers {
+					hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+				}
+
+				if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+					hsrr.addMethodMatch("*")
+				} else {
+					for _, method := range rule.Route.HTTPRouteMatch.Methods {
+						hsrr.addMethodMatch(Method(method))
+					}
+				}
+
+				for routeCluster := range rule.Route.WeightedClusters.Iter() {
+					weightedCluster := routeCluster.(service.WeightedCluster)
+					hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+						Weight(weightedCluster.Weight))
+				}
+
+				hsrr.setRateLimit(rule.Route.RateLimit)
+
+				for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
+					servicePrincipal := allowedPrincipal.(string)
+					serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
+					hsrr.addAllowedService(ServiceName(serviceIdentity))
+					if identity.WildcardPrincipal == servicePrincipal || pipyConf.isPermissiveTrafficPolicyMode() {
 						continue
 					}
-
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
-					for k, v := range rule.Route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-					}
-
-					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range rule.Route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
-						}
-					}
-
-					for routeCluster := range rule.Route.WeightedClusters.Iter() {
-						weightedCluster := routeCluster.(service.WeightedCluster)
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
-							Weight(weightedCluster.Weight))
-					}
-
-					hsrr.setRateLimit(rule.Route.RateLimit)
-
-					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
-						servicePrincipal := allowedPrincipal.(string)
-						serviceIdentity := identity.FromPrincipal(servicePrincipal, trustDomain)
-						hsrr.addAllowedService(ServiceName(serviceIdentity))
-						if identity.WildcardPrincipal == servicePrincipal || pipyConf.isPermissiveTrafficPolicyMode() {
-							continue
-						}
-						allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, serviceIdentity)
-						if len(allowedServiceEndpoints) > 0 {
-							for _, allowedEndpoint := range allowedServiceEndpoints {
-								tm.addAllowedEndpoint(Address(allowedEndpoint.IP.String()), ServiceName(serviceIdentity))
-							}
+					allowedServiceEndpoints := getEndpointsForProxyIdentity(meshCatalog, serviceIdentity)
+					if len(allowedServiceEndpoints) > 0 {
+						for _, allowedEndpoint := range allowedServiceEndpoints {
+							tm.addAllowedEndpoint(Address(allowedEndpoint.IP.String()), ServiceName(serviceIdentity))
 						}
 					}
 				}
-			} else {
-				pathRegexp := URIPathRegexp(".*")
-				hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
-				hsrr.addMethodMatch("*")
-				hsrr.addWeightedCluster(ClusterName(cluster.Name), Weight(constants.ClusterWeightAcceptAll))
-				hsrr.addAllowedService("*")
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
 			destinationProtocol == constants.ProtocolTCPServerFirst {
