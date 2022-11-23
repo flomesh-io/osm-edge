@@ -1,4 +1,6 @@
 ((
+  metrics = pipy.solve('metrics-init.js'),
+
   initLocalRateLimit = (local) => (
     ((burst) => (
       burst = local.Burst > local.Requests ? local.Burst : local.Requests,
@@ -170,6 +172,7 @@
       () => _overflow, $ => $
         .replaceMessage(
           () => (
+            metrics.sidecarInsideStats['http_local_rate_limiter.http_local_rate_limit.rate_limited'] += 1,
             _rateLimit?.status ?
               new Message({
                 status: _rateLimit.status,
