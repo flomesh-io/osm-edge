@@ -2,7 +2,7 @@
   metrics = pipy.solve('metrics-init.js'),
 
   initLocalRateLimit = (local) => (
-    ((burst) => (
+    ((burst, hds = {}) => (
       burst = local.Burst > local.Requests ? local.Burst : local.Requests,
       {
         group: algo.uuid(),
@@ -14,7 +14,7 @@
         }
         ),
         status: local.ResponseStatusCode ? local.ResponseStatusCode : 429,
-        headers: local.ResponseHeadersToAdd
+        headers: (local?.ResponseHeadersToAdd?.forEach?.(h => hds[h.Name] = h.Value), hds)
       }
     ))()
   ),
