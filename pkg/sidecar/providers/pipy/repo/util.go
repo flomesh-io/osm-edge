@@ -402,6 +402,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			protocol := strings.ToLower(trafficMatch.Protocol)
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
+			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -430,6 +431,8 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
+				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				for _, rule := range httpRouteConfig.Rules {
 					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
 					if len(pathRegexp) == 0 {
@@ -437,6 +440,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 					}
 
 					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					hsrr.setRateLimit(rule.Route.RateLimit)
 					for k, v := range rule.Route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
@@ -547,6 +551,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			protocol := strings.ToLower(trafficMatch.Protocol)
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
+			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -575,6 +580,8 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
+				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				for _, rule := range httpRouteConfig.Rules {
 					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
 					if len(pathRegexp) == 0 {
@@ -582,6 +589,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 					}
 
 					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					hsrr.setRateLimit(rule.Route.RateLimit)
 					for k, v := range rule.Route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}

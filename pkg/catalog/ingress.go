@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -47,11 +48,19 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 			continue
 		}
 
+		upstreamTrafficSetting := mc.policyController.GetUpstreamTrafficSetting(
+			policy.UpstreamTrafficSettingGetOpt{MeshService: &svc})
+
 		trafficMatch := &trafficpolicy.IngressTrafficMatch{
 			Name:     service.IngressTrafficMatchName(svc.Name, svc.Namespace, uint16(backend.Port.Number), backend.Port.Protocol),
 			Port:     uint32(backend.Port.Number),
 			Protocol: backend.Port.Protocol,
 			TLS:      backend.TLS,
+		}
+
+		if upstreamTrafficSetting != nil {
+			trafficMatch.RateLimit = upstreamTrafficSetting.Spec.RateLimit
+			trafficMatch.HeaderRateLimit = &upstreamTrafficSetting.Spec.HTTPHeaders
 		}
 
 		if backend.TLS != nil {
