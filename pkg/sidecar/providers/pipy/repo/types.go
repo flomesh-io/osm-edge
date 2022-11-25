@@ -140,19 +140,6 @@ type SourceIPRanges map[SourceIPRange]*SourceSecuritySpec
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
 
-// PipyConf is a policy used by pipy sidecar
-type PipyConf struct {
-	Ts               *time.Time
-	Version          *string
-	Spec             MeshConfigSpec
-	Certificate      *Certificate
-	Inbound          *InboundTrafficPolicy    `json:"Inbound"`
-	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
-	Forward          *ForwardTrafficPolicy    `json:"Forward"`
-	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
-	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
-}
-
 // FeatureFlags represents the flags of feature
 type FeatureFlags struct {
 	EnableSidecarActiveHealthChecks bool
@@ -431,4 +418,17 @@ type HTTPConnectionSettings struct {
 
 	// CircuitBreaking specifies the HTTP connection circuit breaking setting.
 	CircuitBreaking *HTTPCircuitBreaking `json:"CircuitBreaking,omitempty"`
+}
+
+// PipyConf is a policy used by pipy sidecar
+type PipyConf struct {
+	Ts               *time.Time
+	Version          *string
+	Spec             MeshConfigSpec
+	Certificate      *Certificate
+	Inbound          *InboundTrafficPolicy    `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
+	Forward          *ForwardTrafficPolicy    `json:"Forward"`
+	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
+	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
 }
