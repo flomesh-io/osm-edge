@@ -9,7 +9,7 @@
 - Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
 - Fixed ingress backend SAN's (the trust domain was getting appended to the provided SAN)
 
-## Release v1.2.0
+## Release v1.2.1
 
 ### Notable changes
 
