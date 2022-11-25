@@ -15,4 +15,10 @@ type AccessControlTrafficMatch struct {
 	Protocol       string
 	SourceIPRanges []string
 	TLS            *policyv1alpha1.TLSSpec
+
+	// RateLimit defines the rate limiting policy applied for this TrafficMatch
+	// +optional
+	RateLimit *policyv1alpha1.RateLimitSpec
+
+	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
 }

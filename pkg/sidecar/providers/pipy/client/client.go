@@ -173,14 +173,14 @@ func (p *PipyRepoClient) createCodebase(version string, codebaseName string) (su
 	return
 }
 
-func (p *PipyRepoClient) deriveCodebase(codebaseName, base string) (success bool, codebase *Codebase, err error) {
+func (p *PipyRepoClient) deriveCodebase(codebaseName, base string, version uint64) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
 	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
 
 	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
-		SetBody(Codebase{Version: fmt.Sprintf("%d", 1), Base: base}).
+		SetBody(Codebase{Version: fmt.Sprintf("%d", version), Base: base}).
 		Post(codebaseName)
 
 	if err == nil {
@@ -331,7 +331,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 }
 
 // DeriveCodebase derives Codebase
-func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string) (success bool, err error) {
+func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint64) (success bool, err error) {
 	var codebase *Codebase
 	log.Info().Msgf("Checking if exists, codebase %q", codebaseName)
 	success, codebase, err = p.isCodebaseExists(codebaseName)
@@ -346,7 +346,7 @@ func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string) (success bool
 	}
 
 	log.Info().Msgf("Codebase %q doesn't exist, deriving ...", codebaseName)
-	success, codebase, err = p.deriveCodebase(codebaseName, base)
+	success, codebase, err = p.deriveCodebase(codebaseName, base, version)
 	if err != nil {
 		log.Err(err).Msgf("Deriving codebase %q", codebaseName)
 		return

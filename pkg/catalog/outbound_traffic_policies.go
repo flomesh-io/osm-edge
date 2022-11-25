@@ -2,6 +2,7 @@ package catalog
 
 import (
 	mapset "github.com/deckarep/golang-set"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -34,10 +35,24 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
 	servicesResolvableSet := make(map[string][]interface{})
 
+	var egressPolicy *trafficpolicy.EgressTrafficPolicy
+	var egressPolicyGetted bool
+
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+		egressEnabled := mc.configurator.IsEgressEnabled()
+		if !egressEnabled {
+			if !egressPolicyGetted {
+				egressPolicy, _ = mc.GetEgressTrafficPolicy(downstreamIdentity)
+				egressPolicyGetted = true
+			}
+			if egressPolicy != nil {
+				egressEnabled = mc.isEgressService(meshSvc, egressPolicy)
+			}
+		}
+		monitoredNamespace := mc.kubeController.IsMonitoredNamespace(meshSvc.Namespace)
 		existIntraEndpoints := false
 
 		// Retrieve the destination IP address from the endpoints for this service
@@ -51,7 +66,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
 			}
 			if !existIntraEndpoints {
-				if len(endp.ClusterKey) == 0 {
+				if len(endp.ClusterKey) == 0 && (monitoredNamespace || egressEnabled) {
 					existIntraEndpoints = true
 				}
 			}
@@ -93,8 +108,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
 
 			for _, backend := range split.Spec.Backends {
-				var cns []service.ClusterName
 				cnsLocal := make(map[service.ClusterName]bool)
+				var aas []service.ClusterName
 				var fos []service.ClusterName
 				{
 					backendMeshSvc := service.MeshService{
@@ -105,7 +120,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
 					if err == nil {
 						backendMeshSvc.TargetPort = targetPort
-						cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+						aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
 						cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())] = true
 					}
 				}
@@ -122,7 +137,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 							backendMeshSvc.TargetPort = targetPort
 							if _, exists := cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())]; !exists {
 								if aa {
-									cns = append(cns, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+									aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
 								} else {
 									fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
 								}
@@ -130,27 +145,8 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 						}
 					}
 				}
-				if len(cns) > 0 {
-					totalWeight := backend.Weight
-					for index, cn := range cns {
-						weight := totalWeight / (len(cns) - index)
-						totalWeight -= weight
-						wc := service.WeightedCluster{
-							ClusterName: cn,
-							Weight:      weight,
-						}
-						upstreamClusters = append(upstreamClusters, wc)
-					}
-				}
-				if len(fos) > 0 {
-					for _, cn := range fos {
-						wc := service.WeightedCluster{
-							ClusterName: cn,
-							Weight:      constants.ClusterWeightFailOver,
-						}
-						upstreamClusters = append(upstreamClusters, wc)
-					}
-				}
+				upstreamClusters = activeUpstreamClusters(aas, backend, upstreamClusters)
+				upstreamClusters = failOverUpstreamClusters(fos, upstreamClusters)
 			}
 		} else {
 			wc := service.WeightedCluster{
@@ -208,6 +204,68 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
 		ServicesResolvableSet:   servicesResolvableSet,
 	}
+}
+
+func activeUpstreamClusters(aas []service.ClusterName, backend split.TrafficSplitBackend, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {
+	if len(aas) > 0 {
+		totalWeight := backend.Weight
+		for index, cn := range aas {
+			weight := totalWeight / (len(aas) - index)
+			totalWeight -= weight
+			wc := service.WeightedCluster{
+				ClusterName: cn,
+				Weight:      weight,
+			}
+			upstreamClusters = append(upstreamClusters, wc)
+		}
+	}
+	return upstreamClusters
+}
+
+func failOverUpstreamClusters(fos []service.ClusterName, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {
+	if len(fos) > 0 {
+		for _, cn := range fos {
+			wc := service.WeightedCluster{
+				ClusterName: cn,
+				Weight:      constants.ClusterWeightFailOver,
+			}
+			upstreamClusters = append(upstreamClusters, wc)
+		}
+	}
+	return upstreamClusters
+}
+
+func (mc *MeshCatalog) isEgressService(meshSvc service.MeshService, egressPolicy *trafficpolicy.EgressTrafficPolicy) bool {
+	egressEnabled := false
+	hostnames := k8s.GetHostnamesForService(meshSvc, true)
+	for _, routeConfigs := range egressPolicy.HTTPRouteConfigsPerPort {
+		if egressEnabled {
+			break
+		}
+		if len(routeConfigs) == 0 {
+			continue
+		}
+		for _, routeConfig := range routeConfigs {
+			if egressEnabled {
+				break
+			}
+			if len(routeConfig.Hostnames) == 0 {
+				continue
+			}
+			for _, host := range routeConfig.Hostnames {
+				if egressEnabled {
+					break
+				}
+				for _, hostname := range hostnames {
+					if hostname == host {
+						egressEnabled = true
+						break
+					}
+				}
+			}
+		}
+	}
+	return egressEnabled
 }
 
 // ListOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to

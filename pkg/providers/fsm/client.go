@@ -68,14 +68,14 @@ func (c *client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 					log.Error().Msgf("Error parsing endpoint IP address %s for MeshService %s", address.IP, svc)
 					continue
 				}
-				weight, _ := strconv.ParseUint(kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBWeightAnnotation, port.Port)], 10, 32)
+				weight, _ := strconv.ParseUint(kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBWeightAnnotation, address.IP, port.Port)], 10, 32)
 				ept := endpoint.Endpoint{
 					IP:         ip,
 					Port:       endpoint.Port(port.Port),
-					ClusterKey: kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportClusterKeyAnnotation, port.Port)],
-					LBType:     kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBTypeAnnotation, port.Port)],
+					ClusterKey: kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportClusterKeyAnnotation, address.IP, port.Port)],
+					LBType:     kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportLBTypeAnnotation, address.IP, port.Port)],
 					Weight:     endpoint.Weight(weight),
-					Path:       kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportContextPathAnnotation, port.Port)],
+					Path:       kubernetesEndpoints.Annotations[fmt.Sprintf(multicluster.ServiceImportContextPathAnnotation, address.IP, port.Port)],
 				}
 				endpoints = append(endpoints, ept)
 			}

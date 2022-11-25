@@ -16,16 +16,16 @@ import (
 
 const (
 	// ServiceImportClusterKeyAnnotation is the annotation used to configure context path for imported service
-	ServiceImportClusterKeyAnnotation = "flomesh.io/ServiceImport/ClusterKey/%d"
+	ServiceImportClusterKeyAnnotation = "flomesh.io/ServiceImport/ClusterKey/%s/%d"
 
 	// ServiceImportContextPathAnnotation is the annotation used to configure context path for imported service
-	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath/%d"
+	ServiceImportContextPathAnnotation = "flomesh.io/ServiceImport/ContextPath/%s/%d"
 
 	// ServiceImportLBTypeAnnotation is the annotation used to configure load balancer type for imported service
-	ServiceImportLBTypeAnnotation = "flomesh.io/ServiceImport/LBType/%d"
+	ServiceImportLBTypeAnnotation = "flomesh.io/ServiceImport/LBType/%s/%d"
 
 	// ServiceImportLBWeightAnnotation is the annotation used to configure load balancer weight for imported service
-	ServiceImportLBWeightAnnotation = "flomesh.io/ServiceImport/LBWeight/%d"
+	ServiceImportLBWeightAnnotation = "flomesh.io/ServiceImport/LBWeight/%s/%d"
 
 	// AnyServiceAccount defines wildcard service account
 	AnyServiceAccount = "*"
