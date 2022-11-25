@@ -598,6 +598,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 
 			// Mock calls to k8s client caches
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockCfg.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
@@ -616,6 +617,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					}
 					return nil
 				}).AnyTimes()
+			mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 			mockKubeController.EXPECT().GetTargetPortForServicePort(
 				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
 			mockKubeController.EXPECT().GetTargetPortForServicePort(
