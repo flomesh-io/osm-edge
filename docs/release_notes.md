@@ -1,5 +1,11 @@
 # Release Notes
 
+## Release v1.3.0
+
+### Notable changes
+
+- Multi cluster service support
+
 ## Release v1.2.1
 
 ### Notable changes
