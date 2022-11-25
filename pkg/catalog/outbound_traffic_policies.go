@@ -34,10 +34,51 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 	downstreamSvcAccount := downstreamIdentity.ToK8sServiceAccount()
 	servicesResolvableSet := make(map[string][]interface{})
 
+	var egressPolicy *trafficpolicy.EgressTrafficPolicy
+	var egressPolicyGetted bool
+
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
+		egressEnabled := mc.configurator.IsEgressEnabled()
+		if !egressEnabled {
+			if !egressPolicyGetted {
+				egressPolicy, _ = mc.GetEgressTrafficPolicy(downstreamIdentity)
+				egressPolicyGetted = true
+			}
+			if egressPolicy != nil {
+				hostnames := k8s.GetHostnamesForService(meshSvc, true)
+				for _, routeConfigs := range egressPolicy.HTTPRouteConfigsPerPort {
+					if egressEnabled {
+						break
+					}
+					if len(routeConfigs) == 0 {
+						continue
+					}
+					for _, routeConfig := range routeConfigs {
+						if egressEnabled {
+							break
+						}
+						if len(routeConfig.Hostnames) == 0 {
+							continue
+						}
+						for _, host := range routeConfig.Hostnames {
+							if egressEnabled {
+								break
+							}
+							for _, hostname := range hostnames {
+								if hostname == host {
+									egressEnabled = true
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		monitoredNamespace := mc.kubeController.IsMonitoredNamespace(meshSvc.Namespace)
 		existIntraEndpoints := false
 
 		// Retrieve the destination IP address from the endpoints for this service
@@ -51,7 +92,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				destinationIPRanges = append(destinationIPRanges, ipCIDR)
 			}
 			if !existIntraEndpoints {
-				if len(endp.ClusterKey) == 0 {
+				if len(endp.ClusterKey) == 0 && (monitoredNamespace || egressEnabled) {
 					existIntraEndpoints = true
 				}
 			}
