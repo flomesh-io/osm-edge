@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -64,73 +65,43 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 		log.Error().Err(err)
 	}
 
-	_, err = s.repoClient.Batch(0, []client.Batch{
+	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
 		{
 			Basepath: osmCodebase,
 			Items: []client.BatchItem{
-				{
-					Filename: "main.js",
-					Content:  codebaseMainJS,
-				},
-				{
-					Filename: "config.js",
-					Content:  codebaseConfigJS,
-				},
-				{
-					Filename: "metrics.js",
-					Content:  codebaseMetricsJS,
-				},
+
+				{Filename: "outbound-tcp-load-balance.js", Content: codebaseOutboundTCPLoadBalanceJs},
+				{Filename: "logging-init.js", Content: codebaseLoggingInitJs},
+				{Filename: "utils.js", Content: codebaseUtilsJs},
+				{Filename: "tracing-init.js", Content: codebaseTracingInitJs},
+				{Filename: "metrics-http.js", Content: codebaseMetricsHTTPJs},
+				{Filename: "config.js", Content: codebaseConfigJs},
+				{Filename: "tracing.js", Content: codebaseTracingJs},
+				{Filename: "metrics-init.js", Content: codebaseMetricsInitJs},
+				{Filename: "logging.js", Content: codebaseLoggingJs},
+				{Filename: "metrics-tcp.js", Content: codebaseMetricsTCPJs},
+				{Filename: "inbound-throttle.js", Content: codebaseInboundThrottleJs},
+				{Filename: "main.js", Content: codebaseMainJs},
+				{Filename: "breaker.js", Content: codebaseBreakerJs},
+				{Filename: "inbound-mux-http.js", Content: codebaseInboundMuxHTTPJs},
+				{Filename: "outbound-mux-http.js", Content: codebaseOutboundMuxHTTPJs},
+				{Filename: "outbound-http-routing.js", Content: codebaseOutboundHTTPRoutingJs},
+				{Filename: "inbound-demux-http.js", Content: codebaseInboundDemuxHTTPJs},
+				{Filename: "inbound-tls-termination.js", Content: codebaseInboundTLSTerminationJs},
+				{Filename: "outbound-breaker.js", Content: codebaseOutboundBreakerJs},
+				{Filename: "inbound-proxy-tcp.js", Content: codebaseInboundProxyTCPJs},
+				{Filename: "stats.js", Content: codebaseStatsJs},
+				{Filename: "outbound-classifier.js", Content: codebaseOutboundClassifierJs},
+				{Filename: "inbound-http-routing.js", Content: codebaseInboundHTTPRoutingJs},
+				{Filename: "outbound-proxy-tcp.js", Content: codebaseOutboundProxyTCPJs},
+				{Filename: "codes.js", Content: codebaseCodesJs},
+				{Filename: "inbound-classifier.js", Content: codebaseInboundClassifierJs},
+				{Filename: "inbound-tcp-load-balance.js", Content: codebaseInboundTCPLoadBalanceJs},
+				{Filename: "outbound-demux-http.js", Content: codebaseOutboundDemuxHTTPJs},
+
 				{
 					Filename: osmCodebaseConfig,
 					Content:  codebaseConfigJSON,
-				},
-				{
-					Filename: "codes.js",
-					Content:  codebaseCodesJS,
-				},
-				{
-					Filename: "breaker.js",
-					Content:  codebaseBreakerJS,
-				},
-				{
-					Filename: "gather.js",
-					Content:  codebaseGatherJS,
-				},
-				{
-					Filename: "stats.js",
-					Content:  codebaseStatsJS,
-				},
-				{
-					Filename: "inbound-proxy-tcp.js",
-					Content:  codebaseInboundProxyTCPJS,
-				},
-				{
-					Filename: "inbound-recv-http.js",
-					Content:  codebaseInboundRecvHTTPJS,
-				},
-				{
-					Filename: "inbound-recv-tcp.js",
-					Content:  codebaseInboundRecvTCPJS,
-				},
-				{
-					Filename: "inbound-throttle.js",
-					Content:  codebaseInboundThrottleJS,
-				},
-				{
-					Filename: "outbound-breaker.js",
-					Content:  codebaseOutboundBreakerJS,
-				},
-				{
-					Filename: "outbound-mux-http.js",
-					Content:  codebaseOutboundMuxHTTPJS,
-				},
-				{
-					Filename: "outbound-proxy-tcp.js",
-					Content:  codebaseOutboundProxyTCPJS,
-				},
-				{
-					Filename: "outbound-recv-http.js",
-					Content:  codebaseOutboundRecvHTTPJS,
 				},
 			},
 		},

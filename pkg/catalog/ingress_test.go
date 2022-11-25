@@ -415,6 +415,7 @@ func TestGetIngressTrafficPolicy(t *testing.T) {
 			// Note: if AnyTimes() is used with a mock function, it implies the function may or may not be called
 			// depending on the test case.
 			mockPolicyController.EXPECT().GetIngressBackendPolicy(tc.meshSvc).Return(tc.ingressBackend).AnyTimes()
+			mockPolicyController.EXPECT().GetUpstreamTrafficSetting(policy.UpstreamTrafficSettingGetOpt{MeshService: &tc.meshSvc}).Return(nil).AnyTimes()
 			mockServiceProvider.EXPECT().GetID().Return("mock").AnyTimes()
 			mockEndpointsProvider.EXPECT().ListEndpointsForService(ingressSourceSvc).Return(ingressBackendSvcEndpoints).AnyTimes()
 			mockEndpointsProvider.EXPECT().ListEndpointsForService(sourceSvcWithoutEndpoints).Return(nil).AnyTimes()

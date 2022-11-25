@@ -246,6 +246,8 @@ spec:
                         port:
                           description: Port on which tracing is enabled.
                           type: integer
+                          minimum: 1
+                          maximum: 65535
                         address:
                           description: Address of Jaeger tracing deployment, if tracing is enabled.
                           type: string
@@ -262,6 +264,8 @@ spec:
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer
+                          minimum: 1
+                          maximum: 65535
                         address:
                           description: Address of remote logging deployment, if remote logging is enabled.
                           type: string
@@ -504,6 +508,8 @@ spec:
                         port:
                           description: Port on which tracing is enabled.
                           type: integer
+                          minimum: 1
+                          maximum: 65535
                         address:
                           description: Address of Jaeger tracing deployment, if tracing is enabled.
                           type: string
@@ -520,6 +526,8 @@ spec:
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer
+                          minimum: 1
+                          maximum: 65535
                         address:
                           description: Address of remote logging deployment, if remote logging is enabled.
                           type: string

@@ -1,4 +1,3 @@
-// version: '2022.09.30'
 (
   serviceName = '',
   maxConnections = 10,
@@ -13,7 +12,7 @@
   errorRatioThreshold = 0.0,
   degradedTimeWindow = 30, // 30s
   degradedStatusCode = 409,
-  degradedResponseContent = 'Coming soon ...'
+  degradedResponseContent = 'Coming soon ...',
 ) => (
   ((
     tick = 0,
