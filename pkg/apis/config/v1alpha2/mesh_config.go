@@ -150,7 +150,7 @@ type TracingSpec struct {
 	Enable bool `json:"enable"`
 
 	// Port defines the tracing collector's port.
-	Port int16 `json:"port,omitempty"`
+	Port uint16 `json:"port,omitempty"`
 
 	// Address defines the tracing collectio's hostname.
 	Address string `json:"address,omitempty"`
@@ -165,7 +165,7 @@ type RemoteLoggingSpec struct {
 	Enable bool `json:"enable"`
 
 	// Port defines the remote loggings port.
-	Port int16 `json:"port,omitempty"`
+	Port uint16 `json:"port,omitempty"`
 
 	// Address defines the remote logging's hostname.
 	Address string `json:"address,omitempty"`
