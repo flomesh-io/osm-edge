@@ -6,7 +6,7 @@ import (
 	"github.com/golang/mock/gomock"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/identity"
