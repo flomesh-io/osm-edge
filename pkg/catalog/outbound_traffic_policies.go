@@ -37,21 +37,14 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 
 	var egressPolicy *trafficpolicy.EgressTrafficPolicy
 	var egressPolicyGetted bool
+	var egressEnabled bool
 
 	// For each service, build the traffic policies required to access it.
 	// It is important to aggregate HTTP route configs by the service's port.
 	for _, meshSvc := range mc.ListOutboundServicesForIdentity(downstreamIdentity) {
 		meshSvc := meshSvc // To prevent loop variable memory aliasing in for loop
-		egressEnabled := mc.configurator.IsEgressEnabled()
-		if !egressEnabled {
-			if !egressPolicyGetted {
-				egressPolicy, _ = mc.GetEgressTrafficPolicy(downstreamIdentity)
-				egressPolicyGetted = true
-			}
-			if egressPolicy != nil {
-				egressEnabled = mc.isEgressService(meshSvc, egressPolicy)
-			}
-		}
+
+		egressEnabled, egressPolicyGetted, egressPolicy = mc.enableEgressSrviceForIdentity(downstreamIdentity, egressPolicyGetted, egressPolicy, meshSvc)
 		monitoredNamespace := mc.kubeController.IsMonitoredNamespace(meshSvc.Namespace)
 		existIntraEndpoints := false
 
@@ -94,6 +87,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
 		var upstreamClusters []service.WeightedCluster
+		var splitRouteMatches []trafficpolicy.HTTPRouteMatch
 		// Check if there is a traffic split corresponding to this service.
 		// The upstream clusters are to be derived from the traffic split backends
 		// in that case.
@@ -106,63 +100,15 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		if len(trafficSplits) != 0 {
 			// Program routes to the backends specified in the traffic split
 			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
+			if len(split.Spec.Matches) > 0 {
+				splitRouteMatches = mc.getSplitRouteMatches(split)
+			}
 
 			for _, backend := range split.Spec.Backends {
-				cnsLocal := make(map[service.ClusterName]bool)
-				var aas []service.ClusterName
-				var fos []service.ClusterName
-				{
-					backendMeshSvc := service.MeshService{
-						Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-						Name:      backend.Service,
-					}
-					targetPort, err := mc.kubeController.GetTargetPortForServicePort(
-						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
-					if err == nil {
-						backendMeshSvc.TargetPort = targetPort
-						aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
-						cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())] = true
-					}
-				}
-				{
-					backendMeshSvc := service.MeshService{
-						Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
-						Name:      backend.Service,
-						Port:      meshSvc.Port,
-					}
-					targetPorts := mc.multiclusterController.GetTargetPortForServicePort(
-						types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
-					if len(targetPorts) > 0 {
-						for targetPort, aa := range targetPorts {
-							backendMeshSvc.TargetPort = targetPort
-							if _, exists := cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())]; !exists {
-								if aa {
-									aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
-								} else {
-									fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
-								}
-							}
-						}
-					}
-				}
-				upstreamClusters = activeUpstreamClusters(aas, backend, upstreamClusters)
-				upstreamClusters = failOverUpstreamClusters(fos, upstreamClusters)
+				upstreamClusters = mc.mergeSplitUpstreamClusters(meshSvc, backend, upstreamClusters)
 			}
 		} else {
-			wc := service.WeightedCluster{
-				ClusterName: service.ClusterName(meshSvc.SidecarClusterName()),
-				Weight:      constants.ClusterWeightAcceptAll,
-			}
-			if meshSvc.IsMultiClusterService() {
-				aa, fo, _, weight, _ := mc.multiclusterController.GetLbWeightForService(meshSvc)
-				if aa && weight > 0 {
-					wc.Weight = weight
-				} else if fo {
-					wc.Weight = constants.ClusterWeightFailOver
-				}
-			}
-			// No TrafficSplit for this upstream service, so use a default weighted cluster
-			upstreamClusters = append(upstreamClusters, wc)
+			upstreamClusters = mc.mergeUpstreamClusters(meshSvc, upstreamClusters)
 		}
 
 		retryPolicy := mc.GetRetryPolicy(downstreamIdentity, meshSvc)
@@ -190,11 +136,22 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
 		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
-		if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
-			log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
-				Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
-			continue
+		if len(splitRouteMatches) == 0 {
+			if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
+					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
+				continue
+			}
+		} else {
+			for _, httpRouteMatch := range splitRouteMatches {
+				if err := outboundTrafficPolicy.AddRoute(httpRouteMatch, retryPolicy, upstreamClusters...); err != nil {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
+						Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
+					continue
+				}
+			}
 		}
+
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
 
@@ -204,6 +161,112 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
 		ServicesResolvableSet:   servicesResolvableSet,
 	}
+}
+
+func (mc *MeshCatalog) mergeUpstreamClusters(meshSvc service.MeshService, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {
+	wc := service.WeightedCluster{
+		ClusterName: service.ClusterName(meshSvc.SidecarClusterName()),
+		Weight:      constants.ClusterWeightAcceptAll,
+	}
+	if meshSvc.IsMultiClusterService() {
+		aa, fo, _, weight, _ := mc.multiclusterController.GetLbWeightForService(meshSvc)
+		if aa && weight > 0 {
+			wc.Weight = weight
+		} else if fo {
+			wc.Weight = constants.ClusterWeightFailOver
+		}
+	}
+	// No TrafficSplit for this upstream service, so use a default weighted cluster
+	upstreamClusters = append(upstreamClusters, wc)
+	return upstreamClusters
+}
+
+func (mc *MeshCatalog) mergeSplitUpstreamClusters(meshSvc service.MeshService, backend split.TrafficSplitBackend, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {
+	cnsLocal := make(map[service.ClusterName]bool)
+	var aas []service.ClusterName
+	var fos []service.ClusterName
+	{
+		backendMeshSvc := service.MeshService{
+			Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
+			Name:      backend.Service,
+		}
+		targetPort, err := mc.kubeController.GetTargetPortForServicePort(
+			types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+		if err == nil {
+			backendMeshSvc.TargetPort = targetPort
+			aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+			cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())] = true
+		}
+	}
+	{
+		backendMeshSvc := service.MeshService{
+			Namespace: meshSvc.Namespace, // Backends belong to the same namespace as the apex service
+			Name:      backend.Service,
+			Port:      meshSvc.Port,
+		}
+		targetPorts := mc.multiclusterController.GetTargetPortForServicePort(
+			types.NamespacedName{Namespace: backendMeshSvc.Namespace, Name: backendMeshSvc.Name}, meshSvc.Port)
+		if len(targetPorts) > 0 {
+			for targetPort, aa := range targetPorts {
+				backendMeshSvc.TargetPort = targetPort
+				if _, exists := cnsLocal[service.ClusterName(backendMeshSvc.SidecarClusterName())]; !exists {
+					if aa {
+						aas = append(aas, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+					} else {
+						fos = append(fos, service.ClusterName(backendMeshSvc.SidecarClusterName()))
+					}
+				}
+			}
+		}
+	}
+	upstreamClusters = activeUpstreamClusters(aas, backend, upstreamClusters)
+	upstreamClusters = failOverUpstreamClusters(fos, upstreamClusters)
+	return upstreamClusters
+}
+
+func (mc *MeshCatalog) enableEgressSrviceForIdentity(downstreamIdentity identity.ServiceIdentity, egressPolicyGetted bool, egressPolicy *trafficpolicy.EgressTrafficPolicy, meshSvc service.MeshService) (bool, bool, *trafficpolicy.EgressTrafficPolicy) {
+	egressEnabled := mc.configurator.IsEgressEnabled()
+	if !egressEnabled {
+		if !egressPolicyGetted {
+			egressPolicy, _ = mc.GetEgressTrafficPolicy(downstreamIdentity)
+			egressPolicyGetted = true
+		}
+		if egressPolicy != nil {
+			egressEnabled = mc.isEgressService(meshSvc, egressPolicy)
+		}
+	}
+	return egressEnabled, egressPolicyGetted, egressPolicy
+}
+
+func (mc *MeshCatalog) getSplitRouteMatches(split *split.TrafficSplit) (splitRouteMatches []trafficpolicy.HTTPRouteMatch) {
+	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
+		if trafficSpecs.Spec.Matches == nil {
+			continue
+		}
+		for _, match := range split.Spec.Matches {
+			if match.Name == trafficSpecs.Name {
+				for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
+					serviceRoute := trafficpolicy.HTTPRouteMatch{
+						Path:          trafficSpecsMatches.PathRegex,
+						PathMatchType: trafficpolicy.PathMatchRegex,
+						Methods:       trafficSpecsMatches.Methods,
+						Headers:       trafficSpecsMatches.Headers,
+					}
+
+					// When pathRegex or/and methods are not defined, they will be wildcarded
+					if serviceRoute.Path == "" {
+						serviceRoute.Path = constants.RegexMatchAll
+					}
+					if len(serviceRoute.Methods) == 0 {
+						serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
+					}
+					splitRouteMatches = append(splitRouteMatches, serviceRoute)
+				}
+				break
+			}
+		}
+	}
+	return splitRouteMatches
 }
 
 func activeUpstreamClusters(aas []service.ClusterName, backend split.TrafficSplitBackend, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {
