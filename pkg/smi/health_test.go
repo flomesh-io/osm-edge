@@ -29,7 +29,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -48,7 +48,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{}},
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{}},
 				},
 				Err: nil,
 			},
@@ -64,7 +64,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -82,7 +82,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -99,7 +99,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 						{Kind: "TCPRoute"},
 					}},
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -114,7 +114,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 					"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficTarget"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -130,7 +130,7 @@ func TestRequiredAPIResourcesExist(t *testing.T) {
 						{Kind: "HTTPRouteGroup"},
 						{Kind: "TCPRoute"},
 					}},
-					"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+					"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 						{Kind: "TrafficSplit"},
 					}},
 				},
@@ -179,7 +179,7 @@ func TestGetID(t *testing.T) {
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},
 			}},
-			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+			"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficSplit"},
 			}},
 		},
@@ -202,7 +202,7 @@ func TestLiveness(t *testing.T) {
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},
 			}},
-			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+			"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficSplit"},
 			}},
 		},
@@ -225,7 +225,7 @@ func TestReadiness(t *testing.T) {
 			"access.smi-spec.io/v1alpha3": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficTarget"},
 			}},
-			"split.smi-spec.io/v1alpha2": {APIResources: []metav1.APIResource{
+			"split.smi-spec.io/v1alpha4": {APIResources: []metav1.APIResource{
 				{Kind: "TrafficSplit"},
 			}},
 		},

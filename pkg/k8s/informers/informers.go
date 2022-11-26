@@ -89,7 +89,7 @@ func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTr
 		ic.informers[InformerKeyTCPRoute] = specInformerFactory.Specs().V1alpha4().TCPRoutes().Informer()
 		ic.informers[InformerKeyHTTPRouteGroup] = specInformerFactory.Specs().V1alpha4().HTTPRouteGroups().Informer()
 		ic.informers[InformerKeyTrafficTarget] = accessInformerFactory.Access().V1alpha3().TrafficTargets().Informer()
-		ic.informers[InformerKeyTrafficSplit] = splitInformerFactory.Split().V1alpha2().TrafficSplits().Informer()
+		ic.informers[InformerKeyTrafficSplit] = splitInformerFactory.Split().V1alpha4().TrafficSplits().Informer()
 	}
 }
 

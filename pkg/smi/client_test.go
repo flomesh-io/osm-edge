@@ -396,7 +396,7 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 	a.Equal(http.StatusOK, resp.StatusCode)
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	a.Nil(err)
-	a.Equal(`{"HTTPRouteGroup":"specs.smi-spec.io/v1alpha4","TCPRoute":"specs.smi-spec.io/v1alpha4","TrafficSplit":"split.smi-spec.io/v1alpha2","TrafficTarget":"access.smi-spec.io/v1alpha3"}`, string(bodyBytes))
+	a.Equal(`{"HTTPRouteGroup":"specs.smi-spec.io/v1alpha4","TCPRoute":"specs.smi-spec.io/v1alpha4","TrafficSplit":"split.smi-spec.io/v1alpha4","TrafficTarget":"access.smi-spec.io/v1alpha3"}`, string(bodyBytes))
 }
 
 func TestHasValidRules(t *testing.T) {
