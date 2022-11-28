@@ -17,6 +17,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -84,8 +85,14 @@ type Methods []Method
 // WeightedClusters is a wrapper type of map[ClusterName]Weight
 type WeightedClusters map[ClusterName]Weight
 
-// URIPathRegexp is a string wrapper type
-type URIPathRegexp string
+// URIPathValue is a uri value wrapper
+type URIPathValue string
+
+// URIPath is a uri wrapper type
+type URIPath struct {
+	Value URIPathValue
+	Type  trafficpolicy.PathMatchType
+}
 
 // ServiceName is a string wrapper type
 type ServiceName string
@@ -95,6 +102,7 @@ type Services []ServiceName
 
 // HTTPRouteRule http route rule
 type HTTPRouteRule struct {
+	URIPath         URIPath          `json:"Path"`
 	Headers         Headers          `json:"Headers"`
 	Methods         Methods          `json:"Methods"`
 	TargetClusters  WeightedClusters `json:"TargetClusters"`
@@ -230,11 +238,14 @@ type InboundHTTPRouteRule struct {
 	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
 }
 
+// InboundHTTPRouteRuleSlice http route rule array
+type InboundHTTPRouteRuleSlice []*InboundHTTPRouteRule
+
 // InboundHTTPRouteRules is a wrapper type
 type InboundHTTPRouteRules struct {
-	RouteRules       map[URIPathRegexp]*InboundHTTPRouteRule `json:"RouteRules"`
-	RateLimit        *HTTPRateLimit                          `json:"RateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit                  `json:"HeaderRateLimits"`
+	RouteRules       InboundHTTPRouteRuleSlice `json:"RouteRules"`
+	RateLimit        *HTTPRateLimit            `json:"RateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit    `json:"HeaderRateLimits"`
 }
 
 // InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
@@ -256,7 +267,7 @@ type InboundTrafficMatch struct {
 type InboundTrafficMatches map[Port]*InboundTrafficMatch
 
 // OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type OutboundHTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
+type OutboundHTTPRouteRules []*HTTPRouteRule
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules

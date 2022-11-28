@@ -136,19 +136,23 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
 		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
-		if len(splitRouteMatches) == 0 {
-			if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
+
+		hasWildCardRoute := false
+		for _, httpRouteMatch := range splitRouteMatches {
+			if httpRouteMatch.Path == constants.RegexMatchAll {
+				hasWildCardRoute = true
+			}
+			if err := outboundTrafficPolicy.AddRoute(httpRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
 				continue
 			}
-		} else {
-			for _, httpRouteMatch := range splitRouteMatches {
-				if err := outboundTrafficPolicy.AddRoute(httpRouteMatch, retryPolicy, upstreamClusters...); err != nil {
-					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
-						Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
-					continue
-				}
+		}
+		if !hasWildCardRoute {
+			if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
+				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
+					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
+				continue
 			}
 		}
 

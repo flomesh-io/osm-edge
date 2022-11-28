@@ -52,12 +52,12 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 			}
 
 			for _, rule := range httpRouteConfig.Rules {
-				pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
-				if len(pathRegexp) == 0 {
+				if len(rule.Route.HTTPRouteMatch.Path) == 0 {
 					continue
 				}
 
-				hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+				path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
+				hsrr := hsrrs.newHTTPServiceRouteRule(path)
 				for k, v := range rule.Route.HTTPRouteMatch.Headers {
 					hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 				}
@@ -148,12 +148,12 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 					tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 				}
 				for _, route := range httpRouteConfig.Routes {
-					pathRegexp := URIPathRegexp(route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
-						pathRegexp = ".*"
+					path := URIPath{Value: URIPathValue(route.HTTPRouteMatch.Path)}
+					if len(path.Value) == 0 {
+						path.Value = constants.RegexMatchAll
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					hsrr := hsrrs.newHTTPServiceRouteRule(path)
 					for k, v := range route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
@@ -284,12 +284,12 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 				}
 				for _, rule := range httpRouteConfig.RoutingRules {
 					route := rule.Route
-					pathRegexp := URIPathRegexp(route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
-						pathRegexp = ".*"
+					path := URIPath{Value: URIPathValue(route.HTTPRouteMatch.Path)}
+					if len(path.Value) == 0 {
+						path.Value = constants.RegexMatchAll
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					hsrr := hsrrs.newHTTPServiceRouteRule(path)
 					for k, v := range route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
@@ -434,12 +434,12 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				for _, rule := range httpRouteConfig.Rules {
-					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
+					if len(rule.Route.HTTPRouteMatch.Path) == 0 {
 						continue
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
+					hsrr := hsrrs.newHTTPServiceRouteRule(path)
 					hsrr.setRateLimit(rule.Route.RateLimit)
 					for k, v := range rule.Route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
@@ -583,12 +583,12 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				for _, rule := range httpRouteConfig.Rules {
-					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
+					if len(rule.Route.HTTPRouteMatch.Path) == 0 {
 						continue
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
+					hsrr := hsrrs.newHTTPServiceRouteRule(path)
 					hsrr.setRateLimit(rule.Route.RateLimit)
 					for k, v := range rule.Route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
@@ -673,12 +673,12 @@ func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 				for _, rule := range httpRouteConfig.Rules {
-					pathRegexp := URIPathRegexp(rule.Route.HTTPRouteMatch.Path)
-					if len(pathRegexp) == 0 {
+					if len(rule.Route.HTTPRouteMatch.Path) == 0 {
 						continue
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(pathRegexp)
+					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
+					hsrr := hsrrs.newHTTPServiceRouteRule(path)
 					for k, v := range rule.Route.HTTPRouteMatch.Headers {
 						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
