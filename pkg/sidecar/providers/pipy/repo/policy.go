@@ -409,28 +409,34 @@ func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1
 
 func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *InboundHTTPRouteRule {
 	for _, routeRule := range hrrs.RouteRules {
-		if routeRule.URIPath.Value == path.Value && routeRule.URIPath.Type == path.Type {
+		if routeRule.Path == path.Value && routeRule.Type == path.Type {
 			return routeRule
 		}
 	}
 
 	routeRule := new(InboundHTTPRouteRule)
-	routeRule.URIPath.Value = path.Value
-	routeRule.URIPath.Type = path.Type
+	routeRule.Path = path.Value
+	routeRule.Type = path.Type
+	if len(routeRule.Type) == 0 {
+		routeRule.Type = PathMatchRegex
+	}
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule
 }
 
 func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *HTTPRouteRule {
 	for _, routeRule := range *hrrs {
-		if routeRule.URIPath.Value == path.Value && routeRule.URIPath.Type == path.Type {
+		if routeRule.Path == path.Value && routeRule.Type == path.Type {
 			return routeRule
 		}
 	}
 
 	routeRule := new(HTTPRouteRule)
-	routeRule.URIPath.Value = path.Value
-	routeRule.URIPath.Type = path.Type
+	routeRule.Path = path.Value
+	routeRule.Type = path.Type
+	if len(routeRule.Type) == 0 {
+		routeRule.Type = PathMatchRegex
+	}
 	*hrrs = append(*hrrs, routeRule)
 	return routeRule
 }
@@ -732,10 +738,10 @@ func (hrrs *OutboundHTTPRouteRules) Swap(i, j int) {
 
 func (hrrs *OutboundHTTPRouteRules) Less(i, j int) bool {
 	a, b := (*hrrs)[i], (*hrrs)[j]
-	if a.URIPath.Value == constants.RegexMatchAll {
+	if a.Path == constants.RegexMatchAll {
 		return false
 	}
-	return strings.Compare(string(a.URIPath.Value), string(b.URIPath.Value)) == -1
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
 }
 
 func (hrrs *InboundHTTPRouteRules) sort() {
@@ -754,8 +760,8 @@ func (irrs InboundHTTPRouteRuleSlice) Swap(i, j int) {
 
 func (irrs InboundHTTPRouteRuleSlice) Less(i, j int) bool {
 	a, b := irrs[i], irrs[j]
-	if a.URIPath.Value == constants.RegexMatchAll {
+	if a.Path == constants.RegexMatchAll {
 		return false
 	}
-	return strings.Compare(string(a.URIPath.Value), string(b.URIPath.Value)) == -1
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
 }

@@ -17,7 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -88,10 +87,24 @@ type WeightedClusters map[ClusterName]Weight
 // URIPathValue is a uri value wrapper
 type URIPathValue string
 
+// URIMatchType is a match type wrapper
+type URIMatchType string
+
+const (
+	// PathMatchRegex is the type used to specify regex based path matching
+	PathMatchRegex URIMatchType = "Regex"
+
+	// PathMatchExact is the type used to specify exact path matching
+	PathMatchExact URIMatchType = "Exact"
+
+	// PathMatchPrefix is the type used to specify prefix based path matching
+	PathMatchPrefix URIMatchType = "Prefix"
+)
+
 // URIPath is a uri wrapper type
 type URIPath struct {
 	Value URIPathValue
-	Type  trafficpolicy.PathMatchType
+	Type  URIMatchType
 }
 
 // ServiceName is a string wrapper type
@@ -102,7 +115,8 @@ type Services []ServiceName
 
 // HTTPRouteRule http route rule
 type HTTPRouteRule struct {
-	URIPath         URIPath          `json:"Path"`
+	Path            URIPathValue
+	Type            URIMatchType
 	Headers         Headers          `json:"Headers"`
 	Methods         Methods          `json:"Methods"`
 	TargetClusters  WeightedClusters `json:"TargetClusters"`
