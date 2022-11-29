@@ -86,76 +86,91 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
-		var upstreamClusters []service.WeightedCluster
-		var splitRouteMatches []trafficpolicy.HTTPRouteMatch
+		var routeMatches []*trafficpolicy.HTTPRouteMatchWithWeightedClusters
 		// Check if there is a traffic split corresponding to this service.
 		// The upstream clusters are to be derived from the traffic split backends
 		// in that case.
 		trafficSplits := mc.meshSpec.ListTrafficSplits(smi.WithTrafficSplitApexService(meshSvc))
-		if len(trafficSplits) > 1 {
-			// TODO: enhancement(#2759)
-			log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrMultipleSMISplitPerServiceUnsupported)).
-				Msgf("Found more than 1 SMI TrafficSplit configuration for the same apex service %s, this is unsupported. Picking the first one!", meshSvc)
-		}
-		if len(trafficSplits) != 0 {
+		if len(trafficSplits) > 0 {
 			// Program routes to the backends specified in the traffic split
-			split := trafficSplits[0] // TODO(#2759): support multiple traffic splits per apex service
-			if len(split.Spec.Matches) > 0 {
-				splitRouteMatches = mc.getSplitRouteMatches(split)
-			}
+			for _, split := range trafficSplits {
+				routeMatch := new(trafficpolicy.HTTPRouteMatchWithWeightedClusters)
+				if len(split.Spec.Matches) > 0 {
+					routeMatch.RouteMatches = mc.getSplitRouteMatches(split)
+				}
 
-			for _, backend := range split.Spec.Backends {
-				upstreamClusters = mc.mergeSplitUpstreamClusters(meshSvc, backend, upstreamClusters)
+				for _, backend := range split.Spec.Backends {
+					routeMatch.UpstreamClusters = mc.mergeSplitUpstreamClusters(meshSvc, backend, routeMatch.UpstreamClusters)
+				}
+				routeMatches = append(routeMatches, routeMatch)
 			}
 		} else {
-			upstreamClusters = mc.mergeUpstreamClusters(meshSvc, upstreamClusters)
+			routeMatch := new(trafficpolicy.HTTPRouteMatchWithWeightedClusters)
+			routeMatch.UpstreamClusters = mc.mergeUpstreamClusters(meshSvc, routeMatch.UpstreamClusters)
+			routeMatches = append(routeMatches, routeMatch)
 		}
-
-		retryPolicy := mc.GetRetryPolicy(downstreamIdentity, meshSvc)
 
 		// ---
 		// Create a TrafficMatch for this upstream service and port combination.
 		// The TrafficMatch will be used by LDS to program a filter chain match
 		// for this upstream service, port, and destination IP ranges. This
 		// will be programmed on the downstream client.
-		trafficMatchForServicePort := &trafficpolicy.TrafficMatch{
-			Name:                meshSvc.OutboundTrafficMatchName(),
-			DestinationPort:     int(meshSvc.Port),
-			DestinationProtocol: meshSvc.Protocol,
-			DestinationIPRanges: destinationIPRanges,
-			WeightedClusters:    upstreamClusters,
+		for _, routeMatch := range routeMatches {
+			trafficMatchForServicePort := &trafficpolicy.TrafficMatch{
+				Name:                meshSvc.OutboundTrafficMatchName(),
+				DestinationPort:     int(meshSvc.Port),
+				DestinationProtocol: meshSvc.Protocol,
+				DestinationIPRanges: destinationIPRanges,
+				WeightedClusters:    routeMatch.UpstreamClusters,
+			}
+			trafficMatches = append(trafficMatches, trafficMatchForServicePort)
+			log.Trace().Msgf("Built traffic match %s for downstream %s", trafficMatchForServicePort.Name, downstreamIdentity)
 		}
-		trafficMatches = append(trafficMatches, trafficMatchForServicePort)
-		log.Trace().Msgf("Built traffic match %s for downstream %s", trafficMatchForServicePort.Name, downstreamIdentity)
 
 		// Build the HTTP route configs for this service and port combination.
 		// If the port's protocol corresponds to TCP, we can skip this step
 		if meshSvc.Protocol == constants.ProtocolTCP || meshSvc.Protocol == constants.ProtocolTCPServerFirst {
 			continue
 		}
+
 		// Create a route to access the upstream service via it's hostnames and upstream weighted clusters
 		httpHostNamesForServicePort := k8s.GetHostnamesForService(meshSvc, downstreamSvcAccount.Namespace == meshSvc.Namespace)
 		outboundTrafficPolicy := trafficpolicy.NewOutboundTrafficPolicy(meshSvc.FQDN(), httpHostNamesForServicePort)
+		retryPolicy := mc.GetRetryPolicy(downstreamIdentity, meshSvc)
 
 		hasWildCardRoute := false
-		for _, httpRouteMatch := range splitRouteMatches {
-			if httpRouteMatch.Path == constants.RegexMatchAll {
-				hasWildCardRoute = true
-			}
-			if err := outboundTrafficPolicy.AddRoute(httpRouteMatch, retryPolicy, upstreamClusters...); err != nil {
-				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
-					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
-				continue
+		for _, routeMatch := range routeMatches {
+			for _, route := range routeMatch.RouteMatches {
+				if route.Path == constants.RegexMatchAll {
+					hasWildCardRoute = true
+				}
+				if err := outboundTrafficPolicy.AddRoute(route, retryPolicy, routeMatch.UpstreamClusters...); err != nil {
+					log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
+						Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
+					continue
+				}
 			}
 		}
 		if !hasWildCardRoute {
+			var upstreamClusters []service.WeightedCluster
+			upstreamClusterMap := make(map[service.ClusterName]bool)
+			for _, routeMatch := range routeMatches {
+				for _, upstreamCluster := range routeMatch.UpstreamClusters {
+					if _, exist := upstreamClusterMap[upstreamCluster.ClusterName]; !exist {
+						upstreamClusters = append(upstreamClusters, service.WeightedCluster{
+							ClusterName: upstreamCluster.ClusterName,
+							Weight:      constants.ClusterWeightAcceptAll,
+						})
+						upstreamClusterMap[upstreamCluster.ClusterName] = true
+					}
+				}
+			}
 			if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
 				continue
 			}
 		}
-
 		routeConfigPerPort[int(meshSvc.Port)] = append(routeConfigPerPort[int(meshSvc.Port)], outboundTrafficPolicy)
 	}
 
