@@ -1,4 +1,4 @@
-// version: '2022.11.21'
+// version: '2022.11.29'
 ((
   {
     config,
@@ -64,7 +64,7 @@
               // Match service whitelist
               (!o.AllowedServices || o.AllowedServices[headers.serviceidentity]) &&
               // Match path pattern
-              o.Path.test(msg.head.path) &&
+              o.matchPath(msg.head.path) &&
               // Match headers
               (!o.Headers || o.Headers.every(([k, v]) => v.test(headers[k] || '')))
             )),
@@ -162,14 +162,13 @@
             _outBytesStruct.requestSize = _outBytesStruct.responseSize = 0,
 
             // EGRESS mode
-            !_outTarget && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
+            !_outTarget && _egressMode && (specEnableEgress || _outMatch?.AllowedEgressTraffic) && (
               target = _outIP + ':' + _outPort,
               _upstreamClusterName = target,
               !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
                 [target]: 100
               })),
-              _outTarget = _egressTargetMap[target].next(),
-              _egressMode = true
+              _outTarget = _egressTargetMap[target].next()
             ),
 
             _outRequestTime = Date.now(),

@@ -1,4 +1,4 @@
-// version: '2022.09.30'
+// version: '2022.11.29'
 ((
   {
     name,
@@ -55,7 +55,7 @@
             // Match service whitelist
             (!o.AllowedServices || o.AllowedServices[headers.serviceidentity]) &&
             // Match path pattern
-            o.Path.test(msg.head.path) &&
+            o.matchPath(msg.head.path) &&
             // Match headers
             (!o.Headers || o.Headers.every(([k, v]) => v.test(headers[k] || '')))
           )),

@@ -1,4 +1,4 @@
-// version: '2022.10.27'
+// version: '2022.11.29'
 ((
   {
     config,
@@ -187,7 +187,7 @@
     })
     .onStart(
       () => (
-        ((target) => (
+        ((match, target) => (
           // Upstream service port
           _outPort = (__inbound.destinationPort || 0),
 
@@ -196,12 +196,13 @@
 
           _outMatch = (outTrafficMatches && outTrafficMatches[_outPort] && (
             // Strict matching Destination IP address
-            outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(
+            (match = outTrafficMatches[_outPort].find?.(o => (o.DestinationIPRanges && o.DestinationIPRanges.find(
               e => (e.netmask?.contains?.(_outIP) ? (_outSourceCert = e.cert, true) : false)
-            ))) ||
+            )))) ||
             // EGRESS mode - does not check the IP
-            (_egressMode = true) && outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
-              (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))
+            (match = outTrafficMatches[_outPort].find?.(o => (!Boolean(o.DestinationIPRanges) &&
+              (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))) && (_egressMode = true),
+            match
           )),
 
           // Find egress nat gateway
