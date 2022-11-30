@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
@@ -135,8 +136,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
 			httpRouteConfigs := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
-				int(upstreamSvc.TargetPort),
-				upstreamSvcFQDN)
+				int(upstreamSvc.TargetPort), upstreamSvcFQDN, trafficMatch.WeightedClusters)
 			if len(httpRouteConfigs) == 0 {
 				continue
 			}
@@ -193,8 +193,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			upstreamSvcFQDN := upstreamSvc.FQDN()
 
 			httpRouteConfigs := getOutboundHTTPRouteConfigs(outboundPolicy.HTTPRouteConfigsPerPort,
-				int(upstreamSvc.TargetPort),
-				upstreamSvcFQDN)
+				int(upstreamSvc.TargetPort), upstreamSvcFQDN, trafficMatch.WeightedClusters)
 			if len(httpRouteConfigs) == 0 {
 				continue
 			}
@@ -778,12 +777,17 @@ func getInboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy
 }
 
 func getOutboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy,
-	targetPort int, upstreamSvcFQDN string) []*trafficpolicy.OutboundTrafficPolicy {
+	targetPort int, upstreamSvcFQDN string, weightedClusters []service.WeightedCluster) []*trafficpolicy.OutboundTrafficPolicy {
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
 	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
 		for _, httpRouteConfig := range httpRouteConfigs {
 			if httpRouteConfig.Name == upstreamSvcFQDN {
-				outboundTrafficPolicies = append(outboundTrafficPolicies, httpRouteConfig)
+				for _, route := range httpRouteConfig.Routes {
+					if arrayEqual(weightedClusters, route.WeightedClusters) {
+						outboundTrafficPolicies = append(outboundTrafficPolicies, httpRouteConfig)
+						break
+					}
+				}
 			}
 		}
 	}
@@ -918,6 +922,43 @@ func getEndpointsForProxyIdentity(meshCatalog catalog.MeshCataloger, proxyIdenti
 		return mc.ListEndpointsForServiceIdentity(proxyIdentity)
 	}
 	return nil
+}
+
+func arrayEqual(a []service.WeightedCluster, set mapset.Set) bool {
+	var b []service.WeightedCluster
+	for e := range set.Iter() {
+		if o, ok := e.(service.WeightedCluster); ok {
+			b = append(b, o)
+		}
+	}
+	if len(a) == len(b) {
+		for _, ca := range a {
+			caEqualb := false
+			for _, cb := range b {
+				if ca.ClusterName == cb.ClusterName && ca.Weight == cb.Weight {
+					caEqualb = true
+					break
+				}
+			}
+			if !caEqualb {
+				return false
+			}
+		}
+		for _, cb := range b {
+			cbEquala := false
+			for _, ca := range a {
+				if cb.ClusterName == ca.ClusterName && cb.Weight == ca.Weight {
+					cbEquala = true
+					break
+				}
+			}
+			if !cbEquala {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func hash(bytes []byte) uint64 {
