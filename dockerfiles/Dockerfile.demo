@@ -1,5 +1,5 @@
 ARG GO_VERSION
-FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:$GO_VERSION AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG BINARY
@@ -10,8 +10,11 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v ./demo/cmd/$BINARY
 
-FROM mcr.microsoft.com/windows/nanoserver:ltsc2022 AS final-windows
-FROM gcr.io/distroless/base AS final-linux
+FROM registry.access.redhat.com/ubi8-minimal AS final-linux
 FROM final-$TARGETOS
 ARG BINARY
+RUN microdnf update && microdnf install shadow-utils
+RUN groupadd osm && useradd -G osm osm-edge
+USER osm-edge
+COPY LICENSE /licenses/osm-edge-LICENSE
 COPY --from=builder /osm/$BINARY* /

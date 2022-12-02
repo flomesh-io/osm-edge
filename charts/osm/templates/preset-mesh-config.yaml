@@ -28,14 +28,6 @@ data:
       "observability": {
         "enableDebugServer": {{.Values.osm.enableDebugServer | mustToJson}},
         "osmLogLevel": {{.Values.osm.controllerLogLevel | mustToJson}},
-        "tracing": {
-          "enable": {{.Values.osm.tracing.enable | mustToJson}}{{- if .Values.osm.tracing.enable }},{{- end }}
-          {{- if .Values.osm.tracing.enable }}
-          "port": {{.Values.osm.tracing.port | mustToJson}},
-          "address": {{include "osm.tracingAddress" . | mustToJson}},
-          "endpoint": {{.Values.osm.tracing.endpoint | mustToJson}}
-          {{- end }}
-        },
         "remoteLogging": {
           "enable": {{.Values.osm.remoteLogging.enable | mustToJson}}{{- if .Values.osm.remoteLogging.enable }},{{- end }}
           {{- if .Values.osm.remoteLogging.enable }}

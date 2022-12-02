@@ -1,21 +1,18 @@
 ARG GO_VERSION
-FROM --platform=$BUILDPLATFORM flomesh/proxy-wasm-cpp-sdk:v2 AS wasm
-
-WORKDIR /wasm
-COPY ./wasm .
-RUN /build_wasm.sh
-
-FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:$GO_VERSION AS builder
 ARG LDFLAGS
 ARG TARGETOS
 ARG TARGETARCH
 
 WORKDIR /osm
 COPY . .
-COPY --from=wasm /wasm/stats.wasm pkg/sidecar/providers/envoy/lds
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-controller -ldflags "$LDFLAGS" ./cmd/osm-controller
 
-FROM gcr.io/distroless/static
+FROM registry.access.redhat.com/ubi8-minimal
+RUN microdnf update && microdnf install shadow-utils
+RUN groupadd osm && useradd -G osm osm-edge
+USER osm-edge
+COPY LICENSE /licenses/osm-edge-LICENSE
 COPY --from=builder /osm/osm-controller /

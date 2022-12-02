@@ -41,7 +41,6 @@ func scaleOSMInstall() (*DataHandle, error) {
 		"osm.osmController.resource.limits.memory=1G")
 
 	// enable Prometheus and Grafana, plus remote rendering
-	t.DeployGrafana = true
 	t.DeployPrometheus = true
 	t.SetOverrides = append(t.SetOverrides,
 		"osm.grafana.enableRemoteRendering=true")

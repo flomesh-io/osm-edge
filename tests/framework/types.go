@@ -100,10 +100,7 @@ type InstallOSMOpts struct {
 	ContainerRegistryLoc    string
 	ContainerRegistrySecret string
 	OsmImagetag             string
-	DeployGrafana           bool
 	DeployPrometheus        bool
-	DeployJaeger            bool
-	DeployFluentbit         bool
 	EnableReconciler        bool
 
 	VaultHost            string

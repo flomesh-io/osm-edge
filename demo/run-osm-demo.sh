@@ -31,10 +31,6 @@ IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-false}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_RECONCILER="${ENABLE_RECONCILER:-false}"
-DEPLOY_GRAFANA="${DEPLOY_GRAFANA:-false}"
-DEPLOY_JAEGER="${DEPLOY_JAEGER:-false}"
-TRACING_ADDRESS="${TRACING_ADDRESS:-jaeger.${K8S_NAMESPACE}.svc.cluster.local}"
-ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 SIDECAR_LOG_LEVEL="${SIDECAR_LOG_LEVEL:-error}"
@@ -114,11 +110,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
       --set=osm.enableEgress="$ENABLE_EGRESS" \
       --set=osm.enableReconciler="$ENABLE_RECONCILER" \
-      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
-      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
-      --set=osm.tracing.address="$TRACING_ADDRESS" \
-      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="warn" \
@@ -139,11 +130,6 @@ else
       --set=osm.enableDebugServer="$ENABLE_DEBUG_SERVER" \
       --set=osm.enableEgress="$ENABLE_EGRESS" \
       --set=osm.enableReconciler="$ENABLE_RECONCILER" \
-      --set=osm.deployGrafana="$DEPLOY_GRAFANA" \
-      --set=osm.deployJaeger="$DEPLOY_JAEGER" \
-      --set=osm.tracing.enable="$DEPLOY_JAEGER" \
-      --set=osm.tracing.address="$TRACING_ADDRESS" \
-      --set=osm.enableFluentbit="$ENABLE_FLUENTBIT" \
       --set=osm.deployPrometheus="$DEPLOY_PROMETHEUS" \
       --set=osm.sidecarLogLevel="$SIDECAR_LOG_LEVEL" \
       --set=osm.controllerLogLevel="warn" \

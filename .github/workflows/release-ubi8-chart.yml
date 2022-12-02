@@ -1,8 +1,8 @@
-name: Release Helm Chart
+name: Release ubi8 Helm Chart
 on:
   push:
     tags:
-      - "v[0-9]+.[0-9]+.[0-9]+*"
+      - "v[0-9]+.[0-9]+.[0-9]+\\-ubi8"
 
 jobs:
   version:

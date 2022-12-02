@@ -349,10 +349,7 @@ func (td *OsmTestData) GetOSMInstallOpts(options ...InstallOsmOpt) InstallOSMOpt
 		ContainerRegistryLoc:    td.CtrRegistryServer,
 		ContainerRegistrySecret: td.CtrRegistryPassword,
 		OsmImagetag:             td.OsmImageTag,
-		DeployGrafana:           false,
 		DeployPrometheus:        false,
-		DeployJaeger:            false,
-		DeployFluentbit:         false,
 		EnableReconciler:        false,
 
 		VaultHost:            "vault." + td.OsmNamespace + ".svc.cluster.local",
@@ -463,7 +460,7 @@ func setMeshConfigToDefault(instOpts InstallOSMOpts, meshConfig *configv1alpha2.
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.InstType == NoInstall {
-		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.DeployGrafana || instOpts.DeployJaeger || instOpts.DeployFluentbit || instOpts.EnableReconciler {
+		if instOpts.CertManager != defaultCertManager || instOpts.DeployPrometheus || instOpts.EnableReconciler {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
@@ -504,10 +501,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		fmt.Sprintf("osm.enablePermissiveTrafficPolicy=%v", instOpts.EnablePermissiveMode),
 		fmt.Sprintf("osm.enableDebugServer=%v", instOpts.EnableDebugServer),
 		fmt.Sprintf("osm.sidecarLogLevel=%s", instOpts.SidecarLogLevel),
-		fmt.Sprintf("osm.deployGrafana=%v", instOpts.DeployGrafana),
 		fmt.Sprintf("osm.deployPrometheus=%v", instOpts.DeployPrometheus),
-		fmt.Sprintf("osm.deployJaeger=%v", instOpts.DeployJaeger),
-		fmt.Sprintf("osm.enableFluentbit=%v", instOpts.DeployFluentbit),
 		fmt.Sprintf("osm.enablePrivilegedInitContainer=%v", instOpts.EnablePrivilegedInitContainer),
 		fmt.Sprintf("osm.featureFlags.enableIngressBackendPolicy=%v", instOpts.EnableIngressBackendPolicy),
 		fmt.Sprintf("osm.featureFlags.enableAccessControlPolicy=%v", instOpts.EnableAccessControlPolicy),
@@ -671,13 +665,13 @@ func (td *OsmTestData) GetSidecarClass(namespace string) (string, error) {
 // LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
-		"osm-edge-controller",
-		"osm-edge-injector",
-		"osm-edge-sidecar-init",
-		"osm-edge-crds",
-		"osm-edge-bootstrap",
-		"osm-edge-preinstall",
-		"osm-edge-healthcheck",
+		"osm-edge-controller-ubi8",
+		"osm-edge-injector-ubi8",
+		"osm-edge-sidecar-init-ubi8",
+		"osm-edge-crds-ubi8",
+		"osm-edge-bootstrap-ubi8",
+		"osm-edge-preinstall-ubi8",
+		"osm-edge-healthcheck-ubi8",
 	}
 
 	return td.LoadImagesToKind(imageNames)

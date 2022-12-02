@@ -43,7 +43,7 @@ spec:
       serviceAccountName: tcp-client
       containers:
       - name: tcp-client
-        image: "${CTR_REGISTRY}/osm-edge-demo-tcp-client:${CTR_TAG}"
+        image: "${CTR_REGISTRY}/osm-edge-demo-tcp-client-ubi8:${CTR_TAG}"
         imagePullPolicy: Always
         command: ["/tcp-client"]
         args: [ "--server-address", "tcp-echo:9000" ]

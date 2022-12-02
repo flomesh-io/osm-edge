@@ -8,7 +8,7 @@ osm:
   # -- OSM control plane image parameters
   image:
     # -- Container image registry for control plane images
-    registry: flomesh
+    registry: quay.io/flomesh
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
@@ -16,19 +16,19 @@ osm:
     # -- Image name defaults
     name:
       # -- osm-controller's image name
-      osmController: osm-edge-controller
+      osmController: osm-edge-controller-ubi8
       # -- osm-injector's image name
-      osmInjector: osm-edge-injector
+      osmInjector: osm-edge-injector-ubi8
       # -- Sidecar init container's image name
-      osmSidecarInit: osm-edge-sidecar-init
+      osmSidecarInit: osm-edge-sidecar-init-ubi8
       # -- osm-boostrap's image name
-      osmBootstrap: osm-edge-bootstrap
+      osmBootstrap: osm-edge-bootstrap-ubi8
       # -- osm-crds' image name
-      osmCRDs: osm-edge-crds
+      osmCRDs: osm-edge-crds-ubi8
       # -- osm-preinstall's image name
-      osmPreinstall: osm-edge-preinstall
+      osmPreinstall: osm-edge-preinstall-ubi8
       # -- osm-healthcheck's image name
-      osmHealthcheck: osm-edge-healthcheck
+      osmHealthcheck: osm-edge-healthcheck-ubi8
     # -- Image digest (defaults to latest compatible tag)
     digest:
       # -- osm-controller's image digest
@@ -57,7 +57,7 @@ osm:
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads
-      sidecarImage: flomesh/pipy:0.70.0-46
+      sidecarImage: quay.io/flomesh/pipy-ubi8:0.70.0-46
       # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
       proxyServerPort: 6060
     - sidecarName: envoy
@@ -68,9 +68,9 @@ osm:
       # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
       proxyServerPort: 15128
   # -- Curl image for control plane init container
-  curlImage: curlimages/curl
+  curlImage: quay.io/flomesh/curl-ubi8:7.84.0
   # -- Pipy repo image for Pipy sidecar's proxy control plane container
-  pipyRepoImage: flomesh/pipy-repo:0.70.0-46
+  pipyRepoImage: quay.io/flomesh/pipy-repo-ubi8:0.70.0-46
   #
   # -- OSM controller parameters
   osmController:
@@ -153,7 +153,7 @@ osm:
       # -- Prometheus data retention time
       time: 15d
     # -- Image used for Prometheus
-    image: prom/prometheus:v2.34.0
+    image: quay.io/prometheus/prometheus:v2.34.0
     ## Node labels for pod assignment
     ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
     nodeSelector: { }
@@ -226,46 +226,6 @@ osm:
   # -- The Kubernetes secret name to store CA bundle for the root CA used in OSM
   caBundleSecretName: osm-ca-bundle
 
-  #
-  # -- Grafana parameters
-  grafana:
-    # -- Grafana service's port
-    port: 3000
-    # -- Enable Remote Rendering in Grafana
-    enableRemoteRendering: false
-    # -- Image used for Grafana
-    image: grafana/grafana:8.2.2
-    # -- Image used for Grafana Renderer
-    rendererImage: grafana/grafana-image-renderer:3.2.1
-
-    ## Node labels for pod assignment
-    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: { }
-
-    ## Affinity settings for pod assignment
-    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: kubernetes.io/os
-                  operator: In
-                  values:
-                    - linux
-                - key: kubernetes.io/arch
-                  operator: In
-                  values:
-                    - amd64
-                    - arm64
-                    - arm
-                    - ppc64le
-                    - s390x
-
-    # -- Node tolerations applied to control plane pods.
-    # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: [ ]
-
   # -- Enable the debug HTTP server on OSM controller
   enableDebugServer: false
 
@@ -281,38 +241,8 @@ osm:
   # -- Deploy Prometheus with OSM installation
   deployPrometheus: false
 
-  # -- Deploy Grafana with OSM installation
-  deployGrafana: false
-
   # -- Deploy Jaeger during OSM installation
   deployJaeger: false
-
-  # -- Enable Fluent Bit sidecar deployment on OSM controller's pod
-  enableFluentbit: false
-
-  #
-  # -- FluentBit parameters
-  fluentBit:
-    # -- Fluent Bit sidecar container name
-    name: fluentbit-logger
-    # -- Registry for Fluent Bit sidecar container
-    registry: fluent
-    # -- Fluent Bit sidecar image tag
-    tag: 1.6.4
-    # -- PullPolicy for Fluent Bit sidecar container
-    pullPolicy: IfNotPresent
-    # -- Fluent Bit output plugin
-    outputPlugin: stdout
-    # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
-    workspaceId: ""
-    # -- Primary Key for Fluent Bit output plugin to Log Analytics
-    primaryKey: ""
-    # -- Enable proxy support toggle for Fluent Bit
-    enableProxySupport: false
-    # -- Optional HTTP proxy endpoint for Fluent Bit
-    httpProxy: ""
-    # -- Optional HTTPS proxy endpoint for Fluent Bit
-    httpsProxy: ""
 
   # -- Identifier for the instance of a service mesh within a cluster
   meshName: osm
@@ -340,52 +270,6 @@ osm:
 
   # -- Namespace to deploy OSM in. If not specified, the Helm release namespace is used.
   osmNamespace: ""
-
-  #
-  # -- Tracing parameters
-  #
-  # The following section configures a destination collector where tracing
-  # data is sent to. Current implementation supports only Zipkin format
-  # backends (https://github.com/openservicemesh/osm/issues/1596)
-  tracing:
-    # -- Toggles Sidecar's tracing functionality on/off for all sidecar proxies in the mesh
-    enable: false
-    # -- Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md
-    address: ""
-    # -- Port of the tracing collector service
-    port: 9411
-    # -- Tracing collector's API path where the spans will be sent to
-    endpoint: "/api/v2/spans"
-    # -- Image used for tracing
-    image: jaegertracing/all-in-one
-
-    ## Node labels for pod assignment
-    ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
-    nodeSelector: { }
-
-    ## Affinity settings for pod assignment
-    ## Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-            - matchExpressions:
-                - key: kubernetes.io/os
-                  operator: In
-                  values:
-                    - linux
-                - key: kubernetes.io/arch
-                  operator: In
-                  values:
-                    - amd64
-                    - arm64
-                    - ppc64le
-                    - s390x
-
-    # -- Node tolerations applied to control plane pods.
-    # The specified tolerations allow pods to schedule onto nodes with matching taints.
-    tolerations: [ ]
-
   #
   # -- Remote logging parameters
   #
@@ -499,7 +383,7 @@ osm:
   # -- Feature flags for experimental features
   featureFlags:
     # -- Enable extra Envoy statistics generated by a custom WASM extension
-    enableWASMStats: true
+    enableWASMStats: false
     # -- Enable OSM's Egress policy API.
     # When enabled, fine grained control over Egress (external) traffic is enforced
     enableEgressPolicy: true

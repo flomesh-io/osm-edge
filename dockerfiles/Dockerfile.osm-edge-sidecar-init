@@ -1,2 +1,5 @@
-FROM flomesh/alpine:3
-RUN apk add --no-cache iptables
+FROM registry.access.redhat.com/ubi8-minimal
+RUN microdnf update && microdnf install iptables shadow-utils
+RUN groupadd osm && useradd -G osm osm-edge
+USER osm-edge
+COPY LICENSE /licenses/osm-edge-LICENSE

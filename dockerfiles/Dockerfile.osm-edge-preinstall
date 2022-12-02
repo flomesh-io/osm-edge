@@ -1,5 +1,5 @@
 ARG GO_VERSION
-FROM --platform=$BUILDPLATFORM golang:$GO_VERSION AS builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:$GO_VERSION AS builder
 ARG LDFLAGS
 ARG TARGETOS
 ARG TARGETARCH
@@ -10,5 +10,9 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o osm-preinstall -ldflags "$LDFLAGS" ./cmd/osm-preinstall
 
-FROM gcr.io/distroless/static
+FROM registry.access.redhat.com/ubi8-minimal
+RUN microdnf update && microdnf install shadow-utils
+RUN groupadd osm && useradd -G osm osm-edge
+USER osm-edge
+COPY LICENSE /licenses/osm-edge-LICENSE
 COPY --from=builder /osm/osm-preinstall /
