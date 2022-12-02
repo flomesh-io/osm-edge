@@ -197,6 +197,7 @@ type MeshConfigSpec struct {
 		LivenessProbes  []v1.Probe `json:"LivenessProbes,omitempty"`
 		StartupProbes   []v1.Probe `json:"StartupProbes,omitempty"`
 	}
+	ClusterSet    map[string]string
 	LocalDNSProxy *LocalDNSProxy `json:"LocalDNSProxy,omitempty"`
 }
 

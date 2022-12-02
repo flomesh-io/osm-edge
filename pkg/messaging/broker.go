@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -335,7 +336,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
 			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
-			prevSpec.FeatureFlags != newSpec.FeatureFlags {
+			prevSpec.FeatureFlags != newSpec.FeatureFlags ||
+			!reflect.DeepEqual(prevSpec.ClusterSet, newSpec.ClusterSet) {
 			return &proxyUpdateEvent{
 				msg:   msg,
 				topic: announcements.ProxyUpdate.String(),

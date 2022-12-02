@@ -237,6 +237,13 @@ func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
 		pipyConf.setLocalDNSProxy((*meshConf).IsLocalDNSProxyEnabled(), (*meshConf).GetLocalDNSProxyPrimaryUpstream(), (*meshConf).GetLocalDNSProxySecondaryUpstream())
+		clusterProps := (*meshConf).GetMeshConfig().Spec.ClusterSet.Properties
+		if len(clusterProps) > 0 {
+			pipyConf.Spec.ClusterSet = make(map[string]string)
+			for _, prop := range clusterProps {
+				pipyConf.Spec.ClusterSet[prop.Name] = prop.Value
+			}
+		}
 	}
 }
 
