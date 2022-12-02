@@ -158,7 +158,7 @@ type ObservabilitySpec struct {
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
 
-	// RemoteLogging defines OSM's remot logging configuration.
+	// RemoteLogging defines OSM's remote logging configuration.
 	RemoteLogging RemoteLoggingSpec `json:"remoteLogging,omitempty"`
 }
 
@@ -182,7 +182,7 @@ type RemoteLoggingSpec struct {
 	// Enable defines a boolean indicating if the sidecars are enabled for remote logging.
 	Enable bool `json:"enable"`
 
-	// Port defines the remote loggings port.
+	// Port defines the remote logging's port.
 	Port int16 `json:"port,omitempty"`
 
 	// Address defines the remote logging's hostname.
