@@ -43,6 +43,7 @@ type HTTPRouteMatch struct {
 type HTTPRouteMatchWithWeightedClusters struct {
 	UpstreamClusters []service.WeightedCluster
 	RouteMatches     []HTTPRouteMatch
+	HasSplitMatches  bool
 }
 
 // TCPRouteMatch is a struct to represent a TCP route matching based on ports

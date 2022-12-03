@@ -86,6 +86,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		}
 		clusterConfigs = append(clusterConfigs, clusterConfigForServicePort)
 
+		hasTrafficSplitWildCard := false
 		var routeMatches []*trafficpolicy.HTTPRouteMatchWithWeightedClusters
 		// Check if there is a traffic split corresponding to this service.
 		// The upstream clusters are to be derived from the traffic split backends
@@ -96,7 +97,10 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			for _, split := range trafficSplits {
 				routeMatch := new(trafficpolicy.HTTPRouteMatchWithWeightedClusters)
 				if len(split.Spec.Matches) > 0 {
+					routeMatch.HasSplitMatches = true
 					routeMatch.RouteMatches = mc.getSplitRouteMatches(split)
+				} else {
+					hasTrafficSplitWildCard = true
 				}
 
 				for _, backend := range split.Spec.Backends {
@@ -105,6 +109,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 				routeMatches = append(routeMatches, routeMatch)
 			}
 		} else {
+			hasTrafficSplitWildCard = true
 			routeMatch := new(trafficpolicy.HTTPRouteMatchWithWeightedClusters)
 			routeMatch.UpstreamClusters = mc.mergeUpstreamClusters(meshSvc, routeMatch.UpstreamClusters)
 			routeMatches = append(routeMatches, routeMatch)
@@ -152,19 +157,7 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 			}
 		}
 		if !hasWildCardRoute {
-			var upstreamClusters []service.WeightedCluster
-			upstreamClusterMap := make(map[service.ClusterName]bool)
-			for _, routeMatch := range routeMatches {
-				for _, upstreamCluster := range routeMatch.UpstreamClusters {
-					if _, exist := upstreamClusterMap[upstreamCluster.ClusterName]; !exist {
-						upstreamClusters = append(upstreamClusters, service.WeightedCluster{
-							ClusterName: upstreamCluster.ClusterName,
-							Weight:      constants.ClusterWeightAcceptAll,
-						})
-						upstreamClusterMap[upstreamCluster.ClusterName] = true
-					}
-				}
-			}
+			upstreamClusters := mc.getWildCardRouteUpstreamClusters(hasTrafficSplitWildCard, routeMatches)
 			if err := outboundTrafficPolicy.AddRoute(trafficpolicy.WildCardRouteMatch, retryPolicy, upstreamClusters...); err != nil {
 				log.Error().Err(err).Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrAddingRouteToOutboundTrafficPolicy)).
 					Msgf("Error adding route to outbound mesh HTTP traffic policy for destination %s", meshSvc)
@@ -180,6 +173,42 @@ func (mc *MeshCatalog) GetOutboundMeshTrafficPolicy(downstreamIdentity identity.
 		HTTPRouteConfigsPerPort: routeConfigPerPort,
 		ServicesResolvableSet:   servicesResolvableSet,
 	}
+}
+
+func (mc *MeshCatalog) getWildCardRouteUpstreamClusters(hasTrafficSplitWildCard bool, routeMatches []*trafficpolicy.HTTPRouteMatchWithWeightedClusters) []service.WeightedCluster {
+	var upstreamClusters []service.WeightedCluster
+	upstreamClusterMap := make(map[service.ClusterName]bool)
+	if hasTrafficSplitWildCard {
+		for _, routeMatch := range routeMatches {
+			if routeMatch.HasSplitMatches {
+				continue
+			}
+			for _, upstreamCluster := range routeMatch.UpstreamClusters {
+				if _, exist := upstreamClusterMap[upstreamCluster.ClusterName]; !exist {
+					weightedCluster := service.WeightedCluster{
+						ClusterName: upstreamCluster.ClusterName,
+						Weight:      upstreamCluster.Weight,
+					}
+					upstreamClusters = append(upstreamClusters, weightedCluster)
+					upstreamClusterMap[upstreamCluster.ClusterName] = true
+				}
+			}
+		}
+	} else {
+		for _, routeMatch := range routeMatches {
+			for _, upstreamCluster := range routeMatch.UpstreamClusters {
+				if _, exist := upstreamClusterMap[upstreamCluster.ClusterName]; !exist {
+					weightedCluster := service.WeightedCluster{
+						ClusterName: upstreamCluster.ClusterName,
+						Weight:      constants.ClusterWeightAcceptAll,
+					}
+					upstreamClusters = append(upstreamClusters, weightedCluster)
+					upstreamClusterMap[upstreamCluster.ClusterName] = true
+				}
+			}
+		}
+	}
+	return upstreamClusters
 }
 
 func (mc *MeshCatalog) mergeUpstreamClusters(meshSvc service.MeshService, upstreamClusters []service.WeightedCluster) []service.WeightedCluster {

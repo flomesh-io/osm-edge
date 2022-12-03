@@ -57,27 +57,33 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 					continue
 				}
 
-				path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
-				hsrr := hsrrs.newHTTPServiceRouteRule(path)
-				for k, v := range rule.Route.HTTPRouteMatch.Headers {
-					hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+				path := URIPath{
+					Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
+					Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
 				}
 
-				if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-					hsrr.addMethodMatch("*")
-				} else {
-					for _, method := range rule.Route.HTTPRouteMatch.Methods {
-						hsrr.addMethodMatch(Method(method))
+				hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path)
+				if !duplicate {
+					for k, v := range rule.Route.HTTPRouteMatch.Headers {
+						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 					}
-				}
 
-				for routeCluster := range rule.Route.WeightedClusters.Iter() {
-					weightedCluster := routeCluster.(service.WeightedCluster)
-					hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
-						Weight(weightedCluster.Weight))
-				}
+					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+						hsrr.addMethodMatch("*")
+					} else {
+						for _, method := range rule.Route.HTTPRouteMatch.Methods {
+							hsrr.addMethodMatch(Method(method))
+						}
+					}
 
-				hsrr.setRateLimit(rule.Route.RateLimit)
+					for routeCluster := range rule.Route.WeightedClusters.Iter() {
+						weightedCluster := routeCluster.(service.WeightedCluster)
+						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+							Weight(weightedCluster.Weight))
+					}
+
+					hsrr.setRateLimit(rule.Route.RateLimit)
+				}
 
 				for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
 					servicePrincipal := allowedPrincipal.(string)
@@ -147,34 +153,39 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				for _, hostname := range httpRouteConfig.Hostnames {
 					tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 				}
+
 				for _, route := range httpRouteConfig.Routes {
-					path := URIPath{Value: URIPathValue(route.HTTPRouteMatch.Path)}
+					path := URIPath{
+						Value: URIPathValue(route.HTTPRouteMatch.Path),
+						Type:  matchType(route.HTTPRouteMatch.PathMatchType),
+					}
 					if len(path.Value) == 0 {
 						path.Value = constants.RegexMatchAll
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(path)
-					for k, v := range route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-					}
-
-					if len(route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+						for k, v := range route.HTTPRouteMatch.Headers {
+							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 						}
-					}
 
-					for cluster := range route.WeightedClusters.Iter() {
-						serviceCluster := cluster.(service.WeightedCluster)
-						weightedCluster := new(WeightedCluster)
-						weightedCluster.WeightedCluster = serviceCluster
-						weightedCluster.RetryPolicy = route.RetryPolicy
-						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-							dependClusters[weightedCluster.ClusterName] = weightedCluster
+						if len(route.HTTPRouteMatch.Methods) == 0 {
+							hsrr.addMethodMatch("*")
+						} else {
+							for _, method := range route.HTTPRouteMatch.Methods {
+								hsrr.addMethodMatch(Method(method))
+							}
 						}
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+
+						for cluster := range route.WeightedClusters.Iter() {
+							serviceCluster := cluster.(service.WeightedCluster)
+							weightedCluster := new(WeightedCluster)
+							weightedCluster.WeightedCluster = serviceCluster
+							weightedCluster.RetryPolicy = route.RetryPolicy
+							if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+								dependClusters[weightedCluster.ClusterName] = weightedCluster
+							}
+							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+						}
 					}
 				}
 			}
@@ -234,36 +245,7 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 			tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
 		}
 
-		var destinationSpec *DestinationSecuritySpec
-		if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
-			if clusterConfig.SourceMTLS != nil {
-				destinationSpec = new(DestinationSecuritySpec)
-				destinationSpec.SourceCert = new(Certificate)
-				osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
-				destinationSpec.SourceCert.OsmIssued = &osmIssued
-				if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
-					secretReference := corev1.SecretReference{
-						Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
-						Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
-					}
-					if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
-						destinationSpec.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
-						destinationSpec.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
-						if caCrt, ok := secret.Data["ca.crt"]; ok {
-							destinationSpec.SourceCert.IssuingCA = string(caCrt)
-						}
-						if tlsCrt, ok := secret.Data["tls.crt"]; ok {
-							destinationSpec.SourceCert.CertChain = string(tlsCrt)
-						}
-						if tlsKey, ok := secret.Data["tls.key"]; ok {
-							destinationSpec.SourceCert.PrivateKey = string(tlsKey)
-						}
-					} else {
-						log.Error().Err(err)
-					}
-				}
-			}
-		}
+		var destinationSpec = getEgressClusterDestinationSpec(meshCatalog, egressPolicy, trafficMatch)
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
 			tm.addDestinationIPRange(DestinationIPRange(ipRange), destinationSpec)
@@ -283,33 +265,37 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 				}
 				for _, rule := range httpRouteConfig.RoutingRules {
 					route := rule.Route
-					path := URIPath{Value: URIPathValue(route.HTTPRouteMatch.Path)}
+					path := URIPath{
+						Value: URIPathValue(route.HTTPRouteMatch.Path),
+						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+					}
 					if len(path.Value) == 0 {
 						path.Value = constants.RegexMatchAll
 					}
 
-					hsrr := hsrrs.newHTTPServiceRouteRule(path)
-					for k, v := range route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-					}
-
-					if len(route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+						for k, v := range route.HTTPRouteMatch.Headers {
+							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 						}
-					}
 
-					for cluster := range route.WeightedClusters.Iter() {
-						serviceCluster := cluster.(service.WeightedCluster)
-						weightedCluster := new(WeightedCluster)
-						weightedCluster.WeightedCluster = serviceCluster
-						weightedCluster.RetryPolicy = route.RetryPolicy
-						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-							dependClusters[weightedCluster.ClusterName] = weightedCluster
+						if len(route.HTTPRouteMatch.Methods) == 0 {
+							hsrr.addMethodMatch("*")
+						} else {
+							for _, method := range route.HTTPRouteMatch.Methods {
+								hsrr.addMethodMatch(Method(method))
+							}
 						}
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+
+						for cluster := range route.WeightedClusters.Iter() {
+							serviceCluster := cluster.(service.WeightedCluster)
+							weightedCluster := new(WeightedCluster)
+							weightedCluster.WeightedCluster = serviceCluster
+							weightedCluster.RetryPolicy = route.RetryPolicy
+							if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+								dependClusters[weightedCluster.ClusterName] = weightedCluster
+							}
+							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+						}
 					}
 
 					for _, allowedIPRange := range rule.AllowedDestinationIPRanges {
@@ -336,6 +322,40 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 	}
 
 	return dependClusters
+}
+
+func getEgressClusterDestinationSpec(meshCatalog catalog.MeshCataloger, egressPolicy *trafficpolicy.EgressTrafficPolicy, trafficMatch *trafficpolicy.TrafficMatch) *DestinationSecuritySpec {
+	var destinationSpec *DestinationSecuritySpec
+	if clusterConfig := getEgressClusterConfigs(egressPolicy.ClustersConfigs, service.ClusterName(trafficMatch.Cluster)); clusterConfig != nil {
+		if clusterConfig.SourceMTLS != nil {
+			destinationSpec = new(DestinationSecuritySpec)
+			destinationSpec.SourceCert = new(Certificate)
+			osmIssued := strings.EqualFold(`osm`, clusterConfig.SourceMTLS.Issuer)
+			destinationSpec.SourceCert.OsmIssued = &osmIssued
+			if !osmIssued && clusterConfig.SourceMTLS.Cert != nil {
+				secretReference := corev1.SecretReference{
+					Name:      clusterConfig.SourceMTLS.Cert.Secret.Name,
+					Namespace: clusterConfig.SourceMTLS.Cert.Secret.Namespace,
+				}
+				if secret, err := meshCatalog.GetEgressSourceSecret(secretReference); err == nil {
+					destinationSpec.SourceCert.SubjectAltNames = clusterConfig.SourceMTLS.Cert.SubjectAltNames
+					destinationSpec.SourceCert.Expiration = clusterConfig.SourceMTLS.Cert.Expiration
+					if caCrt, ok := secret.Data["ca.crt"]; ok {
+						destinationSpec.SourceCert.IssuingCA = string(caCrt)
+					}
+					if tlsCrt, ok := secret.Data["tls.crt"]; ok {
+						destinationSpec.SourceCert.CertChain = string(tlsCrt)
+					}
+					if tlsKey, ok := secret.Data["tls.key"]; ok {
+						destinationSpec.SourceCert.PrivateKey = string(tlsKey)
+					}
+				} else {
+					log.Error().Err(err)
+				}
+			}
+		}
+	}
+	return destinationSpec
 }
 
 func generatePipyOutboundTrafficBalancePolicy(meshCatalog catalog.MeshCataloger, _ *pipy.Proxy,
@@ -437,25 +457,30 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 						continue
 					}
 
-					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
-					hsrr := hsrrs.newHTTPServiceRouteRule(path)
-					hsrr.setRateLimit(rule.Route.RateLimit)
-					for k, v := range rule.Route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					path := URIPath{
+						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
+						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
 					}
 
-					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range rule.Route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+						hsrr.setRateLimit(rule.Route.RateLimit)
+						for k, v := range rule.Route.HTTPRouteMatch.Headers {
+							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 						}
-					}
 
-					for routeCluster := range rule.Route.WeightedClusters.Iter() {
-						weightedCluster := routeCluster.(service.WeightedCluster)
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
-							Weight(weightedCluster.Weight))
+						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+							hsrr.addMethodMatch("*")
+						} else {
+							for _, method := range rule.Route.HTTPRouteMatch.Methods {
+								hsrr.addMethodMatch(Method(method))
+							}
+						}
+
+						for routeCluster := range rule.Route.WeightedClusters.Iter() {
+							weightedCluster := routeCluster.(service.WeightedCluster)
+							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+								Weight(weightedCluster.Weight))
+						}
 					}
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
@@ -586,25 +611,30 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 						continue
 					}
 
-					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
-					hsrr := hsrrs.newHTTPServiceRouteRule(path)
-					hsrr.setRateLimit(rule.Route.RateLimit)
-					for k, v := range rule.Route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					path := URIPath{
+						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
+						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
 					}
 
-					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range rule.Route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+						hsrr.setRateLimit(rule.Route.RateLimit)
+						for k, v := range rule.Route.HTTPRouteMatch.Headers {
+							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 						}
-					}
 
-					for routeCluster := range rule.Route.WeightedClusters.Iter() {
-						weightedCluster := routeCluster.(service.WeightedCluster)
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
-							Weight(weightedCluster.Weight))
+						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+							hsrr.addMethodMatch("*")
+						} else {
+							for _, method := range rule.Route.HTTPRouteMatch.Methods {
+								hsrr.addMethodMatch(Method(method))
+							}
+						}
+
+						for routeCluster := range rule.Route.WeightedClusters.Iter() {
+							weightedCluster := routeCluster.(service.WeightedCluster)
+							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+								Weight(weightedCluster.Weight))
+						}
 					}
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
@@ -676,24 +706,29 @@ func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 						continue
 					}
 
-					path := URIPath{Value: URIPathValue(rule.Route.HTTPRouteMatch.Path)}
-					hsrr := hsrrs.newHTTPServiceRouteRule(path)
-					for k, v := range rule.Route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					path := URIPath{
+						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
+						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
 					}
 
-					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range rule.Route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+						for k, v := range rule.Route.HTTPRouteMatch.Headers {
+							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
 						}
-					}
 
-					for routeCluster := range rule.Route.WeightedClusters.Iter() {
-						weightedCluster := routeCluster.(service.WeightedCluster)
-						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
-							Weight(weightedCluster.Weight))
+						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
+							hsrr.addMethodMatch("*")
+						} else {
+							for _, method := range rule.Route.HTTPRouteMatch.Methods {
+								hsrr.addMethodMatch(Method(method))
+							}
+						}
+
+						for routeCluster := range rule.Route.WeightedClusters.Iter() {
+							weightedCluster := routeCluster.(service.WeightedCluster)
+							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
+								Weight(weightedCluster.Weight))
+						}
 					}
 
 					for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
@@ -779,12 +814,12 @@ func getInboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy
 func getOutboundHTTPRouteConfigs(httpRouteConfigsPerPort map[int][]*trafficpolicy.OutboundTrafficPolicy,
 	targetPort int, upstreamSvcFQDN string, weightedClusters []service.WeightedCluster) []*trafficpolicy.OutboundTrafficPolicy {
 	var outboundTrafficPolicies []*trafficpolicy.OutboundTrafficPolicy
-	if httpRouteConfigs, ok := httpRouteConfigsPerPort[targetPort]; ok {
-		for _, httpRouteConfig := range httpRouteConfigs {
-			if httpRouteConfig.Name == upstreamSvcFQDN {
-				for _, route := range httpRouteConfig.Routes {
+	if trafficPolicies, ok := httpRouteConfigsPerPort[targetPort]; ok {
+		for _, trafficPolicy := range trafficPolicies {
+			if trafficPolicy.Name == upstreamSvcFQDN {
+				for _, route := range trafficPolicy.Routes {
 					if arrayEqual(weightedClusters, route.WeightedClusters) {
-						outboundTrafficPolicies = append(outboundTrafficPolicies, httpRouteConfig)
+						outboundTrafficPolicies = append(outboundTrafficPolicies, trafficPolicy)
 						break
 					}
 				}
@@ -966,4 +1001,15 @@ func hash(bytes []byte) uint64 {
 		return hashCode
 	}
 	return uint64(time.Now().Nanosecond())
+}
+
+func matchType(matchType trafficpolicy.PathMatchType) URIMatchType {
+	switch matchType {
+	case trafficpolicy.PathMatchExact:
+		return PathMatchExact
+	case trafficpolicy.PathMatchPrefix:
+		return PathMatchPrefix
+	default:
+		return PathMatchRegex
+	}
 }

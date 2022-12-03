@@ -407,10 +407,10 @@ func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *InboundHTTPRouteRule {
+func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *InboundHTTPRouteRule, duplicate bool) {
 	for _, routeRule := range hrrs.RouteRules {
 		if routeRule.Path == path.Value && routeRule.Type == path.Type {
-			return routeRule
+			return routeRule, true
 		}
 	}
 
@@ -421,13 +421,13 @@ func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *Inboun
 		routeRule.Type = PathMatchRegex
 	}
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
-	return routeRule
+	return routeRule, false
 }
 
-func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *HTTPRouteRule {
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *HTTPRouteRule, duplicate bool) {
 	for _, routeRule := range *hrrs {
 		if routeRule.Path == path.Value && routeRule.Type == path.Type {
-			return routeRule
+			return routeRule, true
 		}
 	}
 
@@ -438,7 +438,7 @@ func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) *HTTPR
 		routeRule.Type = PathMatchRegex
 	}
 	*hrrs = append(*hrrs, routeRule)
-	return routeRule
+	return routeRule, false
 }
 
 func (hrr *HTTPRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
