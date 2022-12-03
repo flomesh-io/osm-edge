@@ -6,6 +6,9 @@ metadata:
 data:
   preset-mesh-config.json: |
     {
+      "clusterSet": {
+        "properties": []
+      },
       "sidecar": {
         "enablePrivilegedInitContainer": {{.Values.osm.enablePrivilegedInitContainer | mustToJson}},
         "logLevel": {{.Values.osm.sidecarLogLevel | mustToJson}},

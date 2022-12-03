@@ -24,6 +24,9 @@ type MeshConfig struct {
 
 // MeshConfigSpec is the spec for OSM's configuration.
 type MeshConfigSpec struct {
+	// ClusterSetSpec defines the configurations of cluster.
+	ClusterSet ClusterSetSpec `json:"clusterSet,omitempty"`
+
 	// Sidecar defines the configurations of the proxy sidecar in a mesh.
 	Sidecar SidecarSpec `json:"sidecar,omitempty"`
 
@@ -252,4 +255,19 @@ type SidecarDriverSpec struct {
 
 	// SidecarDisabledMTLS defines if mTLS are disabled.
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
+}
+
+// ClusterPropertySpec is the type to represent cluster property.
+type ClusterPropertySpec struct {
+	// Name defines the name of cluster property.
+	Name string `json:"name"`
+
+	// Value defines the name of cluster property.
+	Value string `json:"value"`
+}
+
+// ClusterSetSpec is the type to represent cluster set.
+type ClusterSetSpec struct {
+	// Properties defines properties for cluster.
+	Properties []ClusterPropertySpec `json:"properties"`
 }

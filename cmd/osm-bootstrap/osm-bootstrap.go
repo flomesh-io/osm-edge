@@ -298,7 +298,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 	if err != nil {
 		return err
 	}
-	if _, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err = b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
