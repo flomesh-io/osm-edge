@@ -1,4 +1,4 @@
-// version: '2022.11.29'
+// version: '2022.12.03'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -15,6 +15,7 @@
 
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
+      clusterName: (config?.Spec?.ClusterSet?.ClusterName || ''),
       namespace: (os.env.POD_NAMESPACE || 'default'),
       kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
       name: (os.env.SERVICE_ACCOUNT || ''),

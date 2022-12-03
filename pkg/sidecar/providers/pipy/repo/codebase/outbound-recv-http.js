@@ -1,8 +1,9 @@
-// version: '2022.11.29'
+// version: '2022.12.03'
 ((
   {
     config,
     debugLogLevel,
+    clusterName,
     namespace,
     kind,
     name,
@@ -134,6 +135,7 @@
             logLogging && (_outLoggingData = {
               reqTime: Date.now(),
               meshName: os.env.MESH_NAME || '',
+              clusterName: clusterName,
               remoteAddr: __inbound?.destinationAddress,
               remotePort: __inbound?.destinationPort,
               localAddr: __inbound?.remoteAddress,

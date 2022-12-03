@@ -1,9 +1,10 @@
-// version: '2022.11.29'
+// version: '2022.12.03'
 ((
   {
     name,
     metrics,
     debugLogLevel,
+    clusterName,
     inClustersConfigs
   } = pipy.solve('config.js')) => (
 
@@ -93,6 +94,7 @@
           logLogging && (_inLoggingData = {
             reqTime: Date.now(),
             meshName: os.env.MESH_NAME || '',
+            clusterName: clusterName,
             remoteAddr: __inbound?.remoteAddress,
             remotePort: __inbound?.remotePort,
             localAddr: __inbound?.destinationAddress,
