@@ -1,12 +1,15 @@
 package e2e
 
 import (
+	"bytes"
+	"context"
 	"strconv"
 	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/tests/framework"
@@ -90,3 +93,26 @@ var _ = OSMDescribe("TCP server-first traffic",
 			}, 5*time.Second).Should(ContainSubstring("\ny\n"), "Didn't get expected response from server")
 		})
 	})
+
+// getPodLogs returns pod logs
+func getPodLogs(namespace string, podName string, containerName string) (string, error) {
+	podLogOptions := &corev1.PodLogOptions{
+		Container: containerName,
+		Follow:    false,
+	}
+
+	logStream, err := Td.Client.CoreV1().Pods(namespace).GetLogs(podName, podLogOptions).Stream(context.TODO())
+	if err != nil {
+		return "Error in opening stream", err
+	}
+
+	//nolint: errcheck
+	//#nosec G307
+	defer logStream.Close()
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(logStream)
+	if err != nil {
+		return "Error reading from pod logs stream", err
+	}
+	return buf.String(), nil
+}

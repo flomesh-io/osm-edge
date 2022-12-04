@@ -71,7 +71,7 @@ spec:
       containers:
         # Main container with APP
         - name: bookthief
-          image: "${CTR_REGISTRY}/osm-edge-demo-bookthief:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/osm-edge-demo-bookthief-ubi8:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookthief"]
 

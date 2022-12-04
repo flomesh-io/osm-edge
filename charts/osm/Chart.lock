@@ -3,7 +3,7 @@ dependencies:
   repository: https://charts.bitnami.com/bitnami
   version: 8.0.4
 - name: fsm
-  repository: https://charts.flomesh.io
-  version: 0.1.8
-digest: sha256:5b43fb570586226fb5d4526809bf03407be4c75bbbf24298865b1189032e4112
-generated: "2022-11-25T14:24:13.94257+08:00"
+  repository: https://reaver-flomesh.github.io/fsm
+  version: 0.1.8-32
+digest: sha256:a1e2217b50b08e234f3f02e107585928b57d1a21cfbe38b04ad4991254bb3c0a
+generated: "2022-12-01T20:23:36.865365+08:00"

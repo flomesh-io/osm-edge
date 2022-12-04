@@ -67,7 +67,7 @@ spec:
       containers:
         # Main container with APP
         - name: bookwarehouse
-          image: "${CTR_REGISTRY}/osm-edge-demo-bookwarehouse:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/osm-edge-demo-bookwarehouse-ubi8:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookwarehouse"]
           env:

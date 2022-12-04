@@ -85,7 +85,7 @@ spec:
     spec:
       serviceAccountName: "$SVC"
       containers:
-        - image: "${CTR_REGISTRY}/osm-edge-demo-bookstore:${CTR_TAG}"
+        - image: "${CTR_REGISTRY}/osm-edge-demo-bookstore-ubi8:${CTR_TAG}"
           imagePullPolicy: Always
           name: bookstore
           ports:

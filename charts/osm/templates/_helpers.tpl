@@ -3,17 +3,13 @@
 {{ default .Release.Namespace .Values.osm.osmNamespace}}
 {{- end -}}
 
-{{/* Default tracing address */}}
-{{- define "osm.tracingAddress" -}}
-{{- $address := printf "jaeger.%s.svc.cluster.local" (include "osm.namespace" .) -}}
-{{ default $address .Values.osm.tracing.address}}
-{{- end -}}
-
 {{/* Labels to be added to all resources */}}
 {{- define "osm.labels" -}}
+app.kubernetes.io/managed-by: Helm
 app.kubernetes.io/name: openservicemesh.io
 app.kubernetes.io/instance: {{ .Values.osm.meshName }}
 app.kubernetes.io/version: {{ .Chart.AppVersion }}
+helm.sh/chart: osm-edge-{{ .Chart.Version }}
 {{- end -}}
 
 {{/* Security context values that ensure restricted access to host resources */}}
@@ -23,15 +19,6 @@ securityContext:
     runAsGroup: 3000
     fsGroup: 2000
     supplementalGroups: [5555]
-{{- end -}}
-
-{{/* Security context values for fluentbit */}}
-{{- define "fluentbit.securityContext" -}}
-securityContext:
-    runAsUser: 0
-    capabilities:
-        drop:
-            - ALL
 {{- end -}}
 
 {{/* Resource validator webhook name */}}
@@ -101,4 +88,9 @@ securityContext:
 {{- else -}}
 {{- printf "%s/%s@%s" .Values.osm.image.registry .Values.osm.image.name.osmHealthcheck .Values.osm.image.digest.osmHealthcheck -}}
 {{- end -}}
+{{- end -}}
+
+{{/* curl image */}}
+{{- define "osm.curl.image" -}}
+{{- printf "%s" .Values.osm.curlImage -}}
 {{- end -}}

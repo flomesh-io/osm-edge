@@ -53,7 +53,7 @@ spec:
       containers:
         # Main container with APP
         - name: bookbuyer
-          image: "${CTR_REGISTRY}/osm-edge-demo-bookbuyer:${CTR_TAG}"
+          image: "${CTR_REGISTRY}/osm-edge-demo-bookbuyer-ubi8:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookbuyer"]
 
