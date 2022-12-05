@@ -428,7 +428,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "flomesh/pipy-nightly:latest"
+                        "flomesh/pipy:0.70.0-46"
                     ]
                 },
                 "sidecarWindowsImage": {
@@ -437,7 +437,7 @@
                     "title": "The sidecarWindowsImage schema",
                     "description": "The proxy side car image to run on Windows payloads.",
                     "examples": [
-                        "flomesh/pipy-windows-nightly:latest"
+                        "flomesh/pipy-windows:0.70.0-46"
                     ]
                 },
                 "sidecarDrivers": {
@@ -452,8 +452,8 @@
                         [
                             {
                                 "sidecarName": "pipy",
-                                "sidecarImage": "flomesh/pipy:latest",
-                                "sidecarWindowsImage": "flomesh/pipy-windows-nightly:latest",
+                                "sidecarImage": "flomesh/pipy:0.70.0-46",
+                                "sidecarWindowsImage": "flomesh/pipy-windows:0.70.0-46",
                                 "initContainerImage": "curlimages/curl",
                                 "proxyServerPort": 6060,
                                 "sidecarDisabledMTLS": false
@@ -476,7 +476,7 @@
                     "title": "The pipyRepoImage schema",
                     "description": "The Pipy repo image for Pipy sidecar's proxy control plane container.",
                     "examples": [
-                        "flomesh/pipy-repo-nightly"
+                        "flomesh/pipy-repo"
                     ]
                 },
                 "trustDomain": {

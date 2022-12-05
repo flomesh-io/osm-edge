@@ -1,6 +1,6 @@
 # Release Notes
 
-## Release v1.3.0
+## Release v1.3.0-beta.2
 
 ### Notable changes
 
