@@ -43,6 +43,22 @@ spec:
             spec:
               type: object
               properties:
+                clusterSet:
+                  description: Configuration for cluster
+                  type: object
+                  properties:
+                    properties:
+                      description: Configuration for cluster
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            description: Name defines the name of cluster property.
+                            type: string
+                          value:
+                            description: Value defines the name of cluster property.
+                            type: string
                 sidecar:
                   description: Configuration for sidecar
                   type: object
@@ -368,6 +384,22 @@ spec:
             spec:
               type: object
               properties:
+                clusterSet:
+                  description: Configuration for cluster
+                  type: object
+                  properties:
+                    properties:
+                      description: Configuration for cluster
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            description: Name defines the name of cluster property.
+                            type: string
+                          value:
+                            description: Value defines the name of cluster property.
+                            type: string
                 sidecar:
                   description: Configuration for sidecar
                   type: object

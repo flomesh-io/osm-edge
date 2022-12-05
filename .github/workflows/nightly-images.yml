@@ -11,7 +11,7 @@ jobs:
       DOCKER_USER: ${{ secrets.RELEASE_DOCKER_USER }}
       DOCKER_PASS: ${{ secrets.RELEASE_DOCKER_PASS }}
       CTR_TAG: latest-nightly
-      CTR_REGISTRY: flomesh
+      CTR_REGISTRY: ${{ secrets.RELEASE_REGISTRY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3

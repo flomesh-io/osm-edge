@@ -1,4 +1,4 @@
-// version: '2022.11.21'
+// version: '2022.12.03'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -15,6 +15,7 @@
 
     global = {
       debugLogLevel: (config?.Spec?.SidecarLogLevel === 'debug'),
+      clusterName: (config?.Spec?.ClusterSet?.ClusterName || ''),
       namespace: (os.env.POD_NAMESPACE || 'default'),
       kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
       name: (os.env.SERVICE_ACCOUNT || ''),
@@ -114,17 +115,27 @@
         ([name, rule]) => [
           name,
           {
-            RouteRules: rule?.RouteRules && Object.entries(rule.RouteRules).map(
-              ([path, condition], obj) => (
+            RouteRules: rule?.RouteRules && rule.RouteRules.map(
+              (condition, obj) => (
                 obj = {
-                  Path_: path, // for debugLogLevel
-                  Path: new RegExp(path), // HTTP request path
+                  Path: condition.Path,
+                  Type: condition.Type,
                   Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
                   Headers_: condition?.Headers, // for debugLogLevel
                   Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
                   AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
-                  TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)) // Loadbalancer for services
+                  TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters))
                 },
+                ((match = null) => (
+                  (condition.Type === 'Regex') && (
+                    match = new RegExp(obj.Path),
+                    obj.matchPath = (path) => match.test(path)
+                  ) || (condition.Type === 'Exact') && (
+                    obj.matchPath = (path) => path === obj.Path
+                  ) || (condition.Type === 'Prefix') && (
+                    obj.matchPath = (path) => path.startsWith(obj.Path)
+                  )
+                ))(),
                 obj.RateLimit = (condition?.RateLimit?.Local?.Requests > 0) && global.funcInitLocalRateLimit(condition.RateLimit.Local),
                 obj
               )
@@ -207,17 +218,30 @@
       Object.fromEntries(Object.entries(json).map(
         ([name, rule]) => [
           name,
-          Object.entries(rule).map(
-            ([path, condition]) => ({
-              Path_: path, // for debugLogLevel
-              Path: new RegExp(path), // HTTP request path
-              Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
-              Headers_: condition?.Headers, // for debugLogLevel
-              Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
-              AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
-              TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)), // Loadbalancer for services
-              FailoverTargetClusters: global.funcFailover(condition.TargetClusters)
-            })
+          rule.map(
+            (condition, obj) => (
+              obj = {
+                Path: condition.Path,
+                Type: condition.Type,
+                Methods: condition.Methods && Object.fromEntries(condition.Methods.map(e => [e, true])),
+                Headers_: condition?.Headers, // for debugLogLevel
+                Headers: condition.Headers && Object.entries(condition.Headers).map(([k, v]) => [k, new RegExp(v)]),
+                AllowedServices: condition.AllowedServices && Object.fromEntries(condition.AllowedServices.map(e => [e, true])),
+                TargetClusters: condition.TargetClusters && new algo.RoundRobinLoadBalancer(global.funcShuffle(condition.TargetClusters)),
+                FailoverTargetClusters: global.funcFailover(condition.TargetClusters)
+              },
+              ((match = null) => (
+                (condition.Type === 'Regex') && (
+                  match = new RegExp(obj.Path),
+                  obj.matchPath = (path) => match.test(path)
+                ) || (condition.Type === 'Exact') && (
+                  obj.matchPath = (path) => path === obj.Path
+                ) || (condition.Type === 'Prefix') && (
+                  obj.matchPath = (path) => path.startsWith(obj.Path)
+                )
+              ))(),
+              obj
+            )
           )
         ]
       ))

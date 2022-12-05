@@ -84,8 +84,28 @@ type Methods []Method
 // WeightedClusters is a wrapper type of map[ClusterName]Weight
 type WeightedClusters map[ClusterName]Weight
 
-// URIPathRegexp is a string wrapper type
-type URIPathRegexp string
+// URIPathValue is a uri value wrapper
+type URIPathValue string
+
+// URIMatchType is a match type wrapper
+type URIMatchType string
+
+const (
+	// PathMatchRegex is the type used to specify regex based path matching
+	PathMatchRegex URIMatchType = "Regex"
+
+	// PathMatchExact is the type used to specify exact path matching
+	PathMatchExact URIMatchType = "Exact"
+
+	// PathMatchPrefix is the type used to specify prefix based path matching
+	PathMatchPrefix URIMatchType = "Prefix"
+)
+
+// URIPath is a uri wrapper type
+type URIPath struct {
+	Value URIPathValue
+	Type  URIMatchType
+}
 
 // ServiceName is a string wrapper type
 type ServiceName string
@@ -95,6 +115,8 @@ type Services []ServiceName
 
 // HTTPRouteRule http route rule
 type HTTPRouteRule struct {
+	Path            URIPathValue
+	Type            URIMatchType
 	Headers         Headers          `json:"Headers"`
 	Methods         Methods          `json:"Methods"`
 	TargetClusters  WeightedClusters `json:"TargetClusters"`
@@ -175,6 +197,7 @@ type MeshConfigSpec struct {
 		LivenessProbes  []v1.Probe `json:"LivenessProbes,omitempty"`
 		StartupProbes   []v1.Probe `json:"StartupProbes,omitempty"`
 	}
+	ClusterSet    map[string]string
 	LocalDNSProxy *LocalDNSProxy `json:"LocalDNSProxy,omitempty"`
 }
 
@@ -230,11 +253,14 @@ type InboundHTTPRouteRule struct {
 	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
 }
 
+// InboundHTTPRouteRuleSlice http route rule array
+type InboundHTTPRouteRuleSlice []*InboundHTTPRouteRule
+
 // InboundHTTPRouteRules is a wrapper type
 type InboundHTTPRouteRules struct {
-	RouteRules       map[URIPathRegexp]*InboundHTTPRouteRule `json:"RouteRules"`
-	RateLimit        *HTTPRateLimit                          `json:"RateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit                  `json:"HeaderRateLimits"`
+	RouteRules       InboundHTTPRouteRuleSlice `json:"RouteRules"`
+	RateLimit        *HTTPRateLimit            `json:"RateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit    `json:"HeaderRateLimits"`
 }
 
 // InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
@@ -256,7 +282,7 @@ type InboundTrafficMatch struct {
 type InboundTrafficMatches map[Port]*InboundTrafficMatch
 
 // OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type OutboundHTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
+type OutboundHTTPRouteRules []*HTTPRouteRule
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules

@@ -7,7 +7,7 @@ import (
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	a "github.com/openservicemesh/osm/pkg/announcements"

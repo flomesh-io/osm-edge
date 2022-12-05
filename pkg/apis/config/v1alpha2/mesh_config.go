@@ -24,6 +24,9 @@ type MeshConfig struct {
 
 // MeshConfigSpec is the spec for OSM's configuration.
 type MeshConfigSpec struct {
+	// ClusterSetSpec defines the configurations of cluster.
+	ClusterSet ClusterSetSpec `json:"clusterSet,omitempty"`
+
 	// Sidecar defines the configurations of the proxy sidecar in a mesh.
 	Sidecar SidecarSpec `json:"sidecar,omitempty"`
 
@@ -155,7 +158,7 @@ type ObservabilitySpec struct {
 	// Tracing defines OSM's tracing configuration.
 	Tracing TracingSpec `json:"tracing,omitempty"`
 
-	// RemoteLogging defines OSM's remot logging configuration.
+	// RemoteLogging defines OSM's remote logging configuration.
 	RemoteLogging RemoteLoggingSpec `json:"remoteLogging,omitempty"`
 }
 
@@ -179,7 +182,7 @@ type RemoteLoggingSpec struct {
 	// Enable defines a boolean indicating if the sidecars are enabled for remote logging.
 	Enable bool `json:"enable"`
 
-	// Port defines the remote loggings port.
+	// Port defines the remote logging's port.
 	Port int16 `json:"port,omitempty"`
 
 	// Address defines the remote logging's hostname.
@@ -301,4 +304,19 @@ type SidecarDriverSpec struct {
 
 	// SidecarDisabledMTLS defines whether mTLS is disabled.
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
+}
+
+// ClusterPropertySpec is the type to represent cluster property.
+type ClusterPropertySpec struct {
+	// Name defines the name of cluster property.
+	Name string `json:"name"`
+
+	// Value defines the name of cluster property.
+	Value string `json:"value"`
+}
+
+// ClusterSetSpec is the type to represent cluster set.
+type ClusterSetSpec struct {
+	// Properties defines properties for cluster.
+	Properties []ClusterPropertySpec `json:"properties"`
 }

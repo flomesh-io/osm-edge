@@ -66,9 +66,6 @@ const (
 	// ErrSMIHTTPRouteGroupNoMatch indicates the SMI HTTPRouteGroup resource has no matches specified
 	ErrSMIHTTPRouteGroupNoMatch
 
-	// ErrMultipleSMISplitPerServiceUnsupported indicates multiple SMI split policies per service exists and is not supported
-	ErrMultipleSMISplitPerServiceUnsupported
-
 	// ErrAddingRouteToOutboundTrafficPolicy indicates there was an error adding a route to an outbound traffic policy
 	ErrAddingRouteToOutboundTrafficPolicy
 
@@ -450,13 +447,6 @@ TrafficTarget policy referencing the match.
 	ErrSMIHTTPRouteGroupNoMatch: `
 The SMI HTTPRouteGroup resource is invalid as it does not have any matches specified.
 The SMI HTTPRouteGroup policy was ignored by the system.
-`,
-
-	ErrMultipleSMISplitPerServiceUnsupported: `
-There are multiple SMI traffic split policies associated with the same apex(root)
-service specified in the policies. The system does not support this scenario so
-onlt the first encountered policy is processed by the system, subsequent policies
-referring the same apex service are ignored.
 `,
 
 	ErrAddingRouteToOutboundTrafficPolicy: `

@@ -59,6 +59,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
 	forward(cataloger, proxy.Identity, s, pipyConf, proxy)
 	balance(pipyConf)
+	reorder(pipyConf)
 	endpoints(pipyConf, s)
 
 	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
@@ -76,6 +77,27 @@ func endpoints(pipyConf *PipyConf, s *Server) {
 func balance(pipyConf *PipyConf) {
 	pipyConf.rebalancedOutboundClusters()
 	pipyConf.rebalancedForwardClusters()
+}
+
+func reorder(pipyConf *PipyConf) {
+	if pipyConf.Outbound != nil && pipyConf.Outbound.TrafficMatches != nil {
+		for _, trafficMatches := range pipyConf.Outbound.TrafficMatches {
+			for _, trafficMatch := range trafficMatches {
+				for _, routeRules := range trafficMatch.HTTPServiceRouteRules {
+					routeRules.sort()
+				}
+			}
+		}
+		pipyConf.Outbound.TrafficMatches.Sort()
+	}
+
+	if pipyConf.Inbound != nil && pipyConf.Inbound.TrafficMatches != nil {
+		for _, trafficMatches := range pipyConf.Inbound.TrafficMatches {
+			for _, routeRules := range trafficMatches.HTTPServiceRouteRules {
+				routeRules.sort()
+			}
+		}
+	}
 }
 
 func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
@@ -215,6 +237,13 @@ func features(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 		pipyConf.setEnableEgress((*meshConf).IsEgressEnabled())
 		pipyConf.setEnablePermissiveTrafficPolicyMode((*meshConf).IsPermissiveTrafficPolicyMode())
 		pipyConf.setLocalDNSProxy((*meshConf).IsLocalDNSProxyEnabled(), (*meshConf).GetLocalDNSProxyPrimaryUpstream(), (*meshConf).GetLocalDNSProxySecondaryUpstream())
+		clusterProps := (*meshConf).GetMeshConfig().Spec.ClusterSet.Properties
+		if len(clusterProps) > 0 {
+			pipyConf.Spec.ClusterSet = make(map[string]string)
+			for _, prop := range clusterProps {
+				pipyConf.Spec.ClusterSet[prop.Name] = prop.Value
+			}
+		}
 	}
 }
 
@@ -246,9 +275,6 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		pipyConf.Certificate = &Certificate{
 			Expiration: proxy.SidecarCert.Expiration.Format("2006-01-02 15:04:05"),
 		}
-	}
-	if pipyConf.Outbound != nil && pipyConf.Outbound.TrafficMatches != nil {
-		pipyConf.Outbound.TrafficMatches.Sort()
 	}
 	bytes, jsonErr := json.Marshal(pipyConf)
 

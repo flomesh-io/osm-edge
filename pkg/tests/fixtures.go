@@ -8,7 +8,7 @@ import (
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -326,13 +326,13 @@ var (
 	}
 
 	// TrafficSplit is a traffic split SMI object.
-	TrafficSplit = v1alpha2.TrafficSplit{
+	TrafficSplit = v1alpha4.TrafficSplit{
 		ObjectMeta: v1.ObjectMeta{
 			Namespace: Namespace,
 		},
-		Spec: v1alpha2.TrafficSplitSpec{
+		Spec: v1alpha4.TrafficSplitSpec{
 			Service: BookstoreApexServiceName,
-			Backends: []v1alpha2.TrafficSplitBackend{
+			Backends: []v1alpha4.TrafficSplitBackend{
 				{
 					Service: BookstoreV1ServiceName,
 					Weight:  Weight90,

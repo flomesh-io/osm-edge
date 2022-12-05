@@ -11,7 +11,7 @@ import (
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	testTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	testTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
 	testTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
@@ -396,7 +396,7 @@ func TestGetSmiClientVersionHTTPHandler(t *testing.T) {
 	a.Equal(http.StatusOK, resp.StatusCode)
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	a.Nil(err)
-	a.Equal(`{"HTTPRouteGroup":"specs.smi-spec.io/v1alpha4","TCPRoute":"specs.smi-spec.io/v1alpha4","TrafficSplit":"split.smi-spec.io/v1alpha2","TrafficTarget":"access.smi-spec.io/v1alpha3"}`, string(bodyBytes))
+	a.Equal(`{"HTTPRouteGroup":"specs.smi-spec.io/v1alpha4","TCPRoute":"specs.smi-spec.io/v1alpha4","TrafficSplit":"split.smi-spec.io/v1alpha4","TrafficTarget":"access.smi-spec.io/v1alpha3"}`, string(bodyBytes))
 }
 
 func TestHasValidRules(t *testing.T) {

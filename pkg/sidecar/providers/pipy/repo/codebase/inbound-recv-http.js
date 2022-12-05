@@ -1,9 +1,10 @@
-// version: '2022.09.30'
+// version: '2022.12.03'
 ((
   {
     name,
     metrics,
     debugLogLevel,
+    clusterName,
     inClustersConfigs
   } = pipy.solve('config.js')) => (
 
@@ -55,7 +56,7 @@
             // Match service whitelist
             (!o.AllowedServices || o.AllowedServices[headers.serviceidentity]) &&
             // Match path pattern
-            o.Path.test(msg.head.path) &&
+            o.matchPath(msg.head.path) &&
             // Match headers
             (!o.Headers || o.Headers.every(([k, v]) => v.test(headers[k] || '')))
           )),
@@ -93,6 +94,7 @@
           logLogging && (_inLoggingData = {
             reqTime: Date.now(),
             meshName: os.env.MESH_NAME || '',
+            clusterName: clusterName,
             remoteAddr: __inbound?.remoteAddress,
             remotePort: __inbound?.remotePort,
             localAddr: __inbound?.destinationAddress,

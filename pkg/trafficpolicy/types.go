@@ -39,6 +39,13 @@ type HTTPRouteMatch struct {
 	Headers       map[string]string `json:"headers:omitempty"`
 }
 
+// HTTPRouteMatchWithWeightedClusters is a struct to represent an HTTP route match comprised of WeightedClusters, HTTPRouteMatches
+type HTTPRouteMatchWithWeightedClusters struct {
+	UpstreamClusters []service.WeightedCluster
+	RouteMatches     []HTTPRouteMatch
+	HasSplitMatches  bool
+}
+
 // TCPRouteMatch is a struct to represent a TCP route matching based on ports
 type TCPRouteMatch struct {
 	Ports []uint16 `json:"ports:omitempty"`

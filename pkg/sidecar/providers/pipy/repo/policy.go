@@ -407,27 +407,38 @@ func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *InboundHTTPRouteRule {
-	if hrrs.RouteRules == nil {
-		hrrs.RouteRules = make(map[URIPathRegexp]*InboundHTTPRouteRule)
+func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *InboundHTTPRouteRule, duplicate bool) {
+	for _, routeRule := range hrrs.RouteRules {
+		if routeRule.Path == path.Value && routeRule.Type == path.Type {
+			return routeRule, true
+		}
 	}
-	routeRule, exist := hrrs.RouteRules[pathReg]
-	if !exist || routeRule == nil {
-		routeRule = new(InboundHTTPRouteRule)
-		hrrs.RouteRules[pathReg] = routeRule
-		return routeRule
+
+	routeRule := new(InboundHTTPRouteRule)
+	routeRule.Path = path.Value
+	routeRule.Type = path.Type
+	if len(routeRule.Type) == 0 {
+		routeRule.Type = PathMatchRegex
 	}
-	return routeRule
+	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
+	return routeRule, false
 }
 
-func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HTTPRouteRule {
-	routeRule, exist := (*hrrs)[pathReg]
-	if !exist || routeRule == nil {
-		routeRule = new(HTTPRouteRule)
-		(*hrrs)[pathReg] = routeRule
-		return routeRule
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *HTTPRouteRule, duplicate bool) {
+	for _, routeRule := range *hrrs {
+		if routeRule.Path == path.Value && routeRule.Type == path.Type {
+			return routeRule, true
+		}
 	}
-	return routeRule
+
+	routeRule := new(HTTPRouteRule)
+	routeRule.Path = path.Value
+	routeRule.Type = path.Type
+	if len(routeRule.Type) == 0 {
+		routeRule.Type = PathMatchRegex
+	}
+	*hrrs = append(*hrrs, routeRule)
+	return routeRule, false
 }
 
 func (hrr *HTTPRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
@@ -705,9 +716,52 @@ func (otms OutboundTrafficMatchSlice) Swap(i, j int) {
 // data.Less and data.Swap. The sort is not guaranteed to be stable.
 func (otms *OutboundTrafficMatches) Sort() {
 	for _, trafficMatches := range *otms {
-		if len(trafficMatches) <= 1 {
-			continue
+		if len(trafficMatches) > 1 {
+			sort.Sort(trafficMatches)
 		}
-		sort.Sort(trafficMatches)
 	}
+}
+
+func (hrrs *OutboundHTTPRouteRules) sort() {
+	if len(*hrrs) > 1 {
+		sort.Sort(hrrs)
+	}
+}
+
+func (hrrs *OutboundHTTPRouteRules) Len() int {
+	return len(*hrrs)
+}
+
+func (hrrs *OutboundHTTPRouteRules) Swap(i, j int) {
+	(*hrrs)[j], (*hrrs)[i] = (*hrrs)[i], (*hrrs)[j]
+}
+
+func (hrrs *OutboundHTTPRouteRules) Less(i, j int) bool {
+	a, b := (*hrrs)[i], (*hrrs)[j]
+	if a.Path == constants.RegexMatchAll {
+		return false
+	}
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
+}
+
+func (hrrs *InboundHTTPRouteRules) sort() {
+	if len(hrrs.RouteRules) > 1 {
+		sort.Sort(hrrs.RouteRules)
+	}
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Len() int {
+	return len(irrs)
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Swap(i, j int) {
+	irrs[j], irrs[i] = irrs[i], irrs[j]
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Less(i, j int) bool {
+	a, b := irrs[i], irrs[j]
+	if a.Path == constants.RegexMatchAll {
+		return false
+	}
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
 }
