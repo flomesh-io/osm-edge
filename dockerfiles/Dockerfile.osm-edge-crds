@@ -1,8 +1,8 @@
-ARG TARGETPLATFORM
 FROM registry.access.redhat.com/ubi8-minimal
+ARG TARGETPLATFORM
 # Talking to the internet in an arm64 container doesn't seem to work from a
 # amd64 Mac, so download the kubectl binary in a stage running the native arch.
-RUN curl https://dl.k8s.io/release/v1.22.2/bin/$TARGETPLATFORM/kubectl -o /bin/kubectl && chmod +x /bin/kubectl
+RUN curl --insecure -L https://dl.k8s.io/release/v1.22.2/bin/$TARGETPLATFORM/kubectl -o /bin/kubectl && chmod +x /bin/kubectl
 RUN microdnf update && microdnf install shadow-utils
 RUN groupadd osm && useradd -G osm osm-edge
 USER osm-edge
