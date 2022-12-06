@@ -61,6 +61,28 @@ entries:
     urls:
     - https://flomesh-io.github.io/osm-edge/osm-edge-1.2.1.tgz
     version: 1.2.1
+  - annotations:
+      charts.openshift.io/name: osm-edge
+    apiVersion: v2
+    appVersion: 1.2.1-ubi8
+    created: "2022-12-06T00:02:53.233912363Z"
+    dependencies:
+    - condition: contour.enabled
+      name: contour
+      repository: https://charts.bitnami.com/bitnami
+      version: 8.0.4
+    - condition: fsm.enabled
+      name: fsm
+      repository: https://charts.flomesh.io
+      version: 0.1.8-ubi.6
+    description: A Helm chart to install the osm-edge control plane on Kubernetes
+    digest: a01607a736da1e7e460d2f94c8c22d09d0239156a1dd6afa9141883d5cc67e2f
+    kubeVersion: '>= 1.19.0-0'
+    name: osm-edge
+    type: application
+    urls:
+    - https://flomesh-io.github.io/osm-edge/osm-edge-1.2.1-ubi8.tgz
+    version: 1.2.1-ubi8
   - apiVersion: v2
     appVersion: 1.2.1-alpha.1
     created: "2022-09-17T07:45:09.230315253Z"
@@ -201,4 +223,4 @@ entries:
     urls:
     - https://flomesh-io.github.io/osm-edge/osm-edge-1.1.0.tgz
     version: 1.1.0
-generated: "2022-12-05T02:25:56.670229053Z"
+generated: "2022-12-06T00:02:53.21556698Z"
