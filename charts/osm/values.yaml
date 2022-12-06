@@ -70,7 +70,7 @@ osm:
   # -- Curl image for control plane init container
   curlImage: quay.io/flomesh/curl-ubi8:7.84.0
   # -- Pipy repo image for Pipy sidecar's proxy control plane container
-  pipyRepoImage: quay.io/flomesh/pipy-repo-ubi8:0.70.0-46
+  pipyRepoImage: quay.io/flomesh/pipy-ubi8:0.70.0-46
   #
   # -- OSM controller parameters
   osmController:
