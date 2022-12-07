@@ -57,32 +57,35 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 					continue
 				}
 
-				path := URIPath{
-					Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
-					Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+				route := rule.Route
+				httpMatch := new(HTTPMatchRule)
+				httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+				httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+				if len(httpMatch.Type) == 0 {
+					httpMatch.Type = PathMatchRegex
+				}
+				if len(httpMatch.Path) == 0 {
+					httpMatch.Path = constants.RegexMatchAll
+				}
+				for k, v := range route.HTTPRouteMatch.Headers {
+					httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+				}
+				if len(route.HTTPRouteMatch.Methods) == 0 {
+					httpMatch.addMethodMatch("*")
+				} else {
+					for _, method := range route.HTTPRouteMatch.Methods {
+						httpMatch.addMethodMatch(Method(method))
+					}
 				}
 
-				hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path)
+				hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(httpMatch)
 				if !duplicate {
-					for k, v := range rule.Route.HTTPRouteMatch.Headers {
-						hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-					}
-
-					if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-						hsrr.addMethodMatch("*")
-					} else {
-						for _, method := range rule.Route.HTTPRouteMatch.Methods {
-							hsrr.addMethodMatch(Method(method))
-						}
-					}
-
+					hsrr.setRateLimit(rule.Route.RateLimit)
 					for routeCluster := range rule.Route.WeightedClusters.Iter() {
 						weightedCluster := routeCluster.(service.WeightedCluster)
 						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
 							Weight(weightedCluster.Weight))
 					}
-
-					hsrr.setRateLimit(rule.Route.RateLimit)
 				}
 
 				for allowedPrincipal := range rule.AllowedPrincipals.Iter() {
@@ -155,37 +158,36 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				}
 
 				for _, route := range httpRouteConfig.Routes {
-					path := URIPath{
-						Value: URIPathValue(route.HTTPRouteMatch.Path),
-						Type:  matchType(route.HTTPRouteMatch.PathMatchType),
+					httpMatch := new(HTTPMatchRule)
+					httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+					httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+					if len(httpMatch.Type) == 0 {
+						httpMatch.Type = PathMatchRegex
 					}
-					if len(path.Value) == 0 {
-						path.Value = constants.RegexMatchAll
+					if len(httpMatch.Path) == 0 {
+						httpMatch.Path = constants.RegexMatchAll
+					}
+					for k, v := range route.HTTPRouteMatch.Headers {
+						httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						httpMatch.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							httpMatch.addMethodMatch(Method(method))
+						}
 					}
 
-					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
-						for k, v := range route.HTTPRouteMatch.Headers {
-							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					hsrr, _ := hsrrs.newHTTPServiceRouteRule(httpMatch)
+					for cluster := range route.WeightedClusters.Iter() {
+						serviceCluster := cluster.(service.WeightedCluster)
+						weightedCluster := new(WeightedCluster)
+						weightedCluster.WeightedCluster = serviceCluster
+						weightedCluster.RetryPolicy = route.RetryPolicy
+						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+							dependClusters[weightedCluster.ClusterName] = weightedCluster
 						}
-
-						if len(route.HTTPRouteMatch.Methods) == 0 {
-							hsrr.addMethodMatch("*")
-						} else {
-							for _, method := range route.HTTPRouteMatch.Methods {
-								hsrr.addMethodMatch(Method(method))
-							}
-						}
-
-						for cluster := range route.WeightedClusters.Iter() {
-							serviceCluster := cluster.(service.WeightedCluster)
-							weightedCluster := new(WeightedCluster)
-							weightedCluster.WeightedCluster = serviceCluster
-							weightedCluster.RetryPolicy = route.RetryPolicy
-							if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-								dependClusters[weightedCluster.ClusterName] = weightedCluster
-							}
-							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
-						}
+						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 					}
 				}
 			}
@@ -265,37 +267,36 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 				}
 				for _, rule := range httpRouteConfig.RoutingRules {
 					route := rule.Route
-					path := URIPath{
-						Value: URIPathValue(route.HTTPRouteMatch.Path),
-						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+					httpMatch := new(HTTPMatchRule)
+					httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+					httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+					if len(httpMatch.Type) == 0 {
+						httpMatch.Type = PathMatchRegex
 					}
-					if len(path.Value) == 0 {
-						path.Value = constants.RegexMatchAll
+					if len(httpMatch.Path) == 0 {
+						httpMatch.Path = constants.RegexMatchAll
+					}
+					for k, v := range route.HTTPRouteMatch.Headers {
+						httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						httpMatch.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							httpMatch.addMethodMatch(Method(method))
+						}
 					}
 
-					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
-						for k, v := range route.HTTPRouteMatch.Headers {
-							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
+					hsrr, _ := hsrrs.newHTTPServiceRouteRule(httpMatch)
+					for cluster := range route.WeightedClusters.Iter() {
+						serviceCluster := cluster.(service.WeightedCluster)
+						weightedCluster := new(WeightedCluster)
+						weightedCluster.WeightedCluster = serviceCluster
+						weightedCluster.RetryPolicy = route.RetryPolicy
+						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
+							dependClusters[weightedCluster.ClusterName] = weightedCluster
 						}
-
-						if len(route.HTTPRouteMatch.Methods) == 0 {
-							hsrr.addMethodMatch("*")
-						} else {
-							for _, method := range route.HTTPRouteMatch.Methods {
-								hsrr.addMethodMatch(Method(method))
-							}
-						}
-
-						for cluster := range route.WeightedClusters.Iter() {
-							serviceCluster := cluster.(service.WeightedCluster)
-							weightedCluster := new(WeightedCluster)
-							weightedCluster.WeightedCluster = serviceCluster
-							weightedCluster.RetryPolicy = route.RetryPolicy
-							if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
-								dependClusters[weightedCluster.ClusterName] = weightedCluster
-							}
-							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
-						}
+						hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 					}
 
 					for _, allowedIPRange := range rule.AllowedDestinationIPRanges {
@@ -457,25 +458,29 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 						continue
 					}
 
-					path := URIPath{
-						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
-						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+					route := rule.Route
+					httpMatch := new(HTTPMatchRule)
+					httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+					httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+					if len(httpMatch.Type) == 0 {
+						httpMatch.Type = PathMatchRegex
+					}
+					if len(httpMatch.Path) == 0 {
+						httpMatch.Path = constants.RegexMatchAll
+					}
+					for k, v := range route.HTTPRouteMatch.Headers {
+						httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						httpMatch.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							httpMatch.addMethodMatch(Method(method))
+						}
 					}
 
-					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(httpMatch); !duplicate {
 						hsrr.setRateLimit(rule.Route.RateLimit)
-						for k, v := range rule.Route.HTTPRouteMatch.Headers {
-							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-						}
-
-						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-							hsrr.addMethodMatch("*")
-						} else {
-							for _, method := range rule.Route.HTTPRouteMatch.Methods {
-								hsrr.addMethodMatch(Method(method))
-							}
-						}
-
 						for routeCluster := range rule.Route.WeightedClusters.Iter() {
 							weightedCluster := routeCluster.(service.WeightedCluster)
 							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
@@ -611,25 +616,29 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 						continue
 					}
 
-					path := URIPath{
-						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
-						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+					route := rule.Route
+					httpMatch := new(HTTPMatchRule)
+					httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+					httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+					if len(httpMatch.Type) == 0 {
+						httpMatch.Type = PathMatchRegex
+					}
+					if len(httpMatch.Path) == 0 {
+						httpMatch.Path = constants.RegexMatchAll
+					}
+					for k, v := range route.HTTPRouteMatch.Headers {
+						httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						httpMatch.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							httpMatch.addMethodMatch(Method(method))
+						}
 					}
 
-					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(httpMatch); !duplicate {
 						hsrr.setRateLimit(rule.Route.RateLimit)
-						for k, v := range rule.Route.HTTPRouteMatch.Headers {
-							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-						}
-
-						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-							hsrr.addMethodMatch("*")
-						} else {
-							for _, method := range rule.Route.HTTPRouteMatch.Methods {
-								hsrr.addMethodMatch(Method(method))
-							}
-						}
-
 						for routeCluster := range rule.Route.WeightedClusters.Iter() {
 							weightedCluster := routeCluster.(service.WeightedCluster)
 							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),
@@ -706,24 +715,28 @@ func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 						continue
 					}
 
-					path := URIPath{
-						Value: URIPathValue(rule.Route.HTTPRouteMatch.Path),
-						Type:  matchType(rule.Route.HTTPRouteMatch.PathMatchType),
+					route := rule.Route
+					httpMatch := new(HTTPMatchRule)
+					httpMatch.Path = URIPathValue(route.HTTPRouteMatch.Path)
+					httpMatch.Type = matchType(route.HTTPRouteMatch.PathMatchType)
+					if len(httpMatch.Type) == 0 {
+						httpMatch.Type = PathMatchRegex
+					}
+					if len(httpMatch.Path) == 0 {
+						httpMatch.Path = constants.RegexMatchAll
+					}
+					for k, v := range route.HTTPRouteMatch.Headers {
+						httpMatch.addHeaderMatch(Header(k), HeaderRegexp(v))
+					}
+					if len(route.HTTPRouteMatch.Methods) == 0 {
+						httpMatch.addMethodMatch("*")
+					} else {
+						for _, method := range route.HTTPRouteMatch.Methods {
+							httpMatch.addMethodMatch(Method(method))
+						}
 					}
 
-					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(path); !duplicate {
-						for k, v := range rule.Route.HTTPRouteMatch.Headers {
-							hsrr.addHeaderMatch(Header(k), HeaderRegexp(v))
-						}
-
-						if len(rule.Route.HTTPRouteMatch.Methods) == 0 {
-							hsrr.addMethodMatch("*")
-						} else {
-							for _, method := range rule.Route.HTTPRouteMatch.Methods {
-								hsrr.addMethodMatch(Method(method))
-							}
-						}
-
+					if hsrr, duplicate := hsrrs.newHTTPServiceRouteRule(httpMatch); !duplicate {
 						for routeCluster := range rule.Route.WeightedClusters.Iter() {
 							weightedCluster := routeCluster.(service.WeightedCluster)
 							hsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName),

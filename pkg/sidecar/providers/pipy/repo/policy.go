@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
@@ -407,58 +408,50 @@ func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *InboundHTTPRouteRule, duplicate bool) {
+func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *InboundHTTPRouteRule, duplicate bool) {
 	for _, routeRule := range hrrs.RouteRules {
-		if routeRule.Path == path.Value && routeRule.Type == path.Type {
+		if reflect.DeepEqual(*matchRule, routeRule.HTTPMatchRule) {
 			return routeRule, true
 		}
 	}
 
 	routeRule := new(InboundHTTPRouteRule)
-	routeRule.Path = path.Value
-	routeRule.Type = path.Type
-	if len(routeRule.Type) == 0 {
-		routeRule.Type = PathMatchRegex
-	}
+	routeRule.HTTPMatchRule = *matchRule
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule, false
 }
 
-func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(path URIPath) (route *HTTPRouteRule, duplicate bool) {
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *HTTPRouteRule, duplicate bool) {
 	for _, routeRule := range *hrrs {
-		if routeRule.Path == path.Value && routeRule.Type == path.Type {
+		if reflect.DeepEqual(*matchRule, routeRule.HTTPMatchRule) {
 			return routeRule, true
 		}
 	}
 
 	routeRule := new(HTTPRouteRule)
-	routeRule.Path = path.Value
-	routeRule.Type = path.Type
-	if len(routeRule.Type) == 0 {
-		routeRule.Type = PathMatchRegex
-	}
+	routeRule.HTTPMatchRule = *matchRule
 	*hrrs = append(*hrrs, routeRule)
 	return routeRule, false
 }
 
-func (hrr *HTTPRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
-	if hrr.Headers == nil {
-		hrr.Headers = make(Headers)
+func (hmr *HTTPMatchRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
+	if hmr.Headers == nil {
+		hmr.Headers = make(Headers)
 	}
-	hrr.Headers[header] = headerRegexp
+	hmr.Headers[header] = headerRegexp
 }
 
-func (hrr *HTTPRouteRule) addMethodMatch(method Method) {
-	if hrr.allowedAnyMethod {
+func (hmr *HTTPMatchRule) addMethodMatch(method Method) {
+	if hmr.allowedAnyMethod {
 		return
 	}
 	if "*" == method {
-		hrr.allowedAnyMethod = true
+		hmr.allowedAnyMethod = true
 	}
-	if hrr.allowedAnyMethod {
-		hrr.Methods = nil
+	if hmr.allowedAnyMethod {
+		hmr.Methods = nil
 	} else {
-		hrr.Methods = append(hrr.Methods, method)
+		hmr.Methods = append(hmr.Methods, method)
 	}
 }
 
