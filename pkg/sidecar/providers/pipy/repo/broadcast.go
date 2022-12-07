@@ -113,16 +113,19 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 		if err != nil {
 			continue
 		}
-		s.fireUpdatedPod(s.proxyRegistry, proxy)
+		proxy = s.fireUpdatedPod(s.proxyRegistry, proxy)
 		allProxies = append(allProxies, proxy)
 	}
 	return allProxies
 }
 
-func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) {
-	if v := proxyRegistry.GetConnectedProxy(proxy.UUID.String()); v == nil {
+func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) *pipy.Proxy {
+	connectedProxy := proxyRegistry.GetConnectedProxy(proxy.UUID.String())
+	if connectedProxy == nil {
 		s.informProxy(proxy)
+		return proxy
 	}
+	return connectedProxy
 }
 
 func (s *Server) informProxy(proxy *pipy.Proxy) {
