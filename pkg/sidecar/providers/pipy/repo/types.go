@@ -113,17 +113,21 @@ type ServiceName string
 // Services is a wrapper type of []ServiceName
 type Services []ServiceName
 
-// HTTPRouteRule http route rule
-type HTTPRouteRule struct {
-	Path            URIPathValue
-	Type            URIMatchType
-	Headers         Headers          `json:"Headers"`
-	Methods         Methods          `json:"Methods"`
-	TargetClusters  WeightedClusters `json:"TargetClusters"`
-	AllowedServices Services         `json:"AllowedServices"`
-
+// HTTPMatchRule http match rule
+type HTTPMatchRule struct {
+	Path              URIPathValue
+	Type              URIMatchType
+	Headers           Headers `json:"Headers"`
+	Methods           Methods `json:"Methods"`
 	allowedAnyService bool
 	allowedAnyMethod  bool
+}
+
+// HTTPRouteRule http route rule
+type HTTPRouteRule struct {
+	HTTPMatchRule
+	TargetClusters  WeightedClusters `json:"TargetClusters"`
+	AllowedServices Services         `json:"AllowedServices"`
 }
 
 // HTTPRouteRuleName is a string wrapper type
