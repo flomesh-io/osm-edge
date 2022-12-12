@@ -272,21 +272,31 @@ type InboundHTTPServiceRouteRules map[HTTPRouteRuleName]*InboundHTTPRouteRules
 
 // InboundTrafficMatch represents the match of InboundTraffic
 type InboundTrafficMatch struct {
-	Port                  Port     `json:"Port"`
-	Protocol              Protocol `json:"Protocol"`
-	SourceIPRanges        SourceIPRanges
+	Port                  Port                         `json:"Port"`
+	Protocol              Protocol                     `json:"Protocol"`
+	SourceIPRanges        SourceIPRanges               `json:"SourceIPRanges"`
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
 	TargetClusters        WeightedClusters             `json:"TargetClusters"`
-	AllowedEndpoints      AllowedEndpoints
-	RateLimit             *TCPRateLimit `json:"RateLimit"`
+	AllowedEndpoints      AllowedEndpoints             `json:"AllowedEndpoints"`
+	RateLimit             *TCPRateLimit                `json:"RateLimit"`
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
 type InboundTrafficMatches map[Port]*InboundTrafficMatch
 
-// OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type OutboundHTTPRouteRules []*HTTPRouteRule
+// OutboundHTTPRouteRule http route rule
+type OutboundHTTPRouteRule struct {
+	HTTPRouteRule
+}
+
+// OutboundHTTPRouteRuleSlice http route rule array
+type OutboundHTTPRouteRuleSlice []*OutboundHTTPRouteRule
+
+// OutboundHTTPRouteRules is a wrapper type
+type OutboundHTTPRouteRules struct {
+	RouteRules OutboundHTTPRouteRuleSlice `json:"RouteRules"`
+}
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules

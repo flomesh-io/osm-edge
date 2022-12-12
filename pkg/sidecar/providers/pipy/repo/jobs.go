@@ -84,7 +84,7 @@ func reorder(pipyConf *PipyConf) {
 		for _, trafficMatches := range pipyConf.Outbound.TrafficMatches {
 			for _, trafficMatch := range trafficMatches {
 				for _, routeRules := range trafficMatch.HTTPServiceRouteRules {
-					routeRules.sort()
+					routeRules.RouteRules.sort()
 				}
 			}
 		}

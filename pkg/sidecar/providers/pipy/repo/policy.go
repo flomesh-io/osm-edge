@@ -339,9 +339,9 @@ func (otm *OutboundTrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTP
 	}
 	rules, exist := otm.HTTPServiceRouteRules[httpRouteRuleName]
 	if !exist || rules == nil {
-		newCluster := make(OutboundHTTPRouteRules, 0)
-		otm.HTTPServiceRouteRules[httpRouteRuleName] = &newCluster
-		return &newCluster
+		newCluster := new(OutboundHTTPRouteRules)
+		otm.HTTPServiceRouteRules[httpRouteRuleName] = newCluster
+		return newCluster
 	}
 	return rules
 }
@@ -420,16 +420,16 @@ func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchR
 	return routeRule, false
 }
 
-func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *HTTPRouteRule, duplicate bool) {
-	for _, routeRule := range *hrrs {
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *OutboundHTTPRouteRule, duplicate bool) {
+	for _, routeRule := range hrrs.RouteRules {
 		if reflect.DeepEqual(*matchRule, routeRule.HTTPMatchRule) {
 			return routeRule, true
 		}
 	}
 
-	routeRule := new(HTTPRouteRule)
+	routeRule := new(OutboundHTTPRouteRule)
 	routeRule.HTTPMatchRule = *matchRule
-	*hrrs = append(*hrrs, routeRule)
+	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule, false
 }
 
@@ -715,21 +715,21 @@ func (otms *OutboundTrafficMatches) Sort() {
 	}
 }
 
-func (hrrs *OutboundHTTPRouteRules) sort() {
+func (hrrs *OutboundHTTPRouteRuleSlice) sort() {
 	if len(*hrrs) > 1 {
 		sort.Sort(hrrs)
 	}
 }
 
-func (hrrs *OutboundHTTPRouteRules) Len() int {
+func (hrrs *OutboundHTTPRouteRuleSlice) Len() int {
 	return len(*hrrs)
 }
 
-func (hrrs *OutboundHTTPRouteRules) Swap(i, j int) {
+func (hrrs *OutboundHTTPRouteRuleSlice) Swap(i, j int) {
 	(*hrrs)[j], (*hrrs)[i] = (*hrrs)[i], (*hrrs)[j]
 }
 
-func (hrrs *OutboundHTTPRouteRules) Less(i, j int) bool {
+func (hrrs *OutboundHTTPRouteRuleSlice) Less(i, j int) bool {
 	a, b := (*hrrs)[i], (*hrrs)[j]
 	if a.Path == constants.RegexMatchAll {
 		return false
