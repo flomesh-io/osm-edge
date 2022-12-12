@@ -1,4 +1,4 @@
-// version: '2022.11.29'
+// version: '2022.12.11'
 ((
   {
     config,
@@ -12,8 +12,6 @@
     outTrafficMatches,
     outClustersConfigs,
     allowedEndpoints,
-    forwardMatches,
-    forwardEgressGateways,
     prometheusTarget,
     probeScheme,
     probeTarget,
@@ -74,7 +72,6 @@
       _outMatch: null,
       _outTarget: null,
       _egressMode: null,
-      _egressEndpoint: null,
       _outSourceCert: null,
       _outRequestTime: null,
       _outBytesStruct: null,
@@ -204,13 +201,6 @@
               (o.Protocol == 'http' || o.Protocol == 'https' || (o.Protocol == 'tcp' && o.AllowedEgressTraffic))))) && (_egressMode = true),
             match
           )),
-
-          // Find egress nat gateway
-          forwardMatches && ((policy, egw) => (
-            policy = _outMatch?.EgressForwardGateway ? _outMatch?.EgressForwardGateway : '*',
-            egw = forwardMatches[policy]?.next?.()?.id,
-            egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
-          ))(),
 
           // Layer 4 load balance
           _outTarget = (

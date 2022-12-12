@@ -338,6 +338,12 @@ type ClusterConfigs struct {
 	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
 }
 
+// EgressGatewayClusterConfigs represents the configs of Egress Gateway Cluster
+type EgressGatewayClusterConfigs struct {
+	ClusterConfigs
+	Mode string `json:"Mode"`
+}
+
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
 	namedTrafficMatches namedOutboundTrafficMatches
@@ -350,8 +356,8 @@ type ForwardTrafficMatches map[string]WeightedClusters
 
 // ForwardTrafficPolicy represents the policy of Egress Gateway
 type ForwardTrafficPolicy struct {
-	ForwardMatches ForwardTrafficMatches           `json:"ForwardMatches"`
-	EgressGateways map[ClusterName]*ClusterConfigs `json:"EgressGateways"`
+	ForwardMatches ForwardTrafficMatches                        `json:"ForwardMatches"`
+	EgressGateways map[ClusterName]*EgressGatewayClusterConfigs `json:"EgressGateways"`
 }
 
 // ConnectionSettings defines the connection settings for an

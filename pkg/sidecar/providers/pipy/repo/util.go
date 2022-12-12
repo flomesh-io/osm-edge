@@ -519,7 +519,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 				forwardMatch[ClusterName(clusterName)] = Weight(0)
 			}
 			if len(gateway.Endpoints) > 0 {
-				clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
+				clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName), gateway.Mode)
 				for _, endPeer := range gateway.Endpoints {
 					address := Address(endPeer.IP.String())
 					port := Port(endPeer.Port)
@@ -541,7 +541,7 @@ func generatePipyEgressTrafficForwardPolicy(_ catalog.MeshCataloger, _ identity.
 					forwardMatch[ClusterName(clusterName)] = constants.ClusterWeightAcceptAll
 				}
 				if len(gateway.Endpoints) > 0 {
-					clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName))
+					clusterConfigs := ftp.newEgressGateway(ClusterName(clusterName), gateway.Mode)
 					for _, endPeer := range gateway.Endpoints {
 						address := Address(endPeer.IP.String())
 						port := Port(endPeer.Port)

@@ -1,4 +1,4 @@
-// version: '2022.12.03'
+// version: '2022.12.11'
 (
   (config = JSON.decode(pipy.load('config.json')),
     metrics = pipy.solve('metrics.js'),
@@ -218,7 +218,7 @@
       Object.fromEntries(Object.entries(json).map(
         ([name, rule]) => [
           name,
-          rule.map(
+          rule?.RouteRules && rule.RouteRules.map(
             (condition, obj) => (
               obj = {
                 Path: condition.Path,
@@ -420,12 +420,15 @@
     ),
 
     global.forwardEgressGateways = config?.Forward?.EgressGateways && Object.fromEntries(
-      Object.entries(
-        config.Forward.EgressGateways).map(
-          ([k, v]) => [
-            k, new algo.RoundRobinLoadBalancer(v?.Endpoints || {})
-          ]
-        )
+      Object.entries(config.Forward.EgressGateways).map(
+        ([k, v]) => [
+          k, { balancer: new algo.RoundRobinLoadBalancer(
+            Object.fromEntries(Object.entries(v?.Endpoints || {}).map(
+              ([k, v]) => [k, v?.Weight || 100]
+            ))
+          ), mode: v?.Mode }
+        ]
+      )
     ),
 
     // Initialize probeScheme, probeTarget, probePath

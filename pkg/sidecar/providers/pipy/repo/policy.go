@@ -8,8 +8,7 @@ import (
 	"strings"
 
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
-
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -232,7 +231,7 @@ func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName 
 	}
 }
 
-func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
 		itm.RateLimit = nil
 	} else {
@@ -392,7 +391,7 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*Outb
 	return trafficMatch, false
 }
 
-func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
 		hrrs.RateLimit = nil
 	} else {
@@ -400,7 +399,7 @@ func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.R
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1.HTTPHeaderSpec) {
+func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]policyv1alpha1.HTTPHeaderSpec) {
 	if rateLimit == nil {
 		hrrs.HeaderRateLimits = nil
 	} else {
@@ -476,7 +475,7 @@ func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	}
 }
 
-func (ihrr *InboundHTTPRouteRule) setRateLimit(rateLimit *v1alpha1.HTTPPerRouteRateLimitSpec) {
+func (ihrr *InboundHTTPRouteRule) setRateLimit(rateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec) {
 	ihrr.RateLimit = newHTTPPerRouteRateLimit(rateLimit)
 }
 
@@ -566,7 +565,7 @@ func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weig
 	}
 }
 
-func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.ConnectionSettingsSpec) {
+func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *policyv1alpha1.ConnectionSettingsSpec) {
 	if connectionSettings == nil {
 		otp.ConnectionSettings = nil
 		return
@@ -611,7 +610,7 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 	}
 }
 
-func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *v1alpha1.RetryPolicySpec) {
+func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *policyv1alpha1.RetryPolicySpec) {
 	if retryPolicy == nil {
 		otp.RetryPolicy = nil
 		return
@@ -638,13 +637,14 @@ func (ftp *ForwardTrafficPolicy) newForwardMatch(rule string) WeightedClusters {
 	return forwardMatch
 }
 
-func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName) *ClusterConfigs {
+func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName, mode string) *EgressGatewayClusterConfigs {
 	if ftp.EgressGateways == nil {
-		ftp.EgressGateways = make(map[ClusterName]*ClusterConfigs)
+		ftp.EgressGateways = make(map[ClusterName]*EgressGatewayClusterConfigs)
 	}
 	cluster, exist := ftp.EgressGateways[clusterName]
 	if !exist || cluster == nil {
-		newCluster := new(ClusterConfigs)
+		newCluster := new(EgressGatewayClusterConfigs)
+		newCluster.Mode = mode
 		ftp.EgressGateways[clusterName] = newCluster
 		return newCluster
 	}

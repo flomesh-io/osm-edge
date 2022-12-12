@@ -1,4 +1,4 @@
-// version: '2022.10.09'
+// version: '2022.12.11'
 ((
   {
     config,
@@ -7,14 +7,19 @@
     tlsCertChain,
     tlsPrivateKey,
     tlsIssuingCA,
-    listIssuingCA
+    listIssuingCA,
+    forwardMatches,
+    forwardEgressGateways,
   } = pipy.solve('config.js')) => (
 
-  pipy({})
+  pipy({
+    _egressType: '',
+    _egressEndpoint: null,
+  })
 
     .import({
+      _outMatch: 'main',
       _egressMode: 'main',
-      _egressEndpoint: 'main',
       _outSourceCert: 'main',
       _outTarget: 'main',
       _upstreamClusterName: 'main'
@@ -26,7 +31,16 @@
     .pipeline()
     .onStart(
       () => (
-        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint/_outSourceCert', Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint, Boolean(_outSourceCert)),
+        // Find egress nat gateway
+        forwardMatches && ((policy, egw) => (
+          policy = _outMatch?.EgressForwardGateway || '*',
+          (egw = forwardMatches[policy]?.next?.()?.id) && (
+            _egressType = forwardEgressGateways?.[egw]?.mode || 'http2tunnel',
+            _egressEndpoint = forwardEgressGateways?.[egw]?.balancer?.next?.()?.id
+          )
+        ))(),
+        debugLogLevel && console.log('outbound connectTLS - TLS/_egressMode/_egressEndpoint/_egressType/_outSourceCert',
+          Boolean(tlsCertChain), Boolean(_egressMode), _egressEndpoint, _egressType, Boolean(_outSourceCert)),
         metrics.activeConnectionGauge.withLabels(_upstreamClusterName).increase(),
         config?.outClustersBreakers?.[_upstreamClusterName]?.incConnections?.(),
         null
@@ -72,15 +86,30 @@
           .connect(() => _outTarget?.id)
         ),
       () => (Boolean(_egressMode) && Boolean(_egressEndpoint)), $ => $
-        .connectSOCKS(
-          () => _outTarget?.id,
-        ).to($ => $
-          .connect(
-            () => _egressEndpoint
+        .branch(
+          () => _egressType === 'http2tunnel', (
+          $ => $
+            .connectHTTPTunnel(
+              () => new Message({
+                method: 'CONNECT',
+                path: _outTarget?.id,
+              })
+            ).to(
+              $ => $.muxHTTP(() => _outTarget?.id, { version: 2 }).to(
+                $ => $.connect(() => _egressEndpoint)
+              )
+            )
+        ), ($ => $
+          .connectSOCKS(
+            () => _outTarget?.id,
+          ).to($ => $
+            .connect(
+              () => _egressEndpoint
+            )
           )
+        )
         ),
-      $ => $
-        .connect(() => _outTarget?.id)
+      $ => $.connect(() => _outTarget?.id)
     )
     .handleData(
       (data) => (
