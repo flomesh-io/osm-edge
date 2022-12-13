@@ -236,6 +236,21 @@ const (
 	PrometheusPathAnnotation = "prometheus.io/path"
 )
 
+// Annotations used for Egress Gateway
+const (
+	// EgressGatewayModeAnnotation is the key of the annotation used to indicate the mode of egress gateway
+	EgressGatewayModeAnnotation = "openservicemesh.io/egress-gateway-mode"
+)
+
+// Egress Gateway Mode
+const (
+	// http2tunnel
+	EgressGatewayModeHTTP2Tunnel = "http2tunnel"
+
+	// sock5
+	EgressGatewayModeSock5 = "sock5"
+)
+
 // App labels as defined in the "osm.labels" template in _helpers.tpl of the Helm chart.
 const (
 	OSMAppNameLabelKey     = "app.kubernetes.io/name"
