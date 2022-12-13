@@ -248,6 +248,27 @@ func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
 	return
 }
 
+// deleteFile delete codebase file
+func (p *PipyRepoClient) deleteFile(fileName string) (success bool, err error) {
+	var resp *resty.Response
+
+	p.httpClient.SetBaseURL(p.apiURI.baseRepoFilesURI)
+
+	resp, err = p.httpClient.R().Delete(fileName)
+
+	if err == nil {
+		if resp.IsSuccess() {
+			success = true
+			return
+		}
+		err = fmt.Errorf("error happened while deleting codebase[%s], reason: %s", fileName, resp.Status())
+		return
+	}
+
+	log.Err(err).Msgf("error happened while deleting codebase[%s]", fileName)
+	return
+}
+
 // Commit the codebase, version is the current vesion of the codebase, it will be increased by 1 when committing
 func (p *PipyRepoClient) commit(codebaseName string, version string) (success bool, err error) {
 	var etag uint64
@@ -313,10 +334,18 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 		// 2. upload each json to repo
 		for _, item := range batch.Items {
 			fullPath := fmt.Sprintf("%s%s/%s", batch.Basepath, item.Path, item.Filename)
-			log.Info().Msgf("Creating/updating config %q", fullPath)
-			success, err = p.upsertFile(fullPath, item.Content)
-			if err != nil || !success {
-				return
+			if item.Obsolete {
+				log.Info().Msgf("Deleting config %q", fullPath)
+				_, err = p.deleteFile(fullPath)
+				if err != nil {
+					log.Err(err).Msgf("fail to delete %q", fullPath)
+				}
+			} else {
+				log.Info().Msgf("Creating/updating config %q", fullPath)
+				success, err = p.upsertFile(fullPath, item.Content)
+				if err != nil || !success {
+					return
+				}
 			}
 		}
 

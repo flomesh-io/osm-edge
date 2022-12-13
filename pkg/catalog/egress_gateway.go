@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -17,17 +18,25 @@ func (mc *MeshCatalog) GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPol
 		for _, egressGateway := range egressGateways {
 			if egressGateway.Spec.GlobalEgressGateways != nil {
 				for _, globalGateway := range egressGateway.Spec.GlobalEgressGateways {
-					sourceMeshSvc := service.MeshService{
+					egressGatewayMeshSvc := service.MeshService{
 						Name:      globalGateway.Service,
 						Namespace: globalGateway.Namespace,
 					}
-					gatewayConfig := trafficpolicy.EgressGatewayConfig{
-						Service:   globalGateway.Service,
-						Namespace: globalGateway.Namespace,
-						Weight:    globalGateway.Weight,
-						Endpoints: mc.listEndpointsForService(sourceMeshSvc),
+					egressGatewaySvc := mc.kubeController.GetService(egressGatewayMeshSvc)
+					if egressGatewaySvc != nil {
+						mode, exist := egressGatewaySvc.GetAnnotations()[constants.EgressGatewayModeAnnotation]
+						if !exist || (constants.EgressGatewayModeHTTP2Tunnel == mode || constants.EgressGatewayModeSock5 == mode) {
+							mode = constants.EgressGatewayModeHTTP2Tunnel
+						}
+						gatewayConfig := trafficpolicy.EgressGatewayConfig{
+							Service:   globalGateway.Service,
+							Namespace: globalGateway.Namespace,
+							Mode:      mode,
+							Weight:    globalGateway.Weight,
+							Endpoints: mc.listEndpointsForService(egressGatewayMeshSvc),
+						}
+						egressGatewayPolicy.Global = append(egressGatewayPolicy.Global, &gatewayConfig)
 					}
-					egressGatewayPolicy.Global = append(egressGatewayPolicy.Global, &gatewayConfig)
 				}
 			}
 			if egressGateway.Spec.EgressPolicyGatewayRules != nil {
@@ -42,17 +51,25 @@ func (mc *MeshCatalog) GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPol
 						})
 					}
 					for _, gateway := range rule.EgressGateways {
-						sourceMeshSvc := service.MeshService{
+						egressGatewayMeshSvc := service.MeshService{
 							Name:      gateway.Service,
 							Namespace: gateway.Namespace,
 						}
-						gatewayConfig := trafficpolicy.EgressGatewayConfig{
-							Service:   gateway.Service,
-							Namespace: gateway.Namespace,
-							Weight:    gateway.Weight,
-							Endpoints: mc.listEndpointsForService(sourceMeshSvc),
+						egressGatewaySvc := mc.kubeController.GetService(egressGatewayMeshSvc)
+						if egressGatewaySvc != nil {
+							mode, exist := egressGatewaySvc.GetAnnotations()[constants.EgressGatewayModeAnnotation]
+							if !exist || (constants.EgressGatewayModeHTTP2Tunnel == mode || constants.EgressGatewayModeSock5 == mode) {
+								mode = constants.EgressGatewayModeHTTP2Tunnel
+							}
+							gatewayConfig := trafficpolicy.EgressGatewayConfig{
+								Service:   gateway.Service,
+								Namespace: gateway.Namespace,
+								Mode:      mode,
+								Weight:    gateway.Weight,
+								Endpoints: mc.listEndpointsForService(egressGatewayMeshSvc),
+							}
+							egressGatewayRule.EgressGateways = append(egressGatewayRule.EgressGateways, gatewayConfig)
 						}
-						egressGatewayRule.EgressGateways = append(egressGatewayRule.EgressGateways, gatewayConfig)
 					}
 					egressGatewayPolicy.Rules = append(egressGatewayPolicy.Rules, egressGatewayRule)
 				}
