@@ -62,6 +62,9 @@ func (job *PipyConfGeneratorJob) Run() {
 	reorder(pipyConf)
 	endpoints(pipyConf, s)
 
+	pipyConf.X = cataloger.GetPluginPolicies()
+	pipyConf.Y = cataloger.GetPluginConfigs()
+
 	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
 }
 

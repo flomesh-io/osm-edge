@@ -1,6 +1,8 @@
 package repo
 
 import (
+	alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"sync"
 	"time"
 
@@ -477,4 +479,7 @@ type PipyConf struct {
 	Forward          *ForwardTrafficPolicy    `json:"Forward"`
 	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
 	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
+
+	X []*trafficpolicy.PluginPolicy
+	Y []*alpha1.PluginConfig
 }

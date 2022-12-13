@@ -42,297 +42,31 @@ spec:
           properties:
             spec:
               type: object
+              required:
+                - plugin
+                - targetRef
+                - config
               properties:
-                onload:
-                  description: Onload is the type used to represent the plugin service onload chain.
+                plugin:
+                  description: Plugin is the name of plugin.
+                  type: string
+                targetRef:
+                  description: Plugin is the name of plugin.
                   type: object
                   required:
-                    - plugins
+                    - kind
+                    - name
                   properties:
-                    plugins:
-                      description: Plugins is a list of mounted plugins applied.
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - mountpoint
-                          - name
-                          - namespace
-                        properties:
-                          mountpoint:
-                            description: MountPoint defines the mount point of the plugin.
-                            type: string
-                            enum:
-                              - TCPFirst
-                              - TCPAfterTLS
-                              - TCPAfterRouting
-                              - TCPLast
-                              - HTTPFirst
-                              - HTTPAfterTLS
-                              - HTTPAfterDemux
-                              - HTTPAfterRouting
-                              - HTTPAfterMux
-                              - HTTPLast
-                          name:
-                            description: Name defines the name of the plugin.
-                            type: string
-                          namespace:
-                            description: Namespace defines the namespace of the plugin.
-                            type: string
-                inbound:
-                  description: Inbound is the type used to represent the plugin service inbound chain.
+                    kind:
+                      description: Kind of this target.
+                      type: string
+                    name:
+                      description: Name of this target.
+                      type: string
+                config:
+                  description: Config is the config of plugin.
                   type: object
-                  properties:
-                    targetRoutes:
-                      description: TargetRoutes are the traffic target routes to allow
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - kind
-                          - name
-                          - plugins
-                        properties:
-                          kind:
-                            description: Kind of the matching group.
-                            type: string
-                            enum:
-                              - HTTPRouteGroup
-                          name:
-                            description: Name of the matching group.
-                            type: string
-                          namespace:
-                            description: Namespace defines the namespace of the plugin.
-                            type: string
-                          matches:
-                            description: Match conditions of this route group.
-                            type: array
-                            items:
-                              type: string
-                          plugins:
-                            description: Plugins is a list of mounted plugins applied.
-                            type: array
-                            items:
-                              type: object
-                              required:
-                                - mountpoint
-                                - name
-                                - namespace
-                              properties:
-                                mountpoint:
-                                  description: MountPoint defines the mount point of the plugin.
-                                  type: string
-                                  enum:
-                                    - TCPFirst
-                                    - TCPAfterTLS
-                                    - TCPAfterRouting
-                                    - TCPLast
-                                    - HTTPFirst
-                                    - HTTPAfterTLS
-                                    - HTTPAfterDemux
-                                    - HTTPAfterRouting
-                                    - HTTPAfterMux
-                                    - HTTPLast
-                                name:
-                                  description: Name defines the name of the plugin.
-                                  type: string
-                                namespace:
-                                  description: Namespace defines the namespace of the plugin.
-                                  type: string
-                    plugins:
-                      description: Plugins is a list of mounted plugins applied.
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - mountpoint
-                          - name
-                          - namespace
-                        properties:
-                          mountpoint:
-                            description: MountPoint defines the mount point of the plugin.
-                            type: string
-                            enum:
-                              - TCPFirst
-                              - TCPAfterTLS
-                              - TCPAfterRouting
-                              - TCPLast
-                              - HTTPFirst
-                              - HTTPAfterTLS
-                              - HTTPAfterDemux
-                              - HTTPAfterRouting
-                              - HTTPAfterMux
-                              - HTTPLast
-                          name:
-                            description: Name defines the name of the plugin.
-                            type: string
-                          namespace:
-                            description: Namespace defines the namespace of the plugin.
-                            type: string
-                outbound:
-                  description: Inbound is the type used to represent the plugin service inbound chain.
-                  type: object
-                  properties:
-                    targetServices:
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - name
-                          - plugins
-                        properties:
-                          name:
-                            description: Name of this source.
-                            type: string
-                          namespace:
-                            description: Namespace of this source.
-                            type: string
-                          targetRoutes:
-                            description: TargetRoutes are the traffic target routes to allow
-                            type: array
-                            items:
-                              type: object
-                              required:
-                                - kind
-                                - name
-                                - plugins
-                              properties:
-                                kind:
-                                  description: Kind of the matching group.
-                                  type: string
-                                  enum:
-                                    - HTTPRouteGroup
-                                name:
-                                  description: Name of the matching group.
-                                  type: string
-                                namespace:
-                                  description: Namespace defines the namespace of the plugin.
-                                  type: string
-                                matches:
-                                  description: Match conditions of this route group.
-                                  type: array
-                                  items:
-                                    type: string
-                                plugins:
-                                  description: Plugins is a list of mounted plugins applied.
-                                  type: array
-                                  items:
-                                    type: object
-                                    required:
-                                      - mountpoint
-                                      - name
-                                      - namespace
-                                    properties:
-                                      mountpoint:
-                                        description: MountPoint defines the mount point of the plugin.
-                                        type: string
-                                        enum:
-                                          - TCPFirst
-                                          - TCPAfterTLS
-                                          - TCPAfterRouting
-                                          - TCPLast
-                                          - HTTPFirst
-                                          - HTTPAfterTLS
-                                          - HTTPAfterDemux
-                                          - HTTPAfterRouting
-                                          - HTTPAfterMux
-                                          - HTTPLast
-                                      name:
-                                        description: Name defines the name of the plugin.
-                                        type: string
-                                      namespace:
-                                        description: Namespace defines the namespace of the plugin.
-                                        type: string
-                          plugins:
-                            description: Plugins is a list of mounted plugins applied.
-                            type: array
-                            items:
-                              type: object
-                              required:
-                                - mountpoint
-                                - name
-                                - namespace
-                              properties:
-                                mountpoint:
-                                  description: MountPoint defines the mount point of the plugin.
-                                  type: string
-                                  enum:
-                                    - TCPFirst
-                                    - TCPAfterRouting
-                                    - TCPLast
-                                    - HTTPFirst
-                                    - HTTPAfterDemux
-                                    - HTTPAfterRouting
-                                    - HTTPAfterMux
-                                    - HTTPLast
-                                name:
-                                  description: Name defines the name of the plugin.
-                                  type: string
-                                namespace:
-                                  description: Namespace defines the namespace of the plugin.
-                                  type: string
-                    plugins:
-                      description: Plugins is a list of mounted plugins applied.
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - mountpoint
-                          - name
-                          - namespace
-                        properties:
-                          mountpoint:
-                            description: MountPoint defines the mount point of the plugin.
-                            type: string
-                            enum:
-                              - TCPFirst
-                              - TCPAfterRouting
-                              - TCPLast
-                              - HTTPFirst
-                              - HTTPAfterDemux
-                              - HTTPAfterRouting
-                              - HTTPAfterMux
-                              - HTTPLast
-                          name:
-                            description: Name defines the name of the plugin.
-                            type: string
-                          namespace:
-                            description: Namespace defines the namespace of the plugin.
-                            type: string
-                unload:
-                  description: Unload is the type used to represent the plugin service unload chain.
-                  type: object
-                  required:
-                    - plugins
-                  properties:
-                    plugins:
-                      description: Plugins is a list of mounted plugins applied.
-                      type: array
-                      items:
-                        type: object
-                        required:
-                          - mountpoint
-                          - name
-                          - namespace
-                        properties:
-                          mountpoint:
-                            description: MountPoint defines the mount point of the plugin.
-                            type: string
-                            enum:
-                              - TCPFirst
-                              - TCPAfterRouting
-                              - TCPLast
-                              - HTTPFirst
-                              - HTTPAfterDemux
-                              - HTTPAfterRouting
-                              - HTTPAfterMux
-                              - HTTPLast
-                          name:
-                            description: Name defines the name of the plugin.
-                            type: string
-                          namespace:
-                            description: Namespace defines the namespace of the plugin.
-                            type: string
+                  x-kubernetes-preserve-unknown-fields: true
                 matches:
                   description: The resource references a plugin config should match on.
                   type: array

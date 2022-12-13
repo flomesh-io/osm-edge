@@ -400,6 +400,10 @@ func (kc *policyValidator) egressGatewayValidator(req *admissionv1.AdmissionRequ
 
 // pluginValidator validates the plugin custom resource
 func (kc *policyValidator) pluginValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	if !kc.cfg.GetFeatureFlags().EnablePluginPolicy {
+		return nil, fmt.Errorf("OSM is prohibited to apply plugin policy")
+	}
+
 	plugin := &pluginv1alpha1.Plugin{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(plugin); err != nil {
 		return nil, err
@@ -412,8 +416,26 @@ func (kc *policyValidator) pluginValidator(req *admissionv1.AdmissionRequest) (*
 	return nil, nil
 }
 
+// pluginConfigValidator validates the plugin config custom resource
+func (kc *policyValidator) pluginConfigValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	if !kc.cfg.GetFeatureFlags().EnablePluginPolicy {
+		return nil, fmt.Errorf("OSM is prohibited to apply plugin policy")
+	}
+
+	pluginConfig := &pluginv1alpha1.PluginConfig{}
+	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(pluginConfig); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 // pluginChainValidator validates the plugin chain custom resource
 func (kc *policyValidator) pluginChainValidator(req *admissionv1.AdmissionRequest) (*admissionv1.AdmissionResponse, error) {
+	if !kc.cfg.GetFeatureFlags().EnablePluginPolicy {
+		return nil, fmt.Errorf("OSM is prohibited to apply plugin policy")
+	}
+
 	pluginChain := &pluginv1alpha1.PluginChain{}
 	if err := json.NewDecoder(bytes.NewBuffer(req.Object.Raw)).Decode(pluginChain); err != nil {
 		return nil, err

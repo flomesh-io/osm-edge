@@ -66,6 +66,16 @@ func (c *Client) GetPlugins() []*pluginv1alpha1.Plugin {
 	return plugins
 }
 
+// GetPluginConfigs lists plugin configs
+func (c *Client) GetPluginConfigs() []*pluginv1alpha1.PluginConfig {
+	var pluginConfigs []*pluginv1alpha1.PluginConfig
+	for _, pluginConfigIface := range c.informers.List(informers.InformerKeyPluginConfig) {
+		pluginConfig := pluginConfigIface.(*pluginv1alpha1.PluginConfig)
+		pluginConfigs = append(pluginConfigs, pluginConfig)
+	}
+	return pluginConfigs
+}
+
 // GetPluginChains lists plugin chains
 func (c *Client) GetPluginChains() []*pluginv1alpha1.PluginChain {
 	var pluginChains []*pluginv1alpha1.PluginChain

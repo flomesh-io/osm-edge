@@ -21,4 +21,7 @@ type Client struct {
 type Controller interface {
 	// GetPlugins lists plugins
 	GetPlugins() []*pluginv1alpha1.Plugin
+
+	// GetPluginConfigs lists plugin configs
+	GetPluginConfigs() []*pluginv1alpha1.PluginConfig
 }

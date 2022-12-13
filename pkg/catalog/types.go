@@ -5,6 +5,7 @@
 package catalog
 
 import (
+	pluginv1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -102,6 +103,12 @@ type MeshCataloger interface {
 
 	// GetExportTrafficPolicy returns the export policy for the given mesh service
 	GetExportTrafficPolicy(svc service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error)
+
+	// GetPluginPolicies returns the plugin policies
+	GetPluginPolicies() []*trafficpolicy.PluginPolicy
+
+	// GetPluginConfigs lists plugin configs
+	GetPluginConfigs() []*pluginv1alpha1.PluginConfig
 }
 
 type trafficDirection string

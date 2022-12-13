@@ -53,7 +53,6 @@ type OutboundChains struct {
 
 // ChainPlugin is the type used to represent the chain plugin.
 type ChainPlugin struct {
-	PluginIdentity
 
 	// Type defines the type of the plugin.
 	Type string `json:"type"`
