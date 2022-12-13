@@ -1,12 +1,16 @@
-// version: '2022.08.12'
 (
-  (metrics) => (
+  (
+    config = pipy.solve('config.js'),
+    initClusterNameMetrics,
+    metrics
+  ) => (
 
     metrics = {
 
-      logZipkin: null,
-      tracingAddress: os.env.TRACING_ADDRESS,
-      tracingEndpoint: (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
+      namespace: (os.env.POD_NAMESPACE || 'default'),
+      kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+      name: (os.env.SERVICE_ACCOUNT || ''),
+      pod: (os.env.POD_NAME || ''),
 
       sendBytesTotalCounter: new stats.Counter('sidecar_cluster_upstream_cx_tx_bytes_total', ['sidecar_cluster_name']),
       receiveBytesTotalCounter: new stats.Counter('sidecar_cluster_upstream_cx_rx_bytes_total', ['sidecar_cluster_name']),
@@ -36,7 +40,7 @@
 
     },
 
-    metrics.funcInitClusterNameMetrics = (namespace, kind, name, pod, clusterName) => (
+    initClusterNameMetrics = (namespace, kind, name, pod, clusterName) => (
       metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, clusterName).zero(),
       metrics.upstreamResponseCode.withLabels('5', namespace, kind, name, pod, clusterName).zero(),
       metrics.activeConnectionGauge.withLabels(clusterName).zero(),
@@ -52,77 +56,22 @@
       metrics.requestSendResetCounter.withLabels(clusterName).zero()
     ),
 
-    metrics.funcTracingHeaders = (namespace, kind, name, pod, headers, proto, uuid, id) => (
-      uuid = algo.uuid(),
-      id = uuid.substring(0, 18).replaceAll('-', ''),
-      proto && (headers['x-forwarded-proto'] = proto),
-      headers['x-b3-spanid'] &&
-      (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) &&
-      (headers['x-b3-spanid'] = id),
-      !headers['x-b3-traceid'] &&
-      (headers['x-b3-traceid'] = id) &&
-      (headers['x-b3-spanid'] = id) &&
-      (headers['x-b3-sampled'] = '1'),
-      !headers['x-request-id'] && (headers['x-request-id'] = uuid),
-      headers['osm-stats-namespace'] = namespace,
-      headers['osm-stats-kind'] = kind,
-      headers['osm-stats-name'] = name,
-      headers['osm-stats-pod'] = pod
+    config?.Inbound?.ClustersConfigs && Object.keys(config.Inbound.ClustersConfigs).map(
+      clusterName => (
+        initClusterNameMetrics(metrics.namespace, metrics.kind, metrics.name, metrics.pod, clusterName)
+      )
     ),
 
-    metrics.funcMakeZipKinData = (name, msg, headers, clusterName, kind, shared, data) => (
-      data = {
-        'traceId': headers?.['x-b3-traceid'] && headers['x-b3-traceid'].toString(),
-        'id': headers?.['x-b3-spanid'] && headers['x-b3-spanid'].toString(),
-        'name': headers?.host,
-        'timestamp': Date.now() * 1000,
-        'localEndpoint': {
-          'port': 0,
-          'ipv4': os.env.POD_IP || '',
-          'serviceName': name,
-        },
-        'tags': {
-          'component': 'proxy',
-          'http.url': headers?.['x-forwarded-proto'] + '://' + headers?.host + msg?.head?.path,
-          'http.method': msg?.head?.method,
-          'node_id': os.env.POD_UID || '',
-          'http.protocol': msg?.head?.protocol,
-          'guid:x-request-id': headers?.['x-request-id'],
-          'user_agent': headers?.['user-agent'],
-          'upstream_cluster': clusterName
-        },
-        'annotations': []
-      },
-      headers['x-b3-parentspanid'] && (data['parentId'] = headers['x-b3-parentspanid']),
-      data['kind'] = kind,
-      shared && (data['shared'] = shared),
-      data.tags['request_size'] = '0',
-      data.tags['response_size'] = '0',
-      data.tags['http.status_code'] = '502',
-      data.tags['peer.address'] = '',
-      data['duration'] = 0,
-      data
+    config?.Outbound?.ClustersConfigs && Object.keys(config.Outbound.ClustersConfigs).map(
+      clusterName => (
+        initClusterNameMetrics(metrics.namespace, metrics.kind, metrics.name, metrics.pod, clusterName)
+      )
     ),
 
-    metrics.funcMakeLoggingData = (msg, type, data) => (
-      data = {
-        type: type,
-        start_time: new Date(),
-        method: msg.head.method,
-        path: msg.head.path,
-        protocol: msg.head.protocol,
-        user_agent: msg.head.headers['user-agent'],
-        x_forwarded_for: msg.head.headers['x-forwarded-for'] ? msg.head.headers['x-forwarded-for'] : '-',
-        bytes_received: 0,
-        bytes_sent: 0,
-        duration: 0,
-        response_code: null,
-        downstream: null,
-        upstream: null
-      },
-      data
-    ),
+    // Turn On Activity Metrics
+    metrics.serverLiveGauge.increase(),
 
     metrics
   )
+
 )()
