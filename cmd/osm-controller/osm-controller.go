@@ -16,24 +16,30 @@ import (
 	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
-	"github.com/spf13/pflag"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensionsClientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	multiclusterClientset "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned"
 	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
+	pluginClientset "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
+	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/driver"
+	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/driver"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -50,6 +56,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/plugin"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/providers/fsm"
 	"github.com/openservicemesh/osm/pkg/providers/kube"
@@ -57,8 +64,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar"
 	"github.com/openservicemesh/osm/pkg/sidecar/driver"
-	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/envoy/driver"
-	_ "github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/driver"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/validator"
@@ -169,6 +174,7 @@ func main() {
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	policyClient := policyClientset.NewForConfigOrDie(kubeConfig)
+	pluginClient := pluginClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
 	multiclusterClient := multiclusterClientset.NewForConfigOrDie(kubeConfig)
 	networkingClient := networkingClientset.NewForConfigOrDie(kubeConfig)
@@ -212,6 +218,7 @@ func main() {
 		informers.WithSMIClients(smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet),
 		informers.WithConfigClient(configClient, osmMeshConfigName, osmNamespace),
 		informers.WithPolicyClient(policyClient),
+		informers.WithPluginClient(pluginClient),
 		informers.WithMultiClusterClient(multiclusterClient),
 		informers.WithNetworkingClient(networkingClient),
 	)
@@ -226,7 +233,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar driver")
 	}
 
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, pluginClient, msgBroker)
 
 	meshSpec := smi.NewSMIClient(informerCollection, osmNamespace, k8sClient, msgBroker)
 
@@ -254,6 +261,7 @@ func main() {
 	}
 
 	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
+	pluginController := plugin.NewPluginController(informerCollection, kubeClient, k8sClient, msgBroker)
 	multiclusterController := multicluster.NewMultiClusterController(informerCollection, kubeClient, k8sClient, msgBroker)
 
 	kubeProvider := kube.NewClient(k8sClient, cfg)
@@ -271,6 +279,7 @@ func main() {
 		meshSpec,
 		certManager,
 		policyController,
+		pluginController,
 		multiclusterController,
 		stop,
 		cfg,

@@ -1,0 +1,418 @@
+# Custom Resource Definition (CRD) for OSM's PluginChain specification.
+#
+# Copyright Open Service Mesh authors.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: pluginchains.plugin.flomesh.io
+  labels:
+    app.kubernetes.io/name : "openservicemesh.io"
+spec:
+  group: plugin.flomesh.io
+  scope: Namespaced
+  names:
+    kind: PluginChain
+    listKind: PluginChainList
+    shortNames:
+      - pichn
+    singular: pluginchain
+    plural: pluginchains
+  conversion:
+    strategy: None
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                InboundChains:
+                  description: InboundChains defines the chains of inbound.
+                  type: object
+                  properties:
+                    L4:
+                      description: L4 defines the l4 chains of outbound.
+                      type: object
+                      properties:
+                        TCPFirst:
+                          description: TCPFirst defines TCPFirst sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            required:
+                              - type
+                              - name
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        TCPAfterTLS:
+                          description: TCPAfterTLS defines TCPAfterTLS sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        TCPAfterRouting:
+                          description: TCPAfterRouting defines TCPAfterRouting sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        TCPLast:
+                          description: TCPLast defines TCPLast sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                    L7:
+                      description: L7 defines the l7 chains of inbound.
+                      type: object
+                      properties:
+                        HTTPFirst:
+                          description: HTTPFirst defines HTTPFirst sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterTLS:
+                          description: HTTPAfterTLS defines HTTPAfterTLS sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterDemux:
+                          description: HTTPAfterDemux defines HTTPAfterDemux sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterRouting:
+                          description: HTTPAfterRouting defines HTTPAfterRouting sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterMux:
+                          description: HTTPAfterMux defines HTTPAfterMux sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPLast:
+                          description: HTTPLast defines HTTPLast sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                OutboundChains:
+                  description: OutboundChains defines the chains of outbound.
+                  type: object
+                  properties:
+                    L4:
+                      description: L4 defines the l4 chains of outbound.
+                      type: object
+                      properties:
+                        TCPFirst:
+                          description: TCPFirst defines TCPFirst sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        TCPAfterRouting:
+                          description: TCPAfterRouting defines TCPAfterRouting sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        TCPLast:
+                          description: TCPLast defines TCPLast sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                    L7:
+                      description: L7 defines the l7 chains of outbound.
+                      type: object
+                      properties:
+                        HTTPFirst:
+                          description: HTTPFirst defines HTTPFirst sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterDemux:
+                          description: HTTPAfterDemux defines HTTPAfterDemux sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterRouting:
+                          description: HTTPAfterRouting defines HTTPAfterRouting sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPAfterMux:
+                          description: HTTPAfterMux defines HTTPAfterMux sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                        HTTPLast:
+                          description: HTTPLast defines HTTPLast sub-chains.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                description: Type defines the type of the plugin.
+                                type: string
+                                enum:
+                                  - system
+                                  - plugin
+                              name:
+                                description: Name defines the Name of the plugin.
+                                type: string
+                              namespace:
+                                description: Namespace defines the namespace of the plugin.
+                                type: string
+                matches:
+                  description: The resource references a plugin chain should match on.
+                  type: array
+                  items:
+                    type: object
+                    required: ['apiGroup', 'kind', 'name']
+                    properties:
+                      apiGroup:
+                        description: API group for the resource being referenced.
+                        type: string
+                      kind:
+                        description: Type of resource being referenced.
+                        type: string
+                      name:
+                        description: Name of resource being referenced.
+                        type: string
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        # status enables the status subresource
+        status: {}

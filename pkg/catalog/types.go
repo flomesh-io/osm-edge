@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/plugin"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -41,6 +42,10 @@ type MeshCatalog struct {
 	// policyController implements the functionality related to the resources part of the policy.openservicemesh.io
 	// API group, such as egress.
 	policyController policy.Controller
+
+	// pluginController implements the functionality related to the resources part of the plugin.flomesh.io
+	// API group, such as plugin, pluginChain, pluginConfig.
+	pluginController plugin.Controller
 
 	// multiclusterController implements the functionality related to the resources part of the flomesh.io
 	// API group, such a serviceimport.

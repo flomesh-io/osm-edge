@@ -372,6 +372,8 @@ spec:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean
+                    enablePluginPolicy:
+                      type: boolean
     - name: v1alpha1
       served: true
       storage: false
@@ -648,4 +650,6 @@ spec:
                     enableSidecarActiveHealthChecks:
                       type: boolean
                     enableRetryPolicy:
+                      type: boolean
+                    enablePluginPolicy:
                       type: boolean
