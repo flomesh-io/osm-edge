@@ -8,7 +8,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
+	v1alpha10 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/k8s"
@@ -172,25 +173,39 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
 }
 
-// GetPluginPolicies mocks base method.
-func (m *MockMeshCataloger) GetPluginPolicies() []*trafficpolicy.PluginPolicy {
+// GetPluginConfigs mocks base method.
+func (m *MockMeshCataloger) GetPluginConfigs() []*v1alpha1.PluginConfig {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPluginPolicies")
+	ret := m.ctrl.Call(m, "GetPluginConfigs")
+	ret0, _ := ret[0].([]*v1alpha1.PluginConfig)
+	return ret0
+}
+
+// GetPluginConfigs indicates an expected call of GetPluginConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginConfigs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginConfigs))
+}
+
+// GetPlugins mocks base method.
+func (m *MockMeshCataloger) GetPlugins() []*trafficpolicy.PluginPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlugins")
 	ret0, _ := ret[0].([]*trafficpolicy.PluginPolicy)
 	return ret0
 }
 
-// GetPluginPolicies indicates an expected call of GetPluginPolicies.
-func (mr *MockMeshCatalogerMockRecorder) GetPluginPolicies() *gomock.Call {
+// GetPlugins indicates an expected call of GetPlugins.
+func (mr *MockMeshCatalogerMockRecorder) GetPlugins() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginPolicies))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlugins", reflect.TypeOf((*MockMeshCataloger)(nil).GetPlugins))
 }
 
 // GetRetryPolicy mocks base method.
-func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha1.RetryPolicySpec {
+func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha10.RetryPolicySpec {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRetryPolicy", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha1.RetryPolicySpec)
+	ret0, _ := ret[0].(*v1alpha10.RetryPolicySpec)
 	return ret0
 }
 

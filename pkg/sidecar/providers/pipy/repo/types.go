@@ -1,11 +1,10 @@
 package repo
 
 import (
-	alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"sync"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
@@ -42,6 +41,9 @@ type Server struct {
 	// tracks at which version we are at given a proxy UUID
 	configVerMutex sync.Mutex
 	configVersion  map[string]uint64
+
+	pluginSet        mapset.Set
+	pluginSetVersion string
 
 	msgBroker *messaging.Broker
 
@@ -479,7 +481,4 @@ type PipyConf struct {
 	Forward          *ForwardTrafficPolicy    `json:"Forward"`
 	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
 	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
-
-	X []*trafficpolicy.PluginPolicy
-	Y []*alpha1.PluginConfig
 }

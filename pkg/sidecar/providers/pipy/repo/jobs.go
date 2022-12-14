@@ -61,10 +61,6 @@ func (job *PipyConfGeneratorJob) Run() {
 	balance(pipyConf)
 	reorder(pipyConf)
 	endpoints(pipyConf, s)
-
-	pipyConf.X = cataloger.GetPluginPolicies()
-	pipyConf.Y = cataloger.GetPluginConfigs()
-
 	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
 }
 
@@ -283,6 +279,9 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 
 	if jsonErr == nil {
 		codebasePreV := proxy.ETag
+
+		pluginSetVersion := job.repoServer.pluginSetVersion
+		bytes = append(bytes, []byte(pluginSetVersion)...)
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())

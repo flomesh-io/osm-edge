@@ -5,8 +5,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-// GetPluginPolicies returns the plugin policies
-func (mc *MeshCatalog) GetPluginPolicies() []*trafficpolicy.PluginPolicy {
+// GetPlugins returns the plugin policies
+func (mc *MeshCatalog) GetPlugins() []*trafficpolicy.PluginPolicy {
 	plugins := mc.pluginController.GetPlugins()
 	if plugins == nil {
 		log.Trace().Msg("Did not find any plugin policy")

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -42,6 +43,7 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 		kubeController: kubecontroller,
 		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
+		pluginSet:      mapset.NewSet(),
 		msgBroker:      msgBroker,
 		repoClient:     client.NewRepoClient("127.0.0.1", uint16(cfg.GetProxyServerPort())),
 	}
@@ -63,6 +65,7 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	})
 	if err != nil {
 		log.Error().Err(err)
+		return err
 	}
 
 	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
@@ -73,10 +76,14 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	})
 	if err != nil {
 		log.Error().Err(err)
+		return err
 	}
 
 	// Start broadcast listener thread
 	go s.broadcastListener()
+
+	// Start plugin listener thread
+	go s.pluginListener()
 
 	s.ready = true
 
