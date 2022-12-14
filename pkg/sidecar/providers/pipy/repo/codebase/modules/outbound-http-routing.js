@@ -1,26 +1,52 @@
 ((
-  allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  config = pipy.solve('config.js'),
 
-  makeServiceHandler = (portConfig, service) => (
+  allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
+
+  clusterCache = new algo.Cache(
+    (clusterName => (
+      (cluster = config?.Outbound?.ClustersConfigs?.[clusterName]) => (
+        cluster ? Object.assign({ clusterName }, cluster) : null
+      )
+    )())
+  ),
+
+  makeServiceHandler = (portConfig, serviceName) => (
     (
-      rules = portConfig.HttpServiceRouteRules[service],
+      rules = portConfig.HttpServiceRouteRules[serviceName]?.RouteRules || [],
       tree = {},
     ) => (
-      Object.entries(rules).forEach(
-        ([path, config]) => (
+      rules.forEach(
+        config => (
           (
-            pathPattern = new RegExp(path),
-            headerRules = Object.entries(config.Headers || {}).map(([k, v]) => [k, new RegExp(v)]),
+            matchPath = ((match = null) => (
+              (config.Type === 'Regex') && (
+                match = new RegExp(config.Path),
+                (path) => match.test(path)
+              ) || (config.Type === 'Exact') && (
+                (path) => path === config.Path
+              ) || (config.Type === 'Prefix') && (
+                (path) => path.startsWith(config.Path)
+              )
+            ))(),
+            headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
             balancer = new algo.RoundRobinLoadBalancer(config.TargetClusters || {}),
-            rule = headerRules.length > 0 ? (
-              (path) => pathPattern.test(path) && (
+            service = Object.assign({ serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
+            rule = headerRules ? (
+              (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
-                __clusterName = balancer.next()?.id
+                __service = service,
+                ((clusterName = balancer.next()?.id) => (
+                  __cluster = clusterCache.get(clusterName)
+                ))()
               )
             ) : (
-              (path, headers) => pathPattern.test(path) && (headerRules.every(([k, v]) => v.test(headers[k] || ''))) && (
+              (path) => matchPath(path) && (
                 __route = config,
-                __clusterName = balancer.next()?.id
+                __service = service,
+                ((clusterName = balancer.next()?.id) => (
+                  __cluster = clusterCache.get(clusterName)
+                ))()
               )
             ),
             allowedMethods = config.Methods || allMethods,
@@ -41,13 +67,12 @@
   makePortHandler = (portConfig) => (
     (
       serviceHandlers = new algo.Cache(
-        (service) => makeServiceHandler(portConfig, service)
+        (serviceName) => makeServiceHandler(portConfig, serviceName)
       ),
 
       hostHandlers = new algo.Cache(
         (host) => serviceHandlers.get(portConfig.HttpHostPort2Service[host])
       ),
-
     ) => (
       (msg) => (
         (
@@ -66,11 +91,12 @@
 
 .import({
   __port: 'outbound-main',
-  __clusterName: 'outbound-main',
+  __cluster: 'outbound-main',
 })
 
 .export('outbound-http-routing', {
   __route: null,
+  __service: null,
 })
 
 .pipeline()

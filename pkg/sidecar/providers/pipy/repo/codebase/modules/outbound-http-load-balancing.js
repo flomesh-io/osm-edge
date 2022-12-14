@@ -1,40 +1,37 @@
 ((
-  config = pipy.solve('config.js'),
-
   retryCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry', ['sidecar_cluster_name']),
   retrySuccessCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_success', ['sidecar_cluster_name']),
   retryLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_limit_exceeded', ['sidecar_cluster_name']),
 
-  makeClusterConfig = (clusterName) => (
-    (
-      clusterConfig = config?.Outbound?.ClustersConfigs?.[clusterName],
-    ) => (
-      {
-        targetBalancer: new algo.RoundRobinLoadBalancer(clusterConfig?.Endpoints),
-        needRetry: Boolean(clusterConfig?.RetryPolicy?.NumRetries),
-        numRetries: clusterConfig?.RetryPolicy?.NumRetries,
-        retryStatusCodes: (clusterConfig?.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
-          (lut, code) => (
-            code.endsWith('xx') ? (
-              new Array(100).fill(0).forEach((_, i) => lut[(code.charAt(0)|0)*100+i] = true)
-            ) : (
-              lut[code|0] = true
-            ),
-            lut
+  makeClusterConfig = (clusterConfig) => (
+    clusterConfig &&
+    {
+      targetBalancer: new algo.RoundRobinLoadBalancer(
+        Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight || 100]))
+      ),
+      needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
+      numRetries: clusterConfig.RetryPolicy?.NumRetries,
+      retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
+        (lut, code) => (
+          code.endsWith('xx') ? (
+            new Array(100).fill(0).forEach((_, i) => lut[(code.charAt(0)|0)*100+i] = true)
+          ) : (
+            lut[code|0] = true
           ),
-          []
+          lut
         ),
-        retryBackoffBaseInterval: clusterConfig?.RetryPolicy?.RetryBackoffBaseInterval || 1, // default 1 second
-        retryCounter: retryCounter.withLabels(clusterName),
-        retrySuccessCounter: retrySuccessCounter.withLabels(clusterName),
-        retryLimitCounter: retryLimitCounter.withLabels(clusterName),
-        muxHttpOptions: {
-          version: () => __isHTTP2 ? 2 : 1,
-          maxMessages: clusterConfig?.ConnectionSettings?.http?.MaxRequestsPerConnection
-        },
-      }
-    )
-  )(),
+        []
+      ),
+      retryBackoffBaseInterval: clusterConfig.RetryPolicy?.RetryBackoffBaseInterval || 1, // default 1 second
+      retryCounter: retryCounter.withLabels(clusterConfig.clusterName),
+      retrySuccessCounter: retrySuccessCounter.withLabels(clusterConfig.clusterName),
+      retryLimitCounter: retryLimitCounter.withLabels(clusterConfig.clusterName),
+      muxHttpOptions: {
+        version: () => __isHTTP2 ? 2 : 1,
+        maxMessages: clusterConfig.ConnectionSettings?.http?.MaxRequestsPerConnection
+      },
+    }
+  ),
 
   clusterConfigs = new algo.Cache(makeClusterConfig),
 
@@ -62,14 +59,14 @@
 
 .import({
   __isHTTP2: 'outbound-main',
+  __cluster: 'outbound-main',
   __address: 'outbound-main',
-  __clusterName: 'outbound-main',
 })
 
 .pipeline()
 .onStart(
   () => void (
-    (_clusterConfig = clusterConfigs.get(__clusterName)) && (
+    (_clusterConfig = clusterConfigs.get(__cluster)) && (
       (_target = _clusterConfig.targetBalancer?.next?.()) && (
         __address = _target.id
       )
@@ -78,6 +75,7 @@
 )
 .branch(
   () => !_target, $=>$.chain(),
+
   () => _clusterConfig.needRetry, (
     $=>$
     .replay({
@@ -91,7 +89,9 @@
         )
       )
     )
-  ), (
+  ),
+
+  (
     $=>$.link('upstream')
   )
 )

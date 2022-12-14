@@ -26,7 +26,7 @@
         [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity],
         ['source_namespace', 'source_kind', 'source_name', 'source_pod', 'destination_namespace', 'destination_kind', 'destination_name', 'destination_pod']),
       serverLiveGauge: new stats.Gauge('sidecar_server_live'),
-      //// serverLiveGauge.increase(),
+
       // {{{ TBD begin
       destroyRemoteActiveCounter: new stats.Counter('sidecar_cluster_upstream_cx_destroy_remote_with_active_rq', ['sidecar_cluster_name']),
       destroyLocalActiveCounter: new stats.Counter('sidecar_cluster_upstream_cx_destroy_local_with_active_rq', ['sidecar_cluster_name']),

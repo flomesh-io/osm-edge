@@ -37,8 +37,7 @@
           k, new algo.RoundRobinLoadBalancer(v?.Endpoints || {})
         ]
       )
-  )
-
+  ),
 ) => (
 
 pipy({
@@ -50,52 +49,50 @@ pipy({
   __cert: 'outbound-main',
   __address: 'outbound-main',
   __egressEnable: 'outbound-main',
-  __route: 'outbound-http-routing',
 })
 
 .pipeline()
 .onStart(
   () => void (
-    forwardMatches && ((policy, egw) => (
-      policy = __port?.EgressForwardGateway ? __port?.EgressForwardGateway : '*',
-      (egw = forwardMatches[policy]?.next?.()?.id) && (
-        _egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id
-      )
+    forwardMatches && ((egw = forwardMatches[__port?.EgressForwardGateway || '*']?.next?.()?.id) => (
+      egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
     ))(),
-    console.log('outbound connectTLS - TLS/__egressEnable/_egressEndpoint/__cert: ', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert))
+    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__address:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __address)
   )
 )
 .branch(
   () => !__address, $=>$.chain(),
-  () => __cert, $ => $
+
+  () => __cert, (
+    $=>$
     .connectTLS({
       certificate: () => ({
         cert: new crypto.Certificate(__cert.CertChain),
         key: new crypto.PrivateKey(__cert.PrivateKey),
       }),
       trusted: listIssuingCA,
-    }).to($ => $
-      .connect(() => __address)
-    ),
-  () => certChain && !__egressEnable, $ => $
+    }).to($=>$.connect(() => __address))
+  ),
+
+  () => certChain && !__egressEnable, (
+    $=>$
     .connectTLS({
       certificate: {
         cert: new crypto.Certificate(certChain),
         key: new crypto.PrivateKey(privateKey),
       },
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
-    }).to($ => $
-      .connect(() => __address)
-    ),
-  () => __egressEnable && _egressEndpoint, $ => $
+    }).to($=>$.connect(() => __address))
+  ),
+
+  () => __egressEnable && _egressEndpoint, (
+    $=>$
     .connectSOCKS(
       () => __address,
-    ).to($ => $
-      .connect(
-        () => _egressEndpoint
-      )
-    ),
-  $ => $.connect(() => __address)
+    ).to($=>$.connect(() => _egressEndpoint))
+  ),
+
+  $=>$.connect(() => __address)
 )
 
 ))()

@@ -3,11 +3,11 @@
 
   makePortHandler = port => (
     (
-      portConfig = config.Inbound.TrafficMatches[port || 0],
+      portConfig = config?.Inbound?.TrafficMatches?.[port || 0],
       protocol = portConfig?.Protocol === 'http' || portConfig?.Protocol === 'grpc' ? 'http' : 'tcp',
       isHTTP2 = portConfig?.Protocol === 'grpc',
       allowedEndpointsLocal = portConfig?.AllowedEndpoints,
-      allowedEndpointsGlobal = config.AllowedEndpoints || {},
+      allowedEndpointsGlobal = config?.AllowedEndpoints || {},
       allowedEndpoints = new Set(
         allowedEndpointsLocal
           ? Object.keys(allowedEndpointsLocal).filter(k => k in allowedEndpointsGlobal)
@@ -53,7 +53,8 @@
   __port: null,
   __protocol: null,
   __isHTTP2: false,
-  __clusterName: null,
+  __cluster: null,
+  __address: null,
 })
 
 .pipeline()
@@ -68,9 +69,13 @@
       'modules/inbound-tls-termination.js',
       'modules/inbound-http-routing.js',
       'modules/inbound-metrics-http.js',
+      'modules/inbound-tracing-http.js',
+      'modules/inbound-logging-http.js',
       'modules/inbound-throttle-service.js',
       'modules/inbound-throttle-route.js',
       'modules/inbound-http-load-balancing.js',
+      'modules/inbound-metrics-tcp.js',
+      'modules/inbound-make-connection.js',
       'modules/inbound-http-default.js',
     ])
   ),
@@ -79,10 +84,14 @@
     $=>$.chain([
       'modules/inbound-tls-termination.js',
       'modules/inbound-tcp-load-balancing.js',
+      'modules/inbound-metrics-tcp.js',
+      'modules/inbound-make-connection.js',
       'modules/inbound-tcp-default.js',
     ])
 
-  ), (
+  ),
+
+  (
     $=>$.replaceStreamStart(
       new StreamEnd('ConnectionReset')
     )

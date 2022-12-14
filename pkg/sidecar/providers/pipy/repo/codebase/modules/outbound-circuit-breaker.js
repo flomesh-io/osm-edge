@@ -1,15 +1,10 @@
 ((
-  config = pipy.solve('config.js'),
-
   circuitBreakers = {},
 
-  makeCircuitBreaker = (clusterName) => (
-    (
-      clusterConfig = config?.Outbound?.ClustersConfigs?.[clusterName],
-    ) => (
-      clusterConfig?.ConnectionSettings?.http?.CircuitBreaking && (circuitBreakers[clusterName] = (
+  makeCircuitBreaker = (clusterConfig) => (
+      clusterConfig?.ConnectionSettings?.http?.CircuitBreaking && (circuitBreakers[clusterConfig.clusterName] = (
         (
-          serviceName = clusterName || '',
+          clusterName = clusterConfig.clusterName || '',
           minRequestAmount = clusterConfig.ConnectionSettings.http.CircuitBreaking?.MinRequestAmount || 100,
           statTimeWindow = clusterConfig.ConnectionSettings.http.CircuitBreaking?.StatTimeWindow || 30, // 30s
           slowTimeThreshold = clusterConfig.ConnectionSettings.http.CircuitBreaking?.SlowTimeThreshold || 5, // 5s
@@ -43,11 +38,11 @@
           close,
         ) => (
           open = () => (
-            console.log('[circuit_breaker] total/slowAmount/errorAmount (open) ', serviceName, total, slowAmount, errorAmount)
+            console.log('[circuit_breaker] total/slowAmount/errorAmount (open) ', clusterName, total, slowAmount, errorAmount)
           ),
 
           close = () => (
-            console.log('[circuit_breaker] total/slowAmount/errorAmount (close)', serviceName, total, slowAmount, errorAmount)
+            console.log('[circuit_breaker] total/slowAmount/errorAmount (close)', clusterName, total, slowAmount, errorAmount)
           ),
 
           {
@@ -109,8 +104,7 @@
           }
         )
       )())
-    )
-  )(),
+  ),
 
   circuitBreakerCache = new algo.Cache(makeCircuitBreaker),
 
@@ -120,12 +114,12 @@
 })
 
 .import({
-  __clusterName: 'outbound-main',
+  __cluster: 'outbound-main',
 })
 
 .pipeline()
 .branch(
-  () => _circuitBreaker = circuitBreakerCache.get(__clusterName), (
+  () => _circuitBreaker = circuitBreakerCache.get(__cluster), (
     $=>$
     .branch(
       () => _circuitBreaker.isDegraded(), (

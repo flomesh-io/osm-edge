@@ -1,26 +1,36 @@
 ((
   config = pipy.solve('config.js'),
 
+  clusterCache = new algo.Cache(
+    (clusterName => (
+      (cluster = config?.Outbound?.ClustersConfigs?.[clusterName]) => (
+        cluster ? Object.assign({ clusterName }, cluster) : null
+      )
+    )())
+  ),
+
   clusterBalancers = new algo.Cache(cluster => new algo.RoundRobinLoadBalancer(cluster || {})),
 
-  targetBalancers = new algo.Cache(clusterName =>
-    new algo.RoundRobinLoadBalancer(config?.Outbound?.ClustersConfigs?.[clusterName]?.Endpoints || {})
-  ),
+  targetBalancers = new algo.Cache(target => new algo.RoundRobinLoadBalancer(
+    Object.fromEntries(Object.entries(target?.Endpoints || {}).map(([k, v]) => [k, v.Weight || 100]))
+  )),
 
 ) => pipy()
 
 .import({
   __port: 'outbound-main',
+  __cluster: 'outbound-main',
   __address: 'outbound-main',
-  __clusterName: 'outbound-main',
 })
 
 .pipeline()
 .handleStreamStart(
   () => (
-    (__clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) && (
-      __address = targetBalancers.get(__clusterName)?.next?.().id
-    )
+    ((clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) => (
+      (__cluster = clusterCache.get(clusterName)) && (
+        __address = targetBalancers.get(__cluster)?.next?.()?.id
+      )
+    ))()
   )
 )
 .chain()
