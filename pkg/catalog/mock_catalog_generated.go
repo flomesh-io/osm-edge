@@ -173,6 +173,20 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
 }
 
+// GetPluginChains mocks base method.
+func (m *MockMeshCataloger) GetPluginChains() []*v1alpha1.PluginChain {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginChains")
+	ret0, _ := ret[0].([]*v1alpha1.PluginChain)
+	return ret0
+}
+
+// GetPluginChains indicates an expected call of GetPluginChains.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginChains", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginChains))
+}
+
 // GetPluginConfigs mocks base method.
 func (m *MockMeshCataloger) GetPluginConfigs() []*v1alpha1.PluginConfig {
 	m.ctrl.T.Helper()

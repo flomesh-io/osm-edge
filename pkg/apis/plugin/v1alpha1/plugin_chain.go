@@ -26,102 +26,29 @@ type PluginChain struct {
 
 // PluginChainSpec is the type used to represent the PluginChain specification.
 type PluginChainSpec struct {
-	// InboundChains defines the chains of inbound.
-	InboundChains InboundChains `json:"InboundChains"`
+	// Chains defines the plugins within chains
+	Chains []ChainPluginSpec `json:"chains"`
 
-	// OutboundChains defines the chains of outbound.
-	OutboundChains OutboundChains `json:"OutboundChains"`
+	// Selectors defines the selectors of chains.
+	Selectors ChainSelectorSpec `json:"selectors"`
 }
 
-// InboundChains is the type used to represent inbound chains.
-type InboundChains struct {
-	// InboundL4Chains defines the l4 chains of outbound.
-	InboundL4Chains InboundL4Chains `json:"L4"`
+// ChainPluginSpec is the type used to represent plugins within chain.
+type ChainPluginSpec struct {
+	// Name defines the name of chain.
+	Name string `json:"name"`
 
-	// InboundL7Chains defines the l7 chains of outbound.
-	InboundL7Chains InboundL7Chains `json:"L7"`
+	// Plugins defines the plugins within chain.
+	Plugins []string `json:"plugins"`
 }
 
-// OutboundChains is the type used to represent outbound chains.
-type OutboundChains struct {
-	// OutboundL4Chains defines the l4 chains of outbound.
-	OutboundL4Chains OutboundL4Chains `json:"L4"`
+// ChainSelectorSpec is the type used to represent plugins for plugin chain.
+type ChainSelectorSpec struct {
+	// PodSelector for pods. Existing pods are selected by this will be the ones affected by this plugin chain.
+	PodSelector *metav1.LabelSelector `json:"podSelector"`
 
-	// OutboundL7Chains defines the l7 chains of outbound.
-	OutboundL7Chains OutboundL7Chains `json:"L7"`
-}
-
-// ChainPlugin is the type used to represent the chain plugin.
-type ChainPlugin struct {
-
-	// Type defines the type of the plugin.
-	Type string `json:"type"`
-}
-
-// InboundL4Chains is the type used to represent inbound L4 chains.
-type InboundL4Chains struct {
-	// TCPFirst defines TCPFirst sub-chains.
-	TCPFirst []ChainPlugin `json:"TCPFirst"`
-
-	// TCPAfterTLS defines TCPAfterTLS sub-chains.
-	TCPAfterTLS []ChainPlugin `json:"TCPAfterTLS"`
-
-	// TCPAfterRouting defines TCPAfterRouting sub-chains.
-	TCPAfterRouting []ChainPlugin `json:"TCPAfterRouting"`
-
-	// TCPLast defines TCPLast sub-chains.
-	TCPLast []ChainPlugin `json:"TCPLast"`
-}
-
-// InboundL7Chains is the type used to represent inbound L7 chains.
-type InboundL7Chains struct {
-	// HTTPFirst defines HTTPFirst sub-chains.
-	HTTPFirst []ChainPlugin `json:"HTTPFirst"`
-
-	// HTTPAfterTLS defines HTTPAfterTLS sub-chains.
-	HTTPAfterTLS []ChainPlugin `json:"HTTPAfterTLS"`
-
-	// HTTPAfterDemux defines HTTPAfterDemux sub-chains.
-	HTTPAfterDemux []ChainPlugin `json:"HTTPAfterDemux"`
-
-	// HTTPAfterRouting defines HTTPAfterRouting sub-chains.
-	HTTPAfterRouting []ChainPlugin `json:"HTTPAfterRouting"`
-
-	// HTTPAfterMux defines HTTPAfterMux sub-chains.
-	HTTPAfterMux []ChainPlugin `json:"HTTPAfterMux"`
-
-	// HTTPLast defines HTTPLast sub-chains.
-	HTTPLast []ChainPlugin `json:"HTTPLast"`
-}
-
-// OutboundL4Chains is the type used to represent outbound L4 chains.
-type OutboundL4Chains struct {
-	// TCPFirst defines TCPFirst sub-chains.
-	TCPFirst []ChainPlugin `json:"TCPFirst"`
-
-	// TCPAfterRouting defines TCPAfterRouting sub-chains.
-	TCPAfterRouting []ChainPlugin `json:"TCPAfterRouting"`
-
-	// TCPLast defines TCPLast sub-chains.
-	TCPLast []ChainPlugin `json:"TCPLast"`
-}
-
-// OutboundL7Chains is the type used to represent outbound L7 chains.
-type OutboundL7Chains struct {
-	// HTTPFirst defines HTTPFirst sub-chains.
-	HTTPFirst []ChainPlugin `json:"HTTPFirst"`
-
-	// HTTPAfterDemux defines HTTPAfterDemux sub-chains.
-	HTTPAfterDemux []ChainPlugin `json:"HTTPAfterDemux"`
-
-	// HTTPAfterRouting defines HTTPAfterRouting sub-chains.
-	HTTPAfterRouting []ChainPlugin `json:"HTTPAfterRouting"`
-
-	// HTTPAfterMux defines HTTPAfterMux sub-chains.
-	HTTPAfterMux []ChainPlugin `json:"HTTPAfterMux"`
-
-	// HTTPLast defines tcp last sub-chains.
-	HTTPLast []ChainPlugin `json:"HTTPLast"`
+	// NamespaceSelector for namespaces. Existing pods are selected by this will be the ones affected by this plugin chain.
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector"`
 }
 
 // PluginChainList defines the list of PluginChain objects.

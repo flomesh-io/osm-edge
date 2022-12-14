@@ -24,4 +24,7 @@ type Controller interface {
 
 	// GetPluginConfigs lists plugin configs
 	GetPluginConfigs() []*pluginv1alpha1.PluginConfig
+
+	// GetPluginChains lists plugin chains
+	GetPluginChains() []*pluginv1alpha1.PluginChain
 }

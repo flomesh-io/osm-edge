@@ -34,6 +34,20 @@ func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
 }
 
+// GetPluginChains mocks base method.
+func (m *MockController) GetPluginChains() []*v1alpha1.PluginChain {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginChains")
+	ret0, _ := ret[0].([]*v1alpha1.PluginChain)
+	return ret0
+}
+
+// GetPluginChains indicates an expected call of GetPluginChains.
+func (mr *MockControllerMockRecorder) GetPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginChains", reflect.TypeOf((*MockController)(nil).GetPluginChains))
+}
+
 // GetPluginConfigs mocks base method.
 func (m *MockController) GetPluginConfigs() []*v1alpha1.PluginConfig {
 	m.ctrl.T.Helper()

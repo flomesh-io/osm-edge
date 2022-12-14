@@ -27,3 +27,8 @@ func (mc *MeshCatalog) GetPlugins() []*trafficpolicy.PluginPolicy {
 func (mc *MeshCatalog) GetPluginConfigs() []*pluginv1alpha1.PluginConfig {
 	return mc.pluginController.GetPluginConfigs()
 }
+
+// GetPluginChains lists plugin chains
+func (mc *MeshCatalog) GetPluginChains() []*pluginv1alpha1.PluginChain {
+	return mc.pluginController.GetPluginChains()
+}
