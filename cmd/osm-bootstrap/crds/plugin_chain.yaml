@@ -58,6 +58,11 @@ spec:
                       name:
                         description: Name defines the name of chain.
                         type: string
+                        enum:
+                          - inbound-tcp
+                          - inbound-http
+                          - outbound-http
+                          - outbound-tcp
                       plugins:
                         description: Plugins defines the plugins within chain.
                         type: array
