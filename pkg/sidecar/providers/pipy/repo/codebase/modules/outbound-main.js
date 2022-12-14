@@ -1,5 +1,6 @@
 ((
   config = pipy.solve('config.js'),
+
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
   issuingCA = config?.Certificate?.IssuingCA,
@@ -61,9 +62,9 @@
   __protocol: null,
   __isHTTP2: false,
   __cert: null,
-  __address: null,
-  __clusterName: null,
   __egressEnable: false,
+  __cluster: null,
+  __address: null,
 })
 
 .pipeline()
@@ -77,8 +78,11 @@
     .chain([
       'modules/outbound-http-routing.js',
       'modules/outbound-metrics-http.js',
+      'modules/outbound-tracing-http.js',
+      'modules/outbound-logging-http.js',
       'modules/outbound-circuit-breaker.js',
       'modules/outbound-http-load-balancing.js',
+      'modules/outbound-metrics-tcp.js',
       'modules/outbound-tls-initiation.js',
       'modules/outbound-http-default.js',
     ])
@@ -87,11 +91,13 @@
   () => __protocol === 'tcp', (
     $=>$.chain([
       'modules/outbound-tcp-load-balancing.js',
+      'modules/outbound-metrics-tcp.js',
       'modules/outbound-tls-initiation.js',
       'modules/outbound-tcp-default.js',
     ])
+  ),
 
-  ), (
+  (
     $=>$.replaceStreamStart(
       new StreamEnd('ConnectionReset')
     )

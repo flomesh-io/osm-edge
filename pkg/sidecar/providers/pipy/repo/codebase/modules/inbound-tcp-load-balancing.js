@@ -1,36 +1,36 @@
 ((
   config = pipy.solve('config.js'),
 
-  clusterBalancers = new algo.Cache(cluster => new algo.RoundRobinLoadBalancer(cluster || {})),
-
-  targetBalancers = new algo.Cache(clusterName =>
-    new algo.RoundRobinLoadBalancer(config?.Inbound?.ClustersConfigs?.[clusterName] || {})
+  clusterCache = new algo.Cache(
+    (clusterName => (
+      (cluster = config?.Inbound?.ClustersConfigs?.[clusterName]) => (
+        cluster ? Object.assign({ clusterName, Endpoints: cluster }) : null
+      )
+    )())
   ),
 
-) => pipy({
-  _clusterName: null,
-  _address: null,
-})
+  clusterBalancers = new algo.Cache(cluster => new algo.RoundRobinLoadBalancer(cluster || {})),
+
+  targetBalancers = new algo.Cache(target => new algo.RoundRobinLoadBalancer(target?.Endpoints || {})),
+
+) => pipy()
 
 .import({
   __port: 'inbound-main',
+  __cluster: 'inbound-main',
+  __address: 'inbound-main',
 })
 
 .pipeline()
 .handleStreamStart(
   () => (
-    (_clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) && (
-      _address = targetBalancers.get(_clusterName)?.next?.()?.id
+    (clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) => (
+      (__cluster = clusterCache.get(clusterName)) && (
+        __address = targetBalancers.get(__cluster)?.next?.()?.id
+      )
     )
-  )
+  )()
 )
-.branch(
-  () => _address, (
-    $=>$
-    .connect(() => _address)
-  ), (
-    $=>$.chain()
-  )
-)
+.chain()
 
 )()

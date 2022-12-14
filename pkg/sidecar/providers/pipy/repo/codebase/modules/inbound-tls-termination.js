@@ -1,6 +1,8 @@
 ((
   config = pipy.solve('config.js'),
+
   certChain = config?.Certificate?.CertChain,
+  privateKey = config?.Certificate?.PrivateKey,
   issuingCA = config?.Certificate?.IssuingCA,
 
   sourceIPRangesCache = new algo.Cache((sourceIPRanges) => (
@@ -37,8 +39,8 @@
     !_tlsConfig || _tlsConfig?.mTLS), (
     $=>$.acceptTLS({
       certificate: {
-        cert: certChain && new crypto.Certificate(certChain),
-        key: new crypto.PrivateKey(config?.Certificate?.PrivateKey),
+        cert: new crypto.Certificate(certChain),
+        key: new crypto.PrivateKey(privateKey),
       },
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
       verify: (ok, cert) => (
