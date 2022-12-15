@@ -68,47 +68,7 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
 		{
 			Basepath: osmCodebase,
-			Items: []client.BatchItem{
-
-				{Filename: "config.js", Content: codebaseConfigJs},
-				{Filename: "main.js", Content: codebaseMainJs},
-				{Filename: "modules/inbound-http-default.js", Content: codebaseModulesInboundHTTPDefaultJs},
-				{Filename: "modules/inbound-http-load-balancing.js", Content: codebaseModulesInboundHTTPLoadBalancingJs},
-				{Filename: "modules/inbound-http-routing.js", Content: codebaseModulesInboundHTTPRoutingJs},
-				{Filename: "modules/inbound-logging-http.js", Content: codebaseModulesInboundLoggingHTTPJs},
-				{Filename: "modules/inbound-main.js", Content: codebaseModulesInboundMainJs},
-				{Filename: "modules/inbound-make-connection.js", Content: codebaseModulesInboundMakeConnectionJs},
-				{Filename: "modules/inbound-metrics-http.js", Content: codebaseModulesInboundMetricsHTTPJs},
-				{Filename: "modules/inbound-metrics-tcp.js", Content: codebaseModulesInboundMetricsTCPJs},
-				{Filename: "modules/inbound-tcp-default.js", Content: codebaseModulesInboundTCPDefaultJs},
-				{Filename: "modules/inbound-tcp-load-balancing.js", Content: codebaseModulesInboundTCPLoadBalancingJs},
-				{Filename: "modules/inbound-throttle-route.js", Content: codebaseModulesInboundThrottleRouteJs},
-				{Filename: "modules/inbound-throttle-service.js", Content: codebaseModulesInboundThrottleServiceJs},
-				{Filename: "modules/inbound-tls-termination.js", Content: codebaseModulesInboundTLSTerminationJs},
-				{Filename: "modules/inbound-tracing-http.js", Content: codebaseModulesInboundTracingHTTPJs},
-				{Filename: "modules/logging.js", Content: codebaseModulesLoggingJs},
-				{Filename: "modules/metrics.js", Content: codebaseModulesMetricsJs},
-				{Filename: "modules/outbound-circuit-breaker.js", Content: codebaseModulesOutboundCircuitBreakerJs},
-				{Filename: "modules/outbound-http-default.js", Content: codebaseModulesOutboundHTTPDefaultJs},
-				{Filename: "modules/outbound-http-load-balancing.js", Content: codebaseModulesOutboundHTTPLoadBalancingJs},
-				{Filename: "modules/outbound-http-routing.js", Content: codebaseModulesOutboundHTTPRoutingJs},
-				{Filename: "modules/outbound-logging-http.js", Content: codebaseModulesOutboundLoggingHTTPJs},
-				{Filename: "modules/outbound-main.js", Content: codebaseModulesOutboundMainJs},
-				{Filename: "modules/outbound-metrics-http.js", Content: codebaseModulesOutboundMetricsHTTPJs},
-				{Filename: "modules/outbound-metrics-tcp.js", Content: codebaseModulesOutboundMetricsTCPJs},
-				{Filename: "modules/outbound-tcp-default.js", Content: codebaseModulesOutboundTCPDefaultJs},
-				{Filename: "modules/outbound-tcp-load-balancing.js", Content: codebaseModulesOutboundTCPLoadBalancingJs},
-				{Filename: "modules/outbound-tls-initiation.js", Content: codebaseModulesOutboundTLSInitiationJs},
-				{Filename: "modules/outbound-tracing-http.js", Content: codebaseModulesOutboundTracingHTTPJs},
-				{Filename: "modules/tracing.js", Content: codebaseModulesTracingJs},
-				{Filename: "probes.js", Content: codebaseProbesJs},
-				{Filename: "stats.js", Content: codebaseStatsJs},
-
-				{
-					Filename: osmCodebaseConfig,
-					Content:  codebaseConfigJSON,
-				},
-			},
+			Items:    osmCodebaseItems,
 		},
 	})
 	if err != nil {
