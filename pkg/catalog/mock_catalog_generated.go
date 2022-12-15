@@ -8,8 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
-	v1alpha10 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	v1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	k8s "github.com/openservicemesh/osm/pkg/k8s"
@@ -174,10 +173,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 }
 
 // GetPluginChains mocks base method.
-func (m *MockMeshCataloger) GetPluginChains() []*v1alpha1.PluginChain {
+func (m *MockMeshCataloger) GetPluginChains() []*trafficpolicy.PluginChain {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPluginChains")
-	ret0, _ := ret[0].([]*v1alpha1.PluginChain)
+	ret0, _ := ret[0].([]*trafficpolicy.PluginChain)
 	return ret0
 }
 
@@ -188,10 +187,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetPluginChains() *gomock.Call {
 }
 
 // GetPluginConfigs mocks base method.
-func (m *MockMeshCataloger) GetPluginConfigs() []*v1alpha1.PluginConfig {
+func (m *MockMeshCataloger) GetPluginConfigs() []*trafficpolicy.PluginConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPluginConfigs")
-	ret0, _ := ret[0].([]*v1alpha1.PluginConfig)
+	ret0, _ := ret[0].([]*trafficpolicy.PluginConfig)
 	return ret0
 }
 
@@ -202,10 +201,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetPluginConfigs() *gomock.Call {
 }
 
 // GetPlugins mocks base method.
-func (m *MockMeshCataloger) GetPlugins() []*trafficpolicy.PluginPolicy {
+func (m *MockMeshCataloger) GetPlugins() []*trafficpolicy.Plugin {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPlugins")
-	ret0, _ := ret[0].([]*trafficpolicy.PluginPolicy)
+	ret0, _ := ret[0].([]*trafficpolicy.Plugin)
 	return ret0
 }
 
@@ -216,10 +215,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetPlugins() *gomock.Call {
 }
 
 // GetRetryPolicy mocks base method.
-func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha10.RetryPolicySpec {
+func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha1.RetryPolicySpec {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRetryPolicy", arg0, arg1)
-	ret0, _ := ret[0].(*v1alpha10.RetryPolicySpec)
+	ret0, _ := ret[0].(*v1alpha1.RetryPolicySpec)
 	return ret0
 }
 
