@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
@@ -56,7 +54,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf)
-	plugin(cataloger, proxy.Identity, s, pipyConf, proxy)
+	plugin(cataloger, s, pipyConf, proxy)
 	inbound(cataloger, proxy.Identity, s, pipyConf, proxyServices)
 	outbound(cataloger, proxy.Identity, s, pipyConf, proxy)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
@@ -193,7 +191,7 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 	}
 }
 
-func plugin(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) {
+func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) {
 	if !s.cfg.GetFeatureFlags().EnablePluginPolicy {
 		return
 	}
@@ -215,40 +213,11 @@ func plugin(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 	}
 
 	pluginSet := s.pluginSet
+	plugin2MountPoint2Config, mountPoint2Plugins := walkPluginChain(pluginChains, ns, pod, pluginSet, s, proxy)
+	meshSvc2Plugin2MountPoint2Config := walkPluginConfig(cataloger, plugin2MountPoint2Config)
 
-	pluginMountedPoints := make(map[string]mapset.Set)
-
-	for _, pluginChain := range pluginChains {
-		matched := matchPluginChain(pluginChain, ns, pod)
-		if !matched {
-			continue
-		}
-		for _, chain := range pluginChain.Chains {
-			for _, pluginName := range chain.Plugins {
-				if !pluginSet.Contains(pluginName) {
-					if len(s.pluginSetVersion) > 0 {
-						log.Warn().Str("proxy", proxy.String()).
-							Str("plugin", pluginName).
-							Msg("Could not find plugin for connecting proxy.")
-					}
-					if s.retryPluginsJob != nil {
-						s.retryPluginsJob()
-					}
-					continue
-				}
-				mountedPointSet, exist := pluginMountedPoints[pluginName]
-				if !exist {
-					mountedPointSet = mapset.NewSet()
-					pluginMountedPoints[pluginName] = mountedPointSet
-				}
-				if !mountedPointSet.Contains(chain.Name) {
-					mountedPointSet.Add(chain.Name)
-				}
-			}
-		}
-	}
-
-	pipyConf.MountedPlugins = pluginMountedPoints
+	pipyConf.pluginPolicies = meshSvc2Plugin2MountPoint2Config
+	setSidecarChain(pipyConf, mountPoint2Plugins)
 }
 
 func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {

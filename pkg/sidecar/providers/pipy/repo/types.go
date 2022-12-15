@@ -6,6 +6,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -106,6 +107,11 @@ const (
 	// PathMatchPrefix is the type used to specify prefix based path matching
 	PathMatchPrefix URIMatchType = "Prefix"
 )
+
+// Pluggable is the base struct supported plugin
+type Pluggable struct {
+	Plugins map[string]*runtime.RawExtension `json:"Plugins"`
+}
 
 // URIPath is a uri wrapper type
 type URIPath struct {
@@ -286,6 +292,7 @@ type InboundTrafficMatch struct {
 	TargetClusters        WeightedClusters             `json:"TargetClusters"`
 	AllowedEndpoints      AllowedEndpoints             `json:"AllowedEndpoints"`
 	RateLimit             *TCPRateLimit                `json:"RateLimit"`
+	Pluggable
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
@@ -318,6 +325,7 @@ type OutboundTrafficMatch struct {
 	ServiceIdentity       identity.ServiceIdentity
 	AllowedEgressTraffic  bool
 	EgressForwardGateway  *string
+	Pluggable
 }
 
 // OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch
@@ -482,6 +490,8 @@ type PipyConf struct {
 	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
 	Forward          *ForwardTrafficPolicy    `json:"Forward"`
 	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
-	MountedPlugins   map[string]mapset.Set    `json:"MountedPlugins"`
+	Chains           map[string][]string      `json:"Chains,omitempty"`
 	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
+
+	pluginPolicies map[string]map[string]*map[string]*runtime.RawExtension
 }

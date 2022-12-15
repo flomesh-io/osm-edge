@@ -33,6 +33,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 		tm.setProtocol(Protocol(destinationProtocol))
 		tm.setPort(Port(trafficMatch.DestinationPort))
 		tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
+		tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 
 		if destinationProtocol == constants.ProtocolHTTP ||
 			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
@@ -133,6 +134,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			tm.setProtocol(Protocol(destinationProtocol))
 			tm.setPort(Port(trafficMatch.DestinationPort))
 			tm.setServiceIdentity(proxyIdentity)
+			tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
@@ -423,6 +425,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
 			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
+			tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -581,6 +584,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
 			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
+			tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -682,6 +686,7 @@ func generatePipyServiceExportTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			protocol := strings.ToLower(trafficMatch.Protocol)
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
+			tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 
 		var securitySpec *SourceSecuritySpec

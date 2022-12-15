@@ -10,8 +10,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -141,4 +147,128 @@ func matchPluginChain(pluginChain *trafficpolicy.PluginChain, ns *corev1.Namespa
 	}
 
 	return matchedNamespace && matchedPod
+}
+
+func walkPluginChain(pluginChains []*trafficpolicy.PluginChain, ns *corev1.Namespace, pod *corev1.Pod, pluginSet mapset.Set, s *Server, proxy *pipy.Proxy) (plugin2MountPoints map[string]*map[string]*runtime.RawExtension, mountPoint2Plugins map[string]mapset.Set) {
+	plugin2MountPoints = make(map[string]*map[string]*runtime.RawExtension)
+	mountPoint2Plugins = make(map[string]mapset.Set)
+
+	for _, pluginChain := range pluginChains {
+		matched := matchPluginChain(pluginChain, ns, pod)
+		if !matched {
+			continue
+		}
+		for _, chain := range pluginChain.Chains {
+			for _, pluginName := range chain.Plugins {
+				if !pluginSet.Contains(pluginName) {
+					if len(s.pluginSetVersion) > 0 {
+						log.Warn().Str("proxy", proxy.String()).
+							Str("plugin", pluginName).
+							Msg("Could not find plugin for connecting proxy.")
+					}
+					if s.retryPluginsJob != nil {
+						s.retryPluginsJob()
+					}
+					continue
+				}
+
+				mountPointSet, existPointSet := plugin2MountPoints[pluginName]
+				if !existPointSet {
+					mountPointMap := make(map[string]*runtime.RawExtension)
+					mountPointSet = &mountPointMap
+					plugin2MountPoints[pluginName] = mountPointSet
+				}
+				if _, exist := (*mountPointSet)[chain.Name]; !exist {
+					(*mountPointSet)[chain.Name] = nil
+				}
+
+				mountedPluginSet, existPluginSet := mountPoint2Plugins[chain.Name]
+				if !existPluginSet {
+					mountedPluginSet = mapset.NewSet()
+					mountPoint2Plugins[chain.Name] = mountedPluginSet
+				}
+				if !mountedPluginSet.Contains(pluginName) {
+					mountedPluginSet.Add(pluginName)
+				}
+			}
+		}
+	}
+	return
+}
+
+func walkPluginConfig(cataloger catalog.MeshCataloger, plugin2MountPoint2Config map[string]*map[string]*runtime.RawExtension) map[string]map[string]*map[string]*runtime.RawExtension {
+	meshSvc2Plugin2MountPoint2Config := make(map[string]map[string]*map[string]*runtime.RawExtension)
+	pluginConfigs := cataloger.GetPluginConfigs()
+	if len(pluginConfigs) > 0 {
+		for _, pluginConfig := range pluginConfigs {
+			mountPoint2ConfigItem, existMountPoint2Config := plugin2MountPoint2Config[pluginConfig.Plugin]
+			if !existMountPoint2Config {
+				continue
+			}
+			for mountPoint := range *mountPoint2ConfigItem {
+				(*mountPoint2ConfigItem)[mountPoint] = &pluginConfig.Config
+			}
+			for _, destinationRef := range pluginConfig.DestinationRefs {
+				if destinationRef.Kind == policyv1alpha1.KindService {
+					meshSvc := service.MeshService{
+						Namespace: destinationRef.Namespace,
+						Name:      destinationRef.Name,
+					}
+					plugin2MountPoint2ConfigItem, exist := meshSvc2Plugin2MountPoint2Config[meshSvc.String()]
+					if !exist {
+						plugin2MountPoint2ConfigItem = make(map[string]*map[string]*runtime.RawExtension)
+						meshSvc2Plugin2MountPoint2Config[meshSvc.String()] = plugin2MountPoint2ConfigItem
+					}
+					plugin2MountPoint2ConfigItem[pluginConfig.Plugin] = mountPoint2ConfigItem
+				}
+			}
+		}
+	}
+	return meshSvc2Plugin2MountPoint2Config
+}
+
+func setSidecarChain(pipyConf *PipyConf, mountPoint2Plugins map[string]mapset.Set) {
+	pipyConf.Chains = nil
+	if len(mountPoint2Plugins) > 0 {
+		pipyConf.Chains = make(map[string][]string)
+		for mountPoint, plugins := range mountPoint2Plugins {
+			var pluginItems []string
+			pluginSlice := plugins.ToSlice()
+			for _, item := range pluginSlice {
+				pluginItems = append(pluginItems, getPluginURI(item.(string)))
+			}
+			sort.Strings(pluginItems)
+			pipyConf.Chains[mountPoint] = pluginItems
+		}
+	}
+}
+
+func (p *PipyConf) getTrafficMatchPluginConfigs(trafficMatch string) map[string]*runtime.RawExtension {
+	segs := strings.Split(trafficMatch, "_")
+	meshSvc := segs[1]
+
+	direct := segs[0]
+	switch segs[0] {
+	case "ingress":
+	case "acl":
+	case "exp":
+		direct = "inbound"
+	}
+	mountPoint := fmt.Sprintf("%s-%s", direct, segs[3])
+
+	plugin2MountPoint2Config, exist := p.pluginPolicies[meshSvc]
+	if !exist {
+		return nil
+	}
+	var pluginConfigs map[string]*runtime.RawExtension
+	for pluginName, mountPoint2Config := range plugin2MountPoint2Config {
+		if configLoop, existConfig := (*mountPoint2Config)[mountPoint]; existConfig {
+			config := configLoop
+			if pluginConfigs == nil {
+				pluginConfigs = make(map[string]*runtime.RawExtension)
+			}
+			pluginConfigs[pluginName] = config
+		}
+	}
+	return pluginConfigs
 }

@@ -320,6 +320,13 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		// GlobalTrafficPolicy event
 		announcements.GlobalTrafficPolicyAdded, announcements.GlobalTrafficPolicyDeleted, announcements.GlobalTrafficPolicyUpdated,
 		//
+		// Plugin events
+		//
+		// PluginChain event
+		announcements.PluginChainAdded, announcements.PluginChainDeleted, announcements.PluginChainUpdated,
+		// PluginService event
+		announcements.PluginConfigAdded, announcements.PluginConfigDeleted, announcements.PluginConfigUpdated,
+		//
 		// Proxy events
 		//
 		announcements.ProxyUpdate:
@@ -334,10 +341,6 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		//
 		// Plugin event
 		announcements.PluginAdded, announcements.PluginDeleted, announcements.PluginUpdated,
-		// PluginChain event
-		announcements.PluginChainAdded, announcements.PluginChainDeleted, announcements.PluginChainUpdated,
-		// PluginService event
-		announcements.PluginConfigAdded, announcements.PluginConfigDeleted, announcements.PluginConfigUpdated,
 		// PluginUpdate event
 		announcements.PluginUpdate:
 		return &proxyUpdateEvent{

@@ -44,26 +44,32 @@ spec:
               type: object
               required:
                 - plugin
-                - targetRefs
+                - destinationRefs
                 - config
               properties:
                 plugin:
                   description: Plugin is the name of plugin.
                   type: string
-                targetRefs:
-                  description: TargetRefs is the target references of plugin.
+                destinationRefs:
+                  description: DestinationRefs is the destination references of plugin.
                   type: array
                   items:
                     type: object
                     required:
                       - kind
                       - name
+                      - namespace
                     properties:
                       kind:
                         description: Kind of this target.
                         type: string
+                        enum:
+                          - Service
                       name:
                         description: Name of this target.
+                        type: string
+                      namespace:
+                        description: Namespace of this target.
                         type: string
                 config:
                   description: Config is the config of plugin.
