@@ -3,8 +3,9 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
-	mapset "github.com/deckarep/golang-set"
 	"time"
+
+	mapset "github.com/deckarep/golang-set"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -69,8 +70,8 @@ func (job *PipyConfGeneratorJob) Run() {
 func endpoints(pipyConf *PipyConf, s *Server) {
 	ready := pipyConf.copyAllowedEndpoints(s.kubeController, s.proxyRegistry)
 	if !ready {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 	}
 }
@@ -104,8 +105,8 @@ func reorder(pipyConf *PipyConf) {
 func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
 	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(serviceIdentity)
 	if egressErr != nil {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 		return false
 	}
@@ -116,8 +117,8 @@ func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 		if len(egressDependClusters) > 0 {
 			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 				egressTrafficPolicy, egressDependClusters); !ready {
-				if s.retryJob != nil {
-					s.retryJob()
+				if s.retryProxiesJob != nil {
+					s.retryProxiesJob()
 				}
 				return false
 			}
@@ -129,16 +130,16 @@ func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, _ *pipy.Proxy) bool {
 	egressGatewayPolicy, egressErr := cataloger.GetEgressGatewayPolicy()
 	if egressErr != nil {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 		return false
 	}
 	if egressGatewayPolicy != nil {
 		if ready := generatePipyEgressTrafficForwardPolicy(cataloger, serviceIdentity, pipyConf,
 			egressGatewayPolicy); !ready {
-			if s.retryJob != nil {
-				s.retryJob()
+			if s.retryProxiesJob != nil {
+				s.retryProxiesJob()
 			}
 			return false
 		}
@@ -156,8 +157,8 @@ func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceI
 	if len(outboundDependClusters) > 0 {
 		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 			outboundTrafficPolicy, outboundDependClusters); !ready {
-			if s.retryJob != nil {
-				s.retryJob()
+			if s.retryProxiesJob != nil {
+				s.retryProxiesJob()
 			}
 			return false
 		}
@@ -225,10 +226,14 @@ func plugin(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 		for _, chain := range pluginChain.Chains {
 			for _, pluginName := range chain.Plugins {
 				if !pluginSet.Contains(pluginName) {
-					log.Warn().Str("proxy", proxy.String()).
-						Str("namespace", pod.Namespace).
-						Str("plugin", pluginName).
-						Msg("Could not find plugin for connecting proxy.")
+					if len(s.pluginSetVersion) > 0 {
+						log.Warn().Str("proxy", proxy.String()).
+							Str("plugin", pluginName).
+							Msg("Could not find plugin for connecting proxy.")
+					}
+					if s.retryPluginsJob != nil {
+						s.retryPluginsJob()
+					}
 					continue
 				}
 				mountedPointSet, exist := pluginMountedPoints[pluginName]
@@ -336,7 +341,10 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 	if jsonErr == nil {
 		codebasePreV := proxy.ETag
 
+		job.repoServer.pluginMutex.RLock()
 		pluginSetVersion := job.repoServer.pluginSetVersion
+		job.repoServer.pluginMutex.RUnlock()
+
 		bytes = append(bytes, []byte(pluginSetVersion)...)
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {

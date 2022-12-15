@@ -44,12 +44,14 @@ type Server struct {
 
 	pluginSet        mapset.Set
 	pluginSetVersion string
+	pluginMutex      sync.RWMutex
 
 	msgBroker *messaging.Broker
 
 	repoClient *client.PipyRepoClient
 
-	retryJob func()
+	retryProxiesJob func()
+	retryPluginsJob func()
 }
 
 // Protocol is a string wrapper type

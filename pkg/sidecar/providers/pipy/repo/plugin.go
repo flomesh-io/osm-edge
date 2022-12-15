@@ -2,18 +2,18 @@ package repo
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"sort"
 	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func (s *Server) pluginListener() {
@@ -21,9 +21,13 @@ func (s *Server) pluginListener() {
 	pluginUpdateChan := pluginUpdatePubSub.Sub(announcements.PluginUpdate.String())
 	defer s.msgBroker.Unsub(pluginUpdatePubSub, pluginUpdateChan)
 
-	// Wait for two informer synchronization periods
 	slidingTimer := time.NewTimer(time.Second * 10)
 	defer slidingTimer.Stop()
+
+	slidingTimerReset := func() {
+		slidingTimer.Reset(time.Second * 5)
+	}
+	s.retryPluginsJob = slidingTimerReset
 
 	reconfirm := true
 
@@ -37,7 +41,9 @@ func (s *Server) pluginListener() {
 
 		case <-slidingTimer.C:
 			if s.updatePlugins() {
-				s.fireExistProxies()
+				if s.retryProxiesJob != nil {
+					s.retryProxiesJob()
+				}
 			}
 			if reconfirm {
 				reconfirm = false
@@ -76,6 +82,13 @@ func (s *Server) updatePlugins() bool {
 		sort.Strings(pluginVers)
 		pluginSetHash := hash([]byte(strings.Join(pluginVers, "")))
 		pluginSetVersion := fmt.Sprintf("%d", pluginSetHash)
+
+		s.pluginMutex.Lock()
+		defer s.pluginMutex.Unlock()
+
+		if s.pluginSetVersion == pluginSetVersion {
+			return false
+		}
 		_, err := s.repoClient.Batch(pluginSetVersion, []client.Batch{
 			{
 				Basepath: osmCodebase,

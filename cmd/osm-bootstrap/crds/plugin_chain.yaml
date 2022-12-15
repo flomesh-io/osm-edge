@@ -79,6 +79,8 @@ spec:
                         matchLabels:
                           description: matchLabels is a map of {key,value} pairs.
                           type: object
+                          additionalProperties:
+                            type: string
                         matchExpressions:
                           description: matchExpressions is a list of label selector requirements.
                           type: array
@@ -109,6 +111,8 @@ spec:
                         matchLabels:
                           description: matchLabels is a map of {key,value} pairs.
                           type: object
+                          additionalProperties:
+                            type: string
                         matchExpressions:
                           description: matchExpressions is a list of label selector requirements.
                           type: array

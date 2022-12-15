@@ -338,7 +338,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 				log.Info().Msgf("Deleting config %q", fullPath)
 				_, err = p.deleteFile(fullPath)
 				if err != nil {
-					log.Err(err).Msgf("fail to delete %q", fullPath)
+					log.Debug().Msgf("fail to delete %q", fullPath)
 				}
 			} else {
 				log.Info().Msgf("Creating/updating config %q", fullPath)
