@@ -41,6 +41,8 @@ func (mc *MeshCatalog) GetPluginConfigs() []*trafficpolicy.PluginConfig {
 	var pluginConfigPolicies []*trafficpolicy.PluginConfig
 	for _, pluginConfig := range pluginConfigs {
 		policy := new(trafficpolicy.PluginConfig)
+		policy.Namespace = pluginConfig.Namespace
+		policy.Name = pluginConfig.Name
 		policy.PluginConfigSpec = pluginConfig.Spec
 		pluginConfigPolicies = append(pluginConfigPolicies, policy)
 	}
@@ -61,9 +63,11 @@ func (mc *MeshCatalog) GetPluginChains() []*trafficpolicy.PluginChain {
 	}
 
 	var pluginChainPolicies []*trafficpolicy.PluginChain
-	for _, pluginConfig := range pluginChains {
+	for _, pluginChain := range pluginChains {
 		policy := new(trafficpolicy.PluginChain)
-		policy.PluginChainSpec = pluginConfig.Spec
+		policy.Namespace = pluginChain.Namespace
+		policy.Name = pluginChain.Name
+		policy.PluginChainSpec = pluginChain.Spec
 		pluginChainPolicies = append(pluginChainPolicies, policy)
 	}
 

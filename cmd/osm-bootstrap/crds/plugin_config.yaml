@@ -44,25 +44,27 @@ spec:
               type: object
               required:
                 - plugin
-                - targetRef
+                - targetRefs
                 - config
               properties:
                 plugin:
                   description: Plugin is the name of plugin.
                   type: string
-                targetRef:
-                  description: Plugin is the name of plugin.
-                  type: object
-                  required:
-                    - kind
-                    - name
-                  properties:
-                    kind:
-                      description: Kind of this target.
-                      type: string
-                    name:
-                      description: Name of this target.
-                      type: string
+                targetRefs:
+                  description: TargetRefs is the target references of plugin.
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - kind
+                      - name
+                    properties:
+                      kind:
+                        description: Kind of this target.
+                        type: string
+                      name:
+                        description: Name of this target.
+                        type: string
                 config:
                   description: Config is the config of plugin.
                   type: object

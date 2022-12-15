@@ -2,6 +2,10 @@ package repo
 
 import (
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sort"
 	"strings"
 	"time"
@@ -49,10 +53,10 @@ func (s *Server) updatePlugins() bool {
 	newPluginSet := mapset.NewSet()
 
 	plugins := s.catalog.GetPlugins()
-	for _, plugin := range plugins {
-		uri := plugin.GetPluginURI()
-		bytes := []byte(plugin.Script)
-		newPluginSet.Add(uri)
+	for _, pluginItem := range plugins {
+		uri := getPluginURI(pluginItem.Name)
+		bytes := []byte(pluginItem.Script)
+		newPluginSet.Add(pluginItem.Name)
 		pluginItems = append(pluginItems, client.BatchItem{
 			Filename: uri,
 			Content:  bytes,
@@ -61,10 +65,10 @@ func (s *Server) updatePlugins() bool {
 	}
 
 	diffSet := s.pluginSet.Difference(newPluginSet)
-	diffPluginURIs := diffSet.ToSlice()
-	for _, pluginURI := range diffPluginURIs {
+	diffPlugins := diffSet.ToSlice()
+	for _, pluginName := range diffPlugins {
 		pluginItems = append(pluginItems, client.BatchItem{
-			Filename: pluginURI.(string),
+			Filename: getPluginURI(pluginName.(string)),
 			Obsolete: true,
 		})
 	}
@@ -88,4 +92,40 @@ func (s *Server) updatePlugins() bool {
 	}
 
 	return false
+}
+
+// getPluginURI return the URI of the plugin.
+func getPluginURI(name string) string {
+	return fmt.Sprintf("plugins/%s.js", name)
+}
+
+func matchPluginChain(pluginChain *trafficpolicy.PluginChain, ns *corev1.Namespace, pod *corev1.Pod) bool {
+	matchedNamespace := false
+	matchedPod := false
+
+	if pluginChain.Selectors.NamespaceSelector != nil {
+		labelSelector, errSelector := metav1.LabelSelectorAsSelector(pluginChain.Selectors.NamespaceSelector)
+		if errSelector == nil {
+			matchedNamespace = labelSelector.Matches(labels.Set(ns.GetLabels()))
+		} else {
+			log.Err(errSelector).Str("namespace", pluginChain.Namespace).Str("PluginChan", pluginChain.Name)
+			return false
+		}
+	} else {
+		matchedNamespace = true
+	}
+
+	if pluginChain.Selectors.PodSelector != nil {
+		labelSelector, errSelector := metav1.LabelSelectorAsSelector(pluginChain.Selectors.PodSelector)
+		if errSelector == nil {
+			matchedPod = labelSelector.Matches(labels.Set(pod.GetLabels()))
+		} else {
+			log.Err(errSelector).Str("namespace", pluginChain.Namespace).Str("PluginChan", pluginChain.Name)
+			return false
+		}
+	} else {
+		matchedPod = true
+	}
+
+	return matchedNamespace && matchedPod
 }

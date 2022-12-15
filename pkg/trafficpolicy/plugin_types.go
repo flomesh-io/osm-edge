@@ -1,8 +1,6 @@
 package trafficpolicy
 
 import (
-	"fmt"
-
 	pluginv1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
 )
 
@@ -15,17 +13,16 @@ type Plugin struct {
 	Script string
 }
 
-// GetPluginURI return the URI of the plugin.
-func (plugin *Plugin) GetPluginURI() string {
-	return fmt.Sprintf("plugins/%s.js", plugin.Name)
-}
-
 // PluginChain defines plugin chain
 type PluginChain struct {
 	pluginv1alpha1.PluginChainSpec
+	Name      string
+	Namespace string
 }
 
 // PluginConfig defines plugin config
 type PluginConfig struct {
 	pluginv1alpha1.PluginConfigSpec
+	Name      string
+	Namespace string
 }

@@ -480,5 +480,6 @@ type PipyConf struct {
 	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
 	Forward          *ForwardTrafficPolicy    `json:"Forward"`
 	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
+	MountedPlugins   map[string]mapset.Set    `json:"MountedPlugins"`
 	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
 }

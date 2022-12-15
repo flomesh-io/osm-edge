@@ -31,8 +31,8 @@ type PluginConfigSpec struct {
 	// Plugin is the name of plugin.
 	Plugin string `json:"plugin"`
 
-	// TargetRef is the target reference of plugin.
-	TargetRef corev1.TypedLocalObjectReference `json:"targetRef"`
+	// TargetRefs is the target references of plugin.
+	TargetRefs []corev1.TypedLocalObjectReference `json:"targetRef"`
 
 	// Config is the config of plugin.
 	Config runtime.RawExtension `json:"config"`

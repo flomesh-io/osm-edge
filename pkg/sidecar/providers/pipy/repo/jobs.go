@@ -3,6 +3,7 @@ package repo
 import (
 	"encoding/json"
 	"fmt"
+	mapset "github.com/deckarep/golang-set"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -54,8 +55,9 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf)
-	inbound(cataloger, proxy.Identity, proxyServices, pipyConf, s.certManager.GetTrustDomain())
-	outbound(cataloger, proxy.Identity, pipyConf, proxy, s)
+	plugin(cataloger, proxy.Identity, s, pipyConf, proxy)
+	inbound(cataloger, proxy.Identity, s, pipyConf, proxyServices)
+	outbound(cataloger, proxy.Identity, s, pipyConf, proxy)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
 	forward(cataloger, proxy.Identity, s, pipyConf, proxy)
 	balance(pipyConf)
@@ -144,7 +146,7 @@ func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 	return true
 }
 
-func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
+func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
 	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(serviceIdentity)
 	if len(outboundTrafficPolicy.ServicesResolvableSet) > 0 {
 		pipyConf.DNSResolveDB = outboundTrafficPolicy.ServicesResolvableSet
@@ -163,12 +165,12 @@ func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceI
 	return true
 }
 
-func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf, trustDomain string) {
+func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxyServices []service.MeshService) {
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
 	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(serviceIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy, trustDomain)
+	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy, s.certManager.GetTrustDomain())
 	if len(proxyServices) > 0 {
 		for _, svc := range proxyServices {
 			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
@@ -188,6 +190,60 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 			}
 		}
 	}
+}
+
+func plugin(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) {
+	if !s.cfg.GetFeatureFlags().EnablePluginPolicy {
+		return
+	}
+
+	pluginChains := cataloger.GetPluginChains()
+	if len(pluginChains) == 0 {
+		return
+	}
+
+	pod, err := s.kubeController.GetPodForProxy(proxy)
+	if err != nil {
+		log.Warn().Str("proxy", proxy.String()).Msg("Could not find pod for connecting proxy.")
+		return
+	}
+
+	ns := s.kubeController.GetNamespace(pod.Namespace)
+	if ns == nil {
+		log.Warn().Str("proxy", proxy.String()).Str("namespace", pod.Namespace).Msg("Could not find namespace for connecting proxy.")
+	}
+
+	pluginSet := s.pluginSet
+
+	pluginMountedPoints := make(map[string]mapset.Set)
+
+	for _, pluginChain := range pluginChains {
+		matched := matchPluginChain(pluginChain, ns, pod)
+		if !matched {
+			continue
+		}
+		for _, chain := range pluginChain.Chains {
+			for _, pluginName := range chain.Plugins {
+				if !pluginSet.Contains(pluginName) {
+					log.Warn().Str("proxy", proxy.String()).
+						Str("namespace", pod.Namespace).
+						Str("plugin", pluginName).
+						Msg("Could not find plugin for connecting proxy.")
+					continue
+				}
+				mountedPointSet, exist := pluginMountedPoints[pluginName]
+				if !exist {
+					mountedPointSet = mapset.NewSet()
+					pluginMountedPoints[pluginName] = mountedPointSet
+				}
+				if !mountedPointSet.Contains(chain.Name) {
+					mountedPointSet.Add(chain.Name)
+				}
+			}
+		}
+	}
+
+	pipyConf.MountedPlugins = pluginMountedPoints
 }
 
 func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
