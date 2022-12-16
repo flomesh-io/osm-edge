@@ -283,6 +283,9 @@ type FeatureFlags struct {
 
 	// EnableRetryPolicy defines if retry policy is enabled.
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`
+
+	// EnablePluginPolicy defines if plugin policy is enabled.
+	EnablePluginPolicy bool `json:"enablePluginPolicy"`
 }
 
 // SidecarDriverSpec is the type to represent OSM's sidecar driver define.

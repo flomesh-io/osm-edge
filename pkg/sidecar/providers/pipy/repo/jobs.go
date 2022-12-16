@@ -54,22 +54,22 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf)
-	inbound(cataloger, proxy.Identity, proxyServices, pipyConf, s.certManager.GetTrustDomain())
-	outbound(cataloger, proxy.Identity, pipyConf, proxy, s)
+	plugin(cataloger, s, pipyConf, proxy)
+	inbound(cataloger, proxy.Identity, s, pipyConf, proxyServices)
+	outbound(cataloger, proxy.Identity, s, pipyConf, proxy)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
 	forward(cataloger, proxy.Identity, s, pipyConf, proxy)
 	balance(pipyConf)
 	reorder(pipyConf)
 	endpoints(pipyConf, s)
-
 	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
 }
 
 func endpoints(pipyConf *PipyConf, s *Server) {
 	ready := pipyConf.copyAllowedEndpoints(s.kubeController, s.proxyRegistry)
 	if !ready {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 	}
 }
@@ -103,8 +103,8 @@ func reorder(pipyConf *PipyConf) {
 func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
 	egressTrafficPolicy, egressErr := cataloger.GetEgressTrafficPolicy(serviceIdentity)
 	if egressErr != nil {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 		return false
 	}
@@ -115,8 +115,8 @@ func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 		if len(egressDependClusters) > 0 {
 			if ready := generatePipyEgressTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 				egressTrafficPolicy, egressDependClusters); !ready {
-				if s.retryJob != nil {
-					s.retryJob()
+				if s.retryProxiesJob != nil {
+					s.retryProxiesJob()
 				}
 				return false
 			}
@@ -128,16 +128,16 @@ func egress(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIde
 func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, _ *pipy.Proxy) bool {
 	egressGatewayPolicy, egressErr := cataloger.GetEgressGatewayPolicy()
 	if egressErr != nil {
-		if s.retryJob != nil {
-			s.retryJob()
+		if s.retryProxiesJob != nil {
+			s.retryProxiesJob()
 		}
 		return false
 	}
 	if egressGatewayPolicy != nil {
 		if ready := generatePipyEgressTrafficForwardPolicy(cataloger, serviceIdentity, pipyConf,
 			egressGatewayPolicy); !ready {
-			if s.retryJob != nil {
-				s.retryJob()
+			if s.retryProxiesJob != nil {
+				s.retryProxiesJob()
 			}
 			return false
 		}
@@ -145,7 +145,7 @@ func forward(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 	return true
 }
 
-func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, pipyConf *PipyConf, proxy *pipy.Proxy, s *Server) bool {
+func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) bool {
 	outboundTrafficPolicy := cataloger.GetOutboundMeshTrafficPolicy(serviceIdentity)
 	if len(outboundTrafficPolicy.ServicesResolvableSet) > 0 {
 		pipyConf.DNSResolveDB = outboundTrafficPolicy.ServicesResolvableSet
@@ -155,8 +155,8 @@ func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceI
 	if len(outboundDependClusters) > 0 {
 		if ready := generatePipyOutboundTrafficBalancePolicy(cataloger, proxy, serviceIdentity, pipyConf,
 			outboundTrafficPolicy, outboundDependClusters); !ready {
-			if s.retryJob != nil {
-				s.retryJob()
+			if s.retryProxiesJob != nil {
+				s.retryProxiesJob()
 			}
 			return false
 		}
@@ -164,12 +164,12 @@ func outbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceI
 	return true
 }
 
-func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, proxyServices []service.MeshService, pipyConf *PipyConf, trustDomain string) {
+func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceIdentity, s *Server, pipyConf *PipyConf, proxyServices []service.MeshService) {
 	// Build inbound mesh route configurations. These route configurations allow
 	// the services associated with this proxy to accept traffic from downstream
 	// clients on allowed routes.
 	inboundTrafficPolicy := cataloger.GetInboundMeshTrafficPolicy(serviceIdentity, proxyServices)
-	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy, trustDomain)
+	generatePipyInboundTrafficPolicy(cataloger, serviceIdentity, pipyConf, inboundTrafficPolicy, s.certManager.GetTrustDomain())
 	if len(proxyServices) > 0 {
 		for _, svc := range proxyServices {
 			if ingressTrafficPolicy, ingressErr := cataloger.GetIngressTrafficPolicy(svc); ingressErr == nil {
@@ -189,6 +189,35 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 			}
 		}
 	}
+}
+
+func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) {
+	if !s.cfg.GetFeatureFlags().EnablePluginPolicy {
+		return
+	}
+
+	pluginChains := cataloger.GetPluginChains()
+	if len(pluginChains) == 0 {
+		return
+	}
+
+	pod, err := s.kubeController.GetPodForProxy(proxy)
+	if err != nil {
+		log.Warn().Str("proxy", proxy.String()).Msg("Could not find pod for connecting proxy.")
+		return
+	}
+
+	ns := s.kubeController.GetNamespace(pod.Namespace)
+	if ns == nil {
+		log.Warn().Str("proxy", proxy.String()).Str("namespace", pod.Namespace).Msg("Could not find namespace for connecting proxy.")
+	}
+
+	pluginSet := s.pluginSet
+	plugin2MountPoint2Config, mountPoint2Plugins := walkPluginChain(pluginChains, ns, pod, pluginSet, s, proxy)
+	meshSvc2Plugin2MountPoint2Config := walkPluginConfig(cataloger, plugin2MountPoint2Config)
+
+	pipyConf.pluginPolicies = meshSvc2Plugin2MountPoint2Config
+	setSidecarChain(pipyConf, mountPoint2Plugins)
 }
 
 func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
@@ -280,6 +309,12 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 
 	if jsonErr == nil {
 		codebasePreV := proxy.ETag
+
+		job.repoServer.pluginMutex.RLock()
+		pluginSetVersion := job.repoServer.pluginSetVersion
+		job.repoServer.pluginMutex.RUnlock()
+
+		bytes = append(bytes, []byte(pluginSetVersion)...)
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())

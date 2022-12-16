@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	pluginv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -68,6 +69,7 @@ const (
 // client is the type used to represent the k8s client for the native k8s resources
 type client struct {
 	policyClient policyv1alpha1Client.Interface
+	pluginClient pluginv1alpha1Client.Interface
 	informers    *informers.InformerCollection
 	msgBroker    *messaging.Broker
 }

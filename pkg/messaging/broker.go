@@ -32,11 +32,12 @@ const (
 // to process events added to the workqueue.
 func NewBroker(stopCh <-chan struct{}) *Broker {
 	b := &Broker{
-		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		proxyUpdatePubSub: pubsub.New(0),
-		proxyUpdateCh:     make(chan proxyUpdateEvent),
-		kubeEventPubSub:   pubsub.New(0),
-		certPubSub:        pubsub.New(0),
+		queue:              workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		proxyUpdatePubSub:  pubsub.New(0),
+		proxyUpdateCh:      make(chan proxyUpdateEvent),
+		kubeEventPubSub:    pubsub.New(0),
+		pluginUpdatePubSub: pubsub.New(0),
+		certPubSub:         pubsub.New(0),
 	}
 
 	go b.runWorkqueueProcessor(stopCh)
@@ -67,6 +68,11 @@ func (b *Broker) GetProxyUpdatePubSub() *pubsub.PubSub {
 // GetKubeEventPubSub returns the PubSub instance corresponding to k8s events
 func (b *Broker) GetKubeEventPubSub() *pubsub.PubSub {
 	return b.kubeEventPubSub
+}
+
+// GetPluginUpdatePubSub returns the PubSub instance corresponding to plugin events
+func (b *Broker) GetPluginUpdatePubSub() *pubsub.PubSub {
+	return b.pluginUpdatePubSub
 }
 
 // GetCertPubSub returns the PubSub instance corresponding to certificate events
@@ -217,17 +223,21 @@ func (b *Broker) processEvent(msg events.PubSubMessage) {
 	log.Trace().Msgf("Processing msg kind: %s", msg.Kind)
 	// Update proxies if applicable
 	if event := getProxyUpdateEvent(msg); event != nil {
-		log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
-		atomic.AddUint64(&b.totalQProxyEventCount, 1)
-		if event.topic != announcements.ProxyUpdate.String() {
-			// This is not a broadcast event, so it cannot be coalesced with
-			// other events as the event is specific to one or more proxies.
-			b.proxyUpdatePubSub.Pub(event.msg, event.topic)
-			atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
+		if event.topic == announcements.PluginUpdate.String() {
+			b.pluginUpdatePubSub.Pub(event.msg, event.topic)
 		} else {
-			// Pass the broadcast event to the dispatcher routine, that coalesces
-			// multiple broadcasts received in close proximity.
-			b.proxyUpdateCh <- *event
+			log.Trace().Msgf("Msg kind %s will update proxies", msg.Kind)
+			atomic.AddUint64(&b.totalQProxyEventCount, 1)
+			if event.topic != announcements.ProxyUpdate.String() {
+				// This is not a broadcast event, so it cannot be coalesced with
+				// other events as the event is specific to one or more proxies.
+				b.proxyUpdatePubSub.Pub(event.msg, event.topic)
+				atomic.AddUint64(&b.totalDispatchedProxyEventCount, 1)
+			} else {
+				// Pass the broadcast event to the dispatcher routine, that coalesces
+				// multiple broadcasts received in close proximity.
+				b.proxyUpdateCh <- *event
+			}
 		}
 	}
 
@@ -301,8 +311,6 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		// SMI TrafficTarget event
 		announcements.TrafficTargetAdded, announcements.TrafficTargetDeleted, announcements.TrafficTargetUpdated,
 		//
-		// Proxy events
-		//
 		// MultiCluster events
 		//
 		// ServiceImport event
@@ -312,10 +320,32 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		// GlobalTrafficPolicy event
 		announcements.GlobalTrafficPolicyAdded, announcements.GlobalTrafficPolicyDeleted, announcements.GlobalTrafficPolicyUpdated,
 		//
+		// Plugin events
+		//
+		// PluginChain event
+		announcements.PluginChainAdded, announcements.PluginChainDeleted, announcements.PluginChainUpdated,
+		// PluginService event
+		announcements.PluginConfigAdded, announcements.PluginConfigDeleted, announcements.PluginConfigUpdated,
+		//
+		// Proxy events
+		//
 		announcements.ProxyUpdate:
 		return &proxyUpdateEvent{
 			msg:   msg,
 			topic: announcements.ProxyUpdate.String(),
+		}
+
+	case
+		//
+		// Plugin events
+		//
+		// Plugin event
+		announcements.PluginAdded, announcements.PluginDeleted, announcements.PluginUpdated,
+		// PluginUpdate event
+		announcements.PluginUpdate:
+		return &proxyUpdateEvent{
+			msg:   msg,
+			topic: announcements.PluginUpdate.String(),
 		}
 
 	case announcements.MeshConfigUpdated:

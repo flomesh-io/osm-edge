@@ -13,6 +13,9 @@ const (
 	// ProxyUpdate is the event kind used to trigger an update to subscribed proxies
 	ProxyUpdate Kind = "proxy-update"
 
+	// PluginUpdate is the event kind used to trigger an update to subscribed consumers
+	PluginUpdate Kind = "plugin-update"
+
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
 	PodAdded Kind = "pod-added"
 
@@ -248,6 +251,35 @@ const (
 
 	// UpstreamTrafficSettingUpdated is the type of announcement emitted when we observe an update of upstreamtrafficsettings.policy.openservicemesh.io
 	UpstreamTrafficSettingUpdated Kind = "upstreamtrafficsetting-updated"
+
+	// ---
+
+	// PluginAdded is the type of announcement emitted when we observe an addition of plugins.plugin.flomesh.io
+	PluginAdded Kind = "plugin-added"
+
+	// PluginDeleted the type of announcement emitted when we observe a deletion of plugins.plugin.flomesh.io
+	PluginDeleted Kind = "plugin-deleted"
+
+	// PluginUpdated is the type of announcement emitted when we observe an update to plugins.plugin.flomesh.io
+	PluginUpdated Kind = "plugin-updated"
+
+	// PluginChainAdded is the type of announcement emitted when we observe an addition of pluginchains.plugin.flomesh.io
+	PluginChainAdded Kind = "pluginchain-added"
+
+	// PluginChainDeleted the type of announcement emitted when we observe a deletion of pluginchains.plugin.flomesh.io
+	PluginChainDeleted Kind = "pluginchain-deleted"
+
+	// PluginChainUpdated is the type of announcement emitted when we observe an update to pluginchains.plugin.flomesh.io
+	PluginChainUpdated Kind = "pluginchain-updated"
+
+	// PluginConfigAdded is the type of announcement emitted when we observe an addition of pluginconfigs.flomesh.io
+	PluginConfigAdded Kind = "pluginconfig-added"
+
+	// PluginConfigDeleted the type of announcement emitted when we observe a deletion of pluginconfigs.plugin.flomesh.io
+	PluginConfigDeleted Kind = "pluginconfig-deleted"
+
+	// PluginConfigUpdated is the type of announcement emitted when we observe an update to pluginconfigs.plugin.flomesh.io
+	PluginConfigUpdated Kind = "pluginconfig-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Sidecar proxy configuration

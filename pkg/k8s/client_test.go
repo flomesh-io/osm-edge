@@ -66,7 +66,7 @@ func TestIsMonitoredNamespace(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.IsMonitoredNamespace(tc.ns)
@@ -109,7 +109,7 @@ func TestGetNamespace(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			actual := c.GetNamespace(tc.ns)
@@ -156,7 +156,7 @@ func TestListMonitoredNamespaces(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			for _, ns := range tc.namespaces {
 				_ = ic.Add(informers.InformerKeyNamespace, ns, t)
 			}
@@ -215,7 +215,7 @@ func TestGetService(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.service, t)
 
 			actual := c.GetService(tc.svc)
@@ -272,7 +272,7 @@ func TestListServices(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.services {
@@ -329,7 +329,7 @@ func TestListServiceAccounts(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, s := range tc.sa {
@@ -386,7 +386,7 @@ func TestListPods(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 
 			for _, p := range tc.pods {
@@ -440,7 +440,7 @@ func TestGetEndpoints(t *testing.T) {
 			a := tassert.New(t)
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 
 			actual, err := c.GetEndpoints(tc.svc)
@@ -540,7 +540,7 @@ func TestListServiceIdentitiesForService(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyNamespace, tc.namespace, t)
 			for _, p := range tc.pods {
 				_ = ic.Add(informers.InformerKeyPod, p, t)
@@ -714,7 +714,7 @@ func TestUpdateStatus(t *testing.T) {
 			policyClient := fakePolicyClient.NewSimpleClientset(tc.existingResource.(runtime.Object))
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(kubeClient), informers.WithPolicyClient(policyClient))
 			a.Nil(err)
-			c := NewKubernetesController(ic, policyClient, nil)
+			c := NewKubernetesController(ic, policyClient, nil, nil)
 			_, err = c.UpdateStatus(tc.updatedResource)
 			a.Equal(tc.expectErr, err != nil)
 		})
@@ -1031,7 +1031,7 @@ func TestK8sServicesToMeshServices(t *testing.T) {
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(fakeClient))
 			assert.Nil(err)
 
-			kubeController := NewKubernetesController(ic, nil, nil)
+			kubeController := NewKubernetesController(ic, nil, nil, nil)
 			assert.NotNil(kubeController)
 
 			actual := ServiceToMeshServices(kubeController, tc.svc)
@@ -1098,7 +1098,7 @@ func TestGetPodForProxy(t *testing.T) {
 	ic, err := informers.NewInformerCollection(testMeshName, stop, informers.WithKubeClient(kubeClient))
 	assert.Nil(err)
 
-	kubeController := NewKubernetesController(ic, nil, messaging.NewBroker(nil))
+	kubeController := NewKubernetesController(ic, nil, nil, messaging.NewBroker(nil))
 
 	testCases := []struct {
 		name  string
@@ -1313,7 +1313,7 @@ func TestGetTargetPortForServicePort(t *testing.T) {
 
 			ic, err := informers.NewInformerCollection(testMeshName, nil, informers.WithKubeClient(testclient.NewSimpleClientset()))
 			a.Nil(err)
-			c := newClient(ic, nil, nil)
+			c := newClient(ic, nil, nil, nil)
 			_ = ic.Add(informers.InformerKeyService, tc.svc, t)
 			_ = ic.Add(informers.InformerKeyEndpoints, tc.endpoints, t)
 

@@ -11,7 +11,9 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/client-go/kubernetes"
 
+	pluginv1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -49,6 +51,9 @@ func NewValidatingWebhook(ctx context.Context, cfg *configurator.Client, webhook
 			policyv1alpha1.SchemeGroupVersion.WithKind("EgressGateway").String():          kv.egressGatewayValidator,
 			policyv1alpha1.SchemeGroupVersion.WithKind("UpstreamTrafficSetting").String(): kv.upstreamTrafficSettingValidator,
 			smiAccess.SchemeGroupVersion.WithKind("TrafficTarget").String():               trafficTargetValidator,
+			pluginv1alpha1.SchemeGroupVersion.WithKind("Plugin").String():                 kv.pluginValidator,
+			pluginv1alpha1.SchemeGroupVersion.WithKind("PluginConfig").String():           kv.pluginConfigValidator,
+			pluginv1alpha1.SchemeGroupVersion.WithKind("PluginChain").String():            kv.pluginChainValidator,
 		},
 	}
 

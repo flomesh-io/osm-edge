@@ -37,6 +37,14 @@ func createOrUpdateValidatingWebhook(clientSet kubernetes.Interface, cert *certi
 				Resources:   []string{"ingressbackends", "egresses", "egressgateways"},
 			},
 		},
+		{
+			Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+			Rule: admissionregv1.Rule{
+				APIGroups:   []string{"plugin.flomesh.io"},
+				APIVersions: []string{"v1alpha1"},
+				Resources:   []string{"plugins", "pluginchains", "pluginconfigs"},
+			},
+		},
 	}
 
 	if validateTrafficTarget {

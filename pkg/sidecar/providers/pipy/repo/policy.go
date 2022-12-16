@@ -7,6 +7,8 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime"
+
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -19,6 +21,10 @@ import (
 var (
 	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
+
+func (plugin *Pluggable) setPlugins(plugins map[string]*runtime.RawExtension) {
+	plugin.Plugins = plugins
+}
 
 func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) (update bool) {
 	if update = !strings.EqualFold(p.Spec.SidecarLogLevel, sidecarLogLevel); update {

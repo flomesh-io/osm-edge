@@ -69,6 +69,14 @@ rules:
     resources: ["serviceexports", "serviceimports", "globaltrafficpolicies"]
     verbs: ["list", "get", "watch"]
 
+  # OSM Edge's custom plugin API
+  - apiGroups: ["plugin.flomesh.io"]
+    resources: ["plugins", "pluginchains", "pluginconfigs"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: ["plugin.flomesh.io"]
+    resources: ["plugins/status", "pluginchains/status", "pluginconfigs/status"]
+    verbs: ["update"]
+
   # Used for interacting with cert-manager CertificateRequest resources.
   - apiGroups: ["cert-manager.io"]
     resources: ["certificaterequests"]

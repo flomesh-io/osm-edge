@@ -12,21 +12,22 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
+	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
-	"github.com/openservicemesh/osm/pkg/k8s/informers"
+	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
+	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/informers"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/plugin"
 	"github.com/openservicemesh/osm/pkg/policy"
-	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
-	smiFake "github.com/openservicemesh/osm/pkg/smi/fake"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -35,6 +36,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockPluginController := plugin.NewMockController(mockCtrl)
 	mockMultiClusterController := multicluster.NewMockController(mockCtrl)
 
 	meshSpec := smiFake.NewFakeMeshSpecClient()
@@ -130,5 +132,5 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface, meshConfigClient config
 		}).AnyTimes()
 
 	return catalog.NewMeshCatalog(mockKubeController, meshSpec, certManager,
-		mockPolicyController, mockMultiClusterController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, mockPluginController, mockMultiClusterController, stop, cfg, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }
