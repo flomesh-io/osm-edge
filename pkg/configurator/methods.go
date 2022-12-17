@@ -278,6 +278,33 @@ func (c *Client) GetSidecarDisabledMTLS() bool {
 	return disabledMTLS
 }
 
+// GetRepoServerIPAddr returns the ip address of RepoServer
+func (c *Client) GetRepoServerIPAddr() string {
+	ipAddr := os.Getenv("OSM_REPO_SERVER_IPADDR")
+	if len(ipAddr) == 0 {
+		ipAddr = c.getMeshConfig().Spec.RepoServer.IPAddr
+	}
+	if len(ipAddr) == 0 {
+		ipAddr = "127.0.0.1"
+	}
+	return ipAddr
+}
+
+// GetRepoServerCodebase returns the codebase of RepoServer
+func (c *Client) GetRepoServerCodebase() string {
+	codebase := os.Getenv("OSM_REPO_SERVER_CODEBASE")
+	if len(codebase) == 0 {
+		codebase = c.getMeshConfig().Spec.RepoServer.Codebase
+	}
+	if len(codebase) > 0 && strings.HasSuffix(codebase, "/") {
+		codebase = strings.TrimSuffix(codebase, "/")
+	}
+	if len(codebase) > 0 && !strings.HasPrefix(codebase, "/") {
+		codebase = fmt.Sprintf("/%s", codebase)
+	}
+	return codebase
+}
+
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getMeshConfig().Spec.Certificate.ServiceCertValidityDuration

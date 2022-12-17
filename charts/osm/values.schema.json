@@ -470,14 +470,56 @@
                         "curlimages/curl"
                     ]
                 },
-                "pipyRepoImage": {
-                    "$id": "#/properties/osm/properties/pipyRepoImage",
-                    "type": "string",
-                    "title": "The pipyRepoImage schema",
-                    "description": "The Pipy repo image for Pipy sidecar's proxy control plane container.",
-                    "examples": [
-                        "flomesh/pipy-repo-nightly"
-                    ]
+                "repoServer": {
+                    "$id": "#/properties/osm/properties/repoServer",
+                    "type": "object",
+                    "title": "Pipy repo server",
+                    "description": "Pipy repo server.",
+                    "required": [
+                        "image",
+                        "standalone",
+                        "ipaddr",
+                        "codebase"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "image": {
+                            "$id": "#/properties/osm/properties/repoServer/image",
+                            "type": "string",
+                            "title": "Pipy repo server's image schema",
+                            "description": "Image used for pipy repo server",
+                            "examples": [
+                                "flomesh/pipy-repo:latest"
+                            ]
+                        },
+                        "standalone": {
+                            "$id": "#/properties/osm/properties/repoServer/standalone",
+                            "type": "boolean",
+                            "title": "Install Mode of RepoServer",
+                            "description": "if false , RepoServer is installed within osmController pod.",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "ipaddr": {
+                            "$id": "#/properties/osm/properties/repoServer/ipaddr",
+                            "type": "string",
+                            "title": "The ipaddr schema for pipy repo server",
+                            "description": "Ip address of the pipy repo server",
+                            "examples": [
+                                "127.0.0.1"
+                            ]
+                        },
+                        "codebase": {
+                            "$id": "#/properties/osm/properties/repoServer/codebase",
+                            "type": "string",
+                            "title": "The codebase schema for pipy repo server",
+                            "description": "Codebase is the folder used by osmController.",
+                            "examples": [
+                                "/osm1.3.0"
+                            ]
+                        }
+                    }
                 },
                 "trustDomain": {
                     "$id": "#/properties/osm/properties/trustDomain",
@@ -1199,6 +1241,7 @@
                         "enableSidecarActiveHealthChecks",
                         "enableSnapshotCacheMode",
                         "enableRetryPolicy",
+                        "enablePluginPolicy",
                         "enableMeshRootCertificate"
                     ],
                     "properties": {
@@ -1281,6 +1324,15 @@
                             "description": "Enable automatic request retries.",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "enablePluginPolicy": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enablePluginPolicy",
+                            "type": "boolean",
+                            "title": "Enable Plugin Policy",
+                            "description": "Enable extend by plugin.",
+                            "examples": [
+                                false
                             ]
                         },
                         "enableMeshRootCertificate": {

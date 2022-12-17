@@ -2,6 +2,7 @@ package repo
 
 import (
 	_ "embed"
+
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 )
 

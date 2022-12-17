@@ -25,14 +25,21 @@ const (
 	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
 	workerPoolSize = 0
 
-	osmCodebase        = "/osm-edge"
+	osmCodebaseConfig = "config.json"
+)
+
+var (
+	osmCodebase        = "/osm-edge-base"
 	osmSidecarCodebase = "/osm-edge-sidecar"
-	osmCodebaseConfig  = "config.json"
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server
-func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string,
-	cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string, cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+	if len(cfg.GetRepoServerCodebase()) > 0 {
+		osmCodebase = fmt.Sprintf("%s%s", cfg.GetRepoServerCodebase(), "/osm-edge-base")
+		osmSidecarCodebase = fmt.Sprintf("%s%s", cfg.GetRepoServerCodebase(), "/osm-edge-sidecar")
+	}
+
 	server := Server{
 		catalog:        meshCatalog,
 		proxyRegistry:  proxyRegistry,
@@ -45,7 +52,7 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 		configVersion:  make(map[string]uint64),
 		pluginSet:      mapset.NewSet(),
 		msgBroker:      msgBroker,
-		repoClient:     client.NewRepoClient("127.0.0.1", uint16(cfg.GetProxyServerPort())),
+		repoClient:     client.NewRepoClient(cfg.GetRepoServerIPAddr(), uint16(cfg.GetProxyServerPort())),
 	}
 
 	return &server

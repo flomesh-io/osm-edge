@@ -44,8 +44,9 @@ spec:
         {{- range .Values.osm.sidecarDrivers }}
         {{- if eq .sidecarName $.Values.osm.sidecarClass }}
         {{- if eq .sidecarName "pipy" }}
+        {{- if not $.Values.osm.repoServer.standalone }}
         - name: osm-pipy-repo
-          image: {{ $.Values.osm.pipyRepoImage }}
+          image: {{ $.Values.osm.repoServer.image }}
           imagePullPolicy: {{ $.Values.osm.image.pullPolicy }}
           ports:
             - name: "pipy-admin-port"
@@ -54,6 +55,7 @@ spec:
           args: [
               "--admin-port={{ .proxyServerPort }}",
           ]
+        {{- end }}
         {{- end }}
         {{- end }}
         {{- end }}

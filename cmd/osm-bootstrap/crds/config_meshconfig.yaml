@@ -188,6 +188,19 @@ spec:
                         secondaryUpstreamDNSServerIPAddr:
                           description: Secondary upstream DNS server for local DNS Proxy.
                           type: string
+                repoServer:
+                  description: Configuration for RepoServer
+                  type: object
+                  required:
+                    - ipaddr
+                    - codebase
+                  properties:
+                    ipaddr:
+                      description: IPAddr of the RepoServer.
+                      type: string
+                    codebase:
+                      description: Codebase is the folder used by osmController.
+                      type: string
                 traffic:
                   description: Configuration for traffic management
                   type: object
@@ -478,6 +491,19 @@ spec:
                           additionalProperties: true
                     configResyncInterval:
                       description: Resync interval for regular proxy broadcast updates
+                      type: string
+                repoServer:
+                  description: Configuration for RepoServer
+                  type: object
+                  required:
+                    - ipaddr
+                    - codebase
+                  properties:
+                    ipaddr:
+                      description: IPAddr of the RepoServer.
+                      type: string
+                    codebase:
+                      description: Codebase is the folder used by osmController.
                       type: string
                 traffic:
                   description: Configuration for traffic management

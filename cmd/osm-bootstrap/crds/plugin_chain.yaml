@@ -68,6 +68,10 @@ spec:
                         type: array
                         items:
                           type: string
+                        minimum: 1
+                        maximum: 65535
+                    minimum: 1
+                    maximum: 65535
                 selectors:
                   description: Selectors defines the selectors of chains.
                   type: object
@@ -104,6 +108,8 @@ spec:
                                 type: array
                                 items:
                                   type: string
+                                minimum: 1
+                                maximum: 65535
                     namespaceSelector:
                       description: NamespaceSelector for namespaces. Existing pods are selected by this will be the ones affected by this plugin chain.
                       type: object
@@ -136,6 +142,8 @@ spec:
                                 type: array
                                 items:
                                   type: string
+                                minimum: 1
+                                maximum: 65535
                 matches:
                   description: The resource references a plugin chain should match on.
                   type: array

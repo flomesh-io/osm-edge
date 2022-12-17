@@ -66,8 +66,12 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		}
 	}
 
-	pipyRepo := fmt.Sprintf("%s://%s.%s:%v/repo/osm-edge-sidecar/%s/", constants.ProtocolHTTP,
-		constants.OSMControllerName, injCtx.OsmNamespace, cfg.GetProxyServerPort(), cnPrefix)
+	repoServerIPAddr := cfg.GetRepoServerIPAddr()
+	if strings.HasPrefix(repoServerIPAddr, "127.") || strings.EqualFold(strings.ToLower(repoServerIPAddr), "localhost") {
+		repoServerIPAddr = fmt.Sprintf("%s.%s", constants.OSMControllerName, injCtx.OsmNamespace)
+	}
+	repoServer := fmt.Sprintf("%s://%s:%v/repo%s/osm-edge-sidecar/%s/",
+		constants.ProtocolHTTP, repoServerIPAddr, cfg.GetProxyServerPort(), cfg.GetRepoServerCodebase(), cnPrefix)
 	sidecarContainer := corev1.Container{
 		Name:            constants.SidecarContainerName,
 		Image:           containerImage,
@@ -84,7 +88,7 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 			"pipy",
 			fmt.Sprintf("--log-level=%s", injCtx.Configurator.GetSidecarLogLevel()),
 			fmt.Sprintf("--admin-port=%d", cfg.GetProxyServerPort()),
-			pipyRepo,
+			repoServer,
 		},
 		Env: []corev1.EnvVar{
 			{
