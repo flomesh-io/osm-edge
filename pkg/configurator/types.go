@@ -107,6 +107,12 @@ type Configurator interface {
 	// GetSidecarDisabledMTLS returns the status of mTLS
 	GetSidecarDisabledMTLS() bool
 
+	// GetRepoServerIPAddr returns the ip address of RepoServer
+	GetRepoServerIPAddr() string
+
+	// GetRepoServerCodebase returns the codebase of RepoServer
+	GetRepoServerCodebase() string
+
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 

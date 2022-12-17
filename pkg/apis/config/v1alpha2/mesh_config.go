@@ -30,6 +30,9 @@ type MeshConfigSpec struct {
 	// Sidecar defines the configurations of the proxy sidecar in a mesh.
 	Sidecar SidecarSpec `json:"sidecar,omitempty"`
 
+	// RepoServer defines the configurations of pipy repo server.
+	RepoServer RepoServerSpec `json:"repoServer,omitempty"`
+
 	// Traffic defines the traffic management configurations for a mesh instance.
 	Traffic TrafficSpec `json:"traffic,omitempty"`
 
@@ -307,6 +310,15 @@ type SidecarDriverSpec struct {
 
 	// SidecarDisabledMTLS defines whether mTLS is disabled.
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
+}
+
+// RepoServerSpec is the type to represent repo server.
+type RepoServerSpec struct {
+	// IPAddr of the pipy repo server
+	IPAddr string `json:"ipaddr"`
+
+	// Codebase is the folder used by osmController
+	Codebase string `json:"codebase"`
 }
 
 // ClusterPropertySpec is the type to represent cluster property.

@@ -99,6 +99,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.featureFlags.enableEgressPolicy | bool | `true` | Enable OSM's Egress policy API. When enabled, fine grained control over Egress (external) traffic is enforced |
 | osm.featureFlags.enableIngressBackendPolicy | bool | `true` | Enables OSM's IngressBackend policy API. When enabled, OSM will use the IngressBackend API allow ingress traffic to mesh backends |
 | osm.featureFlags.enableMeshRootCertificate | bool | `false` | Enable the MeshRootCertificate to configure the OSM certificate provider |
+| osm.featureFlags.enablePluginPolicy | bool | `false` | Enable Plugin Policy for extend |
 | osm.featureFlags.enableRetryPolicy | bool | `false` | Enable Retry Policy for automatic request retries |
 | osm.featureFlags.enableSidecarActiveHealthChecks | bool | `false` | Enable Sidecar active health checks |
 | osm.featureFlags.enableSnapshotCacheMode | bool | `false` | Enables SnapshotCache feature for Sidecar xDS server. |
@@ -224,7 +225,6 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundIPRangeInclusionList | list | `[]` | Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
-| osm.pipyRepoImage | string | `"flomesh/pipy-repo-nightly:latest"` | Pipy repo image for Pipy sidecar's proxy control plane container |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0] | string | `"linux"` |  |
@@ -256,10 +256,15 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
+| osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:latest","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |
+| osm.repoServer.codebase | string | `""` | codebase is the folder used by osmController. |
+| osm.repoServer.image | string | `"flomesh/pipy-repo:latest"` | Image used for Pipy RepoServer |
+| osm.repoServer.ipaddr | string | `"127.0.0.1"` | ipaddr of host/service where Pipy RepoServer is installed |
+| osm.repoServer.standalone | bool | `false` | if false , Pipy RepoServer is installed within osmController pod. |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
-| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
+| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
 | osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
-| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].proxyServerPort | int | `15128` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
 | osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |

@@ -71,6 +71,8 @@ spec:
                       namespace:
                         description: Namespace of this target.
                         type: string
+                    minimum: 1
+                    maximum: 65535
                 config:
                   description: Config is the config of plugin.
                   type: object

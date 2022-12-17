@@ -304,6 +304,34 @@ func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingPort() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingPort", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingPort))
 }
 
+// GetRepoServerCodebase mocks base method.
+func (m *MockConfigurator) GetRepoServerCodebase() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepoServerCodebase")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRepoServerCodebase indicates an expected call of GetRepoServerCodebase.
+func (mr *MockConfiguratorMockRecorder) GetRepoServerCodebase() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepoServerCodebase", reflect.TypeOf((*MockConfigurator)(nil).GetRepoServerCodebase))
+}
+
+// GetRepoServerIPAddr mocks base method.
+func (m *MockConfigurator) GetRepoServerIPAddr() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepoServerIPAddr")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRepoServerIPAddr indicates an expected call of GetRepoServerIPAddr.
+func (mr *MockConfiguratorMockRecorder) GetRepoServerIPAddr() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepoServerIPAddr", reflect.TypeOf((*MockConfigurator)(nil).GetRepoServerIPAddr))
+}
+
 // GetServiceCertValidityPeriod mocks base method.
 func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 	m.ctrl.T.Helper()

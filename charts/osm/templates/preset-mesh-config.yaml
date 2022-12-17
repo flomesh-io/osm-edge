@@ -64,6 +64,10 @@ data:
         {{- end }}
         "certKeyBitSize": {{.Values.osm.certificateProvider.certKeyBitSize | mustToJson}}
       },
+      "repoServer": {
+        "ipaddr": {{.Values.osm.repoServer.ipaddr | mustToJson}},
+        "codebase": {{.Values.osm.repoServer.codebase | mustToJson}}
+      },
       "featureFlags": {
         "enableWASMStats": {{.Values.osm.featureFlags.enableWASMStats | mustToJson}},
         "enableEgressPolicy": {{.Values.osm.featureFlags.enableEgressPolicy | mustToJson}},
@@ -73,6 +77,7 @@ data:
         "enableAccessControlPolicy": {{.Values.osm.featureFlags.enableAccessControlPolicy | mustToJson}},
         "enableAccessCertPolicy": {{.Values.osm.featureFlags.enableAccessCertPolicy | mustToJson}},
         "enableSidecarActiveHealthChecks": {{.Values.osm.featureFlags.enableSidecarActiveHealthChecks | mustToJson}},
-        "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}}
+        "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}},
+        "enablePluginPolicy": {{.Values.osm.featureFlags.enablePluginPolicy | mustToJson}}
       }
     }
