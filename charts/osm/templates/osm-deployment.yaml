@@ -15,11 +15,13 @@ spec:
   selector:
     matchLabels:
       app: osm-controller
+      codebase: "{{ .Values.osm.repoServer.codebase }}"
   template:
     metadata:
       labels:
         {{- include "osm.labels" . | nindent 8 }}
         app: osm-controller
+        codebase: "{{ .Values.osm.repoServer.codebase }}"
   {{- if .Values.osm.osmController.podLabels }}
   {{- toYaml .Values.osm.osmController.podLabels | nindent 8 }}
   {{- end }}
