@@ -409,7 +409,7 @@ func (kc *policyValidator) pluginValidator(req *admissionv1.AdmissionRequest) (*
 		return nil, err
 	}
 
-	if len(plugin.Spec.PipyScript) == 0 {
+	if len(plugin.Spec.Script) == 0 {
 		return nil, fmt.Errorf("plugin[%s.%s] is missing pipy script", plugin.Name, plugin.Namespace)
 	}
 

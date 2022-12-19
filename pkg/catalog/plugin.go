@@ -20,7 +20,10 @@ func (mc *MeshCatalog) GetPlugins() []*trafficpolicy.Plugin {
 	for _, plugin := range plugins {
 		policy := new(trafficpolicy.Plugin)
 		policy.Name = plugin.Name
-		policy.Script = plugin.Spec.PipyScript
+		if plugin.Spec.Priority != nil {
+			policy.Priority = *plugin.Spec.Priority
+		}
+		policy.Script = plugin.Spec.Script
 		pluginPolicies = append(pluginPolicies, policy)
 	}
 	return pluginPolicies

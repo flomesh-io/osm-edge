@@ -26,8 +26,11 @@ type Plugin struct {
 
 // PluginSpec is the type used to represent the Plugin policy specification.
 type PluginSpec struct {
-	// PipyScript defines the Pipy Script of the plugin.
-	PipyScript string `json:"pipyscript"`
+	// priority defines the priority of the plugin.
+	Priority *uint16 `json:"priority,omitempty"`
+
+	// Script defines the Script of the plugin.
+	Script string `json:"pipyscript"`
 }
 
 // PluginList defines the list of Plugin objects.

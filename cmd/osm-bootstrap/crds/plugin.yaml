@@ -50,6 +50,11 @@ spec:
               required:
                 - pipyscript
               properties:
+                priority:
+                  description: Priority defines the priority of the plugin.
+                  type: integer
+                  minimum: 0
+                  maximum: 65535
                 pipyscript:
                   description: PipyScript defines the Pipy Script of the plugin.
                   type: string

@@ -63,17 +63,19 @@ func (s *Server) updatePlugins() bool {
 	var pluginItems []client.BatchItem
 	var pluginVers []string
 	newPluginSet := mapset.NewSet()
+	newPluginPri := make(map[string]uint16)
 
 	plugins := s.catalog.GetPlugins()
 	for _, pluginItem := range plugins {
 		uri := getPluginURI(pluginItem.Name)
 		bytes := []byte(pluginItem.Script)
 		newPluginSet.Add(pluginItem.Name)
+		newPluginPri[pluginItem.Name] = pluginItem.Priority
 		pluginItems = append(pluginItems, client.BatchItem{
 			Filename: uri,
 			Content:  bytes,
 		})
-		pluginVers = append(pluginVers, fmt.Sprintf("%s:%d", uri, hash(bytes)))
+		pluginVers = append(pluginVers, fmt.Sprintf("%s:%d:%d", uri, pluginItem.Priority, hash(bytes)))
 	}
 
 	diffSet := s.pluginSet.Difference(newPluginSet)
@@ -105,6 +107,7 @@ func (s *Server) updatePlugins() bool {
 			log.Error().Err(err)
 		} else {
 			s.pluginSet = newPluginSet
+			s.pluginPri = newPluginPri
 			s.pluginSetVersion = pluginSetVersion
 		}
 		return true
@@ -227,18 +230,29 @@ func walkPluginConfig(cataloger catalog.MeshCataloger, plugin2MountPoint2Config 
 	return meshSvc2Plugin2MountPoint2Config
 }
 
-func setSidecarChain(pipyConf *PipyConf, mountPoint2Plugins map[string]mapset.Set) {
+func setSidecarChain(pipyConf *PipyConf, pluginPri map[string]uint16, mountPoint2Plugins map[string]mapset.Set) {
 	pipyConf.Chains = nil
 	if len(mountPoint2Plugins) > 0 {
 		pipyConf.Chains = make(map[string][]string)
 		for mountPoint, plugins := range mountPoint2Plugins {
-			var pluginItems []string
+			var pluginItems PluginSlice
 			pluginSlice := plugins.ToSlice()
 			for _, item := range pluginSlice {
-				pluginItems = append(pluginItems, getPluginURI(item.(string)))
+				if pri, exist := pluginPri[item.(string)]; exist {
+					pluginItems = append(pluginItems, trafficpolicy.Plugin{
+						Name:     item.(string),
+						Priority: pri,
+					})
+				}
 			}
-			sort.Strings(pluginItems)
-			pipyConf.Chains[mountPoint] = pluginItems
+			if len(pluginItems) > 0 {
+				var pluginURIs []string
+				sort.Sort(&pluginItems)
+				for _, pluginItem := range pluginItems {
+					pluginURIs = append(pluginURIs, getPluginURI(pluginItem.Name))
+				}
+				pipyConf.Chains[mountPoint] = pluginURIs
+			}
 		}
 	}
 }
