@@ -764,3 +764,16 @@ func (irrs InboundHTTPRouteRuleSlice) Less(i, j int) bool {
 	}
 	return strings.Compare(string(a.Path), string(b.Path)) == -1
 }
+
+func (ps *PluginSlice) Len() int {
+	return len(*ps)
+}
+
+func (ps *PluginSlice) Swap(i, j int) {
+	(*ps)[j], (*ps)[i] = (*ps)[i], (*ps)[j]
+}
+
+func (ps *PluginSlice) Less(i, j int) bool {
+	a, b := (*ps)[i], (*ps)[j]
+	return a.Priority > b.Priority
+}

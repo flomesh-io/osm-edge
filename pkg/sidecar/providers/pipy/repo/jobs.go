@@ -54,7 +54,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
 	certs(s, proxy, pipyConf)
-	plugin(cataloger, s, pipyConf, proxy)
+	pluginSetV := plugin(cataloger, s, pipyConf, proxy)
 	inbound(cataloger, proxy.Identity, s, pipyConf, proxyServices)
 	outbound(cataloger, proxy.Identity, s, pipyConf, proxy)
 	egress(cataloger, proxy.Identity, s, pipyConf, proxy)
@@ -62,7 +62,7 @@ func (job *PipyConfGeneratorJob) Run() {
 	balance(pipyConf)
 	reorder(pipyConf)
 	endpoints(pipyConf, s)
-	job.publishSidecarConf(s.repoClient, proxy, pipyConf)
+	job.publishSidecarConf(s.repoClient, proxy, pipyConf, pluginSetV)
 }
 
 func endpoints(pipyConf *PipyConf, s *Server) {
@@ -191,10 +191,13 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 	}
 }
 
-func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) {
+func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) (pluginSetVersion string) {
 	if !s.cfg.GetFeatureFlags().EnablePluginPolicy {
 		return
 	}
+
+	s.pluginMutex.RLock()
+	defer s.pluginMutex.RUnlock()
 
 	pluginChains := cataloger.GetPluginChains()
 	if len(pluginChains) == 0 {
@@ -217,7 +220,10 @@ func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, prox
 	meshSvc2Plugin2MountPoint2Config := walkPluginConfig(cataloger, plugin2MountPoint2Config)
 
 	pipyConf.pluginPolicies = meshSvc2Plugin2MountPoint2Config
-	setSidecarChain(pipyConf, mountPoint2Plugins)
+	setSidecarChain(pipyConf, s.pluginPri, mountPoint2Plugins)
+
+	pluginSetVersion = s.pluginSetVersion
+	return
 }
 
 func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
@@ -296,7 +302,7 @@ func probes(proxy *pipy.Proxy, pipyConf *PipyConf) {
 	}
 }
 
-func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxy *pipy.Proxy, pipyConf *PipyConf) {
+func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoClient, proxy *pipy.Proxy, pipyConf *PipyConf, pluginSetV string) {
 	pipyConf.Ts = nil
 	pipyConf.Version = nil
 	pipyConf.Certificate = nil
@@ -309,12 +315,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 
 	if jsonErr == nil {
 		codebasePreV := proxy.ETag
-
-		job.repoServer.pluginMutex.RLock()
-		pluginSetVersion := job.repoServer.pluginSetVersion
-		job.repoServer.pluginMutex.RUnlock()
-
-		bytes = append(bytes, []byte(pluginSetVersion)...)
+		bytes = append(bytes, []byte(pluginSetV)...)
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())

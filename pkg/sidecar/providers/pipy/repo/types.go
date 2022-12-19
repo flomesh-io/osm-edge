@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -44,6 +45,7 @@ type Server struct {
 	configVersion  map[string]uint64
 
 	pluginSet        mapset.Set
+	pluginPri        map[string]uint16
 	pluginSetVersion string
 	pluginMutex      sync.RWMutex
 
@@ -107,6 +109,9 @@ const (
 	// PathMatchPrefix is the type used to specify prefix based path matching
 	PathMatchPrefix URIMatchType = "Prefix"
 )
+
+// PluginSlice plugin array
+type PluginSlice []trafficpolicy.Plugin
 
 // Pluggable is the base struct supported plugin
 type Pluggable struct {
