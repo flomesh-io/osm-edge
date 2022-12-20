@@ -24,8 +24,8 @@ const (
 	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
 	workerPoolSize = 0
 
-	osmCodebase        = "/osm-edge"
-	osmSidecarCodebase = "/osm-edge-sidecar"
+	osmCodebase        = "osm-edge"
+	osmSidecarCodebase = "osm-edge-sidecar"
 	osmCodebaseConfig  = "config.json"
 )
 
