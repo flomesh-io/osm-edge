@@ -83,24 +83,9 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 			continue
 		}
-		missingWeightNb := 0
-		availableWeight := uint32(100)
-		for _, weight := range *weightedEndpoints {
+		for upstreamEndpoint, weight := range *weightedEndpoints {
 			if weight == 0 {
-				missingWeightNb++
-			} else {
-				availableWeight = availableWeight - uint32(weight)
-			}
-		}
-
-		if missingWeightNb == len(*weightedEndpoints) {
-			for upstreamEndpoint, weight := range *weightedEndpoints {
-				if weight == 0 {
-					weight = Weight(availableWeight / uint32(missingWeightNb))
-					missingWeightNb--
-					availableWeight = availableWeight - uint32(weight)
-					(*weightedEndpoints)[upstreamEndpoint] = weight
-				}
+				(*weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
 			}
 		}
 	}
@@ -115,24 +100,9 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			if len(weightedEndpoints) == 0 {
 				continue
 			}
-			missingWeightNb := 0
-			availableWeight := uint32(100)
-			for _, weight := range weightedEndpoints {
+			for upstreamEndpoint, weight := range weightedEndpoints {
 				if weight == 0 {
-					missingWeightNb++
-				} else {
-					availableWeight = availableWeight - uint32(weight)
-				}
-			}
-
-			if missingWeightNb == len(weightedEndpoints) {
-				for upstreamEndpoint, weight := range weightedEndpoints {
-					if weight == 0 {
-						weight = Weight(availableWeight / uint32(missingWeightNb))
-						missingWeightNb--
-						availableWeight = availableWeight - uint32(weight)
-						(weightedEndpoints)[upstreamEndpoint] = weight
-					}
+					(weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
 				}
 			}
 		}
@@ -143,24 +113,9 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 				continue
 			}
-			missingWeightNb := 0
-			availableWeight := uint32(100)
-			for _, weight := range *weightedEndpoints {
+			for upstreamEndpoint, weight := range *weightedEndpoints {
 				if weight == 0 {
-					missingWeightNb++
-				} else {
-					availableWeight = availableWeight - uint32(weight)
-				}
-			}
-
-			if missingWeightNb == len(*weightedEndpoints) {
-				for upstreamEndpoint, weight := range *weightedEndpoints {
-					if weight == 0 {
-						weight = Weight(availableWeight / uint32(missingWeightNb))
-						missingWeightNb--
-						availableWeight = availableWeight - uint32(weight)
-						(*weightedEndpoints)[upstreamEndpoint] = weight
-					}
+					(*weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
 				}
 			}
 		}
