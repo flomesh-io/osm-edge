@@ -29,8 +29,9 @@ const (
 )
 
 var (
-	osmCodebase        = "/osm-edge-base"
-	osmSidecarCodebase = "/osm-edge-sidecar"
+	osmCodebase        = "osm-edge-base"
+	osmSidecarCodebase = "osm-edge-sidecar"
+	osmCodebaseRepo    = fmt.Sprintf("/%s", osmCodebase)
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server
