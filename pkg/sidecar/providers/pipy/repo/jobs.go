@@ -319,7 +319,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
-			success, err := repoClient.DeriveCodebase(codebase, osmCodebase, codebaseCurV)
+			success, err := repoClient.DeriveCodebase(codebase, osmCodebaseRepo, codebaseCurV)
 			if success {
 				ts := time.Now()
 				pipyConf.Ts = &ts
