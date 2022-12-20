@@ -1,77 +1,149 @@
 (
   (
     config = pipy.solve('config.js'),
-    initClusterNameMetrics,
-    metrics
+
+    namespace = (os.env.POD_NAMESPACE || 'default'),
+    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+    name = (os.env.SERVICE_ACCOUNT || ''),
+    pod = (os.env.POD_NAME || ''),
+
+    identity = namespace + ',' + kind + ',' + name + ',' + pod,
+
+    sendBytesTotalCounter = new stats.Counter('sidecar_cluster_upstream_cx_tx_bytes_total', [
+      'sidecar_cluster_name'
+    ]),
+    receiveBytesTotalCounter = new stats.Counter('sidecar_cluster_upstream_cx_rx_bytes_total', [
+      'sidecar_cluster_name'
+    ]),
+    activeConnectionGauge = new stats.Gauge('sidecar_cluster_upstream_cx_active', [
+      'sidecar_cluster_name'
+    ]),
+    upstreamCompletedCount = new stats.Counter('sidecar_cluster_external_upstream_rq_completed', [
+      'sidecar_cluster_name'
+    ]),
+    destroyRemoteActiveCounter = new stats.Counter('sidecar_cluster_upstream_cx_destroy_remote_with_active_rq', [
+      'sidecar_cluster_name'
+    ]),
+    destroyLocalActiveCounter = new stats.Counter('sidecar_cluster_upstream_cx_destroy_local_with_active_rq', [
+      'sidecar_cluster_name'
+    ]),
+    connectTimeoutCounter = new stats.Counter('sidecar_cluster_upstream_cx_connect_timeout', [
+      'sidecar_cluster_name'
+    ]),
+    pendingFailureEjectCounter = new stats.Counter('sidecar_cluster_upstream_rq_pending_failure_eject', [
+      'sidecar_cluster_name'
+    ]),
+    pendingOverflowCounter = new stats.Counter('sidecar_cluster_upstream_rq_pending_overflow', [
+      'sidecar_cluster_name'
+    ]),
+    requestTimeoutCounter = new stats.Counter('sidecar_cluster_upstream_rq_timeout', [
+      'sidecar_cluster_name'
+    ]),
+    requestReceiveResetCounter = new stats.Counter('sidecar_cluster_upstream_rq_rx_reset', [
+      'sidecar_cluster_name'
+    ]),
+    requestSendResetCounter = new stats.Counter('sidecar_cluster_upstream_rq_tx_reset', [
+      'sidecar_cluster_name'
+    ]),
+    upstreamCodeCount = new stats.Counter('sidecar_cluster_external_upstream_rq', [
+      'sidecar_cluster_name',
+      'sidecar_response_code'
+    ]),
+    upstreamCodeXCount = new stats.Counter('sidecar_cluster_external_upstream_rq_xx', [
+      'sidecar_cluster_name',
+      'sidecar_response_code_class'
+    ]),
+    upstreamResponseTotal = new stats.Counter('sidecar_cluster_upstream_rq_total', [
+      'source_namespace',
+      'source_workload_kind',
+      'source_workload_name',
+      'source_workload_pod',
+      'sidecar_cluster_name'
+    ]),
+    upstreamResponseCode = new stats.Counter('sidecar_cluster_upstream_rq_xx', [
+      'source_namespace',
+      'source_workload_kind',
+      'source_workload_name',
+      'source_workload_pod',
+      'sidecar_cluster_name',
+      'sidecar_response_code_class'
+    ]),
+
+    osmRequestDurationHist = new stats.Histogram('osm_request_duration_ms', [
+      5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity
+    ], [
+      'source_namespace',
+      'source_kind',
+      'source_name',
+      'source_pod',
+      'destination_namespace',
+      'destination_kind',
+      'destination_name',
+      'destination_pod'
+    ]),
+
+    clusterCache = new algo.Cache(clusterName => (
+      {
+        sendBytesTotalCounter: sendBytesTotalCounter.withLabels(clusterName),
+        receiveBytesTotalCounter: receiveBytesTotalCounter.withLabels(clusterName),
+        activeConnectionGauge: activeConnectionGauge.withLabels(clusterName),
+        upstreamCompletedCount: upstreamCompletedCount.withLabels(clusterName),
+        destroyRemoteActiveCounter: destroyRemoteActiveCounter.withLabels(clusterName),
+        destroyLocalActiveCounter: destroyLocalActiveCounter.withLabels(clusterName),
+        connectTimeoutCounter: connectTimeoutCounter.withLabels(clusterName),
+        pendingFailureEjectCounter: pendingFailureEjectCounter.withLabels(clusterName),
+        pendingOverflowCounter: pendingOverflowCounter.withLabels(clusterName),
+        requestTimeoutCounter: requestTimeoutCounter.withLabels(clusterName),
+        requestReceiveResetCounter: requestReceiveResetCounter.withLabels(clusterName),
+        requestSendResetCounter: requestSendResetCounter.withLabels(clusterName),
+        upstreamCodeCount: upstreamCodeCount.withLabels(clusterName),
+        upstreamCodeXCount: upstreamCodeXCount.withLabels(clusterName),
+        upstreamResponseTotal: upstreamResponseTotal.withLabels(namespace, kind, name, pod, clusterName),
+        upstreamResponseCode: upstreamResponseCode.withLabels(namespace, kind, name, pod, clusterName),
+      }
+    )),
+
+    identityCache = new algo.Cache(identity => (
+      (
+        items = identity?.split?.(','),
+      ) => (
+        items?.length === 4 ? osmRequestDurationHist.withLabels(namespace, kind, name, pod, items[0], items[1], items[2], items[3]) : null
+      )
+    )()),
+
+    serverLiveGauge = new stats.Gauge('sidecar_server_live'),
   ) => (
 
-    metrics = {
-
-      namespace: (os.env.POD_NAMESPACE || 'default'),
-      kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-      name: (os.env.SERVICE_ACCOUNT || ''),
-      pod: (os.env.POD_NAME || ''),
-
-      sendBytesTotalCounter: new stats.Counter('sidecar_cluster_upstream_cx_tx_bytes_total', ['sidecar_cluster_name']),
-      receiveBytesTotalCounter: new stats.Counter('sidecar_cluster_upstream_cx_rx_bytes_total', ['sidecar_cluster_name']),
-      activeConnectionGauge: new stats.Gauge('sidecar_cluster_upstream_cx_active', ['sidecar_cluster_name']),
-      upstreamCodeCount: new stats.Counter('sidecar_cluster_external_upstream_rq', ['sidecar_response_code', 'sidecar_cluster_name']),
-      upstreamCodeXCount: new stats.Counter('sidecar_cluster_external_upstream_rq_xx', ['sidecar_response_code_class', 'sidecar_cluster_name']),
-      upstreamCompletedCount: new stats.Counter('sidecar_cluster_external_upstream_rq_completed', ['sidecar_cluster_name']),
-      upstreamResponseTotal: new stats.Counter('sidecar_cluster_upstream_rq_total',
-        ['source_namespace', 'source_workload_kind', 'source_workload_name', 'source_workload_pod', 'sidecar_cluster_name']),
-      upstreamResponseCode: new stats.Counter('sidecar_cluster_upstream_rq_xx',
-        ['sidecar_response_code_class', 'source_namespace', 'source_workload_kind', 'source_workload_name', 'source_workload_pod', 'sidecar_cluster_name']),
-      osmRequestDurationHist: new stats.Histogram('osm_request_duration_ms',
-        [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 30000, 60000, 300000, 600000, 1800000, 3600000, Infinity],
-        ['source_namespace', 'source_kind', 'source_name', 'source_pod', 'destination_namespace', 'destination_kind', 'destination_name', 'destination_pod']),
-      serverLiveGauge: new stats.Gauge('sidecar_server_live'),
-
-      // {{{ TBD begin
-      destroyRemoteActiveCounter: new stats.Counter('sidecar_cluster_upstream_cx_destroy_remote_with_active_rq', ['sidecar_cluster_name']),
-      destroyLocalActiveCounter: new stats.Counter('sidecar_cluster_upstream_cx_destroy_local_with_active_rq', ['sidecar_cluster_name']),
-      connectTimeoutCounter: new stats.Counter('sidecar_cluster_upstream_cx_connect_timeout', ['sidecar_cluster_name']),
-      pendingFailureEjectCounter: new stats.Counter('sidecar_cluster_upstream_rq_pending_failure_eject', ['sidecar_cluster_name']),
-      pendingOverflowCounter: new stats.Counter('sidecar_cluster_upstream_rq_pending_overflow', ['sidecar_cluster_name']),
-      requestTimeoutCounter: new stats.Counter('sidecar_cluster_upstream_rq_timeout', ['sidecar_cluster_name']),
-      requestReceiveResetCounter: new stats.Counter('sidecar_cluster_upstream_rq_rx_reset', ['sidecar_cluster_name']),
-      requestSendResetCounter: new stats.Counter('sidecar_cluster_upstream_rq_tx_reset', ['sidecar_cluster_name']),
-      // }}} TBD end
-
-    },
-
-    initClusterNameMetrics = (namespace, kind, name, pod, clusterName) => (
-      metrics.upstreamResponseTotal.withLabels(namespace, kind, name, pod, clusterName).zero(),
-      metrics.upstreamResponseCode.withLabels('5', namespace, kind, name, pod, clusterName).zero(),
-      metrics.activeConnectionGauge.withLabels(clusterName).zero(),
-      metrics.receiveBytesTotalCounter.withLabels(clusterName).zero(),
-      metrics.sendBytesTotalCounter.withLabels(clusterName).zero(),
-      metrics.connectTimeoutCounter.withLabels(clusterName).zero(),
-      metrics.destroyLocalActiveCounter.withLabels(clusterName).zero(),
-      metrics.destroyRemoteActiveCounter.withLabels(clusterName).zero(),
-      metrics.pendingFailureEjectCounter.withLabels(clusterName).zero(),
-      metrics.pendingOverflowCounter.withLabels(clusterName).zero(),
-      metrics.requestTimeoutCounter.withLabels(clusterName).zero(),
-      metrics.requestReceiveResetCounter.withLabels(clusterName).zero(),
-      metrics.requestSendResetCounter.withLabels(clusterName).zero()
-    ),
-
-    config?.Inbound?.ClustersConfigs && Object.keys(config.Inbound.ClustersConfigs).map(
+    Object.keys(config?.Inbound?.ClustersConfigs || {}).concat(Object.keys(config?.Outbound?.ClustersConfigs || {})).forEach(
       clusterName => (
-        initClusterNameMetrics(metrics.namespace, metrics.kind, metrics.name, metrics.pod, clusterName)
-      )
-    ),
-
-    config?.Outbound?.ClustersConfigs && Object.keys(config.Outbound.ClustersConfigs).map(
-      clusterName => (
-        initClusterNameMetrics(metrics.namespace, metrics.kind, metrics.name, metrics.pod, clusterName)
-      )
+        (
+          metrics = clusterCache.get(clusterName),
+        ) => (
+          metrics.upstreamResponseTotal.zero(),
+          metrics.upstreamResponseCode.withLabels('5').zero(),
+          metrics.activeConnectionGauge.zero(),
+          metrics.receiveBytesTotalCounter.zero(),
+          metrics.sendBytesTotalCounter.zero(),
+          metrics.connectTimeoutCounter.zero(),
+          metrics.destroyLocalActiveCounter.zero(),
+          metrics.destroyRemoteActiveCounter.zero(),
+          metrics.pendingFailureEjectCounter.zero(),
+          metrics.pendingOverflowCounter.zero(),
+          metrics.requestTimeoutCounter.zero(),
+          metrics.requestReceiveResetCounter.zero(),
+          metrics.requestSendResetCounter.zero()
+        )
+      )()
     ),
 
     // Turn On Activity Metrics
-    metrics.serverLiveGauge.increase(),
+    serverLiveGauge.increase(),
 
-    metrics
+    {
+      identity,
+      clusterCache,
+      identityCache,
+    }
   )
 
 )()

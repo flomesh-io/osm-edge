@@ -2,8 +2,7 @@
   {
     loggingEnabled,
     makeLoggingData,
-    padLoggingData,
-    saveLogging,
+    saveLoggingData,
   } = pipy.solve('modules/logging.js')
 ) => (
 
@@ -12,7 +11,7 @@ pipy({
 })
 
 .import({
-  __address: 'inbound-main',
+  __target: 'inbound-main',
   __service: 'inbound-http-routing',
   __ingressEnable: 'inbound-http-routing',
 })
@@ -29,8 +28,7 @@ pipy({
 .handleMessage(
   msg => (
     loggingEnabled && (
-      padLoggingData(loggingData, msg, __service?.serviceName, __address, __ingressEnable, false, 'inbound'),
-      saveLogging(loggingData)
+      saveLoggingData(loggingData, msg, __service?.name, __target?.id, __ingressEnable, false, 'inbound')
     )
   )
 )

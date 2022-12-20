@@ -1,13 +1,8 @@
 ((
   {
-    namespace,
-    kind,
-    name,
-    pod,
-    upstreamResponseTotal,
-    upstreamResponseCode,
+    identity,
+    clusterCache,
   } = pipy.solve('modules/metrics.js'),
-
 ) => (
 
 pipy()
@@ -20,14 +15,14 @@ pipy()
 .chain()
 .handleMessageStart(
   (msg) => (
-    (headers = msg?.head?.headers) => (
+    (
+      headers = msg?.head?.headers,
+      metrics = clusterCache.get(__cluster?.name),
+    ) => (
       headers && (
-        headers['osm-stats-namespace'] = namespace,
-        headers['osm-stats-kind'] = kind,
-        headers['osm-stats-name'] = name,
-        headers['osm-stats-pod'] = pod,
-        upstreamResponseTotal.withLabels(namespace, kind, name, pod, __cluster?.clusterName).increase(),
-        upstreamResponseCode.withLabels(msg?.head?.status?.toString().charAt(0), namespace, kind, name, pod, __cluster?.clusterName).increase()
+        headers['osm-stats'] = identity,
+        metrics.upstreamResponseTotal.increase(),
+        metrics.upstreamResponseCode.withLabels(msg?.head?.status / 100).increase()
       )
     )
   )()

@@ -14,7 +14,7 @@ pipy({
 
 .import({
   __cluster: 'inbound-main',
-  __address: 'inbound-main',
+  __target: 'inbound-main',
 })
 
 .pipeline()
@@ -23,7 +23,7 @@ pipy({
     tracingEnabled && (
       httpBytesStruct = {},
       httpBytesStruct.requestSize = msg?.body?.size,
-      zipkinData = makeZipKinData(name, msg, msg.head.headers, __cluster?.clusterName, 'SERVER', true)
+      zipkinData = makeZipKinData(name, msg, msg.head.headers, __cluster?.name, 'SERVER', true)
     )
   )
 )
@@ -32,7 +32,7 @@ pipy({
   (msg) => (
     tracingEnabled && (
       httpBytesStruct.responseSize = msg?.body?.size,
-      saveTracing(zipkinData, msg?.head, httpBytesStruct, __address)
+      saveTracing(zipkinData, msg?.head, httpBytesStruct, __target?.id)
     )
   )
 )

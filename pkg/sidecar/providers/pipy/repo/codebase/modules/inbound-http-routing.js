@@ -6,7 +6,7 @@
   clusterCache = new algo.Cache(
     (clusterName => (
       (cluster = config?.Inbound?.ClustersConfigs?.[clusterName]) => (
-        cluster ? Object.assign({ clusterName, Endpoints: cluster }) : null
+        cluster ? Object.assign({ name: clusterName, Endpoints: cluster }) : null
       )
     )())
   ),
@@ -19,34 +19,32 @@
       rules.forEach(
         config => (
           (
-            matchPath = ((match = null) => (
+            matchPath = (
               (config.Type === 'Regex') && (
-                match = new RegExp(config.Path),
-                (path) => match.test(path)
+                ((match = null) => (
+                  match = new RegExp(config.Path),
+                  (path) => match.test(path)
+                ))()
               ) || (config.Type === 'Exact') && (
                 (path) => path === config.Path
               ) || (config.Type === 'Prefix') && (
                 (path) => path.startsWith(config.Path)
               )
-            ))(),
+            ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
             balancer = new algo.RoundRobinLoadBalancer(config.TargetClusters || {}),
-            service = Object.assign({ serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
+            service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
-                ((clusterName = balancer.next()?.id) => (
-                  __cluster = clusterCache.get(clusterName)
-                ))()
+                __cluster = clusterCache.get(balancer.next()?.id)
               )
             ) : (
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
-                ((clusterName = balancer.next()?.id) => (
-                  __cluster = clusterCache.get(clusterName)
-                ))()
+                __cluster = clusterCache.get(balancer.next()?.id)
               )
             ),
             allowedIdentities = config.AllowedServices ? new Set(config.AllowedServices) : [''],

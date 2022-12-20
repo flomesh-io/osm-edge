@@ -1,5 +1,9 @@
 ((
   config = pipy.solve('config.js'),
+  {
+    outboundL7Chains,
+    outboundL4Chains,
+  } = pipy.solve('plugins.js'),
 
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
@@ -64,7 +68,7 @@
   __cert: null,
   __egressEnable: false,
   __cluster: null,
-  __address: null,
+  __target: null,
 })
 
 .pipeline()
@@ -75,26 +79,26 @@
   () => __protocol === 'http', (
     $=>$
     .replaceStreamStart()
-    .chain([
+    .chain(outboundL7Chains)
+    /*[
       'modules/outbound-http-routing.js',
       'modules/outbound-metrics-http.js',
       'modules/outbound-tracing-http.js',
       'modules/outbound-logging-http.js',
       'modules/outbound-circuit-breaker.js',
       'modules/outbound-http-load-balancing.js',
-      'modules/outbound-metrics-tcp.js',
       'modules/outbound-tls-initiation.js',
       'modules/outbound-http-default.js',
-    ])
+    ]*/
   ),
 
   () => __protocol === 'tcp', (
-    $=>$.chain([
+    $=>$.chain(outboundL4Chains)
+    /*[
       'modules/outbound-tcp-load-balancing.js',
-      'modules/outbound-metrics-tcp.js',
       'modules/outbound-tls-initiation.js',
       'modules/outbound-tcp-default.js',
-    ])
+    ]*/
   ),
 
   (
