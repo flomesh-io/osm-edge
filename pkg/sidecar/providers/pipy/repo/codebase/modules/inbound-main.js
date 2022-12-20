@@ -1,5 +1,9 @@
 ((
   config = pipy.solve('config.js'),
+  {
+    inboundL7Chains,
+    inboundL4Chains,
+  } = pipy.solve('plugins.js'),
 
   makePortHandler = port => (
     (
@@ -54,7 +58,7 @@
   __protocol: null,
   __isHTTP2: false,
   __cluster: null,
-  __address: null,
+  __target: null,
 })
 
 .pipeline()
@@ -65,7 +69,8 @@
   () => __protocol === 'http', (
     $=>$
     .replaceStreamStart()
-    .chain([
+    .chain(inboundL7Chains)
+    /*[
       'modules/inbound-tls-termination.js',
       'modules/inbound-http-routing.js',
       'modules/inbound-metrics-http.js',
@@ -74,21 +79,19 @@
       'modules/inbound-throttle-service.js',
       'modules/inbound-throttle-route.js',
       'modules/inbound-http-load-balancing.js',
-      'modules/inbound-metrics-tcp.js',
-      'modules/inbound-make-connection.js',
+      'modules/inbound-upstream.js',
       'modules/inbound-http-default.js',
-    ])
+    ]*/
   ),
 
   () => __protocol == 'tcp', (
-    $=>$.chain([
+    $=>$.chain(inboundL4Chains)
+    /*[
       'modules/inbound-tls-termination.js',
       'modules/inbound-tcp-load-balancing.js',
-      'modules/inbound-metrics-tcp.js',
-      'modules/inbound-make-connection.js',
+      'modules/inbound-upstream.js',
       'modules/inbound-tcp-default.js',
-    ])
-
+    ]*/
   ),
 
   (

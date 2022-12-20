@@ -47,7 +47,7 @@
       }
     ),
 
-    logger.padLoggingData = (loggingData, msg, service, target, ingressEnable, egressEnable, type) => (
+    logger.saveLoggingData = (loggingData, msg, service, target, ingressEnable, egressEnable, type) => (
       loggingData.service = {
         name: service || 'anonymous', target: target, ingressMode: ingressEnable, egressMode: egressEnable
       },
@@ -56,14 +56,11 @@
       loggingData.res['body'] = msg.body.toString('base64'),
       loggingData['resTime'] = Date.now(),
       loggingData['endTime'] = Date.now(),
-      loggingData['type'] = type
-    ),
-
-    logger.saveLogging = (loggingData) => (
+      loggingData['type'] = type,
       logLogging(loggingData)
       // , console.log('loggingData : ', loggingData)
     ),
-
+    
     logger
   )
 )()

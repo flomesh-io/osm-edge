@@ -4,7 +4,7 @@
   clusterCache = new algo.Cache(
     (clusterName => (
       (cluster = config?.Outbound?.ClustersConfigs?.[clusterName]) => (
-        cluster ? Object.assign({ clusterName }, cluster) : null
+        cluster ? Object.assign({ name: clusterName }, cluster) : null
       )
     )())
   ),
@@ -20,7 +20,7 @@
 .import({
   __port: 'outbound-main',
   __cluster: 'outbound-main',
-  __address: 'outbound-main',
+  __target: 'outbound-main',
 })
 
 .pipeline()
@@ -28,7 +28,7 @@
   () => (
     ((clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) => (
       (__cluster = clusterCache.get(clusterName)) && (
-        __address = targetBalancers.get(__cluster)?.next?.()?.id
+        __target = targetBalancers.get(__cluster)?.next?.()
       )
     ))()
   )

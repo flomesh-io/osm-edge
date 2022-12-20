@@ -23,9 +23,9 @@
         []
       ),
       retryBackoffBaseInterval: clusterConfig.RetryPolicy?.RetryBackoffBaseInterval || 1, // default 1 second
-      retryCounter: retryCounter.withLabels(clusterConfig.clusterName),
-      retrySuccessCounter: retrySuccessCounter.withLabels(clusterConfig.clusterName),
-      retryLimitCounter: retryLimitCounter.withLabels(clusterConfig.clusterName),
+      retryCounter: retryCounter.withLabels(clusterConfig.name),
+      retrySuccessCounter: retrySuccessCounter.withLabels(clusterConfig.name),
+      retryLimitCounter: retryLimitCounter.withLabels(clusterConfig.name),
       muxHttpOptions: {
         version: () => __isHTTP2 ? 2 : 1,
         maxMessages: clusterConfig.ConnectionSettings?.http?.MaxRequestsPerConnection
@@ -52,7 +52,6 @@
 ),
 
 ) => pipy({
-  _target: null,
   _retryCount: 0,
   _clusterConfig: null,
 })
@@ -60,21 +59,24 @@
 .import({
   __isHTTP2: 'outbound-main',
   __cluster: 'outbound-main',
-  __address: 'outbound-main',
+  __target: 'outbound-main',
+})
+
+.export('outbound-http-load-balancing', {
+  __muxHttpOptions: null,
 })
 
 .pipeline()
 .onStart(
   () => void (
     (_clusterConfig = clusterConfigs.get(__cluster)) && (
-      (_target = _clusterConfig.targetBalancer?.next?.()) && (
-        __address = _target.id
-      )
+      __target = _clusterConfig.targetBalancer?.next?.(),
+      __muxHttpOptions = _clusterConfig.muxHttpOptions 
     )
   )
 )
 .branch(
-  () => !_target, $=>$.chain(),
+  () => !__target, $=>$.chain(),
 
   () => _clusterConfig.needRetry, (
     $=>$
@@ -82,7 +84,7 @@
         delay: () => _clusterConfig.retryBackoffBaseInterval * Math.min(10, Math.pow(2, _retryCount-1)|0)
     }).to(
       $=>$
-      .link('upstream')
+      .chain()
       .replaceMessageStart(
         msg => (
           shouldRetry(msg.head.status) ? new StreamEnd('Replay') : msg
@@ -92,13 +94,8 @@
   ),
 
   (
-    $=>$.link('upstream')
+    $=>$.chain()
   )
-)
-
-.pipeline('upstream')
-.muxHTTP(() => _target, () => _clusterConfig.muxHttpOptions).to(
-  $=>$.chain()
 )
 
 )()

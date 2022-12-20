@@ -1,6 +1,9 @@
 ((
   config = pipy.solve('config.js'),
-
+  {
+    clusterCache
+  } = pipy.solve('modules/metrics.js'),
+  
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
   issuingCA = config?.Certificate?.IssuingCA,
@@ -41,27 +44,63 @@
 ) => (
 
 pipy({
+  _metrics: null,
+  _clusterName: null,
   _egressEndpoint: null,
 })
 
 .import({
   __port: 'outbound-main',
   __cert: 'outbound-main',
-  __address: 'outbound-main',
+  __cluster: 'outbound-main',
+  __protocol: 'outbound-main',
+  __target: 'outbound-main',
   __egressEnable: 'outbound-main',
+  __muxHttpOptions: 'outbound-http-load-balancing',
 })
 
 .pipeline()
+.branch(
+  () => !__target, (
+    $=>$.chain()
+  ),
+
+  () => __protocol === 'http', (
+    $=>$.muxHTTP(() => __target, () => __muxHttpOptions).to(
+      $=>$.link('upstream')
+    )
+  ), 
+
+  (
+    $=>$.link('upstream')
+  )
+)
+
+.pipeline('upstream')
 .onStart(
   () => void (
+    _clusterName = __cluster?.name,
+    _metrics = clusterCache.get(_clusterName),
+    _metrics.activeConnectionGauge.increase(),
+
     forwardMatches && ((egw = forwardMatches[__port?.EgressForwardGateway || '*']?.next?.()?.id) => (
       egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
     ))(),
-    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__address:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __address)
+    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target?.id)
+  )
+)
+.onEnd(
+  () => void (
+    _metrics.activeConnectionGauge.decrease()
+  )
+)
+.handleData(
+  data => (
+    _metrics.sendBytesTotalCounter.increase(data.size)
   )
 )
 .branch(
-  () => !__address, $=>$.chain(),
+  () => !__target, $=>$.chain(),
 
   () => __cert, (
     $=>$
@@ -71,7 +110,7 @@ pipy({
         key: new crypto.PrivateKey(__cert.PrivateKey),
       }),
       trusted: listIssuingCA,
-    }).to($=>$.connect(() => __address))
+    }).to($=>$.connect(() => __target?.id))
   ),
 
   () => certChain && !__egressEnable, (
@@ -82,17 +121,22 @@ pipy({
         key: new crypto.PrivateKey(privateKey),
       },
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
-    }).to($=>$.connect(() => __address))
+    }).to($=>$.connect(() => __target?.id))
   ),
 
   () => __egressEnable && _egressEndpoint, (
     $=>$
     .connectSOCKS(
-      () => __address,
+      () => __target?.id,
     ).to($=>$.connect(() => _egressEndpoint))
   ),
 
-  $=>$.connect(() => __address)
+  $=>$.connect(() => __target?.id)
+)
+.handleData(
+  data => (
+    _metrics.receiveBytesTotalCounter.increase(data.size)
+  )
 )
 
 ))()

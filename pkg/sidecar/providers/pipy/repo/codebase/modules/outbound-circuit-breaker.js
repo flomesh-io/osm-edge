@@ -2,9 +2,9 @@
   circuitBreakers = {},
 
   makeCircuitBreaker = (clusterConfig) => (
-      clusterConfig?.ConnectionSettings?.http?.CircuitBreaking && (circuitBreakers[clusterConfig.clusterName] = (
+      clusterConfig?.ConnectionSettings?.http?.CircuitBreaking && (circuitBreakers[clusterConfig.name] = (
         (
-          clusterName = clusterConfig.clusterName || '',
+          clusterName = clusterConfig.name || '',
           minRequestAmount = clusterConfig.ConnectionSettings.http.CircuitBreaking?.MinRequestAmount || 100,
           statTimeWindow = clusterConfig.ConnectionSettings.http.CircuitBreaking?.StatTimeWindow || 30, // 30s
           slowTimeThreshold = clusterConfig.ConnectionSettings.http.CircuitBreaking?.SlowTimeThreshold || 5, // 5s
