@@ -241,6 +241,15 @@ const (
 	OSMAppVersionLabelKey  = "app.kubernetes.io/version"
 )
 
+// Annotations used for sidecar
+const (
+	// SidecarResourceLimitsAnnotationPrefix is the key of the annotation used to indicate sidecar resource limits annotation prefix
+	SidecarResourceLimitsAnnotationPrefix = "openservicemesh.io/sidecar-resource-limits"
+
+	// SidecarResourceRequestsAnnotationPrefix is the key of the annotation used to indicate sidecar resource requests annotation prefix
+	SidecarResourceRequestsAnnotationPrefix = "openservicemesh.io/sidecar-resource-requests"
+)
+
 // Application protocols
 const (
 	// HTTP protocol
