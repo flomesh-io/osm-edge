@@ -312,6 +312,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 
 			codebaseV = codebase.Version
 		}
+		codebaseV = version
 
 		// 2. upload each json to repo
 		for _, item := range batch.Items {
