@@ -276,10 +276,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 		if err != nil {
 			return
 		}
-		if codebase != nil {
-			// just getCodebase the version of codebase
-			codebaseV = codebase.Version
-		} else {
+		if codebase == nil {
 			//log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
 			success, codebase, err = p.createCodebase(version, batch.Basepath)
 
@@ -287,10 +284,6 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 				log.Info().Msgf("Failure! Result = %#v", codebase)
 				return
 			}
-
-			//log.Info().Msgf("Success! Result = %#v", codebase)
-
-			codebaseV = codebase.Version
 		}
 		codebaseV = version
 
