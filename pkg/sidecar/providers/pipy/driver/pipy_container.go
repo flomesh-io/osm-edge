@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
@@ -72,6 +73,7 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 	}
 	repoServer := fmt.Sprintf("%s://%s:%v/repo%s/osm-edge-sidecar/%s/",
 		constants.ProtocolHTTP, repoServerIPAddr, cfg.GetProxyServerPort(), cfg.GetRepoServerCodebase(), cnPrefix)
+
 	sidecarContainer := corev1.Container{
 		Name:            constants.SidecarContainerName,
 		Image:           containerImage,
@@ -83,7 +85,7 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 			ReadOnly:  true,
 			MountPath: bootstrap.PipyProxyConfigPath,
 		}},
-		Resources: cfg.GetProxyResources(),
+		Resources: getPipySidecarResourceSpec(injCtx, pod, cfg),
 		Args: []string{
 			"pipy",
 			fmt.Sprintf("--log-level=%s", injCtx.Configurator.GetSidecarLogLevel()),
@@ -284,4 +286,91 @@ func getOSMControllerSvc(kubeClient kubernetes.Interface, osmNamespace string) (
 	}
 
 	return svc, nil
+}
+
+func getPipySidecarResourceSpec(injCtx *driver.InjectorContext, pod *corev1.Pod, cfg configurator.Configurator) corev1.ResourceRequirements {
+	cfgResources := cfg.GetProxyResources()
+	resources := corev1.ResourceRequirements{}
+	if cfgResources.Limits != nil {
+		resources.Limits = make(corev1.ResourceList)
+		for k, v := range cfgResources.Limits {
+			resources.Limits[k] = v
+		}
+	}
+	if cfgResources.Requests != nil {
+		resources.Requests = make(corev1.ResourceList)
+		for k, v := range cfgResources.Requests {
+			resources.Requests[k] = v
+		}
+	}
+
+	var nsAnnotations map[string]string
+	var podAnnotations map[string]string
+	resourceNames := []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory, corev1.ResourceStorage, corev1.ResourceEphemeralStorage}
+
+	podAnnotations = pod.GetAnnotations()
+	if ns, err := injCtx.KubeClient.CoreV1().Namespaces().Get(context.Background(), injCtx.PodNamespace, metav1.GetOptions{}); err == nil {
+		nsAnnotations = ns.GetAnnotations()
+	}
+
+	for _, resourceName := range resourceNames {
+		podResourceLimitsExist := false
+		resourceLimitsAnnotation := fmt.Sprintf("%s-%s", constants.SidecarResourceLimitsAnnotationPrefix, resourceName)
+		if len(podAnnotations) > 0 {
+			if resourceLimits, exists := podAnnotations[resourceLimitsAnnotation]; exists {
+				if resources.Limits == nil {
+					resources.Limits = make(corev1.ResourceList)
+				}
+				if quantity, quantityErr := resource.ParseQuantity(resourceLimits); quantityErr == nil {
+					resources.Limits[resourceName] = quantity
+					podResourceLimitsExist = true
+				} else {
+					log.Error().Err(quantityErr)
+				}
+			}
+		}
+		if !podResourceLimitsExist && len(nsAnnotations) > 0 {
+			if resourceLimits, exists := nsAnnotations[resourceLimitsAnnotation]; exists {
+				if resources.Limits == nil {
+					resources.Limits = make(corev1.ResourceList)
+				}
+				if quantity, quantityErr := resource.ParseQuantity(resourceLimits); quantityErr == nil {
+					resources.Limits[resourceName] = quantity
+				} else {
+					log.Error().Err(quantityErr)
+				}
+			}
+		}
+	}
+
+	for _, resourceName := range resourceNames {
+		podResourceRequestsExist := false
+		resourceRequestAnnotation := fmt.Sprintf("%s-%s", constants.SidecarResourceRequestsAnnotationPrefix, resourceName)
+		if len(podAnnotations) > 0 {
+			if resourceRequests, exists := podAnnotations[resourceRequestAnnotation]; exists {
+				if resources.Requests == nil {
+					resources.Requests = make(corev1.ResourceList)
+				}
+				if quantity, quantityErr := resource.ParseQuantity(resourceRequests); quantityErr == nil {
+					resources.Requests[resourceName] = quantity
+					podResourceRequestsExist = true
+				} else {
+					log.Error().Err(quantityErr)
+				}
+			}
+		}
+		if !podResourceRequestsExist && len(nsAnnotations) > 0 {
+			if resourceRequests, exists := nsAnnotations[resourceRequestAnnotation]; exists {
+				if resources.Requests == nil {
+					resources.Requests = make(corev1.ResourceList)
+				}
+				if quantity, quantityErr := resource.ParseQuantity(resourceRequests); quantityErr == nil {
+					resources.Requests[resourceName] = quantity
+				} else {
+					log.Error().Err(quantityErr)
+				}
+			}
+		}
+	}
+	return resources
 }
