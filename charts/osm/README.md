@@ -79,7 +79,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[1] | string | `"arm64"` |  |
 | osm.cleanup.nodeSelector | object | `{}` |  |
 | osm.cleanup.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
-| osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
+| osm.configResyncInterval | string | `"90s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"quay.io/flomesh/curl-ubi8:7.84.0"` | Curl image for control plane init container |
