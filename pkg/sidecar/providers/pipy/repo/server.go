@@ -24,9 +24,13 @@ const (
 	// workerPoolSize is the default number of workerpool workers (0 is GOMAXPROCS)
 	workerPoolSize = 0
 
-	osmCodebase        = "/osm-edge"
-	osmSidecarCodebase = "/osm-edge-sidecar"
-	osmCodebaseConfig  = "config.json"
+	osmCodebaseConfig = "config.json"
+)
+
+var (
+	osmCodebase        = "osm-edge-base"
+	osmSidecarCodebase = "osm-edge-sidecar"
+	osmCodebaseRepo    = fmt.Sprintf("/%s", osmCodebase)
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server

@@ -32,9 +32,7 @@ type repoAPIURI struct {
 	apiURI       string
 	repoURI      string
 	repoFilesURI string
-
-	baseRepoURI      string
-	baseRepoFilesURI string
+	baseURI      string
 }
 
 // newRepoAPIURI creates a Repo Api URIs
@@ -51,10 +49,8 @@ func newRepoAPIURI(serverAddr string, serverPort uint16) *repoAPIURI {
 }
 
 func (api *repoAPIURI) init() *repoAPIURI {
-	api.baseRepoURI = fmt.Sprintf(`%s://%s:%d/%s/%s/%s`,
-		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version, api.repoURI)
-	api.baseRepoFilesURI = fmt.Sprintf(`%s://%s:%d/%s/%s/%s`,
-		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version, api.repoFilesURI)
+	api.baseURI = fmt.Sprintf(`%s://%s:%d/%s/%s`,
+		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version)
 	return api
 }
 
@@ -71,7 +67,7 @@ func NewRepoClient(serverAddr string, serverPort uint16) *PipyRepoClient {
 		serverAddr, serverPort,
 		&http.Transport{
 			DisableKeepAlives:  false,
-			MaxIdleConns:       10,
+			MaxIdleConns:       100,
 			IdleConnTimeout:    60 * time.Second,
 			DisableCompression: false,
 		})
@@ -93,8 +89,8 @@ func NewRepoClientWithAPIBaseURLAndTransport(serverAddr string, serverPort uint1
 		SetTransport(repo.defaultTransport).
 		SetScheme(repo.apiURI.schema).
 		SetAllowGetMethodPayload(true).
-		SetBaseURL(repo.apiURI.baseRepoURI).
-		SetTimeout(5 * time.Second).
+		SetBaseURL(repo.apiURI.baseURI).
+		SetTimeout(90 * time.Second).
 		SetDebug(false).
 		EnableTrace()
 
@@ -104,11 +100,9 @@ func NewRepoClientWithAPIBaseURLAndTransport(serverAddr string, serverPort uint1
 func (p *PipyRepoClient) isCodebaseExists(codebaseName string) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
 	resp, err = p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(codebaseName)
+		Get(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		success = true
@@ -128,11 +122,9 @@ func (p *PipyRepoClient) isCodebaseExists(codebaseName string) (success bool, co
 func (p *PipyRepoClient) getCodebase(codebaseName string) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
 	resp, err = p.httpClient.R().
 		SetResult(&Codebase{}).
-		Get(codebaseName)
+		Get(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		success = true
@@ -152,12 +144,10 @@ func (p *PipyRepoClient) getCodebase(codebaseName string) (success bool, codebas
 func (p *PipyRepoClient) createCodebase(version string, codebaseName string) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
 	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: version}).
-		Post(codebaseName)
+		Post(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		switch resp.StatusCode() {
@@ -176,12 +166,10 @@ func (p *PipyRepoClient) createCodebase(version string, codebaseName string) (su
 func (p *PipyRepoClient) deriveCodebase(codebaseName, base string, version uint64) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
 	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: fmt.Sprintf("%d", version), Base: base}).
-		Post(codebaseName)
+		Post(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		success = true
@@ -202,7 +190,6 @@ func (p *PipyRepoClient) deriveCodebase(codebaseName, base string, version uint6
 func (p *PipyRepoClient) upsertFile(path string, content interface{}) (success bool, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoFilesURI)
 	// FIXME: temp solution, refine it later
 	contentType := "text/plain"
 	if strings.HasSuffix(path, ".json") {
@@ -212,7 +199,7 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) (success b
 	resp, err = p.httpClient.R().
 		SetHeader("Content-Type", contentType).
 		SetBody(content).
-		Post(path)
+		Post(fmt.Sprintf("%s/%s", p.apiURI.repoFilesURI, path))
 
 	if err == nil {
 		if resp.IsSuccess() {
@@ -231,9 +218,7 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) (success b
 func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
-	resp, err = p.httpClient.R().Delete(codebaseName)
+	resp, err = p.httpClient.R().Delete(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		if resp.IsSuccess() {
@@ -253,8 +238,6 @@ func (p *PipyRepoClient) commit(codebaseName string, version string) (success bo
 	var etag uint64
 	var resp *resty.Response
 
-	p.httpClient.SetBaseURL(p.apiURI.baseRepoURI)
-
 	if etag, err = strconv.ParseUint(version, 10, 64); err != nil {
 		return
 	}
@@ -263,7 +246,7 @@ func (p *PipyRepoClient) commit(codebaseName string, version string) (success bo
 		SetHeader("Content-Type", "application/json").
 		SetBody(Codebase{Version: fmt.Sprintf("%d", etag+1)}).
 		SetResult(&Codebase{}).
-		Patch(codebaseName)
+		Patch(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		if resp.IsSuccess() {
@@ -286,34 +269,28 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 
 	for _, batch := range batches {
 		// 1. batch.Basepath, if not exists, create it
-		log.Info().Msgf("batch.Basepath = %q", batch.Basepath)
+		//log.Info().Msgf("batch.Basepath = %q", batch.Basepath)
 		var codebaseV string
 		var codebase *Codebase
 		success, codebase, err = p.isCodebaseExists(batch.Basepath)
 		if err != nil {
 			return
 		}
-		if codebase != nil {
-			// just getCodebase the version of codebase
-			codebaseV = codebase.Version
-		} else {
-			log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
+		if codebase == nil {
+			//log.Info().Msgf("%q doesn't exist in repo", batch.Basepath)
 			success, codebase, err = p.createCodebase(version, batch.Basepath)
 
 			if err != nil || !success || codebase == nil {
 				log.Info().Msgf("Failure! Result = %#v", codebase)
 				return
 			}
-
-			log.Info().Msgf("Success! Result = %#v", codebase)
-
-			codebaseV = codebase.Version
 		}
+		codebaseV = version
 
 		// 2. upload each json to repo
 		for _, item := range batch.Items {
 			fullPath := fmt.Sprintf("%s%s/%s", batch.Basepath, item.Path, item.Filename)
-			log.Info().Msgf("Creating/updating config %q", fullPath)
+			//log.Info().Msgf("Creating/updating config %q", fullPath)
 			success, err = p.upsertFile(fullPath, item.Content)
 			if err != nil || !success {
 				return
@@ -321,7 +298,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 		}
 
 		// 3. commit the repo, so that changes can take effect
-		log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
+		//log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
 		if success, err = p.commit(batch.Basepath, codebaseV); err != nil || !success {
 			return
 		}
@@ -333,7 +310,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 // DeriveCodebase derives Codebase
 func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint64) (success bool, err error) {
 	var codebase *Codebase
-	log.Info().Msgf("Checking if exists, codebase %q", codebaseName)
+	//log.Info().Msgf("Checking if exists, codebase %q", codebaseName)
 	success, codebase, err = p.isCodebaseExists(codebaseName)
 
 	if err != nil {
@@ -341,25 +318,25 @@ func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint6
 	}
 
 	if codebase != nil {
-		log.Info().Msgf("Codebase %q already exists, ignore deriving ...", codebaseName)
+		//log.Info().Msgf("Codebase %q already exists, ignore deriving ...", codebaseName)
 		return
 	}
 
-	log.Info().Msgf("Codebase %q doesn't exist, deriving ...", codebaseName)
+	//log.Info().Msgf("Codebase %q doesn't exist, deriving ...", codebaseName)
 	success, codebase, err = p.deriveCodebase(codebaseName, base, version)
 	if err != nil {
 		log.Err(err).Msgf("Deriving codebase %q", codebaseName)
 		return
 	}
-	log.Info().Msgf("Successfully derived codebase %q", codebaseName)
+	//log.Info().Msgf("Successfully derived codebase %q", codebaseName)
 
-	log.Info().Msgf("Committing the changes of codebase %q", codebaseName)
+	//log.Info().Msgf("Committing the changes of codebase %q", codebaseName)
 	if success, err = p.commit(codebaseName, codebase.Version); err != nil || !success {
 		log.Err(err).Msgf("Committing codebase %q", codebaseName)
 		return
 	}
 
-	log.Info().Msgf("Successfully committed codebase %q", codebaseName)
+	//log.Info().Msgf("Successfully committed codebase %q", codebaseName)
 	return
 }
 
