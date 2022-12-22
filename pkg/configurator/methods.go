@@ -299,8 +299,8 @@ func (c *Client) GetRepoServerCodebase() string {
 	if len(codebase) > 0 && strings.HasSuffix(codebase, "/") {
 		codebase = strings.TrimSuffix(codebase, "/")
 	}
-	if len(codebase) > 0 && !strings.HasPrefix(codebase, "/") {
-		codebase = fmt.Sprintf("/%s", codebase)
+	if len(codebase) > 0 && strings.HasPrefix(codebase, "/") {
+		codebase = strings.TrimPrefix(codebase, "/")
 	}
 	return codebase
 }

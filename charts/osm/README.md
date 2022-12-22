@@ -79,7 +79,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[1] | string | `"arm64"` |  |
 | osm.cleanup.nodeSelector | object | `{}` |  |
 | osm.cleanup.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
-| osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
+| osm.configResyncInterval | string | `"90s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
@@ -262,9 +262,9 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.repoServer.ipaddr | string | `"127.0.0.1"` | ipaddr of host/service where Pipy RepoServer is installed |
 | osm.repoServer.standalone | bool | `false` | if false , Pipy RepoServer is installed within osmController pod. |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
-| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
+| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
 | osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
-| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].proxyServerPort | int | `15128` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
 | osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |

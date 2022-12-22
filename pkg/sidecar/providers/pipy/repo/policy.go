@@ -159,23 +159,9 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 				continue
 			}
-			missingWeightNb := 0
-			availableWeight := uint32(100)
 			for _, wze := range *weightedEndpoints {
 				if wze.Weight == 0 {
-					missingWeightNb++
-				} else {
-					availableWeight = availableWeight - uint32(wze.Weight)
-				}
-			}
-
-			if missingWeightNb == len(*weightedEndpoints) {
-				for _, wze := range *weightedEndpoints {
-					if wze.Weight == 0 {
-						wze.Weight = Weight(availableWeight / uint32(missingWeightNb))
-						missingWeightNb--
-						availableWeight = availableWeight - uint32(wze.Weight)
-					}
+					wze.Weight = constants.ClusterWeightAcceptAll
 				}
 			}
 		}

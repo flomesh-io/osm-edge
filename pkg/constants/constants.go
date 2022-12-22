@@ -251,6 +251,15 @@ const (
 	EgressGatewayModeSock5 = "sock5"
 )
 
+// Annotations used for sidecar
+const (
+	// SidecarResourceLimitsAnnotationPrefix is the key of the annotation used to indicate sidecar resource limits annotation prefix
+	SidecarResourceLimitsAnnotationPrefix = "openservicemesh.io/sidecar-resource-limits"
+
+	// SidecarResourceRequestsAnnotationPrefix is the key of the annotation used to indicate sidecar resource requests annotation prefix
+	SidecarResourceRequestsAnnotationPrefix = "openservicemesh.io/sidecar-resource-requests"
+)
+
 // App labels as defined in the "osm.labels" template in _helpers.tpl of the Helm chart.
 const (
 	OSMAppNameLabelKey     = "app.kubernetes.io/name"

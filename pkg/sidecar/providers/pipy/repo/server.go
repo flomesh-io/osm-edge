@@ -29,15 +29,17 @@ const (
 )
 
 var (
-	osmCodebase        = "/osm-edge-base"
-	osmSidecarCodebase = "/osm-edge-sidecar"
+	osmCodebase        = "osm-edge-base"
+	osmSidecarCodebase = "osm-edge-sidecar"
+	osmCodebaseRepo    = fmt.Sprintf("/%s", osmCodebase)
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server
 func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string, cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
 	if len(cfg.GetRepoServerCodebase()) > 0 {
-		osmCodebase = fmt.Sprintf("%s%s", cfg.GetRepoServerCodebase(), "/osm-edge-base")
-		osmSidecarCodebase = fmt.Sprintf("%s%s", cfg.GetRepoServerCodebase(), "/osm-edge-sidecar")
+		osmCodebase = fmt.Sprintf("%s/%s", cfg.GetRepoServerCodebase(), osmCodebase)
+		osmSidecarCodebase = fmt.Sprintf("%s/%s", cfg.GetRepoServerCodebase(), osmSidecarCodebase)
+		osmCodebaseRepo = fmt.Sprintf("/%s", osmCodebase)
 	}
 
 	server := Server{
