@@ -11,8 +11,10 @@ pipy({
 
 .import({
   __protocol: 'inbound-main',
+  __isHTTP2: 'inbound-main',
   __cluster: 'inbound-main',
   __target: 'inbound-main',
+  __targetObject: 'inbound-http-load-balancing',
 })
 
 .pipeline()
@@ -22,10 +24,10 @@ pipy({
   ),
 
   () => __protocol === 'http', (
-    $=>$.muxHTTP(() => __target).to(
+    $=>$.muxHTTP(() => __targetObject, { version: () => __isHTTP2 ? 2 : 1 }).to(
       $=>$.link('upstream')
     )
-  ), 
+  ),
 
   (
     $=>$.link('upstream')
@@ -50,7 +52,7 @@ pipy({
     _metrics.sendBytesTotalCounter.increase(data.size)
   )
 )
-.connect(() => __target?.id)
+.connect(() => __target)
 .handleData(
   data => (
     _metrics.receiveBytesTotalCounter.increase(data.size)

@@ -63,6 +63,7 @@
 })
 
 .export('outbound-http-load-balancing', {
+  __targetObject: null,
   __muxHttpOptions: null,
 })
 
@@ -70,14 +71,13 @@
 .onStart(
   () => void (
     (_clusterConfig = clusterConfigs.get(__cluster)) && (
-      __target = _clusterConfig.targetBalancer?.next?.(),
-      __muxHttpOptions = _clusterConfig.muxHttpOptions 
+      __targetObject = _clusterConfig.targetBalancer?.next?.(),
+      __target = __targetObject?.id,
+      __muxHttpOptions = _clusterConfig.muxHttpOptions
     )
   )
 )
 .branch(
-  () => !__target, $=>$.chain(),
-
   () => _clusterConfig.needRetry, (
     $=>$
     .replay({

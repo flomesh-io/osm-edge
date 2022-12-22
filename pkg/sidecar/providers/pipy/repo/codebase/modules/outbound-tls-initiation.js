@@ -3,7 +3,7 @@
   {
     clusterCache
   } = pipy.solve('modules/metrics.js'),
-  
+
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
   issuingCA = config?.Certificate?.IssuingCA,
@@ -56,6 +56,7 @@ pipy({
   __protocol: 'outbound-main',
   __target: 'outbound-main',
   __egressEnable: 'outbound-main',
+  __targetObject: 'outbound-http-load-balancing',
   __muxHttpOptions: 'outbound-http-load-balancing',
 })
 
@@ -66,10 +67,10 @@ pipy({
   ),
 
   () => __protocol === 'http', (
-    $=>$.muxHTTP(() => __target, () => __muxHttpOptions).to(
+    $=>$.muxHTTP(() => __targetObject, () => __muxHttpOptions).to(
       $=>$.link('upstream')
     )
-  ), 
+  ),
 
   (
     $=>$.link('upstream')
@@ -86,7 +87,7 @@ pipy({
     forwardMatches && ((egw = forwardMatches[__port?.EgressForwardGateway || '*']?.next?.()?.id) => (
       egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
     ))(),
-    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target?.id)
+    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
   )
 )
 .onEnd(
@@ -100,8 +101,6 @@ pipy({
   )
 )
 .branch(
-  () => !__target, $=>$.chain(),
-
   () => __cert, (
     $=>$
     .connectTLS({
@@ -110,7 +109,7 @@ pipy({
         key: new crypto.PrivateKey(__cert.PrivateKey),
       }),
       trusted: listIssuingCA,
-    }).to($=>$.connect(() => __target?.id))
+    }).to($=>$.connect(() => __target))
   ),
 
   () => certChain && !__egressEnable, (
@@ -121,17 +120,17 @@ pipy({
         key: new crypto.PrivateKey(privateKey),
       },
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
-    }).to($=>$.connect(() => __target?.id))
+    }).to($=>$.connect(() => __target))
   ),
 
   () => __egressEnable && _egressEndpoint, (
     $=>$
     .connectSOCKS(
-      () => __target?.id,
+      () => __target,
     ).to($=>$.connect(() => _egressEndpoint))
   ),
 
-  $=>$.connect(() => __target?.id)
+  $=>$.connect(() => __target)
 )
 .handleData(
   data => (

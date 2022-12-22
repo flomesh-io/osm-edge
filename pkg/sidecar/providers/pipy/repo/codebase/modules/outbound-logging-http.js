@@ -20,7 +20,7 @@ pipy({
 .handleMessage(
   msg => (
     loggingEnabled && (
-      loggingData = makeLoggingData(msg)
+      loggingData = makeLoggingData(msg, __inbound.destinationAddress, __inbound.destinationPort, __inbound.remoteAddress, __inbound.remotePort)
     )
   )
 )
@@ -28,7 +28,7 @@ pipy({
 .handleMessage(
   msg => (
     loggingEnabled && (
-      saveLoggingData(loggingData, msg, __service?.name, __target?.id, false, __egressEnable, 'outbound')
+      saveLoggingData(loggingData, msg, __service?.name, __target, false, __egressEnable, 'outbound')
     )
   )
 )

@@ -38,7 +38,7 @@ pipy({
   (msg) => (
     tracingEnabled && (
       httpBytesStruct.responseSize = msg?.body?.size,
-      saveTracing(zipkinData, msg?.head, httpBytesStruct, __target?.id)
+      saveTracing(zipkinData, msg?.head, httpBytesStruct, __target)
     )
   )
 )

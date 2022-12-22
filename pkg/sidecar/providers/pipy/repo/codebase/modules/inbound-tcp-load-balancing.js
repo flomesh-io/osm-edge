@@ -26,7 +26,7 @@
   () => (
     (clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) => (
       (__cluster = clusterCache.get(clusterName)) && (
-        __target = targetBalancers.get(__cluster)?.next?.()
+        __target = targetBalancers.get(__cluster)?.next?.()?.id
       )
     )
   )()

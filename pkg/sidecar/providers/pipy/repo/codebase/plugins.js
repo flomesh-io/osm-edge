@@ -57,7 +57,7 @@
         obj
       ))()
     ),
-    
+
     expandChains = chains => (
       ((array = []) => (
         chains.map(
@@ -79,19 +79,19 @@
   ) => (
 
     (config?.Chains?.['inbound-http'] || []).forEach(
-      p => findChain('INBOUND_HTTP_PLUGINS')?.push(p) 
+      p => findChain('INBOUND_HTTP_PLUGINS')?.push(p)
     ),
 
     (config?.Chains?.['inbound-tcp'] || []).forEach(
-      p => findChain('INBOUND_TCP_PLUGINS')?.push(p) 
+      p => findChain('INBOUND_TCP_PLUGINS')?.push(p)
     ),
 
     (config?.Chains?.['outbound-http'] || []).forEach(
-      p => findChain('OUTBOUND_HTTP_PLUGINS')?.push(p)  
+      p => findChain('OUTBOUND_HTTP_PLUGINS')?.push(p)
     ),
 
     (config?.Chains?.['outbound-tcp'] || []).forEach(
-      p => findChain('OUTBOUND_TCP_PLUGINS')?.push(p)  
+      p => findChain('OUTBOUND_TCP_PLUGINS')?.push(p)
     ),
 
     {
@@ -102,5 +102,5 @@
     }
 
   )
-  
+
 )()
