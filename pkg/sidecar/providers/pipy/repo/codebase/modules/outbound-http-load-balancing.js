@@ -3,12 +3,26 @@
   retrySuccessCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_success', ['sidecar_cluster_name']),
   retryLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_limit_exceeded', ['sidecar_cluster_name']),
 
+  funcFailover = json => (
+    json ? ((obj = null) => (
+      obj = Object.fromEntries(
+        Object.entries(json).map(
+          ([k, v]) => (
+            (v === 0) ? ([k, 1]) : null
+          )
+        ).filter(e => e)
+      ),
+      Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
+    ))() : null
+  ),
+
   makeClusterConfig = (clusterConfig) => (
     clusterConfig &&
     {
       targetBalancer: new algo.RoundRobinLoadBalancer(
-        Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight || 100]))
+        Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))
       ),
+      failoverBalancer: funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
       needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
       numRetries: clusterConfig.RetryPolicy?.NumRetries,
       retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
@@ -54,6 +68,7 @@
 ) => pipy({
   _retryCount: 0,
   _clusterConfig: null,
+  _failoverObject: null,
 })
 
 .import({
@@ -73,12 +88,15 @@
     (_clusterConfig = clusterConfigs.get(__cluster)) && (
       __targetObject = _clusterConfig.targetBalancer?.next?.(),
       __target = __targetObject?.id,
-      __muxHttpOptions = _clusterConfig.muxHttpOptions
+      __muxHttpOptions = _clusterConfig.muxHttpOptions,
+      _clusterConfig.failoverBalancer && (
+        _failoverObject = _clusterConfig.failoverBalancer.next()
+      )
     )
   )
 )
 .branch(
-  () => _clusterConfig.needRetry, (
+  () => _clusterConfig?.needRetry, (
     $=>$
     .replay({
         delay: () => _clusterConfig.retryBackoffBaseInterval * Math.min(10, Math.pow(2, _retryCount-1)|0)
@@ -89,6 +107,28 @@
         msg => (
           shouldRetry(msg.head.status) ? new StreamEnd('Replay') : msg
         )
+      )
+    )
+  ),
+
+  () => _failoverObject, (
+    $=>$
+    .replay({ 'delay': 0 }).to(
+      $=>$
+      .chain()
+      .replaceMessage(
+        msg => (
+          (
+            status = msg?.head?.status
+          ) => (
+            _failoverObject && (!status || status < '200' || status > '399') ? (
+              __targetObject = _failoverObject,
+              __target = __targetObject.id,
+              _failoverObject = null,
+              new StreamEnd('Replay')
+            ) : msg
+          )
+        )()
       )
     )
   ),

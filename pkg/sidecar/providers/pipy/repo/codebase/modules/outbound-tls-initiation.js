@@ -20,6 +20,11 @@
           )
         )
       ),
+      Object.values(config?.Outbound?.ClustersConfigs || {}).forEach(
+        c => c?.SourceCert?.IssuingCA && (
+          cas.push(new crypto.Certificate(c?.SourceCert?.IssuingCA))
+        )
+      ),
       cas
     )
   )(),
@@ -46,6 +51,7 @@
 pipy({
   _metrics: null,
   _clusterName: null,
+  _egressType: '',
   _egressEndpoint: null,
 })
 
@@ -84,10 +90,21 @@ pipy({
     _metrics = clusterCache.get(_clusterName),
     _metrics.activeConnectionGauge.increase(),
 
+    !__cert && __cluster?.SourceCert && (
+      __cluster.SourceCert.OsmIssued && (
+        __cert = {CertChain: certChain, PrivateKey: privateKey}
+      ) || (
+        __cert = __cluster.SourceCert
+      )
+    ),
+
     forwardMatches && ((egw = forwardMatches[__port?.EgressForwardGateway || '*']?.next?.()?.id) => (
-      egw && (_egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id)
-    ))(),
-    console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
+      egw && (
+        _egressType = forwardEgressGateways?.[egw]?.mode || 'http2tunnel',
+        _egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id
+      )
+    ))()
+    // , console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
   )
 )
 .onEnd(
@@ -115,19 +132,39 @@ pipy({
   () => certChain && !__egressEnable, (
     $=>$
     .connectTLS({
-      certificate: {
+      certificate:() => ({
         cert: new crypto.Certificate(certChain),
         key: new crypto.PrivateKey(privateKey),
-      },
+      }),
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
     }).to($=>$.connect(() => __target))
   ),
 
   () => __egressEnable && _egressEndpoint, (
     $=>$
-    .connectSOCKS(
-      () => __target,
-    ).to($=>$.connect(() => _egressEndpoint))
+    .branch(
+      () => _egressType === 'http2tunnel', (
+        $ => $
+        .connectHTTPTunnel(
+          () => new Message({
+            method: 'CONNECT',
+            path: __target,
+          })
+        ).to(
+          $ => $.muxHTTP(() => __target, { version: 2 }).to(
+            $ => $.connect(() => _egressEndpoint)
+          )
+        )
+      ), ($ => $
+        .connectSOCKS(
+          () => __target,
+        ).to($ => $
+          .connect(
+            () => _egressEndpoint
+          )
+        )
+      )
+    )
   ),
 
   $=>$.connect(() => __target)
