@@ -71,8 +71,15 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 	if strings.HasPrefix(repoServerIPAddr, "127.") || strings.EqualFold(strings.ToLower(repoServerIPAddr), "localhost") {
 		repoServerIPAddr = fmt.Sprintf("%s.%s", constants.OSMControllerName, injCtx.OsmNamespace)
 	}
-	repoServer := fmt.Sprintf("%s://%s:%v/repo%s/osm-edge-sidecar/%s/",
-		constants.ProtocolHTTP, repoServerIPAddr, cfg.GetProxyServerPort(), cfg.GetRepoServerCodebase(), cnPrefix)
+
+	var repoServer string
+	if len(cfg.GetRepoServerCodebase()) > 0 {
+		repoServer = fmt.Sprintf("%s://%s:%v/repo/%s/osm-edge-sidecar/%s/",
+			constants.ProtocolHTTP, repoServerIPAddr, cfg.GetProxyServerPort(), cfg.GetRepoServerCodebase(), cnPrefix)
+	} else {
+		repoServer = fmt.Sprintf("%s://%s:%v/repo/osm-edge-sidecar/%s/",
+			constants.ProtocolHTTP, repoServerIPAddr, cfg.GetProxyServerPort(), cnPrefix)
+	}
 
 	sidecarContainer := corev1.Container{
 		Name:            constants.SidecarContainerName,
