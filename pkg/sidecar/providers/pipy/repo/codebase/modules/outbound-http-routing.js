@@ -3,6 +3,19 @@
 
   allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
 
+  funcFailover = json => (
+    json ? ((obj = null) => (
+      obj = Object.fromEntries(
+        Object.entries(json).map(
+          ([k, v]) => (
+            (v === 0) ? ([k, 1]) : null
+          )
+        ).filter(e => e)
+      ),
+      Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
+    ))() : null
+  ),
+
   clusterCache = new algo.Cache(
     (clusterName => (
       (cluster = config?.Outbound?.ClustersConfigs?.[clusterName]) => (
@@ -33,18 +46,25 @@
             ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
             balancer = new algo.RoundRobinLoadBalancer(config.TargetClusters || {}),
+            failoverBalancer = funcFailover(config.TargetClusters),
             service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
-                __cluster = clusterCache.get(balancer.next()?.id)
+                __cluster = clusterCache.get(balancer.next()?.id),
+                failoverBalancer && (
+                  _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
+                )
               )
             ) : (
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
-                __cluster = clusterCache.get(balancer.next()?.id)
+                __cluster = clusterCache.get(balancer.next()?.id),
+                failoverBalancer && (
+                  _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
+                )
               )
             ),
             allowedMethods = config.Methods || allMethods,
@@ -85,7 +105,9 @@
 
   portHandlers = new algo.Cache(makePortHandler),
 
-) => pipy()
+) => pipy({
+  _failoverCluster: null,
+})
 
 .import({
   __port: 'outbound-main',
@@ -100,10 +122,30 @@
 .pipeline()
 .demuxHTTP().to(
   $=>$
-  .handleMessageStart(
-    msg => portHandlers.get(__port)(msg)
+  .replay({ 'delay': 0 }).to(
+    $=>$
+    .handleMessageStart(
+      msg => (
+        _failoverCluster && (
+          __cluster = _failoverCluster,
+          _failoverCluster = null,
+          true
+        ) || (
+          portHandlers.get(__port)(msg)
+        )
+      )
+    )
+    .chain()
+    .replaceMessage(
+      msg => (
+        (
+          status = msg?.head?.status
+        ) => (
+          _failoverCluster && (!status || status < '200' || status > '399') ? new StreamEnd('Replay') : msg
+        )
+      )()
+    )
   )
-  .chain()
 )
 
 )()

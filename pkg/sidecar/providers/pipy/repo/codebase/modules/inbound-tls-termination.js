@@ -34,14 +34,14 @@
 
 .pipeline()
 .branch(
-  () => certChain && (
+  () => certChain && __port && (
     _tlsConfig = sourceIPRangesCache.get(__port?.SourceIPRanges)?.find?.(o => o.netmask.contains(__inbound.remoteAddress || '127.0.0.1')),
     !_tlsConfig || _tlsConfig?.mTLS), (
     $=>$.acceptTLS({
-      certificate: {
+      certificate: () => ({
         cert: new crypto.Certificate(certChain),
         key: new crypto.PrivateKey(privateKey),
-      },
+      }),
       trusted: issuingCA ? [new crypto.Certificate(issuingCA)] : [],
       verify: (ok, cert) => (
         _tlsConfig?.mTLS && !_tlsConfig?.skipClientCertValidation && (

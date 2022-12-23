@@ -9,9 +9,13 @@
   __target: 'inbound-main',
 })
 
+.export('inbound-http-load-balancing', {
+  __targetObject: null,
+})
+
 .pipeline()
 .handleStreamStart(
-  () => __target = targetBalancers.get(__cluster)?.next?.()
+  () => (__targetObject = targetBalancers.get(__cluster)?.next?.()) && (__target = __targetObject.id)
 )
 .chain()
 

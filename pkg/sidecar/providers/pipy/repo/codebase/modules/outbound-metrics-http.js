@@ -29,7 +29,10 @@ pipy({
       metrics = clusterCache.get(clusterName),
       osmRequestDurationHist = identityCache.get(msg?.head?.headers?.['osm-stats']),
     ) => (
-      osmRequestDurationHist?.observe?.(Date.now() - _requestTime),
+      osmRequestDurationHist && (
+        osmRequestDurationHist.observe(Date.now() - _requestTime),
+        delete msg.head.headers['osm-stats']
+      ),
       metrics.upstreamCompletedCount.increase(),
       metrics.upstreamResponseTotal.increase(),
       status && (

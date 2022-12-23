@@ -1,7 +1,11 @@
 (
   (
-    logLogging = null,
+    namespace = (os.env.POD_NAMESPACE || 'default'),
+    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+    name = (os.env.SERVICE_ACCOUNT || ''),
+    pod = (os.env.POD_NAME || ''),
     address = os.env.REMOTE_LOGGING_ADDRESS,
+    logLogging = null,
     logger = {},
   ) => (
 
@@ -18,16 +22,40 @@
       }
     }).log),
 
+    logger.initTracingHeaders = (namespace, kind, name, pod, headers) => (
+      (
+        uuid = algo.uuid(),
+        id = uuid.substring(0, 18).replaceAll('-', ''),
+      ) => (
+        headers['x-forwarded-proto'] = 'http',
+        headers['x-b3-spanid'] &&
+        (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) &&
+        (headers['x-b3-spanid'] = id),
+        !headers['x-b3-traceid'] &&
+        (headers['x-b3-traceid'] = id) &&
+        (headers['x-b3-spanid'] = id) &&
+        (headers['x-b3-sampled'] = '1'),
+        !headers['x-request-id'] && (headers['x-request-id'] = uuid),
+        headers['osm-stats-namespace'] = namespace,
+        headers['osm-stats-kind'] = kind,
+        headers['osm-stats-name'] = name,
+        headers['osm-stats-pod'] = pod
+      )
+    )(),
+
     logger.loggingEnabled = Boolean(logLogging),
 
-    logger.makeLoggingData = (msg) => (
+    logger.makeLoggingData = (msg, remoteAddr, remotePort, localAddr, localPort) => (
+      msg.head.headers && !msg.head.headers['x-b3-traceid'] && (
+        logger.initTracingHeaders(namespace, kind, name, pod, msg.head.headers)
+      ),
       {
         reqTime: Date.now(),
         meshName: os.env.MESH_NAME || '',
-        remoteAddr: () => __inbound?.remoteAddress,
-        remotePort: () => __inbound?.remotePort,
-        localAddr: () => __inbound?.destinationAddress,
-        localPort: () => __inbound?.destinationPort,
+        remoteAddr,
+        remotePort,
+        localAddr,
+        localPort,
         node: {
           ip: os.env.POD_IP || '127.0.0.1',
           name: os.env.HOSTNAME || 'localhost',
@@ -60,7 +88,7 @@
       logLogging(loggingData)
       // , console.log('loggingData : ', loggingData)
     ),
-    
+
     logger
   )
 )()
