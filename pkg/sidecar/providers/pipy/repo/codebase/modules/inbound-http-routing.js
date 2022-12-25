@@ -66,7 +66,8 @@
       ),
 
       (method, path, headers) => void (
-        tree[headers.serviceidentity || '']?.[method]?.find?.(rule => rule(path, headers))
+        (headers.serviceidentity && tree[headers.serviceidentity]?.[method] || tree['']?.[method])?.find?.(rule => rule(path, headers))
+        // tree[headers.serviceidentity || '']?.[method]?.find?.(rule => rule(path, headers))
       )
     )
   )(),

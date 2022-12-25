@@ -19,10 +19,10 @@
   makeClusterConfig = (clusterConfig) => (
     clusterConfig &&
     {
-      targetBalancer: new algo.RoundRobinLoadBalancer(
+      targetBalancer: clusterConfig.Endpoints && new algo.RoundRobinLoadBalancer(
         Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))
       ),
-      failoverBalancer: funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
+      failoverBalancer: clusterConfig.Endpoints && funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
       needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
       numRetries: clusterConfig.RetryPolicy?.NumRetries,
       retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
@@ -95,6 +95,7 @@
     )
   )
 )
+
 .branch(
   () => _clusterConfig?.needRetry, (
     $=>$

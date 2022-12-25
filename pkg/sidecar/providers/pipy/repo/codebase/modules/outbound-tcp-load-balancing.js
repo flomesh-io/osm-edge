@@ -24,6 +24,7 @@
   __port: 'outbound-main',
   __cluster: 'outbound-main',
   __target: 'outbound-main',
+  __egressEnable: 'outbound-main',
 })
 
 .pipeline()
@@ -38,6 +39,7 @@
       (
         target = __inbound.destinationAddress + ':' + __inbound.destinationPort
       ) => (
+        __egressEnable = true,
         !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
           [target]: 100
         })),

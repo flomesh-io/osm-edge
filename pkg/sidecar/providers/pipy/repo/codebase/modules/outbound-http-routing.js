@@ -77,7 +77,10 @@
       ),
 
       (method, path, headers) => void (
-        tree[method]?.find?.(rule => rule(path, headers))
+        tree[method]?.find?.(rule => rule(path, headers)),
+        __cluster && (
+          headers['serviceidentity'] = __port.ServiceIdentity
+        )
       )
     )
   )(),

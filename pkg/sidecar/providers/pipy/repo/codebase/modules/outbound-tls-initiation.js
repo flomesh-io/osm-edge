@@ -1,5 +1,6 @@
 ((
   config = pipy.solve('config.js'),
+  isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     clusterCache
   } = pipy.solve('modules/metrics.js'),
@@ -104,12 +105,21 @@ pipy({
         _egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id
       )
     ))()
-    // , console.log('outbound - TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
   )
 )
 .onEnd(
   () => void (
     _metrics.activeConnectionGauge.decrease()
+  )
+)
+.branch(
+  isDebugEnabled, (
+    $=>$
+    .handleStreamStart(
+      () => (
+        console.log('outbound # TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
+      )
+    )
   )
 )
 .handleData(
