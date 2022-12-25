@@ -11,7 +11,7 @@
 
   makePortHandler = (port) => (
     (
-      destinations = (config?.Outbound?.TrafficMatches[port] || []).map(
+      destinations = (config?.Outbound?.TrafficMatches?.[port] || []).map(
         config => ({
           ranges: config.DestinationIPRanges && Object.entries(config.DestinationIPRanges).map(
             ([k, config]) => ({

@@ -1,4 +1,6 @@
 ((
+  config = pipy.solve('config.js'),
+  isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     clusterCache,
   } = pipy.solve('modules/metrics.js'),
@@ -45,6 +47,16 @@ pipy({
 .onEnd(
   () => void (
     _metrics.activeConnectionGauge.decrease()
+  )
+)
+.branch(
+  isDebugEnabled, (
+    $=>$
+    .handleStreamStart(
+      () => (
+        console.log('inbound # __protocol, __isHTTP2, __target : ', __protocol, __isHTTP2, __target)
+      )
+    )
   )
 )
 .handleData(
