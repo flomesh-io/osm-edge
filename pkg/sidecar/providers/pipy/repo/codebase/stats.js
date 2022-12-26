@@ -43,11 +43,15 @@ pipy({
       .replaceMessage(
         (msg, out) => (
           !(out = msg?.body?.toString()?.split?.('\n')) && (out = []),
-          out = out.filter(line => line.indexOf('peer') > 0),
+          out = out.filter(line => line.indexOf('peer') > 0 || line.indexOf('_retry') > 0),
           (_statsPath === '/clusters') && (out = out.filter(line => line.indexOf('_bucket') < 0)),
-          // out = out.concat(Object.entries(metrics.sidecarInsideStats).map(
-          // ([k, v]) => (k + ': ' + v)
-          // )),
+          out = out.map(
+            s => s.indexOf('rq_retry') > 0 ? (
+              (
+                items = s.replace('sidecar_cluster_', '').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
+              ) => 'cluster.' + items[2] + '.' + items[0] + ': ' + items[4]
+            )() : s
+          ),
           new Message(out.join('\n'))
         )
       ),
