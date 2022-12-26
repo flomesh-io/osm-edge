@@ -2,6 +2,17 @@
   retryCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry', ['sidecar_cluster_name']),
   retrySuccessCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_success', ['sidecar_cluster_name']),
   retryLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_limit_exceeded', ['sidecar_cluster_name']),
+  retryOverflowCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_overflow', ['sidecar_cluster_name']),
+  retryBackoffCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_backoff_exponential', ['sidecar_cluster_name']),
+  retryBackoffLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_backoff_ratelimited', ['sidecar_cluster_name']),
+
+  funcShuffle = arg => (
+    (
+      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
+    ) => (
+      arg ? Object.fromEntries(sort(sort(Object.entries(arg)))) : {}
+    )
+  )(),
 
   funcFailover = json => (
     json ? ((obj = null) => (
@@ -17,34 +28,48 @@
   ),
 
   makeClusterConfig = (clusterConfig) => (
-    clusterConfig &&
-    {
-      targetBalancer: clusterConfig.Endpoints && new algo.RoundRobinLoadBalancer(
-        Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))
-      ),
-      failoverBalancer: clusterConfig.Endpoints && funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
-      needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
-      numRetries: clusterConfig.RetryPolicy?.NumRetries,
-      retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
-        (lut, code) => (
-          code.endsWith('xx') ? (
-            new Array(100).fill(0).forEach((_, i) => lut[(code.charAt(0)|0)*100+i] = true)
-          ) : (
-            lut[code|0] = true
+    clusterConfig && (
+      (
+        obj = {
+          targetBalancer: clusterConfig.Endpoints && new algo.RoundRobinLoadBalancer(
+            funcShuffle(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight])))
           ),
-          lut
-        ),
-        []
-      ),
-      retryBackoffBaseInterval: clusterConfig.RetryPolicy?.RetryBackoffBaseInterval || 1, // default 1 second
-      retryCounter: retryCounter.withLabels(clusterConfig.name),
-      retrySuccessCounter: retrySuccessCounter.withLabels(clusterConfig.name),
-      retryLimitCounter: retryLimitCounter.withLabels(clusterConfig.name),
-      muxHttpOptions: {
-        version: () => __isHTTP2 ? 2 : 1,
-        maxMessages: clusterConfig.ConnectionSettings?.http?.MaxRequestsPerConnection
-      },
-    }
+          failoverBalancer: clusterConfig.Endpoints && funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
+          needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
+          numRetries: clusterConfig.RetryPolicy?.NumRetries,
+          retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
+            (lut, code) => (
+              code.endsWith('xx') ? (
+                new Array(100).fill(0).forEach((_, i) => lut[(code.charAt(0)|0)*100+i] = true)
+              ) : (
+                lut[code|0] = true
+              ),
+              lut
+            ),
+            []
+          ),
+          retryBackoffBaseInterval: clusterConfig.RetryPolicy?.RetryBackoffBaseInterval > 1 ? 1 : clusterConfig.RetryPolicy?.RetryBackoffBaseInterval,
+          retryCounter: retryCounter.withLabels(clusterConfig.name),
+          retrySuccessCounter: retrySuccessCounter.withLabels(clusterConfig.name),
+          retryLimitCounter: retryLimitCounter.withLabels(clusterConfig.name),
+          retryOverflowCounter: retryOverflowCounter.withLabels(clusterConfig.name),
+          retryBackoffCounter: retryBackoffCounter.withLabels(clusterConfig.name),
+          retryBackoffLimitCounter: retryBackoffLimitCounter.withLabels(clusterConfig.name),
+          muxHttpOptions: {
+            version: () => __isHTTP2 ? 2 : 1,
+            maxMessages: clusterConfig.ConnectionSettings?.http?.MaxRequestsPerConnection
+          },
+        },
+      ) => (
+        obj.retryCounter.zero(),
+        obj.retrySuccessCounter.zero(),
+        obj.retryLimitCounter.zero(),
+        obj.retryOverflowCounter.zero(),
+        obj.retryBackoffCounter.zero(),
+        obj.retryBackoffLimitCounter.zero(),
+        obj
+      )
+    )()
   ),
 
   clusterConfigs = new algo.Cache(makeClusterConfig),
@@ -53,6 +78,7 @@
     _clusterConfig.retryStatusCodes[statusCode] ? (
       (_retryCount < _clusterConfig.numRetries) ? (
         _clusterConfig.retryCounter.increase(),
+        _clusterConfig.retryBackoffCounter.increase(),
         _retryCount++,
         true
       ) : (

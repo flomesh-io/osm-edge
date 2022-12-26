@@ -3,6 +3,14 @@
 
   allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
 
+  funcShuffle = arg => (
+    (
+      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
+    ) => (
+      arg ? Object.fromEntries(sort(sort(Object.entries(arg)))) : {}
+    )
+  )(),
+
   funcFailover = json => (
     json ? ((obj = null) => (
       obj = Object.fromEntries(
@@ -45,7 +53,7 @@
               )
             ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
-            balancer = new algo.RoundRobinLoadBalancer(config.TargetClusters || {}),
+            balancer = new algo.RoundRobinLoadBalancer(funcShuffle(config.TargetClusters || {})),
             failoverBalancer = funcFailover(config.TargetClusters),
             service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
             rule = headerRules ? (
