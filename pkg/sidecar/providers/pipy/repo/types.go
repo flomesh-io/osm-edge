@@ -54,7 +54,6 @@ type Server struct {
 	repoClient *client.PipyRepoClient
 
 	retryProxiesJob func()
-	retryPluginsJob func()
 }
 
 // Protocol is a string wrapper type

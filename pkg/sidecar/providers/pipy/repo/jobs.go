@@ -196,9 +196,6 @@ func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, prox
 		return
 	}
 
-	s.pluginMutex.RLock()
-	defer s.pluginMutex.RUnlock()
-
 	pluginChains := cataloger.GetPluginChains()
 	if len(pluginChains) == 0 {
 		return
@@ -215,12 +212,12 @@ func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, prox
 		log.Warn().Str("proxy", proxy.String()).Str("namespace", pod.Namespace).Msg("Could not find namespace for connecting proxy.")
 	}
 
-	pluginSet := s.pluginSet
+	pluginSet, pluginPri := s.updatePlugins()
 	plugin2MountPoint2Config, mountPoint2Plugins := walkPluginChain(pluginChains, ns, pod, pluginSet, s, proxy)
 	meshSvc2Plugin2MountPoint2Config := walkPluginConfig(cataloger, plugin2MountPoint2Config)
 
 	pipyConf.pluginPolicies = meshSvc2Plugin2MountPoint2Config
-	setSidecarChain(pipyConf, s.pluginPri, mountPoint2Plugins)
+	setSidecarChain(pipyConf, pluginPri, mountPoint2Plugins)
 
 	pluginSetVersion = s.pluginSetVersion
 	return

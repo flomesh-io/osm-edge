@@ -13,9 +13,6 @@ const (
 	// ProxyUpdate is the event kind used to trigger an update to subscribed proxies
 	ProxyUpdate Kind = "proxy-update"
 
-	// PluginUpdate is the event kind used to trigger an update to subscribed consumers
-	PluginUpdate Kind = "plugin-update"
-
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
 	PodAdded Kind = "pod-added"
 

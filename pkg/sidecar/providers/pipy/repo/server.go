@@ -88,11 +88,6 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 		return err
 	}
 
-	s.updatePlugins()
-
-	// Start plugin listener thread
-	go s.pluginListener()
-
 	// Start broadcast listener thread
 	go s.broadcastListener()
 

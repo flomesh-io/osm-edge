@@ -21,7 +21,6 @@ type Broker struct {
 	proxyUpdateCh                  chan proxyUpdateEvent
 	kubeEventPubSub                *pubsub.PubSub
 	certPubSub                     *pubsub.PubSub
-	pluginUpdatePubSub             *pubsub.PubSub
 	totalQEventCount               uint64
 	totalQProxyEventCount          uint64
 	totalDispatchedProxyEventCount uint64

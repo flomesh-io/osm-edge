@@ -2,19 +2,16 @@ package repo
 
 import (
 	"fmt"
-	"sort"
-	"strings"
-	"time"
-
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sort"
+	"strings"
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
@@ -22,55 +19,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func (s *Server) pluginListener() {
-	pluginUpdatePubSub := s.msgBroker.GetPluginUpdatePubSub()
-	pluginUpdateChan := pluginUpdatePubSub.Sub(announcements.PluginUpdate.String())
-	defer s.msgBroker.Unsub(pluginUpdatePubSub, pluginUpdateChan)
-
-	slidingTimer := time.NewTimer(time.Second * 10)
-	defer slidingTimer.Stop()
-
-	slidingTimerReset := func() {
-		slidingTimer.Reset(time.Second * 5)
-	}
-	s.retryPluginsJob = slidingTimerReset
-
-	reconfirm := true
-
-	for {
-		select {
-		case <-pluginUpdateChan:
-			// Wait for an informer synchronization period
-			slidingTimer.Reset(time.Second * 5)
-			// Avoid data omission
-			reconfirm = true
-
-		case <-slidingTimer.C:
-			if s.updatePlugins() {
-				if s.retryProxiesJob != nil {
-					s.retryProxiesJob()
-				}
-			}
-			if reconfirm {
-				reconfirm = false
-				slidingTimer.Reset(time.Second * 10)
-			}
-		}
-	}
-}
-
-func (s *Server) updatePlugins() bool {
+func (s *Server) updatePlugins() (pluginSet mapset.Set, pluginPri map[string]uint16) {
 	var pluginItems []client.BatchItem
 	var pluginVers []string
-	newPluginSet := mapset.NewSet()
-	newPluginPri := make(map[string]uint16)
+	pluginSet = mapset.NewSet()
+	pluginPri = make(map[string]uint16)
 
 	plugins := s.catalog.GetPlugins()
 	for _, pluginItem := range plugins {
 		uri := getPluginURI(pluginItem.Name)
 		bytes := []byte(pluginItem.Script)
-		newPluginSet.Add(pluginItem.Name)
-		newPluginPri[pluginItem.Name] = pluginItem.Priority
+		pluginSet.Add(pluginItem.Name)
+		pluginPri[pluginItem.Name] = pluginItem.Priority
 		pluginItems = append(pluginItems, client.BatchItem{
 			Filename: uri,
 			Content:  bytes,
@@ -78,7 +38,7 @@ func (s *Server) updatePlugins() bool {
 		pluginVers = append(pluginVers, fmt.Sprintf("%s:%d:%d", uri, pluginItem.Priority, hash(bytes)))
 	}
 
-	diffSet := s.pluginSet.Difference(newPluginSet)
+	diffSet := s.pluginSet.Difference(pluginSet)
 	diffPlugins := diffSet.ToSlice()
 	for _, pluginName := range diffPlugins {
 		pluginItems = append(pluginItems, client.BatchItem{
@@ -95,7 +55,7 @@ func (s *Server) updatePlugins() bool {
 		defer s.pluginMutex.Unlock()
 
 		if s.pluginSetVersion == pluginSetVersion {
-			return false
+			return
 		}
 		_, err := s.repoClient.Batch(pluginSetVersion, []client.Batch{
 			{
@@ -106,14 +66,12 @@ func (s *Server) updatePlugins() bool {
 		if err != nil {
 			log.Error().Err(err)
 		} else {
-			s.pluginSet = newPluginSet
-			s.pluginPri = newPluginPri
+			s.pluginSet = pluginSet
+			s.pluginPri = pluginPri
 			s.pluginSetVersion = pluginSetVersion
 		}
-		return true
 	}
-
-	return false
+	return
 }
 
 // getPluginURI return the URI of the plugin.
@@ -169,8 +127,8 @@ func walkPluginChain(pluginChains []*trafficpolicy.PluginChain, ns *corev1.Names
 							Str("plugin", pluginName).
 							Msg("Could not find plugin for connecting proxy.")
 					}
-					if s.retryPluginsJob != nil {
-						s.retryPluginsJob()
+					if s.retryProxiesJob != nil {
+						s.retryProxiesJob()
 					}
 					continue
 				}
