@@ -17,7 +17,7 @@
 
   makeServiceHandler = (portConfig, serviceName) => (
     (
-      rules = portConfig.HttpServiceRouteRules[serviceName]?.RouteRules || [],
+      rules = portConfig?.HttpServiceRouteRules?.[serviceName]?.RouteRules || [],
       tree = {},
     ) => (
       rules.forEach(
@@ -38,7 +38,7 @@
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
             balancer = new algo.RoundRobinLoadBalancer(shuffle(config.TargetClusters || {})),
             failoverBalancer = failover(config.TargetClusters),
-            service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
+            service = Object.assign({ name: serviceName }, portConfig?.HttpServiceRouteRules?.[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
@@ -83,7 +83,7 @@
       ),
 
       hostHandlers = new algo.Cache(
-        (host) => serviceHandlers.get(portConfig.HttpHostPort2Service[host])
+        (host) => serviceHandlers.get(portConfig?.HttpHostPort2Service?.[host])
       ),
     ) => (
       (msg) => (
@@ -100,15 +100,16 @@
   portHandlers = new algo.Cache(makePortHandler),
 
 ) => pipy({
+  _origPath: null,
   _failoverCluster: null,
 })
 
 .import({
-  __port: 'outbound-main',
-  __cluster: 'outbound-main',
+  __port: 'outbound',
+  __cluster: 'outbound',
 })
 
-.export('outbound-http-routing', {
+.export('outbound-http', {
   __route: null,
   __service: null,
 })
@@ -120,6 +121,7 @@
     $=>$
     .handleMessageStart(
       msg => (
+        _origPath && (msg.head.path = _origPath) || (_origPath = msg?.head?.path),
         _failoverCluster && (
           __cluster = _failoverCluster,
           _failoverCluster = null,

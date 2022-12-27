@@ -13,7 +13,7 @@
 
   makeServiceHandler = (portConfig, serviceName) => (
     (
-      rules = portConfig.HttpServiceRouteRules[serviceName]?.RouteRules || [],
+      rules = portConfig?.HttpServiceRouteRules?.[serviceName]?.RouteRules || [],
       tree = {},
     ) => (
       rules.forEach(
@@ -33,7 +33,7 @@
             ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
             balancer = new algo.RoundRobinLoadBalancer(config.TargetClusters || {}),
-            service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
+            service = Object.assign({ name: serviceName }, portConfig?.HttpServiceRouteRules?.[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
@@ -74,14 +74,14 @@
 
   makePortHandler = portConfig => (
     (
-      ingressRanges = Object.keys(portConfig.SourceIPRanges || {}).map(k => new Netmask(k)),
+      ingressRanges = Object.keys(portConfig?.SourceIPRanges || {}).map(k => new Netmask(k)),
 
       serviceHandlers = new algo.Cache(
         serviceName => makeServiceHandler(portConfig, serviceName)
       ),
 
       makeHostHandler = (portConfig, host) => (
-        serviceHandlers.get(portConfig.HttpHostPort2Service[host])
+        serviceHandlers.get(portConfig?.HttpHostPort2Service?.[host])
       ),
 
       hostHandlers = new algo.Cache(
@@ -97,7 +97,7 @@
             headers = head.headers,
             handler = hostHandlers.get(ingressRange ? '*' : headers.host),
           ) => (
-            __ingressEnable = Boolean(ingressRange),
+            __isIngress = Boolean(ingressRange),
             handler(head.method, head.path, headers)
           )
         )()
@@ -120,14 +120,14 @@
 ) => pipy()
 
 .import({
-  __port: 'inbound-main',
-  __cluster: 'inbound-main',
+  __port: 'inbound',
+  __cluster: 'inbound',
+  __isIngress: 'inbound',
 })
 
-.export('inbound-http-routing', {
+.export('inbound-http', {
   __route: null,
   __service: null,
-  __ingressEnable: false,
 })
 
 .pipeline()

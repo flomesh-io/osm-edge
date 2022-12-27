@@ -11,9 +11,9 @@ pipy({
 })
 
 .import({
-  __target: 'inbound-main',
-  __service: 'inbound-http-routing',
-  __ingressEnable: 'inbound-http-routing',
+  __target: 'inbound',
+  __isIngress: 'inbound',
+  __service: 'inbound-http',
 })
 
 .pipeline()
@@ -28,7 +28,7 @@ pipy({
 .handleMessage(
   msg => (
     loggingEnabled && (
-      saveLoggingData(loggingData, msg, __service?.name, __target, __ingressEnable, false, 'inbound')
+      saveLoggingData(loggingData, msg, __service?.name, __target, __isIngress, false, 'inbound')
     )
   )
 )

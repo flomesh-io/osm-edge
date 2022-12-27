@@ -16,9 +16,9 @@
 ) => pipy()
 
 .import({
-  __port: 'inbound-main',
-  __cluster: 'inbound-main',
-  __target: 'inbound-main',
+  __port: 'inbound',
+  __cluster: 'inbound',
+  __target: 'inbound',
 })
 
 .pipeline()

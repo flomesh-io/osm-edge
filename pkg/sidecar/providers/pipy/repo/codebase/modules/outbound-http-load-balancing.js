@@ -82,9 +82,10 @@
 })
 
 .import({
-  __isHTTP2: 'outbound-main',
-  __cluster: 'outbound-main',
-  __target: 'outbound-main',
+  __isHTTP2: 'outbound',
+  __cluster: 'outbound',
+  __target: 'outbound',
+  __isEgress: 'outbound',
 })
 
 .export('outbound-http-load-balancing', {
@@ -103,6 +104,20 @@
         _failoverObject = _clusterConfig.failoverBalancer.next()
       )
     )
+  )
+)
+.handleMessageStart(
+  msg => (
+    __target && (
+      (
+        attrs = __cluster?.EndpointAttributes?.[__target]
+      ) => (
+        attrs?.Path && (
+          __isEgress = true,
+          msg.head.path = attrs.Path + msg.head.path
+        )
+      )
+    )()
   )
 )
 

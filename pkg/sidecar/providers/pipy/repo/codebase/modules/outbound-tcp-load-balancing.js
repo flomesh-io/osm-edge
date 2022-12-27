@@ -21,10 +21,10 @@
 })
 
 .import({
-  __port: 'outbound-main',
-  __cluster: 'outbound-main',
-  __target: 'outbound-main',
-  __egressEnable: 'outbound-main',
+  __port: 'outbound',
+  __cluster: 'outbound',
+  __target: 'outbound',
+  __isEgress: 'outbound',
 })
 
 .pipeline()
@@ -39,7 +39,7 @@
       (
         target = __inbound.destinationAddress + ':' + __inbound.destinationPort
       ) => (
-        __egressEnable = true,
+        __isEgress = true,
         !_egressTargetMap[target] && (_egressTargetMap[target] = new algo.RoundRobinLoadBalancer({
           [target]: 100
         })),

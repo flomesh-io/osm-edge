@@ -8,7 +8,7 @@
 pipy()
 
 .import({
-  __cluster: 'inbound-main',
+  __cluster: 'inbound',
 })
 
 .pipeline()

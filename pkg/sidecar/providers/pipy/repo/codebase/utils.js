@@ -1,5 +1,4 @@
 (() => (
-
   {
     initRateLimit: rateLimit => (
       rateLimit?.Local ? (
@@ -41,5 +40,4 @@
       ))() : null
     ),
   }
-
 ))()

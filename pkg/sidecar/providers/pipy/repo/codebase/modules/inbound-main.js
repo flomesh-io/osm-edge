@@ -53,12 +53,13 @@
 
 ) => pipy()
 
-.export('inbound-main', {
+.export('inbound', {
   __port: null,
   __protocol: null,
   __isHTTP2: false,
   __cluster: null,
   __target: null,
+  __isIngress: false,
 })
 
 .pipeline()
