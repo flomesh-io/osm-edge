@@ -8,7 +8,7 @@
     initTracingHeaders,
     makeZipKinData,
     saveTracing,
-  } = pipy.solve('modules/tracing.js')
+  } = pipy.solve('tracing.js')
 ) => (
 
 pipy({

@@ -1,28 +1,11 @@
 ((
   config = pipy.solve('config.js'),
+  {
+    shuffle,
+    failover,
+  } = pipy.solve('utils.js'),
 
   allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
-
-  funcShuffle = arg => (
-    (
-      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
-    ) => (
-      arg ? Object.fromEntries(sort(sort(Object.entries(arg)))) : {}
-    )
-  )(),
-
-  funcFailover = json => (
-    json ? ((obj = null) => (
-      obj = Object.fromEntries(
-        Object.entries(json).map(
-          ([k, v]) => (
-            (v === 0) ? ([k, 1]) : null
-          )
-        ).filter(e => e)
-      ),
-      Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
-    ))() : null
-  ),
 
   clusterCache = new algo.Cache(
     (clusterName => (
@@ -53,8 +36,8 @@
               )
             ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
-            balancer = new algo.RoundRobinLoadBalancer(funcShuffle(config.TargetClusters || {})),
-            failoverBalancer = funcFailover(config.TargetClusters),
+            balancer = new algo.RoundRobinLoadBalancer(shuffle(config.TargetClusters || {})),
+            failoverBalancer = failover(config.TargetClusters),
             service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (

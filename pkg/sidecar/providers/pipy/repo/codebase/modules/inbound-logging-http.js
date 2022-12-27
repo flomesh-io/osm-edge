@@ -3,7 +3,7 @@
     loggingEnabled,
     makeLoggingData,
     saveLoggingData,
-  } = pipy.solve('modules/logging.js')
+  } = pipy.solve('logging.js')
 ) => (
 
 pipy({

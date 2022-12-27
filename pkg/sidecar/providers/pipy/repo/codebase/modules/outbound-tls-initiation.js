@@ -3,7 +3,7 @@
   isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     clusterCache
-  } = pipy.solve('modules/metrics.js'),
+  } = pipy.solve('metrics.js'),
 
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,

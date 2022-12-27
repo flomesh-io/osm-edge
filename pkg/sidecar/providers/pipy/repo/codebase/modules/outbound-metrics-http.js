@@ -2,7 +2,7 @@
   {
     clusterCache,
     identityCache,
-  } = pipy.solve('modules/metrics.js'),
+  } = pipy.solve('metrics.js'),
 ) => (
 
 pipy({
