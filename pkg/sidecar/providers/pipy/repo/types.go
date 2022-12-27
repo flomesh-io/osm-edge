@@ -278,13 +278,23 @@ type InboundHTTPRouteRuleSlice []*InboundHTTPRouteRule
 
 // InboundHTTPRouteRules is a wrapper type
 type InboundHTTPRouteRules struct {
-	RouteRules       InboundHTTPRouteRuleSlice `json:"RouteRules"`
-	RateLimit        *HTTPRateLimit            `json:"RateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit    `json:"HeaderRateLimits"`
+	RouteRules InboundHTTPRouteRuleSlice `json:"RouteRules"`
+	Pluggable
+	TCPRateLimit     *TCPRateLimit          `json:"L4RateLimit"`
+	HTTPRateLimit    *HTTPRateLimit         `json:"L7RateLimit"`
+	HeaderRateLimits []*HTTPHeaderRateLimit `json:"HeaderRateLimits"`
+	AllowedEndpoints AllowedEndpoints       `json:"AllowedEndpoints"`
 }
 
 // InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
 type InboundHTTPServiceRouteRules map[HTTPRouteRuleName]*InboundHTTPRouteRules
+
+// InboundTCPServiceRouteRules is a wrapper type
+type InboundTCPServiceRouteRules struct {
+	TargetClusters WeightedClusters `json:"TargetClusters"`
+	Pluggable
+	TCPRateLimit *TCPRateLimit `json:"L4RateLimit"`
+}
 
 // InboundTrafficMatch represents the match of InboundTraffic
 type InboundTrafficMatch struct {
@@ -293,10 +303,7 @@ type InboundTrafficMatch struct {
 	SourceIPRanges        SourceIPRanges               `json:"SourceIPRanges"`
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters             `json:"TargetClusters"`
-	AllowedEndpoints      AllowedEndpoints             `json:"AllowedEndpoints"`
-	RateLimit             *TCPRateLimit                `json:"RateLimit"`
-	Pluggable
+	TCPServiceRouteRules  *InboundTCPServiceRouteRules `json:"TcpServiceRouteRules"`
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch

@@ -214,23 +214,6 @@ func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange, sourceSp
 	}
 }
 
-func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName ServiceName) {
-	if itm.AllowedEndpoints == nil {
-		itm.AllowedEndpoints = make(AllowedEndpoints)
-	}
-	if _, exists := itm.AllowedEndpoints[address]; !exists {
-		itm.AllowedEndpoints[address] = serviceName
-	}
-}
-
-func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
-	if rateLimit == nil || rateLimit.Local == nil {
-		itm.RateLimit = nil
-	} else {
-		itm.RateLimit = newTCPRateLimit(rateLimit.Local)
-	}
-}
-
 func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange, destinationSpec *DestinationSecuritySpec) {
 	if otm.DestinationIPRanges == nil {
 		otm.DestinationIPRanges = make(map[DestinationIPRange]*DestinationSecuritySpec)
@@ -278,11 +261,26 @@ func (otm *OutboundTrafficMatch) setProtocol(protocol Protocol) {
 	}
 }
 
-func (itm *InboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if itm.TargetClusters == nil {
-		itm.TargetClusters = make(WeightedClusters)
+func (itm *InboundTrafficMatch) newTCPServiceRouteRules() *InboundTCPServiceRouteRules {
+	if itm.TCPServiceRouteRules == nil {
+		itm.TCPServiceRouteRules = new(InboundTCPServiceRouteRules)
 	}
-	itm.TargetClusters[clusterName] = weight
+	return itm.TCPServiceRouteRules
+}
+
+func (srr *InboundTCPServiceRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		srr.TCPRateLimit = nil
+	} else {
+		srr.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
+	}
+}
+
+func (srr *InboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if srr.TargetClusters == nil {
+		srr.TargetClusters = make(WeightedClusters)
+	}
+	srr.TargetClusters[clusterName] = weight
 }
 
 func (otm *OutboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
@@ -383,11 +381,19 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*Outb
 	return trafficMatch, false
 }
 
+func (hrrs *InboundHTTPRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		hrrs.TCPRateLimit = nil
+	} else {
+		hrrs.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
+	}
+}
+
 func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
-		hrrs.RateLimit = nil
+		hrrs.HTTPRateLimit = nil
 	} else {
-		hrrs.RateLimit = newHTTPRateLimit(rateLimit.Local)
+		hrrs.HTTPRateLimit = newHTTPRateLimit(rateLimit.Local)
 	}
 }
 
@@ -396,6 +402,15 @@ func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]policyv1
 		hrrs.HeaderRateLimits = nil
 	} else {
 		hrrs.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
+	}
+}
+
+func (hrrs *InboundHTTPRouteRules) addAllowedEndpoint(address Address, serviceName ServiceName) {
+	if hrrs.AllowedEndpoints == nil {
+		hrrs.AllowedEndpoints = make(AllowedEndpoints)
+	}
+	if _, exists := hrrs.AllowedEndpoints[address]; !exists {
+		hrrs.AllowedEndpoints[address] = serviceName
 	}
 }
 
