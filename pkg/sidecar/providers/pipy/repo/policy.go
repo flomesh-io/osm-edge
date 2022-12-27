@@ -15,7 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
-	"github.com/openservicemesh/osm/pkg/utils/cidr"
 )
 
 var (
@@ -223,10 +222,6 @@ func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRang
 	}
 }
 
-func (otm *OutboundTrafficMatch) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
-	otm.ServiceIdentity = serviceIdentity
-}
-
 func (otm *OutboundTrafficMatch) setAllowedEgressTraffic(allowedEgressTraffic bool) {
 	otm.AllowedEgressTraffic = allowedEgressTraffic
 }
@@ -268,6 +263,13 @@ func (itm *InboundTrafficMatch) newTCPServiceRouteRules() *InboundTCPServiceRout
 	return itm.TCPServiceRouteRules
 }
 
+func (otm *OutboundTrafficMatch) newTCPServiceRouteRules() *OutboundTCPServiceRouteRules {
+	if otm.TCPServiceRouteRules == nil {
+		otm.TCPServiceRouteRules = new(OutboundTCPServiceRouteRules)
+	}
+	return otm.TCPServiceRouteRules
+}
+
 func (srr *InboundTCPServiceRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
 		srr.TCPRateLimit = nil
@@ -283,11 +285,11 @@ func (srr *InboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterNa
 	srr.TargetClusters[clusterName] = weight
 }
 
-func (otm *OutboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if otm.TargetClusters == nil {
-		otm.TargetClusters = make(WeightedClusters)
+func (srr *OutboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if srr.TargetClusters == nil {
+		srr.TargetClusters = make(WeightedClusters)
 	}
-	otm.TargetClusters[clusterName] = weight
+	srr.TargetClusters[clusterName] = weight
 }
 
 func (itm *InboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
@@ -359,26 +361,17 @@ func (itp *InboundTrafficPolicy) getTrafficMatch(port Port) *InboundTrafficMatch
 	return nil
 }
 
-func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*OutboundTrafficMatch, bool) {
-	namedPort := fmt.Sprintf(`%d=%s`, port, name)
-	if otp.namedTrafficMatches == nil {
-		otp.namedTrafficMatches = make(namedOutboundTrafficMatches)
-	}
-	trafficMatch, exists := otp.namedTrafficMatches[namedPort]
-	if exists {
-		return trafficMatch, true
-	}
-
-	trafficMatch = new(OutboundTrafficMatch)
-	otp.namedTrafficMatches[namedPort] = trafficMatch
-
+func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMatch {
 	if otp.TrafficMatches == nil {
 		otp.TrafficMatches = make(OutboundTrafficMatches)
 	}
-	trafficMatches := otp.TrafficMatches[port]
-	trafficMatches = append(trafficMatches, trafficMatch)
-	otp.TrafficMatches[port] = trafficMatches
-	return trafficMatch, false
+	trafficMatch, exist := otp.TrafficMatches[port]
+	if !exist || trafficMatch == nil {
+		trafficMatch = new(OutboundTrafficMatch)
+		otp.TrafficMatches[port] = trafficMatch
+		return trafficMatch
+	}
+	return trafficMatch
 }
 
 func (hrrs *InboundHTTPRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
@@ -425,6 +418,10 @@ func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchR
 	routeRule.HTTPMatchRule = *matchRule
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule, false
+}
+
+func (hrrs *OutboundHTTPRouteRules) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
+	hrrs.ServiceIdentity = serviceIdentity
 }
 
 func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *OutboundHTTPRouteRule, duplicate bool) {
@@ -656,70 +653,6 @@ func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName, mode 
 		return newCluster
 	}
 	return cluster
-}
-
-// Len is the number of elements in the collection.
-func (otms OutboundTrafficMatchSlice) Len() int {
-	return len(otms)
-}
-
-// Less reports whether the element with index i
-// must sort before the element with index j.
-func (otms OutboundTrafficMatchSlice) Less(i, j int) bool {
-	a, b := otms[i], otms[j]
-
-	aLen, bLen := len(a.DestinationIPRanges), len(b.DestinationIPRanges)
-	if aLen == 0 && bLen == 0 {
-		return false
-	}
-	if aLen > 0 && bLen == 0 {
-		return false
-	}
-	if aLen == 0 && bLen > 0 {
-		return true
-	}
-
-	var aCidrs, bCidrs []*cidr.CIDR
-	for ipRangea := range a.DestinationIPRanges {
-		cidra, _ := cidr.ParseCIDR(string(ipRangea))
-		aCidrs = append(aCidrs, cidra)
-	}
-	for ipRangeb := range b.DestinationIPRanges {
-		cidrb, _ := cidr.ParseCIDR(string(ipRangeb))
-		bCidrs = append(bCidrs, cidrb)
-	}
-
-	cidr.DescSortCIDRs(aCidrs)
-	cidr.DescSortCIDRs(bCidrs)
-
-	minLen := aLen
-	if aLen > bLen {
-		minLen = bLen
-	}
-
-	for n := 0; n < minLen; n++ {
-		if cidr.CompareCIDR(aCidrs[n], bCidrs[n]) == 1 {
-			return true
-		}
-	}
-
-	return aLen > bLen
-}
-
-// Swap swaps the elements with indexes i and j.
-func (otms OutboundTrafficMatchSlice) Swap(i, j int) {
-	otms[j], otms[i] = otms[i], otms[j]
-}
-
-// Sort sorts data.
-// It makes one call to data.Len to determine n and O(n*log(n)) calls to
-// data.Less and data.Swap. The sort is not guaranteed to be stable.
-func (otms *OutboundTrafficMatches) Sort() {
-	for _, trafficMatches := range *otms {
-		if len(trafficMatches) > 1 {
-			sort.Sort(trafficMatches)
-		}
-	}
 }
 
 func (hrrs *OutboundHTTPRouteRuleSlice) sort() {
