@@ -69,6 +69,7 @@
   __target: null,
   __isEgress: false,
   __cert: null,
+  __plugins: null,
 })
 
 .pipeline()

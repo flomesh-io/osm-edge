@@ -38,12 +38,14 @@
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id)
               )
             ) : (
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id)
               )
             ),
@@ -123,6 +125,7 @@
   __port: 'inbound',
   __cluster: 'inbound',
   __isIngress: 'inbound',
+  __plugins: 'inbound',
 })
 
 .export('inbound-http', {

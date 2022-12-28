@@ -43,6 +43,7 @@
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -52,6 +53,7 @@
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -69,8 +71,8 @@
 
       (method, path, headers) => void (
         tree[method]?.find?.(rule => rule(path, headers)),
-        __cluster && (
-          headers['serviceidentity'] = __port.ServiceIdentity
+        __service && (
+          headers['serviceidentity'] = __service.ServiceIdentity
         )
       )
     )
@@ -107,6 +109,7 @@
 .import({
   __port: 'outbound',
   __cluster: 'outbound',
+  __plugins: 'outbound',
 })
 
 .export('outbound-http', {
