@@ -82,10 +82,13 @@ func balance(pipyConf *PipyConf) {
 func reorder(pipyConf *PipyConf) {
 	if pipyConf.Outbound != nil && pipyConf.Outbound.TrafficMatches != nil {
 		for _, trafficMatches := range pipyConf.Outbound.TrafficMatches {
-			for _, routeRules := range trafficMatches.HTTPServiceRouteRules {
-				routeRules.RouteRules.sort()
+			for _, trafficMatch := range trafficMatches {
+				for _, routeRules := range trafficMatch.HTTPServiceRouteRules {
+					routeRules.RouteRules.sort()
+				}
 			}
 		}
+		pipyConf.Outbound.TrafficMatches.Sort()
 	}
 
 	if pipyConf.Inbound != nil && pipyConf.Inbound.TrafficMatches != nil {

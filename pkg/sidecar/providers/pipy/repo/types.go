@@ -6,7 +6,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -319,19 +319,11 @@ type OutboundHTTPRouteRuleSlice []*OutboundHTTPRouteRule
 
 // OutboundHTTPRouteRules is a wrapper type
 type OutboundHTTPRouteRules struct {
-	RouteRules      OutboundHTTPRouteRuleSlice `json:"RouteRules"`
-	ServiceIdentity identity.ServiceIdentity
-	Pluggable
+	RouteRules OutboundHTTPRouteRuleSlice `json:"RouteRules"`
 }
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules
-
-// OutboundTCPServiceRouteRules is a wrapper type
-type OutboundTCPServiceRouteRules struct {
-	TargetClusters WeightedClusters `json:"TargetClusters"`
-	Pluggable
-}
 
 // OutboundTrafficMatch represents the match of OutboundTraffic
 type OutboundTrafficMatch struct {
@@ -340,13 +332,21 @@ type OutboundTrafficMatch struct {
 	Protocol              Protocol                      `json:"Protocol"`
 	HTTPHostPort2Service  HTTPHostPort2Service          `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules OutboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TCPServiceRouteRules  *OutboundTCPServiceRouteRules `json:"TcpServiceRouteRules"`
+	TargetClusters        WeightedClusters              `json:"TargetClusters"`
+	ServiceIdentity       identity.ServiceIdentity
 	AllowedEgressTraffic  bool
 	EgressForwardGateway  *string
+	Pluggable
 }
 
+// OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch
+type OutboundTrafficMatchSlice []*OutboundTrafficMatch
+
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
-type OutboundTrafficMatches map[Port]*OutboundTrafficMatch
+type OutboundTrafficMatches map[Port]OutboundTrafficMatchSlice
+
+// namedOutboundTrafficMatches is a wrapper type of map[string]*OutboundTrafficMatch
+type namedOutboundTrafficMatches map[string]*OutboundTrafficMatch
 
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {
@@ -381,8 +381,9 @@ type EgressGatewayClusterConfigs struct {
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
-	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
-	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+	namedTrafficMatches namedOutboundTrafficMatches
+	TrafficMatches      OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs     map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
 // ForwardTrafficMatches is a wrapper type of map[Port]WeightedClusters
