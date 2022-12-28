@@ -3,7 +3,7 @@
   isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     clusterCache
-  } = pipy.solve('modules/metrics.js'),
+  } = pipy.solve('metrics.js'),
 
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
@@ -57,12 +57,12 @@ pipy({
 })
 
 .import({
-  __port: 'outbound-main',
-  __cert: 'outbound-main',
-  __cluster: 'outbound-main',
-  __protocol: 'outbound-main',
-  __target: 'outbound-main',
-  __egressEnable: 'outbound-main',
+  __port: 'outbound',
+  __cert: 'outbound',
+  __cluster: 'outbound',
+  __protocol: 'outbound',
+  __target: 'outbound',
+  __isEgress: 'outbound',
   __targetObject: 'outbound-http-load-balancing',
   __muxHttpOptions: 'outbound-http-load-balancing',
 })
@@ -117,7 +117,7 @@ pipy({
     $=>$
     .handleStreamStart(
       () => (
-        console.log('outbound # TLS/__egressEnable/_egressEndpoint/__cert/__target:', Boolean(certChain), __egressEnable, _egressEndpoint, Boolean(__cert), __target)
+        console.log('outbound - TLS/__isEgress/_egressEndpoint/__cert/__target:', Boolean(certChain), __isEgress, _egressEndpoint, Boolean(__cert), __target)
       )
     )
   )
@@ -139,7 +139,7 @@ pipy({
     }).to($=>$.connect(() => __target))
   ),
 
-  () => certChain && !__egressEnable, (
+  () => certChain && !__isEgress, (
     $=>$
     .connectTLS({
       certificate:() => ({
@@ -150,7 +150,7 @@ pipy({
     }).to($=>$.connect(() => __target))
   ),
 
-  () => __egressEnable && _egressEndpoint, (
+  () => __isEgress && _egressEndpoint, (
     $=>$
     .branch(
       () => _egressType === 'http2tunnel', (

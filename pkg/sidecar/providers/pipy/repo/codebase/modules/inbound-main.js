@@ -17,12 +17,12 @@
           ? Object.keys(allowedEndpointsLocal).filter(k => k in allowedEndpointsGlobal)
           : Object.keys(allowedEndpointsGlobal)
       ),
-      connectionQuota = portConfig?.RateLimit?.Local && (
+      connectionQuota = portConfig?.TcpServiceRouteRules?.L4RateLimit?.Local && (
         new algo.Quota(
-          portConfig.RateLimit.Local?.Burst || portConfig.RateLimit.Local?.Connections || 0,
+          portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Burst || portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Connections || 0,
           {
-            produce: portConfig.RateLimit.Local?.Connections || 0,
-            per: portConfig?.RateLimit?.Local?.StatTimeWindow || 0,
+            produce: portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Connections || 0,
+            per: portConfig.TcpServiceRouteRules.L4RateLimit.Local?.StatTimeWindow || 0,
           }
         )
       ),
@@ -53,12 +53,14 @@
 
 ) => pipy()
 
-.export('inbound-main', {
+.export('inbound', {
   __port: null,
   __protocol: null,
   __isHTTP2: false,
   __cluster: null,
   __target: null,
+  __isIngress: false,
+  __plugins: null,
 })
 
 .pipeline()

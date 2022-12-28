@@ -1,27 +1,9 @@
 ((
+  { initRateLimit } = pipy.solve('utils.js'),
+
   rateLimitedCounter = new stats.Counter('http_local_rate_limit_route_rate_limited'),
 
-  initRateLimit = (rateLimit) => (
-    rateLimit?.Local ? (
-      {
-        backlog: rateLimit.Local.Backlog || 0,
-        quota: new algo.Quota(
-          rateLimit.Local.Burst || 0,
-          {
-            produce: rateLimit.Local.Requests || 0,
-            per: rateLimit.Local.StatTimeWindow || 0,
-          }
-        ),
-        response: new Message({
-          status: rateLimit.Local.ResponseStatusCode || 429,
-          headers: Object.fromEntries((rateLimit.Local.ResponseHeadersToAdd || []).map(({ Name, Value }) => [Name, Value])),
-        }),
-      }
-    ) : null
-  ),
-
   rateLimitCache = new algo.Cache(initRateLimit),
-
 ) => (
 
 pipy({
@@ -30,7 +12,7 @@ pipy({
 })
 
 .import({
-  __route: 'inbound-http-routing',
+  __route: 'inbound-http',
 })
 
 .pipeline()

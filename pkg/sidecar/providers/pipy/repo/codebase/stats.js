@@ -42,7 +42,7 @@ pipy({
       )
       .replaceMessage(
         (msg, out) => (
-          !(out = msg?.body?.toString()?.split?.('\n')) && (out = []),
+          out = msg?.body?.toString()?.split?.('\n') || [],
           out = out.filter(line => line.indexOf('peer') > 0 || line.indexOf('_retry') > 0),
           (_statsPath === '/clusters') && (out = out.filter(line => line.indexOf('_bucket') < 0)),
           out = out.map(

@@ -32,9 +32,9 @@
         (address) => (
           (
             cert = null,
-            egressEnable = false,
+            isEgress = false,
             dst = destinations.find(dst => dst.ranges && dst.ranges.find(r => r.mask.contains(address) && (cert = r.cert, true))) || (
-              destinations.find(dst => !dst.ranges && (dst.Protocol !== 'tcp' || dst.AllowedEgressTraffic) && (egressEnable = true))
+              destinations.find(dst => !dst.ranges && (dst.Protocol !== 'tcp' || dst.AllowedEgressTraffic) && (isEgress = true))
             ),
             protocol = dst?.config?.Protocol === 'http' || dst?.config?.Protocol === 'grpc' ? 'http' : 'tcp',
             isHTTP2 = dst?.config?.Protocol === 'grpc',
@@ -44,7 +44,7 @@
               __protocol = protocol,
               __isHTTP2 = isHTTP2,
               __cert = cert,
-              __egressEnable = egressEnable
+              __isEgress = isEgress
             )
           )
         )()
@@ -61,14 +61,15 @@
 
 ) => pipy()
 
-.export('outbound-main', {
+.export('outbound', {
   __port: null,
   __protocol: null,
   __isHTTP2: false,
-  __cert: null,
-  __egressEnable: false,
   __cluster: null,
   __target: null,
+  __isEgress: false,
+  __cert: null,
+  __plugins: null,
 })
 
 .pipeline()

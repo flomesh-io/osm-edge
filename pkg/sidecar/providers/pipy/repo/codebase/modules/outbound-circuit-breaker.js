@@ -114,7 +114,7 @@
 })
 
 .import({
-  __cluster: 'outbound-main',
+  __cluster: 'outbound',
 })
 
 .pipeline()

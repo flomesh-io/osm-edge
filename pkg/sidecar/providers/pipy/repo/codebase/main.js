@@ -36,4 +36,15 @@
 .listen(':::15000')
 .use('stats.js', 'osm-stats')
 
+//
+// Local DNS server
+//
+.branch(
+  Boolean(os.env.LOCAL_DNS_PROXY), (
+    $=>$
+    .listen('127.0.0.153:5300', { protocol: 'udp', transparent: true } )
+    .chain(['dns-main.js'])
+  )
+)
+
 )()

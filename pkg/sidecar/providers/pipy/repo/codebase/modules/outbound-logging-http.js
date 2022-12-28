@@ -3,7 +3,7 @@
     loggingEnabled,
     makeLoggingData,
     saveLoggingData,
-  } = pipy.solve('modules/logging.js')
+  } = pipy.solve('logging.js')
 ) => (
 
 pipy({
@@ -11,9 +11,9 @@ pipy({
 })
 
 .import({
-  __target: 'outbound-main',
-  __egressEnable: 'outbound-main',
-  __service: 'outbound-http-routing',
+  __target: 'outbound',
+  __isEgress: 'outbound',
+  __service: 'outbound-http',
 })
 
 .pipeline()
@@ -28,7 +28,7 @@ pipy({
 .handleMessage(
   msg => (
     loggingEnabled && (
-      saveLoggingData(loggingData, msg, __service?.name, __target, false, __egressEnable, 'outbound')
+      saveLoggingData(loggingData, msg, __service?.name, __target, false, __isEgress, 'outbound')
     )
   )
 )

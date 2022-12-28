@@ -1,28 +1,11 @@
 ((
   config = pipy.solve('config.js'),
+  {
+    shuffle,
+    failover,
+  } = pipy.solve('utils.js'),
 
   allMethods = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'PATCH'],
-
-  funcShuffle = arg => (
-    (
-      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
-    ) => (
-      arg ? Object.fromEntries(sort(sort(Object.entries(arg)))) : {}
-    )
-  )(),
-
-  funcFailover = json => (
-    json ? ((obj = null) => (
-      obj = Object.fromEntries(
-        Object.entries(json).map(
-          ([k, v]) => (
-            (v === 0) ? ([k, 1]) : null
-          )
-        ).filter(e => e)
-      ),
-      Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
-    ))() : null
-  ),
 
   clusterCache = new algo.Cache(
     (clusterName => (
@@ -34,7 +17,7 @@
 
   makeServiceHandler = (portConfig, serviceName) => (
     (
-      rules = portConfig.HttpServiceRouteRules[serviceName]?.RouteRules || [],
+      rules = portConfig?.HttpServiceRouteRules?.[serviceName]?.RouteRules || [],
       tree = {},
     ) => (
       rules.forEach(
@@ -53,13 +36,14 @@
               )
             ),
             headerRules = config.Headers ? Object.entries(config.Headers).map(([k, v]) => [k, new RegExp(v)]) : null,
-            balancer = new algo.RoundRobinLoadBalancer(funcShuffle(config.TargetClusters || {})),
-            failoverBalancer = funcFailover(config.TargetClusters),
-            service = Object.assign({ name: serviceName }, portConfig.HttpServiceRouteRules[serviceName]),
+            balancer = new algo.RoundRobinLoadBalancer(shuffle(config.TargetClusters || {})),
+            failoverBalancer = failover(config.TargetClusters),
+            service = Object.assign({ name: serviceName }, portConfig?.HttpServiceRouteRules?.[serviceName]),
             rule = headerRules ? (
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -69,6 +53,7 @@
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
+                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -86,8 +71,8 @@
 
       (method, path, headers) => void (
         tree[method]?.find?.(rule => rule(path, headers)),
-        __cluster && (
-          headers['serviceidentity'] = __port.ServiceIdentity
+        __service && (
+          headers['serviceidentity'] = __service.ServiceIdentity
         )
       )
     )
@@ -100,7 +85,7 @@
       ),
 
       hostHandlers = new algo.Cache(
-        (host) => serviceHandlers.get(portConfig.HttpHostPort2Service[host])
+        (host) => serviceHandlers.get(portConfig?.HttpHostPort2Service?.[host])
       ),
     ) => (
       (msg) => (
@@ -117,15 +102,17 @@
   portHandlers = new algo.Cache(makePortHandler),
 
 ) => pipy({
+  _origPath: null,
   _failoverCluster: null,
 })
 
 .import({
-  __port: 'outbound-main',
-  __cluster: 'outbound-main',
+  __port: 'outbound',
+  __cluster: 'outbound',
+  __plugins: 'outbound',
 })
 
-.export('outbound-http-routing', {
+.export('outbound-http', {
   __route: null,
   __service: null,
 })
@@ -137,6 +124,7 @@
     $=>$
     .handleMessageStart(
       msg => (
+        _origPath && (msg.head.path = _origPath) || (_origPath = msg?.head?.path),
         _failoverCluster && (
           __cluster = _failoverCluster,
           _failoverCluster = null,

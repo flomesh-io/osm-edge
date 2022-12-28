@@ -1,4 +1,9 @@
 ((
+  {
+    shuffle,
+    failover,
+  } = pipy.solve('utils.js'),
+
   retryCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry', ['sidecar_cluster_name']),
   retrySuccessCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_success', ['sidecar_cluster_name']),
   retryLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_limit_exceeded', ['sidecar_cluster_name']),
@@ -6,35 +11,14 @@
   retryBackoffCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_backoff_exponential', ['sidecar_cluster_name']),
   retryBackoffLimitCounter = new stats.Counter('sidecar_cluster_upstream_rq_retry_backoff_ratelimited', ['sidecar_cluster_name']),
 
-  funcShuffle = arg => (
-    (
-      sort = a => (a.map(e => e).map(() => a.splice(Math.random() * a.length | 0, 1)[0])),
-    ) => (
-      arg ? Object.fromEntries(sort(sort(Object.entries(arg)))) : {}
-    )
-  )(),
-
-  funcFailover = json => (
-    json ? ((obj = null) => (
-      obj = Object.fromEntries(
-        Object.entries(json).map(
-          ([k, v]) => (
-            (v === 0) ? ([k, 1]) : null
-          )
-        ).filter(e => e)
-      ),
-      Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
-    ))() : null
-  ),
-
   makeClusterConfig = (clusterConfig) => (
     clusterConfig && (
       (
         obj = {
           targetBalancer: clusterConfig.Endpoints && new algo.RoundRobinLoadBalancer(
-            funcShuffle(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight])))
+            shuffle(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight])))
           ),
-          failoverBalancer: clusterConfig.Endpoints && funcFailover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
+          failoverBalancer: clusterConfig.Endpoints && failover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
           needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
           numRetries: clusterConfig.RetryPolicy?.NumRetries,
           retryStatusCodes: (clusterConfig.RetryPolicy?.RetryOn || '5xx').split(',').reduce(
@@ -98,9 +82,10 @@
 })
 
 .import({
-  __isHTTP2: 'outbound-main',
-  __cluster: 'outbound-main',
-  __target: 'outbound-main',
+  __isHTTP2: 'outbound',
+  __cluster: 'outbound',
+  __target: 'outbound',
+  __isEgress: 'outbound',
 })
 
 .export('outbound-http-load-balancing', {
@@ -119,6 +104,20 @@
         _failoverObject = _clusterConfig.failoverBalancer.next()
       )
     )
+  )
+)
+.handleMessageStart(
+  msg => (
+    __target && (
+      (
+        attrs = __cluster?.EndpointAttributes?.[__target]
+      ) => (
+        attrs?.Path && (
+          __isEgress = true,
+          msg.head.path = attrs.Path + msg.head.path
+        )
+      )
+    )()
   )
 )
 

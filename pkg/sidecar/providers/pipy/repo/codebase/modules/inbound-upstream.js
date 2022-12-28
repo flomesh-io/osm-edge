@@ -3,7 +3,7 @@
   isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     clusterCache,
-  } = pipy.solve('modules/metrics.js'),
+  } = pipy.solve('metrics.js'),
 ) => (
 
 pipy({
@@ -12,10 +12,10 @@ pipy({
 })
 
 .import({
-  __protocol: 'inbound-main',
-  __isHTTP2: 'inbound-main',
-  __cluster: 'inbound-main',
-  __target: 'inbound-main',
+  __protocol: 'inbound',
+  __isHTTP2: 'inbound',
+  __cluster: 'inbound',
+  __target: 'inbound',
   __targetObject: 'inbound-http-load-balancing',
 })
 
@@ -54,7 +54,7 @@ pipy({
     $=>$
     .handleStreamStart(
       () => (
-        console.log('inbound # __protocol, __isHTTP2, __target : ', __protocol, __isHTTP2, __target)
+        console.log('inbound - __protocol, __isHTTP2, __target : ', __protocol, __isHTTP2, __target)
       )
     )
   )

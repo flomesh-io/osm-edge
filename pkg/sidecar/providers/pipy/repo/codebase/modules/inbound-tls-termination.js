@@ -28,8 +28,8 @@
 })
 
 .import({
-  __port: 'inbound-main',
-  __protocol: 'inbound-main',
+  __port: 'inbound',
+  __protocol: 'inbound',
 })
 
 .pipeline()

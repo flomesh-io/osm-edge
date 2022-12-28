@@ -16,15 +16,17 @@
 ) => pipy()
 
 .import({
-  __port: 'inbound-main',
-  __cluster: 'inbound-main',
-  __target: 'inbound-main',
+  __port: 'inbound',
+  __cluster: 'inbound',
+  __target: 'inbound',
+  __plugins: 'inbound',
 })
 
 .pipeline()
 .handleStreamStart(
   () => (
-    (clusterName = clusterBalancers.get(__port?.TargetClusters)?.next?.()?.id) => (
+    __plugins = __port?.TcpServiceRouteRules?.Plugins,
+    (clusterName = clusterBalancers.get(__port?.TcpServiceRouteRules?.TargetClusters)?.next?.()?.id) => (
       (__cluster = clusterCache.get(clusterName)) && (
         __target = targetBalancers.get(__cluster)?.next?.()?.id
       )

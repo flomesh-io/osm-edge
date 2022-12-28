@@ -2,7 +2,7 @@
   {
     clusterCache,
     identityCache,
-  } = pipy.solve('modules/metrics.js'),
+  } = pipy.solve('metrics.js'),
 ) => (
 
 pipy({
@@ -10,7 +10,7 @@ pipy({
 })
 
 .import({
-  __cluster: 'outbound-main'
+  __cluster: 'outbound'
 })
 
 .pipeline()

@@ -8,7 +8,7 @@
     initTracingHeaders,
     makeZipKinData,
     saveTracing,
-  } = pipy.solve('modules/tracing.js')
+  } = pipy.solve('tracing.js')
 ) => (
 
 pipy({
@@ -17,9 +17,9 @@ pipy({
 })
 
 .import({
-  __protocol: 'outbound-main',
-  __cluster: 'outbound-main',
-  __target: 'outbound-main',
+  __protocol: 'outbound',
+  __cluster: 'outbound',
+  __target: 'outbound',
 })
 
 .pipeline()

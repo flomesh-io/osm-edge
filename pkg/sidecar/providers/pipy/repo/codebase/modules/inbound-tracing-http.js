@@ -4,7 +4,7 @@
     tracingEnabled,
     makeZipKinData,
     saveTracing,
-  } = pipy.solve('modules/tracing.js')
+  } = pipy.solve('tracing.js')
 ) => (
 
 pipy({
@@ -13,8 +13,8 @@ pipy({
 })
 
 .import({
-  __cluster: 'inbound-main',
-  __target: 'inbound-main',
+  __cluster: 'inbound',
+  __target: 'inbound',
 })
 
 .pipeline()
