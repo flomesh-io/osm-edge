@@ -1,6 +1,6 @@
 # Open Service Mesh Edge Helm Chart
 
-![Version: 1.2.1](https://img.shields.io/badge/Version-1.2.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.2.1](https://img.shields.io/badge/AppVersion-v1.2.1-informational?style=flat-square)
+![Version: 1.2.2](https://img.shields.io/badge/Version-1.2.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.2.2](https://img.shields.io/badge/AppVersion-v1.2.2-informational?style=flat-square)
 
 A Helm chart to install the [osm-edge](https://github.com/flomesh-io/osm-edge) control plane on Kubernetes.
 
@@ -79,7 +79,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.cleanup.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[1] | string | `"arm64"` |  |
 | osm.cleanup.nodeSelector | object | `{}` |  |
 | osm.cleanup.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
-| osm.configResyncInterval | string | `"0s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
+| osm.configResyncInterval | string | `"90s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
@@ -147,7 +147,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.name.osmSidecarInit | string | `"osm-edge-sidecar-init"` | Sidecar init container's image name |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"flomesh"` | Container image registry for control plane images |
-| osm.image.tag | string | `"1.2.1"` | Container image tag for control plane images |
+| osm.image.tag | string | `"1.2.2"` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |

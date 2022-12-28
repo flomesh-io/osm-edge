@@ -12,7 +12,7 @@ osm:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "1.2.1"
+    tag: "1.2.2"
     # -- Image name defaults
     name:
       # -- osm-controller's image name
@@ -327,7 +327,7 @@ osm:
   maxDataPlaneConnections: 0
 
   # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
-  configResyncInterval: "0s"
+  configResyncInterval: "90s"
 
   # -- Controller log verbosity
   controllerLogLevel: info
