@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"github.com/openservicemesh/osm/pkg/identity"
 	"sync"
 	"time"
 
@@ -12,7 +13,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -319,11 +319,19 @@ type OutboundHTTPRouteRuleSlice []*OutboundHTTPRouteRule
 
 // OutboundHTTPRouteRules is a wrapper type
 type OutboundHTTPRouteRules struct {
-	RouteRules OutboundHTTPRouteRuleSlice `json:"RouteRules"`
+	RouteRules      OutboundHTTPRouteRuleSlice `json:"RouteRules"`
+	ServiceIdentity identity.ServiceIdentity
+	Pluggable
 }
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules
+
+// OutboundTCPServiceRouteRules is a wrapper type
+type OutboundTCPServiceRouteRules struct {
+	TargetClusters WeightedClusters `json:"TargetClusters"`
+	Pluggable
+}
 
 // OutboundTrafficMatch represents the match of OutboundTraffic
 type OutboundTrafficMatch struct {
@@ -332,11 +340,9 @@ type OutboundTrafficMatch struct {
 	Protocol              Protocol                      `json:"Protocol"`
 	HTTPHostPort2Service  HTTPHostPort2Service          `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules OutboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters              `json:"TargetClusters"`
-	ServiceIdentity       identity.ServiceIdentity
+	TCPServiceRouteRules  *OutboundTCPServiceRouteRules `json:"TcpServiceRouteRules"`
 	AllowedEgressTraffic  bool
 	EgressForwardGateway  *string
-	Pluggable
 }
 
 // OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch

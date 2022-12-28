@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"reflect"
 	"regexp"
 	"sort"
@@ -12,7 +13,6 @@ import (
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/utils/cidr"
@@ -223,10 +223,6 @@ func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRang
 	}
 }
 
-func (otm *OutboundTrafficMatch) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
-	otm.ServiceIdentity = serviceIdentity
-}
-
 func (otm *OutboundTrafficMatch) setAllowedEgressTraffic(allowedEgressTraffic bool) {
 	otm.AllowedEgressTraffic = allowedEgressTraffic
 }
@@ -268,6 +264,13 @@ func (itm *InboundTrafficMatch) newTCPServiceRouteRules() *InboundTCPServiceRout
 	return itm.TCPServiceRouteRules
 }
 
+func (otm *OutboundTrafficMatch) newTCPServiceRouteRules() *OutboundTCPServiceRouteRules {
+	if otm.TCPServiceRouteRules == nil {
+		otm.TCPServiceRouteRules = new(OutboundTCPServiceRouteRules)
+	}
+	return otm.TCPServiceRouteRules
+}
+
 func (srr *InboundTCPServiceRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
 		srr.TCPRateLimit = nil
@@ -283,11 +286,11 @@ func (srr *InboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterNa
 	srr.TargetClusters[clusterName] = weight
 }
 
-func (otm *OutboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if otm.TargetClusters == nil {
-		otm.TargetClusters = make(WeightedClusters)
+func (srr *OutboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if srr.TargetClusters == nil {
+		srr.TargetClusters = make(WeightedClusters)
 	}
-	otm.TargetClusters[clusterName] = weight
+	srr.TargetClusters[clusterName] = weight
 }
 
 func (itm *InboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
@@ -425,6 +428,10 @@ func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchR
 	routeRule.HTTPMatchRule = *matchRule
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule, false
+}
+
+func (hrrs *OutboundHTTPRouteRules) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
+	hrrs.ServiceIdentity = serviceIdentity
 }
 
 func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *OutboundHTTPRouteRule, duplicate bool) {

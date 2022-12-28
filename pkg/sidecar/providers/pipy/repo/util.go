@@ -132,12 +132,14 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 
 	for _, trafficMatch := range outboundPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
-		tm, exist := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatch.Name)
+		trafficMatchName := trafficMatch.Name
+		if destinationProtocol == constants.ProtocolHTTP || destinationProtocol == constants.ProtocolGRPC {
+			trafficMatchName = constants.ProtocolHTTP
+		}
+		tm, exist := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatchName)
 		if !exist {
 			tm.setProtocol(Protocol(destinationProtocol))
 			tm.setPort(Port(trafficMatch.DestinationPort))
-			tm.setServiceIdentity(proxyIdentity)
-			tm.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
@@ -158,6 +160,8 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			for _, httpRouteConfig := range httpRouteConfigs {
 				ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
+				hsrrs.setServiceIdentity(proxyIdentity)
+				hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 				for _, hostname := range httpRouteConfig.Hostnames {
 					tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 				}
@@ -198,13 +202,15 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			}
 		} else if destinationProtocol == constants.ProtocolTCP ||
 			destinationProtocol == constants.ProtocolTCPServerFirst {
+			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, serviceCluster := range trafficMatch.WeightedClusters {
 				weightedCluster := new(WeightedCluster)
 				weightedCluster.WeightedCluster = serviceCluster
 				if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
 					dependClusters[weightedCluster.ClusterName] = weightedCluster
 				}
-				tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+				tsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			}
 		} else if destinationProtocol == constants.ProtocolHTTPS {
 			upstreamSvc := trafficMatchToMeshSvc(trafficMatch)
@@ -216,6 +222,8 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 				continue
 			}
 
+			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, httpRouteConfig := range httpRouteConfigs {
 				for _, route := range httpRouteConfig.Routes {
 					for cluster := range route.WeightedClusters.Iter() {
@@ -226,7 +234,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 						if _, exist := dependClusters[weightedCluster.ClusterName]; !exist {
 							dependClusters[weightedCluster.ClusterName] = weightedCluster
 						}
-						tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+						tsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 					}
 				}
 			}
@@ -313,7 +321,9 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 			weightedCluster := new(WeightedCluster)
 			weightedCluster.ClusterName = service.ClusterName(trafficMatch.Cluster)
 			weightedCluster.Weight = constants.ClusterWeightAcceptAll
-			tm.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
+			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
+			tsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			clusterConfigs := otp.newClusterConfigs(ClusterName(weightedCluster.ClusterName.String()))
 			for _, serverName := range trafficMatch.ServerNames {
 				address := Address(serverName)
