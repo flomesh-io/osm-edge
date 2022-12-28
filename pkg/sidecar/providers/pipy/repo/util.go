@@ -132,9 +132,15 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 
 	for _, trafficMatch := range outboundPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
-		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
-		tm.setProtocol(Protocol(destinationProtocol))
-		tm.setPort(Port(trafficMatch.DestinationPort))
+		trafficMatchName := trafficMatch.Name
+		if destinationProtocol == constants.ProtocolHTTP || destinationProtocol == constants.ProtocolGRPC {
+			trafficMatchName = constants.ProtocolHTTP
+		}
+		tm, exist := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatchName)
+		if !exist {
+			tm.setProtocol(Protocol(destinationProtocol))
+			tm.setPort(Port(trafficMatch.DestinationPort))
+		}
 
 		for _, ipRange := range trafficMatch.DestinationIPRanges {
 			tm.addDestinationIPRange(DestinationIPRange(ipRange), nil)
@@ -197,6 +203,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 		} else if destinationProtocol == constants.ProtocolTCP ||
 			destinationProtocol == constants.ProtocolTCPServerFirst {
 			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, serviceCluster := range trafficMatch.WeightedClusters {
 				weightedCluster := new(WeightedCluster)
 				weightedCluster.WeightedCluster = serviceCluster
@@ -216,6 +223,7 @@ func generatePipyOutboundTrafficRoutePolicy(_ catalog.MeshCataloger, proxyIdenti
 			}
 
 			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, httpRouteConfig := range httpRouteConfigs {
 				for _, route := range httpRouteConfig.Routes {
 					for cluster := range route.WeightedClusters.Iter() {
@@ -245,10 +253,12 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 	dependClusters := make(map[service.ClusterName]*WeightedCluster)
 	for _, trafficMatch := range egressPolicy.TrafficMatches {
 		destinationProtocol := strings.ToLower(trafficMatch.DestinationProtocol)
-		tm := otp.newTrafficMatch(Port(trafficMatch.DestinationPort))
-		tm.setProtocol(Protocol(destinationProtocol))
-		tm.setPort(Port(trafficMatch.DestinationPort))
-		tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
+		tm, exists := otp.newTrafficMatch(Port(trafficMatch.DestinationPort), trafficMatch.Name)
+		if !exists {
+			tm.setProtocol(Protocol(destinationProtocol))
+			tm.setPort(Port(trafficMatch.DestinationPort))
+			tm.setEgressForwardGateway(trafficMatch.EgressGateWay)
+		}
 
 		var destinationSpec = getEgressClusterDestinationSpec(meshCatalog, egressPolicy, trafficMatch)
 
@@ -312,6 +322,7 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 			weightedCluster.ClusterName = service.ClusterName(trafficMatch.Cluster)
 			weightedCluster.Weight = constants.ClusterWeightAcceptAll
 			tsrr := tm.newTCPServiceRouteRules()
+			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			tsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			clusterConfigs := otp.newClusterConfigs(ClusterName(weightedCluster.ClusterName.String()))
 			for _, serverName := range trafficMatch.ServerNames {

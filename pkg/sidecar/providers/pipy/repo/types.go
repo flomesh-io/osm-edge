@@ -1,18 +1,18 @@
 package repo
 
 import (
+	"github.com/openservicemesh/osm/pkg/identity"
 	"sync"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/messaging"
@@ -345,8 +345,14 @@ type OutboundTrafficMatch struct {
 	EgressForwardGateway  *string
 }
 
+// OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch
+type OutboundTrafficMatchSlice []*OutboundTrafficMatch
+
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
-type OutboundTrafficMatches map[Port]*OutboundTrafficMatch
+type OutboundTrafficMatches map[Port]OutboundTrafficMatchSlice
+
+// namedOutboundTrafficMatches is a wrapper type of map[string]*OutboundTrafficMatch
+type namedOutboundTrafficMatches map[string]*OutboundTrafficMatch
 
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {
@@ -381,8 +387,9 @@ type EgressGatewayClusterConfigs struct {
 
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
-	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
-	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+	namedTrafficMatches namedOutboundTrafficMatches
+	TrafficMatches      OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs     map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
 // ForwardTrafficMatches is a wrapper type of map[Port]WeightedClusters
