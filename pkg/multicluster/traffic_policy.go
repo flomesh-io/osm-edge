@@ -31,7 +31,11 @@ func (c *Client) getServiceTrafficPolicy(svc service.MeshService) (lbType multic
 		if len(gblTrafficPolicy.Spec.LoadBalanceTarget) > 0 {
 			clusterKeys = make(map[string]int)
 			for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
-				clusterKeys[lbt.ClusterKey] = lbt.Weight
+				if lbt.Weight != nil {
+					clusterKeys[lbt.ClusterKey] = *lbt.Weight
+				} else {
+					clusterKeys[lbt.ClusterKey] = 0
+				}
 			}
 		}
 		return
@@ -52,8 +56,13 @@ func (c *Client) GetLbWeightForService(svc service.MeshService) (aa, fo, lc bool
 				clusterKeys = make(map[string]int)
 				for _, lbt := range gblTrafficPolicy.Spec.LoadBalanceTarget {
 					if string(svc.ServiceImportUID) == lbt.ClusterKey {
-						weight = lbt.Weight
-						clusterKeys[lbt.ClusterKey] = lbt.Weight
+						if lbt.Weight != nil {
+							weight = *lbt.Weight
+							clusterKeys[lbt.ClusterKey] = *lbt.Weight
+						} else {
+							weight = 0
+							clusterKeys[lbt.ClusterKey] = 0
+						}
 						break
 					}
 				}
