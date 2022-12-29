@@ -323,7 +323,6 @@ func generatePipyEgressTrafficRoutePolicy(meshCatalog catalog.MeshCataloger, _ i
 			weightedCluster.Weight = constants.ClusterWeightAcceptAll
 			tsrr := tm.newTCPServiceRouteRules()
 			tsrr.setEgressForwardGateway(trafficMatch.EgressGateWay)
-			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			tsrr.addWeightedCluster(ClusterName(weightedCluster.ClusterName), Weight(weightedCluster.Weight))
 			clusterConfigs := otp.newClusterConfigs(ClusterName(weightedCluster.ClusterName.String()))
 			for _, serverName := range trafficMatch.ServerNames {
