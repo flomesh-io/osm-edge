@@ -37,7 +37,7 @@
         __target = targetBalancers.get(__cluster)?.next?.()?.id
       )
     ))(),
-    !__target && (specEnableEgress || __port?.AllowedEgressTraffic) && (
+    !__target && (specEnableEgress || __port?.TcpServiceRouteRules?.AllowedEgressTraffic) && (
       (
         target = __inbound.destinationAddress + ':' + __inbound.destinationPort
       ) => (

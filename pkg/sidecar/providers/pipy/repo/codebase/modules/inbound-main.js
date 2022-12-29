@@ -8,7 +8,7 @@
   makePortHandler = port => (
     (
       portConfig = config?.Inbound?.TrafficMatches?.[port || 0],
-      protocol = portConfig?.Protocol === 'http' || portConfig?.Protocol === 'grpc' ? 'http' : 'tcp',
+      protocol = portConfig?.Protocol && (portConfig?.Protocol === 'http' || portConfig?.Protocol === 'grpc' ? 'http' : 'tcp'),
       isHTTP2 = portConfig?.Protocol === 'grpc',
       allowedEndpointsLocal = portConfig?.AllowedEndpoints,
       allowedEndpointsGlobal = config?.AllowedEndpoints || {},
@@ -98,7 +98,7 @@
 
   (
     $=>$.replaceStreamStart(
-      new StreamEnd('ConnectionReset')
+      new StreamEnd()
     )
   )
 )

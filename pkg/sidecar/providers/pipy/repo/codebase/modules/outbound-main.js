@@ -1,5 +1,6 @@
 ((
   config = pipy.solve('config.js'),
+  specEnableEgress = config?.Spec?.Traffic?.EnableEgress,
   {
     outboundL7Chains,
     outboundL4Chains,
@@ -34,9 +35,9 @@
             cert = null,
             isEgress = false,
             dst = destinations.find(dst => dst.ranges && dst.ranges.find(r => r.mask.contains(address) && (cert = r.cert, true))) || (
-              destinations.find(dst => !dst.ranges && (dst.Protocol !== 'tcp' || dst.AllowedEgressTraffic) && (isEgress = true))
+              destinations.find(dst => !dst.ranges && (dst.Protocol !== 'tcp' || dst?.TcpServiceRouteRules?.AllowedEgressTraffic) && (isEgress = true))
             ),
-            protocol = dst?.config?.Protocol === 'http' || dst?.config?.Protocol === 'grpc' ? 'http' : 'tcp',
+            protocol = (dst?.config?.Protocol || specEnableEgress) && (dst?.config?.Protocol === 'http' || dst?.config?.Protocol === 'grpc' ? 'http' : 'tcp'),
             isHTTP2 = dst?.config?.Protocol === 'grpc',
           ) => (
             () => (
@@ -104,7 +105,7 @@
 
   (
     $=>$.replaceStreamStart(
-      new StreamEnd('ConnectionReset')
+      new StreamEnd()
     )
   )
 )

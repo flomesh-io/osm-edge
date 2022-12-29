@@ -31,22 +31,25 @@
   )(),
 
   forwardMatches = config?.Forward?.ForwardMatches && Object.fromEntries(
-    Object.entries(
-      forwardMatches).map(
-        ([k, v]) => [
-          k, new algo.RoundRobinLoadBalancer(v || {})
-        ]
-      )
+    Object.entries(config.Forward.ForwardMatches).map(
+      ([k, v]) => [
+        k, new algo.RoundRobinLoadBalancer(v || {})
+      ]
+    )
   ),
 
   forwardEgressGateways = config?.Forward?.EgressGateways && Object.fromEntries(
-    Object.entries(
-      forwardEgressGateways).map(
-        ([k, v]) => [
-          k, new algo.RoundRobinLoadBalancer(v?.Endpoints || {})
-        ]
-      )
+    Object.entries(config.Forward.EgressGateways).map(
+      ([k, v]) => [
+        k, { balancer: new algo.RoundRobinLoadBalancer(
+          Object.fromEntries(Object.entries(v?.Endpoints || {}).map(
+            ([k, v]) => [k, v?.Weight || 100]
+          ))
+        ), mode: v?.Mode }
+      ]
+    )
   ),
+
 ) => (
 
 pipy({
@@ -102,7 +105,7 @@ pipy({
     forwardMatches && ((egw = forwardMatches[__port?.EgressForwardGateway || '*']?.next?.()?.id) => (
       egw && (
         _egressType = forwardEgressGateways?.[egw]?.mode || 'http2tunnel',
-        _egressEndpoint = forwardEgressGateways?.[egw]?.next?.()?.id
+        _egressEndpoint = forwardEgressGateways?.[egw]?.balancer?.next?.()?.id
       )
     ))()
   )
@@ -117,7 +120,7 @@ pipy({
     $=>$
     .handleStreamStart(
       () => (
-        console.log('outbound - TLS/__isEgress/_egressEndpoint/__cert/__target:', Boolean(certChain), __isEgress, _egressEndpoint, Boolean(__cert), __target)
+        console.log('outbound - TLS/__isEgress/_egressType/_egressEndpoint/__cert/__target:', Boolean(certChain), __isEgress, _egressType, _egressEndpoint, Boolean(__cert), __target)
       )
     )
   )
