@@ -10,7 +10,7 @@ import (
 var codebaseConfigJs []byte
 
 //go:embed codebase/dns-main.js
-var codebaseDnsMainJs []byte
+var codebaseDNSMainJs []byte
 
 //go:embed codebase/logging.js
 var codebaseLoggingJs []byte
@@ -113,7 +113,7 @@ var codebaseConfigJSON []byte
 
 var osmCodebaseItems = []client.BatchItem{
 	{Filename: "config.js", Content: codebaseConfigJs},
-	{Filename: "dns-main.js", Content: codebaseDnsMainJs},
+	{Filename: "dns-main.js", Content: codebaseDNSMainJs},
 	{Filename: "logging.js", Content: codebaseLoggingJs},
 	{Filename: "main.js", Content: codebaseMainJs},
 	{Filename: "metrics.js", Content: codebaseMetricsJs},

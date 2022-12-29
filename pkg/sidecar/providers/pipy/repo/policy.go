@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/identity"
 	"reflect"
 	"regexp"
 	"sort"
@@ -13,6 +12,7 @@ import (
 	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
 	"github.com/openservicemesh/osm/pkg/utils/cidr"
@@ -223,20 +223,12 @@ func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRang
 	}
 }
 
-func (otm *OutboundTrafficMatch) setAllowedEgressTraffic(allowedEgressTraffic bool) {
-	otm.AllowedEgressTraffic = allowedEgressTraffic
-}
-
 func (itm *InboundTrafficMatch) setPort(port Port) {
 	itm.Port = port
 }
 
 func (otm *OutboundTrafficMatch) setPort(port Port) {
 	otm.Port = port
-}
-
-func (otm *OutboundTrafficMatch) setEgressForwardGateway(egresssGateway *string) {
-	otm.EgressForwardGateway = egresssGateway
 }
 
 func (itm *InboundTrafficMatch) setProtocol(protocol Protocol) {
@@ -291,6 +283,14 @@ func (srr *OutboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterN
 		srr.TargetClusters = make(WeightedClusters)
 	}
 	srr.TargetClusters[clusterName] = weight
+}
+
+func (srr *OutboundTCPServiceRouteRules) setAllowedEgressTraffic(allowedEgressTraffic bool) {
+	srr.AllowedEgressTraffic = allowedEgressTraffic
+}
+
+func (srr *OutboundTCPServiceRouteRules) setEgressForwardGateway(egresssGateway *string) {
+	srr.EgressForwardGateway = egresssGateway
 }
 
 func (itm *InboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
@@ -445,6 +445,10 @@ func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatch
 	routeRule.HTTPMatchRule = *matchRule
 	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
 	return routeRule, false
+}
+
+func (hrrs *OutboundHTTPRouteRules) setEgressForwardGateway(egresssGateway *string) {
+	hrrs.EgressForwardGateway = egresssGateway
 }
 
 func (hmr *HTTPMatchRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
