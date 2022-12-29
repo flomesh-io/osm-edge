@@ -25,7 +25,7 @@ func (mc *MeshCatalog) GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPol
 					egressGatewaySvc := mc.kubeController.GetService(egressGatewayMeshSvc)
 					if egressGatewaySvc != nil {
 						mode, exist := egressGatewaySvc.GetAnnotations()[constants.EgressGatewayModeAnnotation]
-						if !exist || (constants.EgressGatewayModeHTTP2Tunnel == mode || constants.EgressGatewayModeSock5 == mode) {
+						if !exist || (constants.EgressGatewayModeHTTP2Tunnel != mode && constants.EgressGatewayModeSock5 != mode) {
 							mode = constants.EgressGatewayModeHTTP2Tunnel
 						}
 						gatewayConfig := trafficpolicy.EgressGatewayConfig{
@@ -58,7 +58,7 @@ func (mc *MeshCatalog) GetEgressGatewayPolicy() (*trafficpolicy.EgressGatewayPol
 						egressGatewaySvc := mc.kubeController.GetService(egressGatewayMeshSvc)
 						if egressGatewaySvc != nil {
 							mode, exist := egressGatewaySvc.GetAnnotations()[constants.EgressGatewayModeAnnotation]
-							if !exist || (constants.EgressGatewayModeHTTP2Tunnel == mode || constants.EgressGatewayModeSock5 == mode) {
+							if !exist || (constants.EgressGatewayModeHTTP2Tunnel != mode && constants.EgressGatewayModeSock5 != mode) {
 								mode = constants.EgressGatewayModeHTTP2Tunnel
 							}
 							gatewayConfig := trafficpolicy.EgressGatewayConfig{
