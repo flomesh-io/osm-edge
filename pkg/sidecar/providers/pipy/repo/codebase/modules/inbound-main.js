@@ -98,7 +98,7 @@
 
   (
     $=>$.replaceStreamStart(
-      new StreamEnd()
+      new StreamEnd('ConnectionReset')
     )
   )
 )
