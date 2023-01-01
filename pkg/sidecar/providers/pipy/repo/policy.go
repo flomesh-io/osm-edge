@@ -400,14 +400,6 @@ func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *policyv1al
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]policyv1alpha1.HTTPHeaderSpec) {
-	if rateLimit == nil {
-		hrrs.HeaderRateLimits = nil
-	} else {
-		hrrs.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
-	}
-}
-
 func (hrrs *InboundHTTPRouteRules) addAllowedEndpoint(address Address, serviceName ServiceName) {
 	if hrrs.AllowedEndpoints == nil {
 		hrrs.AllowedEndpoints = make(AllowedEndpoints)

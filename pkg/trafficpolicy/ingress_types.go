@@ -21,6 +21,4 @@ type IngressTrafficMatch struct {
 	// RateLimit defines the rate limiting policy applied for this TrafficMatch
 	// +optional
 	RateLimit *policyv1alpha1.RateLimitSpec
-
-	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
 }

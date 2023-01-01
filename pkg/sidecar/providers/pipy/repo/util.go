@@ -47,7 +47,6 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 			hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 			hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
-			hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 			hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, hostname := range httpRouteConfig.Hostnames {
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
@@ -469,7 +468,6 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 				hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
-				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 				for _, rule := range httpRouteConfig.Rules {
 					if len(rule.Route.HTTPRouteMatch.Path) == 0 {
@@ -628,7 +626,6 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
 				hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
-				hsrrs.setHTTPHeadersRateLimit(trafficMatch.HeaderRateLimit)
 				hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 				for _, rule := range httpRouteConfig.Rules {
 					if len(rule.Route.HTTPRouteMatch.Path) == 0 {

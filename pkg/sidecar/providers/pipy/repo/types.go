@@ -280,10 +280,9 @@ type InboundHTTPRouteRuleSlice []*InboundHTTPRouteRule
 type InboundHTTPRouteRules struct {
 	RouteRules InboundHTTPRouteRuleSlice `json:"RouteRules"`
 	Pluggable
-	TCPRateLimit     *TCPRateLimit          `json:"L4RateLimit"`
-	HTTPRateLimit    *HTTPRateLimit         `json:"L7RateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit `json:"HeaderRateLimits"`
-	AllowedEndpoints AllowedEndpoints       `json:"AllowedEndpoints"`
+	TCPRateLimit     *TCPRateLimit    `json:"L4RateLimit"`
+	HTTPRateLimit    *HTTPRateLimit   `json:"L7RateLimit"`
+	AllowedEndpoints AllowedEndpoints `json:"AllowedEndpoints"`
 }
 
 // InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules

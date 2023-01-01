@@ -60,7 +60,6 @@ func (mc *MeshCatalog) GetIngressTrafficPolicy(svc service.MeshService) (*traffi
 
 		if upstreamTrafficSetting != nil {
 			trafficMatch.RateLimit = upstreamTrafficSetting.Spec.RateLimit
-			trafficMatch.HeaderRateLimit = &upstreamTrafficSetting.Spec.HTTPHeaders
 		}
 
 		if backend.TLS != nil {
