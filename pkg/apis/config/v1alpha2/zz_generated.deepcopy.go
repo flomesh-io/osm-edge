@@ -397,7 +397,7 @@ func (in *RemoteLoggingSpec) DeepCopyInto(out *RemoteLoggingSpec) {
 	*out = *in
 	if in.SampledFraction != nil {
 		in, out := &in.SampledFraction, &out.SampledFraction
-		*out = new(float32)
+		*out = new(string)
 		**out = **in
 	}
 	return
@@ -499,7 +499,7 @@ func (in *TracingSpec) DeepCopyInto(out *TracingSpec) {
 	*out = *in
 	if in.SampledFraction != nil {
 		in, out := &in.SampledFraction, &out.SampledFraction
-		*out = new(float32)
+		*out = new(string)
 		**out = **in
 	}
 	return

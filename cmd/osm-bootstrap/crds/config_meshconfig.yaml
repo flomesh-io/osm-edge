@@ -298,8 +298,7 @@ spec:
                           type: string
                         sampledFraction:
                           description: SampledFraction defines the sampled fraction.
-                          type: number
-                          minimum: 0
+                          type: string
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -323,8 +322,7 @@ spec:
                           type: string
                         sampledFraction:
                           description: SampledFraction defines the sampled fraction.
-                          type: number
-                          minimum: 0
+                          type: string
                 certificate:
                   description: Configuration for certificate management
                   type: object
@@ -599,8 +597,7 @@ spec:
                           type: string
                         sampledFraction:
                           description: SampledFraction defines the sampled fraction.
-                          type: number
-                          minimum: 0
+                          type: string
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -624,8 +621,7 @@ spec:
                           type: string
                         sampledFraction:
                           description: SampledFraction defines the sampled fraction.
-                          type: number
-                          minimum: 0
+                          type: string
                 certificate:
                   description: Configuration for certificate management
                   type: object

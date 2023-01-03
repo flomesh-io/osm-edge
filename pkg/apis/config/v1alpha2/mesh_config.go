@@ -180,7 +180,7 @@ type TracingSpec struct {
 	Endpoint string `json:"endpoint,omitempty"`
 
 	// SampledFraction defines the sampled fraction.
-	SampledFraction *float32 `json:"sampledFraction,omitempty"`
+	SampledFraction *string `json:"sampledFraction,omitempty"`
 }
 
 // RemoteLoggingSpec is the type to represent OSM's remote logging configuration.
@@ -201,7 +201,7 @@ type RemoteLoggingSpec struct {
 	Authorization string `json:"authorization,omitempty"`
 
 	// SampledFraction defines the sampled fraction.
-	SampledFraction *float32 `json:"sampledFraction,omitempty"`
+	SampledFraction *string `json:"sampledFraction,omitempty"`
 }
 
 // ExternalAuthzSpec is a type to represent external authorization configuration.

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -131,8 +132,10 @@ func (c *Client) GetTracingEndpoint() string {
 // GetTracingSampledFraction returns the sampled fraction
 func (c *Client) GetTracingSampledFraction() float32 {
 	sampledFraction := c.getMeshConfig().Spec.Observability.Tracing.SampledFraction
-	if sampledFraction != nil {
-		return *sampledFraction
+	if sampledFraction != nil && len(*sampledFraction) > 0 {
+		if v, e := strconv.ParseFloat(*sampledFraction, 32); e == nil {
+			return float32(v)
+		}
 	}
 	return 1
 }
@@ -181,8 +184,10 @@ func (c *Client) GetRemoteLoggingAuthorization() string {
 // GetRemoteLoggingSampledFraction returns the sampled fraction
 func (c *Client) GetRemoteLoggingSampledFraction() float32 {
 	sampledFraction := c.getMeshConfig().Spec.Observability.RemoteLogging.SampledFraction
-	if sampledFraction != nil {
-		return *sampledFraction
+	if sampledFraction != nil && len(*sampledFraction) > 0 {
+		if v, e := strconv.ParseFloat(*sampledFraction, 32); e == nil {
+			return float32(v)
+		}
 	}
 	return 1
 }

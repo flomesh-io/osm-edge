@@ -170,7 +170,7 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		}
 		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 			Name:  "TRACING_SAMPLED_FRACTION",
-			Value: fmt.Sprintf("%d", injCtx.Configurator.GetTracingSampledFraction()),
+			Value: fmt.Sprintf("%0.2f", injCtx.Configurator.GetTracingSampledFraction()),
 		})
 	}
 
@@ -195,7 +195,7 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 		}
 		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
 			Name:  "REMOTE_LOGGING_SAMPLED_FRACTION",
-			Value: fmt.Sprintf("%d", injCtx.Configurator.GetRemoteLoggingSampledFraction()),
+			Value: fmt.Sprintf("%0.2f", injCtx.Configurator.GetRemoteLoggingSampledFraction()),
 		})
 	}
 
