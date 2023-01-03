@@ -168,6 +168,10 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 				Value: injCtx.Configurator.GetTracingEndpoint(),
 			})
 		}
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "TRACING_SAMPLED_FRACTION",
+			Value: fmt.Sprintf("%d", injCtx.Configurator.GetTracingSampledFraction()),
+		})
 	}
 
 	if injCtx.Configurator.IsRemoteLoggingEnabled() {
@@ -189,6 +193,10 @@ func getPipySidecarContainerSpec(injCtx *driver.InjectorContext, pod *corev1.Pod
 				Value: injCtx.Configurator.GetRemoteLoggingAuthorization(),
 			})
 		}
+		sidecarContainer.Env = append(sidecarContainer.Env, corev1.EnvVar{
+			Name:  "REMOTE_LOGGING_SAMPLED_FRACTION",
+			Value: fmt.Sprintf("%d", injCtx.Configurator.GetRemoteLoggingSampledFraction()),
+		})
 	}
 
 	if injCtx.Configurator.IsLocalDNSProxyEnabled() {

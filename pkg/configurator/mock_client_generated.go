@@ -304,6 +304,20 @@ func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingPort() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingPort", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingPort))
 }
 
+// GetRemoteLoggingSampledFraction mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingSampledFraction() float32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingSampledFraction")
+	ret0, _ := ret[0].(float32)
+	return ret0
+}
+
+// GetRemoteLoggingSampledFraction indicates an expected call of GetRemoteLoggingSampledFraction.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingSampledFraction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingSampledFraction", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingSampledFraction))
+}
+
 // GetRepoServerCodebase mocks base method.
 func (m *MockConfigurator) GetRepoServerCodebase() string {
 	m.ctrl.T.Helper()
@@ -456,6 +470,20 @@ func (m *MockConfigurator) GetTracingPort() uint32 {
 func (mr *MockConfiguratorMockRecorder) GetTracingPort() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTracingPort", reflect.TypeOf((*MockConfigurator)(nil).GetTracingPort))
+}
+
+// GetTracingSampledFraction mocks base method.
+func (m *MockConfigurator) GetTracingSampledFraction() float32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTracingSampledFraction")
+	ret0, _ := ret[0].(float32)
+	return ret0
+}
+
+// GetTracingSampledFraction indicates an expected call of GetTracingSampledFraction.
+func (mr *MockConfiguratorMockRecorder) GetTracingSampledFraction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTracingSampledFraction", reflect.TypeOf((*MockConfigurator)(nil).GetTracingSampledFraction))
 }
 
 // IsDebugServerEnabled mocks base method.

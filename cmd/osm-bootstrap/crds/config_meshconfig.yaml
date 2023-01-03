@@ -296,6 +296,10 @@ spec:
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: number
+                          minimum: 0
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -317,6 +321,10 @@ spec:
                         authorization:
                           description: Authorization for remote logging service, if remote logging is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: number
+                          minimum: 0
                 certificate:
                   description: Configuration for certificate management
                   type: object
@@ -589,6 +597,10 @@ spec:
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: number
+                          minimum: 0
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -610,6 +622,10 @@ spec:
                         authorization:
                           description: Authorization for remote logging service, if remote logging is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: number
+                          minimum: 0
                 certificate:
                   description: Configuration for certificate management
                   type: object

@@ -128,6 +128,15 @@ func (c *Client) GetTracingEndpoint() string {
 	return constants.DefaultTracingEndpoint
 }
 
+// GetTracingSampledFraction returns the sampled fraction
+func (c *Client) GetTracingSampledFraction() float32 {
+	sampledFraction := c.getMeshConfig().Spec.Observability.Tracing.SampledFraction
+	if sampledFraction != nil {
+		return *sampledFraction
+	}
+	return 1
+}
+
 // IsRemoteLoggingEnabled returns whether remote logging is enabled
 func (c *Client) IsRemoteLoggingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.RemoteLogging.Enable
@@ -167,6 +176,15 @@ func (c *Client) GetRemoteLoggingAuthorization() string {
 		return remoteLoggingAuthorization
 	}
 	return ""
+}
+
+// GetRemoteLoggingSampledFraction returns the sampled fraction
+func (c *Client) GetRemoteLoggingSampledFraction() float32 {
+	sampledFraction := c.getMeshConfig().Spec.Observability.RemoteLogging.SampledFraction
+	if sampledFraction != nil {
+		return *sampledFraction
+	}
+	return 1
 }
 
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled

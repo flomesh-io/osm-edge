@@ -370,6 +370,8 @@ osm:
     port: 9411
     # -- Tracing collector's API path where the spans will be sent to
     endpoint: "/api/v2/spans"
+    # -- Sampled Fraction
+    sampledFraction: 1.0
     # -- Image used for tracing
     image: jaegertracing/all-in-one
 
@@ -416,6 +418,8 @@ osm:
     endpoint: ""
     # -- The authorization for remote logging service
     authorization: ""
+    # -- Sampled Fraction
+    sampledFraction: 1.0
 
   # -- Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.

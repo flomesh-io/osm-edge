@@ -37,7 +37,8 @@ data:
           {{- if .Values.osm.tracing.enable }}
           "port": {{.Values.osm.tracing.port | mustToJson}},
           "address": {{.Values.osm.tracing.address | mustToJson}},
-          "endpoint": {{.Values.osm.tracing.endpoint | mustToJson}}
+          "endpoint": {{.Values.osm.tracing.endpoint | mustToJson}},
+          "sampledFraction": {{.Values.osm.tracing.sampledFraction | mustToJson}}
           {{- end }}
         },
         "remoteLogging": {
@@ -46,7 +47,8 @@ data:
           "port": {{.Values.osm.remoteLogging.port | mustToJson}},
           "address": {{.Values.osm.remoteLogging.address | mustToJson}},
           "endpoint": {{.Values.osm.remoteLogging.endpoint | mustToJson}},
-          "authorization": {{.Values.osm.remoteLogging.authorization | mustToJson}}
+          "authorization": {{.Values.osm.remoteLogging.authorization | mustToJson}},
+          "sampledFraction": {{.Values.osm.remoteLogging.sampledFraction | mustToJson}}
           {{- end }}
         }
       },

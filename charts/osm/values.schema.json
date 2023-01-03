@@ -935,6 +935,15 @@
                                 "/api/v2/spans"
                             ]
                         },
+                        "sampledFraction": {
+                            "$id": "#/properties/osm/properties/tracing/properties/sampledFraction",
+                            "type": "number",
+                            "title": "Sampled Fraction",
+                            "description": "Sampled Fraction",
+                            "examples": [
+                                1.0
+                            ]
+                        },
                         "image": {
                             "$id": "#/properties/osm/properties/tracing/properties/image",
                             "type": "string",
@@ -1085,6 +1094,15 @@
                             "description": "Authorization for remote logging service",
                             "examples": [
                                 "Basic XXX"
+                            ]
+                        },
+                        "sampledFraction": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/sampledFraction",
+                            "type": "number",
+                            "title": "Sampled Fraction",
+                            "description": "Sampled Fraction",
+                            "examples": [
+                                1.0
                             ]
                         }
                     },

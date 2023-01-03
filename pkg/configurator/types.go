@@ -65,6 +65,9 @@ type Configurator interface {
 	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
+	// GetTracingSampledFraction returns the sampled fraction
+	GetTracingSampledFraction() float32
+
 	// IsRemoteLoggingEnabled returns whether remote logging is enabled
 	IsRemoteLoggingEnabled() bool
 
@@ -79,6 +82,9 @@ type Configurator interface {
 
 	// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
 	GetRemoteLoggingAuthorization() string
+
+	// GetRemoteLoggingSampledFraction returns the sampled fraction
+	GetRemoteLoggingSampledFraction() float32
 
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
