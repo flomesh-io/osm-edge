@@ -14,10 +14,12 @@
   makeClusterConfig = (clusterConfig) => (
     clusterConfig && (
       (
+        endpointAttributes = {},
         obj = {
           targetBalancer: clusterConfig.Endpoints && new algo.RoundRobinLoadBalancer(
-            shuffle(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight])))
+            shuffle(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => (endpointAttributes[k] = v, [k, v.Weight]))))
           ),
+          endpointAttributes,
           failoverBalancer: clusterConfig.Endpoints && failover(Object.fromEntries(Object.entries(clusterConfig.Endpoints).map(([k, v]) => [k, v.Weight]))),
           needRetry: Boolean(clusterConfig.RetryPolicy?.NumRetries),
           numRetries: clusterConfig.RetryPolicy?.NumRetries,
@@ -110,7 +112,7 @@
   msg => (
     __target && (
       (
-        attrs = __cluster?.EndpointAttributes?.[__target]
+        attrs = _clusterConfig?.endpointAttributes?.[__target]
       ) => (
         attrs?.Path && (
           __isEgress = true,
