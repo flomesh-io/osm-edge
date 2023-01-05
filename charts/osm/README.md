@@ -256,7 +256,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
-| osm.remoteLogging.sampledFraction | string | `"0.2"` | Sampled Fraction |
+| osm.remoteLogging.sampledFraction | string | `"1.0"` | Sampled Fraction |
 | osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:latest","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |
 | osm.repoServer.codebase | string | `""` | codebase is the folder used by osmController. |
 | osm.repoServer.image | string | `"flomesh/pipy-repo:latest"` | Image used for Pipy RepoServer |
@@ -286,7 +286,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
 | osm.tracing.nodeSelector | object | `{}` |  |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
-| osm.tracing.sampledFraction | string | `"0.2"` | Sampled Fraction |
+| osm.tracing.sampledFraction | string | `"1.0"` | Sampled Fraction |
 | osm.tracing.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.trustDomain | string | `"cluster.local"` | The trust domain to use as part of the common name when requesting new certificates. |
 | osm.validatorWebhook.webhookConfigurationName | string | `""` | Name of the ValidatingWebhookConfiguration |
