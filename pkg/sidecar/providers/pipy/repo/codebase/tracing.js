@@ -1,9 +1,16 @@
 (
   (
+    namespace = (os.env.POD_NAMESPACE || 'default'),
+    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+    name = (os.env.SERVICE_ACCOUNT || ''),
+    pod = (os.env.POD_NAME || ''),
     tracingAddress = os.env.TRACING_ADDRESS,
     tracingEndpoint = (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
+    tracingLimitedID = os.env.TRACING_SAMPLED_FRACTION && (os.env.TRACING_SAMPLED_FRACTION * Math.pow(2, 63)),
     logZipkin = tracingAddress && new logging.JSONLogger('zipkin').toHTTP('http://' + tracingAddress + tracingEndpoint, {
       batch: {
+        timeout: 1,
+        interval: 1,
         prefix: '[',
         postfix: ']',
         separator: ','
@@ -13,37 +20,43 @@
         'Content-Type': 'application/json',
       }
     }).log,
+    {
+      toInt63,
+    } = pipy.solve('utils.js'),
   ) => (
     {
-      namespace: (os.env.POD_NAMESPACE || 'default'),
-      kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-      name: (os.env.SERVICE_ACCOUNT || ''),
-      pod: (os.env.POD_NAME || ''),
-
       tracingEnabled: Boolean(logZipkin),
 
-      initTracingHeaders: (namespace, kind, name, pod, headers, proto) => (
+      initTracingHeaders: (headers, proto) => (
         (
+          sampled = true,
           uuid = algo.uuid(),
           id = uuid.substring(0, 18).replaceAll('-', ''),
         ) => (
           proto && (headers['x-forwarded-proto'] = proto),
-          headers['x-b3-spanid'] &&
-          (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) &&
-          (headers['x-b3-spanid'] = id),
-          !headers['x-b3-traceid'] &&
-          (headers['x-b3-traceid'] = id) &&
-          (headers['x-b3-spanid'] = id) &&
-          (headers['x-b3-sampled'] = '1'),
-          !headers['x-request-id'] && (headers['x-request-id'] = uuid),
+          headers['x-b3-spanid'] && (
+            (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) && (headers['x-b3-spanid'] = id)
+          ),
+          !headers['x-b3-traceid'] && (
+            (headers['x-b3-traceid'] = id) && (headers['x-b3-spanid'] = id)
+          ),
+          headers['x-b3-sampled'] && (
+            sampled = (headers['x-b3-sampled'] === '1'), true
+          ) || (
+            (sampled = (!tracingLimitedID || toInt63(headers['x-b3-traceid']) < tracingLimitedID)) ? (headers['x-b3-sampled'] = '1') : (headers['x-b3-sampled'] = '0')
+          ),
+          !headers['x-request-id'] && (
+            headers['x-request-id'] = uuid
+          ),
           headers['osm-stats-namespace'] = namespace,
           headers['osm-stats-kind'] = kind,
           headers['osm-stats-name'] = name,
-          headers['osm-stats-pod'] = pod
+          headers['osm-stats-pod'] = pod,
+          sampled
         )
       )(),
 
-      makeZipKinData: (name, msg, headers, clusterName, kind, shared) => (
+      makeZipKinData: (msg, headers, clusterName, kind, shared) => (
         (data) => (
           data = {
             'traceId': headers?.['x-b3-traceid'] && headers['x-b3-traceid'].toString(),
