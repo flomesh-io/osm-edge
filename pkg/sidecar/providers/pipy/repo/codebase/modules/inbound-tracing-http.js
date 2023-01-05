@@ -1,15 +1,17 @@
 ((
   {
-    name,
     tracingEnabled,
     makeZipKinData,
     saveTracing,
-  } = pipy.solve('tracing.js')
+  } = pipy.solve('tracing.js'),
+  sampledCounter0 = new stats.Counter('inbound_http_tracing_sampled_0'),
+  sampledCounter1 = new stats.Counter('inbound_http_tracing_sampled_1'),
 ) => (
 
 pipy({
-  zipkinData: null,
-  httpBytesStruct: null,
+  _sampled: true,
+  _zipkinData: null,
+  _httpBytesStruct: null,
 })
 
 .import({
@@ -21,18 +23,21 @@ pipy({
 .handleMessage(
   (msg) => (
     tracingEnabled && (
-      httpBytesStruct = {},
-      httpBytesStruct.requestSize = msg?.body?.size,
-      zipkinData = makeZipKinData(name, msg, msg.head.headers, __cluster?.name, 'SERVER', true)
+      (_sampled = (msg?.head?.headers?.['x-b3-sampled'] === '1')) && (
+        _httpBytesStruct = {},
+        _httpBytesStruct.requestSize = msg?.body?.size,
+        _zipkinData = makeZipKinData(msg, msg.head.headers, __cluster?.name, 'SERVER', true)
+      ),
+      _sampled ? sampledCounter1.increase() : sampledCounter0.increase()
     )
   )
 )
 .chain()
 .handleMessage(
   (msg) => (
-    tracingEnabled && (
-      httpBytesStruct.responseSize = msg?.body?.size,
-      saveTracing(zipkinData, msg?.head, httpBytesStruct, __target)
+    tracingEnabled && _sampled && (
+      _httpBytesStruct.responseSize = msg?.body?.size,
+      saveTracing(_zipkinData, msg?.head, _httpBytesStruct, __target)
     )
   )
 )

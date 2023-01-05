@@ -1,4 +1,12 @@
-(() => (
+((
+  hexChar = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'a': 10, 'b': 11, 'c': 12, 'd': 13, 'e': 14, 'f': 15 },
+  toInt63 = str => (
+    (
+      value = str.split('').reduce((calc, char) => (calc * 16) + hexChar[char], 0),
+    ) => value / 2
+  )(),
+  traceId = () => algo.uuid().substring(0, 18).replaceAll('-', ''),
+) => (
   {
     initRateLimit: rateLimit => (
       rateLimit?.Local ? (
@@ -39,5 +47,8 @@
         Object.keys(obj).length === 0 ? null : new algo.RoundRobinLoadBalancer(obj)
       ))() : null
     ),
+
+    toInt63,
+    traceId,
   }
 ))()
