@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	auth "github.com/openservicemesh/osm/pkg/auth"
+	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -77,6 +78,20 @@ func (m *MockConfigurator) GetFeatureFlags() v1alpha2.FeatureFlags {
 func (mr *MockConfiguratorMockRecorder) GetFeatureFlags() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureFlags", reflect.TypeOf((*MockConfigurator)(nil).GetFeatureFlags))
+}
+
+// GetGlobalPluginChains mocks base method.
+func (m *MockConfigurator) GetGlobalPluginChains() map[string][]trafficpolicy.Plugin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGlobalPluginChains")
+	ret0, _ := ret[0].(map[string][]trafficpolicy.Plugin)
+	return ret0
+}
+
+// GetGlobalPluginChains indicates an expected call of GetGlobalPluginChains.
+func (mr *MockConfiguratorMockRecorder) GetGlobalPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGlobalPluginChains", reflect.TypeOf((*MockConfigurator)(nil).GetGlobalPluginChains))
 }
 
 // GetInboundExternalAuthConfig mocks base method.

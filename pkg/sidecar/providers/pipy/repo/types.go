@@ -45,7 +45,7 @@ type Server struct {
 	configVersion  map[string]uint64
 
 	pluginSet        mapset.Set
-	pluginPri        map[string]uint16
+	pluginPri        map[string]float32
 	pluginSetVersion string
 	pluginMutex      sync.RWMutex
 

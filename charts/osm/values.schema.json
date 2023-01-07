@@ -169,6 +169,8 @@
             "required": [
                 "image",
                 "sidecarClass",
+                "sidecarDrivers",
+                "pluginChains",
                 "curlImage",
                 "caBundleSecretName",
                 "enableDebugServer",
@@ -460,6 +462,119 @@
                             }
                         ]
                     ]
+                },
+                "pluginChains": {
+                    "$id": "#/properties/osm/properties/pluginChains",
+                    "type": "object",
+                    "title": "Plugin Chain Scheme",
+                    "description": "Plugin Chain Scheme",
+                    "additionalProperties": false,
+                    "properties": {
+                        "inbound-tcp": {
+                            "$id": "#/properties/osm/properties/pluginChains/inbound-tcp",
+                            "type": "array",
+                            "title": "Inbound TCP Plugin Chain Schema",
+                            "description": "Inbound TCP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "inbound-http": {
+                            "$id": "#/properties/osm/properties/pluginChains/inbound-http",
+                            "type": "array",
+                            "title": "Inbound HTTP Plugin Chain Schema",
+                            "description": "Inbound HTTP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "outbound-tcp": {
+                            "$id": "#/properties/osm/properties/pluginChains/outbound-tcp",
+                            "type": "array",
+                            "title": "Outbound TCP Plugin Chain Schema",
+                            "description": "Outbound TCP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "outbound-http": {
+                            "$id": "#/properties/osm/properties/pluginChains/outbound-http",
+                            "type": "array",
+                            "title": "Outbound HTTP Plugin Chain Schema",
+                            "description": "Outbound HTTP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 "curlImage": {
                     "$id": "#/properties/osm/properties/curlImage",

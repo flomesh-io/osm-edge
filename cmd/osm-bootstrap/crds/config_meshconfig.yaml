@@ -393,6 +393,66 @@ spec:
                       type: boolean
                     enablePluginPolicy:
                       type: boolean
+                pluginChains:
+                  description: Plugin Chains
+                  type: object
+                  properties:
+                    inbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    inbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
     - name: v1alpha1
       served: true
       storage: false
@@ -691,3 +751,63 @@ spec:
                       type: boolean
                     enablePluginPolicy:
                       type: boolean
+                pluginChains:
+                  description: Plugin Chains
+                  type: object
+                  properties:
+                    inbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    inbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean

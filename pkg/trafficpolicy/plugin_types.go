@@ -10,10 +10,13 @@ type Plugin struct {
 	Name string
 
 	// priority defines the priority of the plugin.
-	Priority uint16
+	Priority float32
 
 	// Script defines pipy script used by the PlugIn.
 	Script string
+
+	// BuildIn indicates PlugIn type.
+	BuildIn bool
 }
 
 // PluginChain defines plugin chain

@@ -14,17 +14,18 @@ import (
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func (s *Server) updatePlugins() (pluginSet mapset.Set, pluginPri map[string]uint16) {
+func (s *Server) updatePlugins() (pluginSet mapset.Set, pluginPri map[string]float32) {
 	var pluginItems []client.BatchItem
 	var pluginVers []string
 	pluginSet = mapset.NewSet()
-	pluginPri = make(map[string]uint16)
+	pluginPri = make(map[string]float32)
 
 	plugins := s.catalog.GetPlugins()
 	for _, pluginItem := range plugins {
@@ -36,7 +37,7 @@ func (s *Server) updatePlugins() (pluginSet mapset.Set, pluginPri map[string]uin
 			Filename: uri,
 			Content:  bytes,
 		})
-		pluginVers = append(pluginVers, fmt.Sprintf("%s:%d:%d", uri, pluginItem.Priority, hash(bytes)))
+		pluginVers = append(pluginVers, fmt.Sprintf("%s:%f:%d", uri, pluginItem.Priority, hash(bytes)))
 	}
 
 	diffSet := s.pluginSet.Difference(pluginSet)
@@ -189,12 +190,11 @@ func walkPluginConfig(cataloger catalog.MeshCataloger, plugin2MountPoint2Config 
 	return meshSvc2Plugin2MountPoint2Config
 }
 
-func setSidecarChain(pipyConf *PipyConf, pluginPri map[string]uint16, mountPoint2Plugins map[string]mapset.Set) {
-	pipyConf.Chains = nil
-	if len(mountPoint2Plugins) > 0 {
-		pipyConf.Chains = make(map[string][]string)
+func setSidecarChain(cfg configurator.Configurator, pipyConf *PipyConf, pluginPri map[string]float32, mountPoint2Plugins map[string]mapset.Set) {
+	pluginChains := cfg.GetGlobalPluginChains()
+	if len(pluginPri) > 0 && len(mountPoint2Plugins) > 0 {
 		for mountPoint, plugins := range mountPoint2Plugins {
-			var pluginItems PluginSlice
+			pluginItems := pluginChains[mountPoint]
 			pluginSlice := plugins.ToSlice()
 			for _, item := range pluginSlice {
 				if pri, exist := pluginPri[item.(string)]; exist {
@@ -204,14 +204,24 @@ func setSidecarChain(pipyConf *PipyConf, pluginPri map[string]uint16, mountPoint
 					})
 				}
 			}
-			if len(pluginItems) > 0 {
-				var pluginURIs []string
-				sort.Sort(&pluginItems)
-				for _, pluginItem := range pluginItems {
+			pluginChains[mountPoint] = pluginItems
+		}
+	}
+
+	pipyConf.Chains = make(map[string][]string)
+	for mountPoint, pluginItems := range pluginChains {
+		pluginSlice := PluginSlice(pluginItems)
+		if len(pluginSlice) > 0 {
+			var pluginURIs []string
+			sort.Sort(&pluginSlice)
+			for _, pluginItem := range pluginItems {
+				if pluginItem.BuildIn {
+					pluginURIs = append(pluginURIs, fmt.Sprintf("%s.js", pluginItem.Name))
+				} else {
 					pluginURIs = append(pluginURIs, getPluginURI(pluginItem.Name))
 				}
-				pipyConf.Chains[mountPoint] = pluginURIs
 			}
+			pipyConf.Chains[mountPoint] = pluginURIs
 		}
 	}
 }

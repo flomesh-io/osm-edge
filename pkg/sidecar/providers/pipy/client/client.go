@@ -328,6 +328,7 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 		// 3. commit the repo, so that changes can take effect
 		//log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
 		if success, err = p.commit(batch.Basepath, codebaseV); err != nil || !success {
+			log.Err(err).Msgf("codebase:%s etag:%s", batch.Basepath, codebaseV)
 			return
 		}
 	}

@@ -48,6 +48,8 @@ type Proxy struct {
 
 	Mutex *sync.RWMutex
 	Quit  chan bool
+
+	ID uint64
 }
 
 func (p *Proxy) String() string {
@@ -170,8 +172,17 @@ func (p *Proxy) GetCNPrefix() string {
 	return sidecar.GetCertCNPrefix(p, models.KindSidecar)
 }
 
+var (
+	LOCK sync.Mutex
+	ID   = uint64(0)
+)
+
 // NewProxy creates a new instance of an Sidecar proxy connected to the servers.
 func NewProxy(kind models.ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
+	LOCK.Lock()
+	ID++
+	id := ID
+	defer LOCK.Unlock()
 	return &Proxy{
 		// Identity is of the form <name>.<namespace>.cluster.local
 		Identity:    svcIdentity,
@@ -180,5 +191,6 @@ func NewProxy(kind models.ProxyKind, uuid uuid.UUID, svcIdentity identity.Servic
 		connectedAt: time.Now(),
 		kind:        kind,
 		Mutex:       new(sync.RWMutex),
+		ID:          id,
 	}
 }

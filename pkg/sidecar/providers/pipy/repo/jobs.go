@@ -192,6 +192,14 @@ func inbound(cataloger catalog.MeshCataloger, serviceIdentity identity.ServiceId
 }
 
 func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, proxy *pipy.Proxy) (pluginSetVersion string) {
+	pipyConf.Chains = nil
+
+	defer func() {
+		if pipyConf.Chains == nil {
+			setSidecarChain(s.cfg, pipyConf, nil, nil)
+		}
+	}()
+
 	if !s.cfg.GetFeatureFlags().EnablePluginPolicy {
 		return
 	}
@@ -217,7 +225,7 @@ func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, prox
 	meshSvc2Plugin2MountPoint2Config := walkPluginConfig(cataloger, plugin2MountPoint2Config)
 
 	pipyConf.pluginPolicies = meshSvc2Plugin2MountPoint2Config
-	setSidecarChain(pipyConf, pluginPri, mountPoint2Plugins)
+	setSidecarChain(s.cfg, pipyConf, pluginPri, mountPoint2Plugins)
 
 	pluginSetVersion = s.pluginSetVersion
 	return
@@ -316,6 +324,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
 			log.Log().Str("Proxy", proxy.GetCNPrefix()).
+				Str("ID", fmt.Sprintf("%d", proxy.ID)).
 				Str("codebasePreV", fmt.Sprintf("%d", codebasePreV)).
 				Str("codebaseCurV", fmt.Sprintf("%d", codebaseCurV)).
 				Msg("Sidecar's config.json")

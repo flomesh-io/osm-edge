@@ -337,7 +337,7 @@ func (in *PluginSpec) DeepCopyInto(out *PluginSpec) {
 	*out = *in
 	if in.Priority != nil {
 		in, out := &in.Priority, &out.Priority
-		*out = new(uint16)
+		*out = new(float32)
 		**out = **in
 	}
 	return

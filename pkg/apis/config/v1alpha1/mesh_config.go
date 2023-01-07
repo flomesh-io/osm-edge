@@ -44,6 +44,9 @@ type MeshConfigSpec struct {
 
 	// FeatureFlags defines the feature flags for a mesh instance.
 	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
+
+	// PluginChains defines the default plugin chains.
+	PluginChains PluginChainsSpec `json:"pluginChains,omitempty"`
 }
 
 // SidecarSpec is the type used to represent the specifications for the proxy sidecar.
@@ -291,4 +294,31 @@ type ClusterPropertySpec struct {
 type ClusterSetSpec struct {
 	// Properties defines properties for cluster.
 	Properties []ClusterPropertySpec `json:"properties"`
+}
+
+// PluginChainsSpec is the type to represent plugin chains.
+type PluginChainsSpec struct {
+	// InboundTCPChains defines inbound tcp chains
+	InboundTCPChains []*PluginChainSpec `json:"inbound-tcp"`
+
+	// InboundHTTPChains defines inbound http chains
+	InboundHTTPChains []*PluginChainSpec `json:"inbound-http"`
+
+	// OutboundTCPChains defines outbound tcp chains
+	OutboundTCPChains []*PluginChainSpec `json:"outbound-tcp"`
+
+	// OutboundHTTPChains defines outbound http chains
+	OutboundHTTPChains []*PluginChainSpec `json:"outbound-http"`
+}
+
+// PluginChainSpec is the type to represent plugin chain.
+type PluginChainSpec struct {
+	// Plugin defines the name of plugin
+	Plugin string `json:"plugin"`
+
+	// Priority defines the priority of plugin
+	Priority float32 `json:"priority"`
+
+	// Disable defines the visibility of plugin
+	Disable bool `json:"disable"`
 }

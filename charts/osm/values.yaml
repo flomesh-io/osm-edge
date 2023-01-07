@@ -70,6 +70,24 @@ osm:
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
 
+  pluginChains:
+    inbound-tcp:
+      - plugin: inbound-tcp-a1
+        priority: 100
+        disable: true
+    inbound-http:
+      - plugin: inbound-http-a2
+        priority: 100
+        disable: true
+    outbound-tcp:
+      - plugin: outbound-tcp-a3
+        priority: 100
+        disable: true
+    outbound-http:
+      - plugin: outbound-http-a4
+        priority: 100
+        disable: true
+
   # -- Pipy RepoServer
   repoServer:
     # -- Image used for Pipy RepoServer

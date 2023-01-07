@@ -347,6 +347,7 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
 			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
 			prevSpec.FeatureFlags != newSpec.FeatureFlags ||
+			!reflect.DeepEqual(prevSpec.PluginChains, newSpec.PluginChains) ||
 			!reflect.DeepEqual(prevSpec.ClusterSet, newSpec.ClusterSet) {
 			return &proxyUpdateEvent{
 				msg:   msg,

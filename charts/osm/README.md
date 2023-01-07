@@ -225,6 +225,18 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.outboundIPRangeExclusionList | list | `[]` | Specifies a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundIPRangeInclusionList | list | `[]` | Specifies a global list of IP ranges to include for outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | osm.outboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
+| osm.pluginChains.inbound-http[0].disable | bool | `true` |  |
+| osm.pluginChains.inbound-http[0].plugin | string | `"inbound-http-a2"` |  |
+| osm.pluginChains.inbound-http[0].priority | int | `100` |  |
+| osm.pluginChains.inbound-tcp[0].disable | bool | `true` |  |
+| osm.pluginChains.inbound-tcp[0].plugin | string | `"inbound-tcp-a1"` |  |
+| osm.pluginChains.inbound-tcp[0].priority | int | `100` |  |
+| osm.pluginChains.outbound-http[0].disable | bool | `true` |  |
+| osm.pluginChains.outbound-http[0].plugin | string | `"outbound-http-a4"` |  |
+| osm.pluginChains.outbound-http[0].priority | int | `100` |  |
+| osm.pluginChains.outbound-tcp[0].disable | bool | `true` |  |
+| osm.pluginChains.outbound-tcp[0].plugin | string | `"outbound-tcp-a3"` |  |
+| osm.pluginChains.outbound-tcp[0].priority | int | `100` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |
 | osm.preinstall.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].values[0] | string | `"linux"` |  |

@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -418,4 +419,64 @@ func (c *Client) GetFeatureFlags() configv1alpha2.FeatureFlags {
 // GetOSMLogLevel returns the configured OSM log level
 func (c *Client) GetOSMLogLevel() string {
 	return c.getMeshConfig().Spec.Observability.OSMLogLevel
+}
+
+// GetGlobalPluginChains returns plugin chains
+func (c *Client) GetGlobalPluginChains() map[string][]trafficpolicy.Plugin {
+	pluginChainMap := make(map[string][]trafficpolicy.Plugin)
+	pluginChainSpec := c.getMeshConfig().Spec.PluginChains
+
+	inboundTCPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.InboundTCPChains {
+		if plugin.Disable {
+			continue
+		}
+		inboundTCPChains = append(inboundTCPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	inboundHTTPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.InboundHTTPChains {
+		if plugin.Disable {
+			continue
+		}
+		inboundHTTPChains = append(inboundHTTPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	outboundTCPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.OutboundTCPChains {
+		if plugin.Disable {
+			continue
+		}
+		outboundTCPChains = append(outboundTCPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	outboundHTTPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.OutboundHTTPChains {
+		if plugin.Disable {
+			continue
+		}
+		outboundHTTPChains = append(outboundHTTPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	pluginChainMap["inbound-tcp"] = inboundTCPChains
+	pluginChainMap["inbound-http"] = inboundHTTPChains
+	pluginChainMap["outbound-tcp"] = outboundTCPChains
+	pluginChainMap["outbound-http"] = outboundHTTPChains
+	return pluginChainMap
 }

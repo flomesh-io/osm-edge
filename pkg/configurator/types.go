@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 var (
@@ -144,4 +145,7 @@ type Configurator interface {
 
 	// GetFeatureFlags returns OSM's feature flags
 	GetFeatureFlags() configv1alpha2.FeatureFlags
+
+	// GetGlobalPluginChains returns plugin chains
+	GetGlobalPluginChains() map[string][]trafficpolicy.Plugin
 }

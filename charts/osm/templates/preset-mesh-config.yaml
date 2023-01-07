@@ -81,5 +81,6 @@ data:
         "enableSidecarActiveHealthChecks": {{.Values.osm.featureFlags.enableSidecarActiveHealthChecks | mustToJson}},
         "enableRetryPolicy": {{.Values.osm.featureFlags.enableRetryPolicy | mustToJson}},
         "enablePluginPolicy": {{.Values.osm.featureFlags.enablePluginPolicy | mustToJson}}
-      }
+      },
+      "pluginChains": {{.Values.osm.pluginChains | mustToJson }}
     }
