@@ -65,6 +65,11 @@ func (c *Client) GetMeshConfigJSON() (string, error) {
 	return cm, nil
 }
 
+// GetTrafficInterceptionMode returns the traffic interception mode
+func (c *Client) GetTrafficInterceptionMode() string {
+	return c.getMeshConfig().Spec.Traffic.InterceptionMode
+}
+
 // IsPermissiveTrafficPolicyMode tells us whether the OSM Control Plane is in permissive mode,
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations

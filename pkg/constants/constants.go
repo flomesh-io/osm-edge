@@ -345,3 +345,11 @@ const (
 	// SidecarClassPipy is the SidecarClass field value for context field.
 	SidecarClassPipy = "pipy"
 )
+
+const (
+	//TrafficInterceptionModeIptables defines the iptables traffic interception mode
+	TrafficInterceptionModeIptables = "iptables"
+
+	//TrafficInterceptionModeEbpf defines the ebpf traffic interception mode
+	TrafficInterceptionModeEbpf = "ebpf"
+)

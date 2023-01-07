@@ -36,6 +36,9 @@ type Configurator interface {
 	// GetMeshConfigJSON returns the MeshConfig in pretty JSON (human readable)
 	GetMeshConfigJSON() (string, error)
 
+	// GetTrafficInterceptionMode returns the traffic interception mode
+	GetTrafficInterceptionMode() string
+
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
 	IsPermissiveTrafficPolicyMode() bool
 

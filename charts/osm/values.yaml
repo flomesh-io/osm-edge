@@ -357,6 +357,9 @@ osm:
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: true
 
+  # -- Traffic interception mode in the mesh
+  trafficInterceptionMode: iptables
+
   # -- Enable egress in the mesh
   enableEgress: true
 

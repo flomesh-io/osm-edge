@@ -175,6 +175,7 @@
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
+                "trafficInterceptionMode",
                 "enableEgress",
                 "enableReconciler",
                 "deployPrometheus",
@@ -713,6 +714,19 @@
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
                     "examples": [
                         false
+                    ]
+                },
+                "trafficInterceptionMode": {
+                    "$id": "#/properties/osm/properties/trafficInterceptionMode",
+                    "type": "string",
+                    "title": "The trafficInterceptionMode schema",
+                    "description": "Traffic interception mode in the mesh.",
+                    "enum": [
+                        "iptables",
+                        "ebpf"
+                    ],
+                    "examples": [
+                        "iptables"
                     ]
                 },
                 "enableEgress": {

@@ -205,6 +205,12 @@ spec:
                   description: Configuration for traffic management
                   type: object
                   properties:
+                    interceptionMode:
+                      description: Traffic interception mode in the mesh
+                      type: string
+                      enum:
+                        - iptables
+                        - ebpf
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean
@@ -575,6 +581,12 @@ spec:
                   description: Configuration for traffic management
                   type: object
                   properties:
+                    interceptionMode:
+                      description: Traffic interception mode in the mesh
+                      type: string
+                      enum:
+                        - iptables
+                        - ebpf
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean

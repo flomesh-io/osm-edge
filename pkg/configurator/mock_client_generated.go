@@ -501,6 +501,20 @@ func (mr *MockConfiguratorMockRecorder) GetTracingSampledFraction() *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTracingSampledFraction", reflect.TypeOf((*MockConfigurator)(nil).GetTracingSampledFraction))
 }
 
+// GetTrafficInterceptionMode mocks base method.
+func (m *MockConfigurator) GetTrafficInterceptionMode() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrafficInterceptionMode")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetTrafficInterceptionMode indicates an expected call of GetTrafficInterceptionMode.
+func (mr *MockConfiguratorMockRecorder) GetTrafficInterceptionMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrafficInterceptionMode", reflect.TypeOf((*MockConfigurator)(nil).GetTrafficInterceptionMode))
+}
+
 // IsDebugServerEnabled mocks base method.
 func (m *MockConfigurator) IsDebugServerEnabled() bool {
 	m.ctrl.T.Helper()
