@@ -356,6 +356,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 			}
 			if err != nil {
 				log.Error().Err(err)
+				repoClient.Delete(codebase)
 			} else {
 				proxy.ETag = codebaseCurV
 			}
