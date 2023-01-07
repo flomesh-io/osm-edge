@@ -15,8 +15,8 @@ pipy({
 })
 
 .import({
-  __cluster: 'inbound',
-  __target: 'inbound',
+  __cluster: 'inbound-http-routing',
+  __target: 'connect-tcp',
 })
 
 .pipeline()

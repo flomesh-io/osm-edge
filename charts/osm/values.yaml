@@ -72,21 +72,78 @@ osm:
 
   pluginChains:
     inbound-tcp:
+      - plugin: modules/inbound-tls-termination
+        priority: 400
+        disable: false
+      - plugin: modules/inbound-tcp-routing
+        priority: 300
+        disable: false
       - plugin: modules/inbound-tcp-load-balancing
+        priority: 200
+        disable: false
+      - plugin: modules/inbound-tcp-default
         priority: 100
-        disable: true
+        disable: false
     inbound-http:
+      - plugin: modules/inbound-tls-termination
+        priority: 900
+        disable: false
+      - plugin: modules/inbound-http-routing
+        priority: 800
+        disable: false
+      - plugin: modules/inbound-metrics-http
+        priority: 700
+        disable: false
+      - plugin: modules/inbound-tracing-http
+        priority: 600
+        disable: false
+      - plugin: modules/inbound-logging-http
+        priority: 500
+        disable: false
+      - plugin: modules/inbound-throttle-service
+        priority: 400
+        disable: false
+      - plugin: modules/inbound-throttle-route
+        priority: 300
+        disable: false
       - plugin: modules/inbound-http-load-balancing
+        priority: 200
+        disable: false
+      - plugin: modules/inbound-http-default
         priority: 100
-        disable: true
+        disable: false
     outbound-tcp:
+      - plugin: modules/outbound-tcp-routing
+        priority: 300
+        disable: false
       - plugin: modules/outbound-tcp-load-balancing
+        priority: 200
+        disable: false
+      - plugin: modules/outbound-tcp-default
         priority: 100
-        disable: true
+        disable: false
     outbound-http:
+      - plugin: modules/outbound-http-routing
+        priority: 700
+        disable: false
+      - plugin: modules/outbound-metrics-http
+        priority: 600
+        disable: false
+      - plugin: modules/outbound-tracing-http
+        priority: 500
+        disable: false
+      - plugin: modules/outbound-logging-http
+        priority: 400
+        disable: false
+      - plugin: modules/outbound-circuit-breaker
+        priority: 300
+        disable: false
       - plugin: modules/outbound-http-load-balancing
+        priority: 200
+        disable: false
+      - plugin: modules/outbound-http-default
         priority: 100
-        disable: true
+        disable: false
 
   # -- Pipy RepoServer
   repoServer:

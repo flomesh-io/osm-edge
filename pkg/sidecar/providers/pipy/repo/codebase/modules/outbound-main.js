@@ -1,10 +1,8 @@
 ((
   config = pipy.solve('config.js'),
   specEnableEgress = config?.Spec?.Traffic?.EnableEgress,
-  {
-    outboundL7Chains,
-    outboundL4Chains,
-  } = pipy.solve('plugins.js'),
+  outboundL7Chains = config?.Chains?.["outbound-http"],
+  outboundL4Chains = config?.Chains?.["outbound-tcp"],
 
   certChain = config?.Certificate?.CertChain,
   privateKey = config?.Certificate?.PrivateKey,
@@ -59,18 +57,14 @@
   )(),
 
   portHandlers = new algo.Cache(makePortHandler),
-
 ) => pipy()
 
 .export('outbound', {
   __port: null,
   __protocol: null,
   __isHTTP2: false,
-  __cluster: null,
-  __target: null,
   __isEgress: false,
   __cert: null,
-  __plugins: null,
 })
 
 .pipeline()
@@ -89,7 +83,6 @@
       'modules/outbound-logging-http.js',
       'modules/outbound-circuit-breaker.js',
       'modules/outbound-http-load-balancing.js',
-      'modules/outbound-tls-initiation.js',
       'modules/outbound-http-default.js',
     ]*/
   ),
@@ -97,8 +90,8 @@
   () => __protocol === 'tcp', (
     $=>$.chain(outboundL4Chains)
     /*[
+      'modules/outbound-tcp-routing.js',
       'modules/outbound-tcp-load-balancing.js',
-      'modules/outbound-tls-initiation.js',
       'modules/outbound-tcp-default.js',
     ]*/
   ),

@@ -1,39 +1,41 @@
 ((
   config = pipy.solve('config.js'),
-
-  clusterCache = new algo.Cache(
-    (clusterName => (
-      (cluster = config?.Inbound?.ClustersConfigs?.[clusterName]) => (
-        cluster ? Object.assign({ name: clusterName, Endpoints: cluster }) : null
-      )
-    )())
-  ),
-
-  clusterBalancers = new algo.Cache(cluster => new algo.RoundRobinLoadBalancer(cluster || {})),
-
+  isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   targetBalancers = new algo.Cache(target => new algo.RoundRobinLoadBalancer(target?.Endpoints || {})),
-
 ) => pipy()
 
 .import({
   __port: 'inbound',
-  __cluster: 'inbound',
-  __target: 'inbound',
-  __plugins: 'inbound',
+  __cluster: 'inbound-tcp-routing',
+  __target: 'connect-tcp',
+  __metricLabel: 'connect-tcp',
 })
 
 .pipeline()
 .handleStreamStart(
   () => (
-    __plugins = __port?.TcpServiceRouteRules?.Plugins,
-    (clusterName = clusterBalancers.get(__port?.TcpServiceRouteRules?.TargetClusters)?.next?.()?.id) => (
-      (__cluster = clusterCache.get(clusterName)) && (
-        __target = targetBalancers.get(__cluster)?.next?.()?.id
+    (__target = __cluster && targetBalancers.get(__cluster)?.next?.()?.id) && (
+      __metricLabel = __cluster.name
+    )
+  )
+)
+.branch(
+  isDebugEnabled, (
+    $=>$.handleStreamStart(
+      () => (
+        console.log('inbound-tcp # port/cluster :', __port?.Port, __cluster?.name)
       )
     )
-  )()
+  )
 )
+.branch(
+  () => !__target, (
+    $=>$.chain()
+  ),
 
-.chain()
+  (
+    $=>$.use('connect-tcp.js')
+  )
+)
 
 )()

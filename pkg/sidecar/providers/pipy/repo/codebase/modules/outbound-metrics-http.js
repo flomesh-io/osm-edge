@@ -1,6 +1,6 @@
 ((
   {
-    clusterCache,
+    metricsCache,
     identityCache,
   } = pipy.solve('metrics.js'),
 ) => (
@@ -10,7 +10,7 @@ pipy({
 })
 
 .import({
-  __cluster: 'outbound'
+  __cluster: 'outbound-http-routing'
 })
 
 .pipeline()
@@ -26,7 +26,7 @@ pipy({
       clusterName = __cluster?.name,
       status = msg?.head?.status,
       statusClass = status / 100,
-      metrics = clusterCache.get(clusterName),
+      metrics = metricsCache.get(clusterName),
       osmRequestDurationHist = identityCache.get(msg?.head?.headers?.['osm-stats']),
     ) => (
       osmRequestDurationHist && (
