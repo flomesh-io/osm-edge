@@ -109,9 +109,11 @@ func (sd PipySidecarDriver) Patch(ctx context.Context) error {
 	// Create volume for the pipy bootstrap config Secret
 	pod.Spec.Volumes = append(pod.Spec.Volumes, injector.GetVolumeSpec(pipyBootstrapConfigName))
 
-	err := injector.ConfigurePodInit(configurator, podOS, pod, osmContainerPullPolicy)
-	if err != nil {
-		return err
+	if injCtx.Configurator.GetTrafficInterceptionMode() == constants.TrafficInterceptionModeIptables {
+		err := injector.ConfigurePodInit(configurator, podOS, pod, osmContainerPullPolicy)
+		if err != nil {
+			return err
+		}
 	}
 
 	if originalHealthProbes.UsesTCP() {
