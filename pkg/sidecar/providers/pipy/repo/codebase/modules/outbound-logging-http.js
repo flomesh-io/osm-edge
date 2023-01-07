@@ -13,9 +13,9 @@ pipy({
 })
 
 .import({
-  __target: 'outbound',
   __isEgress: 'outbound',
-  __service: 'outbound-http',
+  __target: 'connect-tcp',
+  __service: 'outbound-http-routing',
 })
 
 .pipeline()

@@ -13,9 +13,9 @@ pipy({
 })
 
 .import({
-  __target: 'inbound',
   __isIngress: 'inbound',
-  __service: 'inbound-http',
+  __service: 'inbound-http-routing',
+  __target: 'connect-tcp',
 })
 
 .pipeline()

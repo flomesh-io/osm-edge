@@ -1,14 +1,14 @@
 ((
   {
     identity,
-    clusterCache,
+    metricsCache,
   } = pipy.solve('metrics.js'),
 ) => (
 
 pipy()
 
 .import({
-  __cluster: 'inbound',
+  __cluster: 'inbound-http-routing',
 })
 
 .pipeline()
@@ -17,7 +17,7 @@ pipy()
   (msg) => (
     (
       headers = msg?.head?.headers,
-      metrics = clusterCache.get(__cluster?.name),
+      metrics = metricsCache.get(__cluster?.name),
     ) => (
       headers && (
         headers['osm-stats'] = identity,

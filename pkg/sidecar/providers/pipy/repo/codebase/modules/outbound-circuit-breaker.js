@@ -114,7 +114,7 @@
 })
 
 .import({
-  __cluster: 'outbound',
+  __cluster: 'outbound-http-routing',
 })
 
 .pipeline()

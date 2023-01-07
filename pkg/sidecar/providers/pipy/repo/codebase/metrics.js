@@ -82,7 +82,7 @@
       'destination_pod'
     ]),
 
-    clusterCache = new algo.Cache(clusterName => (
+    metricsCache = new algo.Cache(clusterName => (
       {
         sendBytesTotalCounter: sendBytesTotalCounter.withLabels(clusterName),
         receiveBytesTotalCounter: receiveBytesTotalCounter.withLabels(clusterName),
@@ -117,7 +117,7 @@
     Object.keys(config?.Inbound?.ClustersConfigs || {}).concat(Object.keys(config?.Outbound?.ClustersConfigs || {})).forEach(
       clusterName => (
         (
-          metrics = clusterCache.get(clusterName),
+          metrics = metricsCache.get(clusterName),
         ) => (
           metrics.upstreamResponseTotal.zero(),
           metrics.upstreamResponseCode.withLabels('5').zero(),
@@ -141,7 +141,7 @@
 
     {
       identity,
-      clusterCache,
+      metricsCache,
       identityCache,
     }
   )

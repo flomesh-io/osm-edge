@@ -17,8 +17,8 @@ pipy({
 
 .import({
   __protocol: 'outbound',
-  __cluster: 'outbound',
-  __target: 'outbound',
+  __cluster: 'outbound-http-routing',
+  __target: 'connect-tcp',
 })
 
 .pipeline()

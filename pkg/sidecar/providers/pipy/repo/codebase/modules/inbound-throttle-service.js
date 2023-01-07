@@ -12,7 +12,7 @@ pipy({
 })
 
 .import({
-  __service: 'inbound-http',
+  __service: 'inbound-http-routing',
 })
 
 .pipeline()

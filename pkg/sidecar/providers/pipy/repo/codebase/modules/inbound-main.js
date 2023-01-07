@@ -1,9 +1,7 @@
 ((
   config = pipy.solve('config.js'),
-  {
-    inboundL7Chains,
-    inboundL4Chains,
-  } = pipy.solve('plugins.js'),
+  inboundL7Chains = config?.Chains?.["inbound-http"],
+  inboundL4Chains = config?.Chains?.["inbound-tcp"],
 
   makePortHandler = port => (
     (
@@ -50,17 +48,13 @@
   )(),
 
   portHandlers = new algo.Cache(makePortHandler),
-
 ) => pipy()
 
 .export('inbound', {
   __port: null,
   __protocol: null,
   __isHTTP2: false,
-  __cluster: null,
-  __target: null,
   __isIngress: false,
-  __plugins: null,
 })
 
 .pipeline()
@@ -81,7 +75,6 @@
       'modules/inbound-throttle-service.js',
       'modules/inbound-throttle-route.js',
       'modules/inbound-http-load-balancing.js',
-      'modules/inbound-upstream.js',
       'modules/inbound-http-default.js',
     ]*/
   ),
@@ -90,8 +83,8 @@
     $=>$.chain(inboundL4Chains)
     /*[
       'modules/inbound-tls-termination.js',
+      'modules/inbound-tcp-routing.js',
       'modules/inbound-tcp-load-balancing.js',
-      'modules/inbound-upstream.js',
       'modules/inbound-tcp-default.js',
     ]*/
   ),

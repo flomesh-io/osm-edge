@@ -43,7 +43,6 @@
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
-                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -53,7 +52,6 @@
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
-                __plugins = service?.Plugins,
                 __cluster = clusterCache.get(balancer.next()?.id),
                 failoverBalancer && (
                   _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
@@ -100,7 +98,6 @@
   )(),
 
   portHandlers = new algo.Cache(makePortHandler),
-
 ) => pipy({
   _origPath: null,
   _failoverCluster: null,
@@ -108,13 +105,12 @@
 
 .import({
   __port: 'outbound',
-  __cluster: 'outbound',
-  __plugins: 'outbound',
 })
 
-.export('outbound-http', {
+.export('outbound-http-routing', {
   __route: null,
   __service: null,
+  __cluster: null,
 })
 
 .pipeline()

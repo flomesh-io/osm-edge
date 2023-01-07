@@ -1,4 +1,8 @@
 ((
+  config = pipy.solve('config.js'),
+  certChain = config?.Certificate?.CertChain,
+  privateKey = config?.Certificate?.PrivateKey,
+  isDebugEnabled = config?.Spec?.SidecarLogLevel === 'debug',
   {
     shuffle,
     failover,
@@ -75,33 +79,34 @@
       _retryCount > 0 && _clusterConfig.retrySuccessCounter.increase(),
       false
     )
-),
-
+  ),
 ) => pipy({
   _retryCount: 0,
   _clusterConfig: null,
   _failoverObject: null,
+  _targetObject: null,
+  _muxHttpOptions: null,
 })
 
 .import({
+  __port: 'outbound',
+  __cert: 'outbound',
   __isHTTP2: 'outbound',
-  __cluster: 'outbound',
-  __target: 'outbound',
   __isEgress: 'outbound',
-})
-
-.export('outbound-http-load-balancing', {
-  __targetObject: null,
-  __muxHttpOptions: null,
+  __route: 'outbound-http-routing',
+  __service: 'outbound-http-routing',
+  __cluster: 'outbound-http-routing',
+  __metricLabel: 'connect-tcp',
+  __target: 'connect-tcp',
 })
 
 .pipeline()
 .onStart(
   () => void (
     (_clusterConfig = clusterConfigs.get(__cluster)) && (
-      __targetObject = _clusterConfig.targetBalancer?.next?.(),
-      __target = __targetObject?.id,
-      __muxHttpOptions = _clusterConfig.muxHttpOptions,
+      _targetObject = _clusterConfig.targetBalancer?.next?.(),
+      __target = _targetObject?.id,
+      _muxHttpOptions = _clusterConfig.muxHttpOptions,
       _clusterConfig.failoverBalancer && (
         _failoverObject = _clusterConfig.failoverBalancer.next()
       )
@@ -130,7 +135,7 @@
         delay: () => _clusterConfig.retryBackoffBaseInterval * Math.min(10, Math.pow(2, _retryCount-1)|0)
     }).to(
       $=>$
-      .chain()
+      .link('upstream')
       .replaceMessageStart(
         msg => (
           shouldRetry(msg.head.status) ? new StreamEnd('Replay') : msg
@@ -143,15 +148,15 @@
     $=>$
     .replay({ 'delay': 0 }).to(
       $=>$
-      .chain()
+      .link('upstream')
       .replaceMessage(
         msg => (
           (
             status = msg?.head?.status
           ) => (
             _failoverObject && (!status || status < '200' || status > '399') ? (
-              __targetObject = _failoverObject,
-              __target = __targetObject.id,
+              _targetObject = _failoverObject,
+              __target = _targetObject.id,
               _failoverObject = null,
               new StreamEnd('Replay')
             ) : msg
@@ -162,7 +167,39 @@
   ),
 
   (
+    $=>$.link('upstream')
+  )
+)
+
+.pipeline('upstream')
+.handleStreamStart(
+  () => (
+    !__cert && __cluster?.SourceCert && (
+      __cluster.SourceCert.OsmIssued && (
+        __cert = {CertChain: certChain, PrivateKey: privateKey}
+      ) || (
+        __cert = __cluster.SourceCert
+      )
+    ),
+    __metricLabel = __cluster?.name
+  )
+)
+.branch(
+  isDebugEnabled, (
+    $=>$.handleStreamStart(
+      () => (
+        console.log('outbound-http # port/service/route/cluster/egress/cert :',
+          __port?.Port, __service?.name, __route?.Path, __cluster?.name, __isEgress, Boolean(__cert))
+      )
+    )
+  )
+)
+.branch(
+  () => !__target, (
     $=>$.chain()
+  ),
+  (
+    $=>$.muxHTTP(() => _targetObject, () => _muxHttpOptions).to($=>$.use('connect-upstream.js'))
   )
 )
 
