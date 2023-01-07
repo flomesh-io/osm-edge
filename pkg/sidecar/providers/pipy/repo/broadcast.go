@@ -122,13 +122,14 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) *pipy.Proxy {
 	connectedProxy := proxyRegistry.GetConnectedProxy(proxy.UUID.String())
 	if connectedProxy == nil {
-		s.informProxy(proxy)
-		return proxy
+		pp := &proxy
+		s.informProxy(pp)
+		return *pp
 	}
 	return connectedProxy
 }
 
-func (s *Server) informProxy(proxy *pipy.Proxy) {
+func (s *Server) informProxy(proxy **pipy.Proxy) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {

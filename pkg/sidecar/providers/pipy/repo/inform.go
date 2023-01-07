@@ -14,19 +14,21 @@ import (
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 )
 
-func (s *Server) informTrafficPolicies(proxy *pipy.Proxy, wg *sync.WaitGroup) error {
+func (s *Server) informTrafficPolicies(pproxy **pipy.Proxy, wg *sync.WaitGroup) error {
 	// If maxDataPlaneConnections is enabled i.e. not 0, then check that the number of Sidecar connections is less than maxDataPlaneConnections
 	if s.cfg.GetMaxDataPlaneConnections() != 0 && s.proxyRegistry.GetConnectedProxyCount() >= s.cfg.GetMaxDataPlaneConnections() {
 		return errTooManyConnections
 	}
 
+	proxy := *pproxy
 	if initError := s.recordPodMetadata(proxy); initError == errServiceAccountMismatch {
 		// Service Account mismatch
 		log.Error().Err(initError).Str("proxy", proxy.String()).Msg("Mismatched service account for proxy")
 		return initError
 	}
 
-	s.proxyRegistry.RegisterProxy(proxy)
+	proxy = s.proxyRegistry.RegisterProxy(proxy)
+	pproxy = &proxy
 
 	defer s.proxyRegistry.UnregisterProxy(proxy)
 

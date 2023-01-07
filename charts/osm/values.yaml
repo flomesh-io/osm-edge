@@ -72,19 +72,19 @@ osm:
 
   pluginChains:
     inbound-tcp:
-      - plugin: inbound-tcp-a1
+      - plugin: modules/inbound-tcp-load-balancing
         priority: 100
         disable: true
     inbound-http:
-      - plugin: inbound-http-a2
+      - plugin: modules/inbound-http-load-balancing
         priority: 100
         disable: true
     outbound-tcp:
-      - plugin: outbound-tcp-a3
+      - plugin: modules/outbound-tcp-load-balancing
         priority: 100
         disable: true
     outbound-http:
-      - plugin: outbound-http-a4
+      - plugin: modules/outbound-http-load-balancing
         priority: 100
         disable: true
 
