@@ -61,7 +61,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: "localhost:5000/flomesh/osm-edge-interceptor:latest"
+      - image: "cybwan/osm-edge-interceptor:latest"
         imagePullPolicy: Always
         name: osm-interceptor
         args:
