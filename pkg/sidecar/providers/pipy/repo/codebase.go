@@ -19,7 +19,7 @@ var codebaseConnectTLSJs []byte
 var codebaseConnectUpstreamJs []byte
 
 //go:embed codebase/dns-main.js
-var codebaseDnsMainJs []byte
+var codebaseDNSMainJs []byte
 
 //go:embed codebase/logging.js
 var codebaseLoggingJs []byte
@@ -122,7 +122,7 @@ var osmCodebaseItems = []client.BatchItem{
 	{Filename: "connect-tcp.js", Content: codebaseConnectTCPJs},
 	{Filename: "connect-tls.js", Content: codebaseConnectTLSJs},
 	{Filename: "connect-upstream.js", Content: codebaseConnectUpstreamJs},
-	{Filename: "dns-main.js", Content: codebaseDnsMainJs},
+	{Filename: "dns-main.js", Content: codebaseDNSMainJs},
 	{Filename: "logging.js", Content: codebaseLoggingJs},
 	{Filename: "main.js", Content: codebaseMainJs},
 	{Filename: "metrics.js", Content: codebaseMetricsJs},

@@ -18,10 +18,9 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
 	actual, loaded := pr.connectedProxies.LoadOrStore(proxy.UUID.String(), proxy)
 	if loaded {
 		return actual.(*pipy.Proxy)
-	} else {
-		log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
-		return proxy
 	}
+	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
+	return proxy
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.

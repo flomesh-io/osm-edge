@@ -61,7 +61,7 @@ The following table lists the configurable parameters of the osm chart and their
 |-----|------|---------|-------------|
 | contour.contour | object | `{"image":{"registry":"ghcr.io","repository":"projectcontour/contour","tag":"v1.21.1"}}` | Contour controller configuration |
 | contour.enabled | bool | `false` | Enables deployment of Contour control plane and gateway |
-| contour.envoy | object | `{"image":{"registry":"localhost:5000","repository":"envoyproxy/envoy-distroless","tag":"v1.22.2"}}` | Contour envoy edge proxy configuration |
+| contour.envoy | object | `{"image":{"registry":"docker.io","repository":"envoyproxy/envoy-distroless","tag":"v1.22.2"}}` | Contour envoy edge proxy configuration |
 | fsm.enabled | bool | `false` | Enables deployment of fsm control plane and gateway |
 | osm.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
 | osm.certificateProvider.certKeyBitSize | int | `2048` | Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS |
@@ -82,7 +82,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.configResyncInterval | string | `"90s"` | Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync |
 | osm.controlPlaneTolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.controllerLogLevel | string | `"info"` | Controller log verbosity |
-| osm.curlImage | string | `"localhost:5000/curlimages/curl"` | Curl image for control plane init container |
+| osm.curlImage | string | `"curlimages/curl"` | Curl image for control plane init container |
 | osm.deployGrafana | bool | `false` | Deploy Grafana with OSM installation |
 | osm.deployJaeger | bool | `false` | Deploy Jaeger during OSM installation |
 | osm.deployPrometheus | bool | `false` | Deploy Prometheus with OSM installation |
@@ -111,7 +111,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.fluentBit.outputPlugin | string | `"stdout"` | Fluent Bit output plugin |
 | osm.fluentBit.primaryKey | string | `""` | Primary Key for Fluent Bit output plugin to Log Analytics |
 | osm.fluentBit.pullPolicy | string | `"IfNotPresent"` | PullPolicy for Fluent Bit sidecar container |
-| osm.fluentBit.registry | string | `"localhost:5000/fluent"` | Registry for Fluent Bit sidecar container |
+| osm.fluentBit.registry | string | `"fluent"` | Registry for Fluent Bit sidecar container |
 | osm.fluentBit.tag | string | `"1.6.4"` | Fluent Bit sidecar image tag |
 | osm.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
@@ -125,10 +125,10 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[3] | string | `"ppc64le"` |  |
 | osm.grafana.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[4] | string | `"s390x"` |  |
 | osm.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
-| osm.grafana.image | string | `"localhost:5000/grafana/grafana:8.2.2"` | Image used for Grafana |
+| osm.grafana.image | string | `"grafana/grafana:8.2.2"` | Image used for Grafana |
 | osm.grafana.nodeSelector | object | `{}` |  |
 | osm.grafana.port | int | `3000` | Grafana service's port |
-| osm.grafana.rendererImage | string | `"localhost:5000/grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
+| osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.grafana.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
 | osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmHealthcheck":"","osmInjector":"","osmPreinstall":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
 | osm.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
@@ -313,11 +313,11 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.repoServer.ipaddr | string | `"127.0.0.1"` | ipaddr of host/service where Pipy RepoServer is installed |
 | osm.repoServer.standalone | bool | `false` | if false , Pipy RepoServer is installed within osmController pod. |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
-| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"localhost:5000/flomesh/pipy-nightly:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"localhost:5000/envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
+| osm.sidecarDrivers | list | `[{"proxyServerPort":6060,"sidecarImage":"flomesh/pipy-nightly:latest","sidecarName":"pipy"},{"proxyServerPort":15128,"sidecarImage":"envoyproxy/envoy:v1.19.3","sidecarName":"envoy","sidecarWindowsImage":"envoyproxy/envoy-windows:latest"}]` | Sidecar drivers supported by osm-edge |
 | osm.sidecarDrivers[0].proxyServerPort | int | `6060` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
-| osm.sidecarDrivers[0].sidecarImage | string | `"localhost:5000/flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[0].sidecarImage | string | `"flomesh/pipy-nightly:latest"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].proxyServerPort | int | `15128` | Remote destination port on which the Discovery Service listens for new connections from Sidecars. |
-| osm.sidecarDrivers[1].sidecarImage | string | `"localhost:5000/envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
+| osm.sidecarDrivers[1].sidecarImage | string | `"envoyproxy/envoy:v1.19.3"` | Sidecar image for Linux workloads |
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
 | osm.sidecarImage | string | `""` | Sidecar image for Linux workloads |
 | osm.sidecarLogLevel | string | `"error"` | Log level for the proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
@@ -333,7 +333,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.tracing.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[1].values[3] | string | `"s390x"` |  |
 | osm.tracing.enable | bool | `false` | Toggles Sidecar's tracing functionality on/off for all sidecar proxies in the mesh |
 | osm.tracing.endpoint | string | `"/api/v2/spans"` | Tracing collector's API path where the spans will be sent to |
-| osm.tracing.image | string | `"localhost:5000/jaegertracing/all-in-one"` | Image used for tracing |
+| osm.tracing.image | string | `"jaegertracing/all-in-one"` | Image used for tracing |
 | osm.tracing.nodeSelector | object | `{}` |  |
 | osm.tracing.port | int | `9411` | Port of the tracing collector service |
 | osm.tracing.sampledFraction | string | `"1.0"` | Sampled Fraction |

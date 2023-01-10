@@ -173,16 +173,16 @@ func (p *Proxy) GetCNPrefix() string {
 }
 
 var (
-	LOCK sync.Mutex
-	ID   = uint64(0)
+	proxyLock sync.Mutex
+	proxyID   = uint64(0)
 )
 
 // NewProxy creates a new instance of an Sidecar proxy connected to the servers.
 func NewProxy(kind models.ProxyKind, uuid uuid.UUID, svcIdentity identity.ServiceIdentity, ip net.Addr) *Proxy {
-	LOCK.Lock()
-	ID++
-	id := ID
-	defer LOCK.Unlock()
+	proxyLock.Lock()
+	proxyID++
+	id := proxyID
+	defer proxyLock.Unlock()
 	return &Proxy{
 		// Identity is of the form <name>.<namespace>.cluster.local
 		Identity:    svcIdentity,
