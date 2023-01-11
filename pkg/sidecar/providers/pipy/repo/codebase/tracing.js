@@ -1,9 +1,11 @@
 (
   (
-    namespace = (os.env.POD_NAMESPACE || 'default'),
-    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-    name = (os.env.SERVICE_ACCOUNT || ''),
-    pod = (os.env.POD_NAME || ''),
+    {
+      namespace,
+      kind,
+      name,
+      pod,
+    } = pipy.solve('utils.js'),
     tracingAddress = os.env.TRACING_ADDRESS,
     tracingEndpoint = (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
     tracingLimitedID = os.env.TRACING_SAMPLED_FRACTION && (os.env.TRACING_SAMPLED_FRACTION * Math.pow(2, 63)),

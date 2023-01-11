@@ -43,14 +43,26 @@ pipy({
       .replaceMessage(
         (msg, out) => (
           out = msg?.body?.toString()?.split?.('\n') || [],
-          out = out.filter(line => line.indexOf('peer') > 0 || line.indexOf('_retry') > 0),
+          out = out.filter(line => line.indexOf('peer') > 0 || line.indexOf('_retry') > 0 || line.indexOf('rate_limit') > 0),
           (_statsPath === '/clusters') && (out = out.filter(line => line.indexOf('_bucket') < 0)),
-          out = out.map(
-            s => s.indexOf('rq_retry') > 0 ? (
-              (
-                items = s.replace('sidecar_cluster_', '').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
-              ) => 'cluster.' + items[2] + '.' + items[0] + ': ' + items[4]
-            )() : s
+          out = out.map( // convert metrics
+            s => (
+              s = s.indexOf('rq_retry') > 0 ? (
+                (
+                  items = s.replace('sidecar_cluster_', '').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
+                ) => 'cluster.' + items[2] + '.' + items[0] + ': ' + items[4]
+              )() : s,
+              s = s.startsWith('sidecar_local_rate_limit') ? (
+                (
+                  items = s.replace('sidecar_local_rate_limit_inbound', 'local_rate_limit.inbound').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
+                ) => items[0] + "_" + items[2] + ".rate_limited: " + items[4]
+              )() : s,
+              s = s.startsWith('http_local_rate_limiter') ? (
+                (
+                  items = s.split('{').join(',').split('"').join(',').split(' ').join(',').split('=').join(',').split(','),
+                ) => items[0] + "." + items[1] + ": " + items[5]
+              )() : s
+            )
           ),
           new Message(out.join('\n'))
         )

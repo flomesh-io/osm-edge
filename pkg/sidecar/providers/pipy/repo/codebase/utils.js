@@ -1,4 +1,8 @@
 ((
+  namespace = (os.env.POD_NAMESPACE || 'default'),
+  kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
+  name = (os.env.SERVICE_ACCOUNT || ''),
+  pod = (os.env.POD_NAME || ''),
   hexChar = { '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'a': 10, 'b': 11, 'c': 12, 'd': 13, 'e': 14, 'f': 15 },
   toInt63 = str => (
     (
@@ -8,12 +12,17 @@
   traceId = () => algo.uuid().substring(0, 18).replaceAll('-', ''),
 ) => (
   {
+    namespace,
+    kind,
+    name,
+    pod,
+
     initRateLimit: rateLimit => (
       rateLimit?.Local ? (
         {
           backlog: rateLimit.Local.Backlog || 0,
           quota: new algo.Quota(
-            rateLimit.Local.Burst || 0,
+            rateLimit.Local.Burst || rateLimit.Local.Requests || 0,
             {
               produce: rateLimit.Local.Requests || 0,
               per: rateLimit.Local.StatTimeWindow || 0,

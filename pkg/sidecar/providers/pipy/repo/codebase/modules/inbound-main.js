@@ -2,6 +2,7 @@
   config = pipy.solve('config.js'),
   inboundL7Chains = config?.Chains?.["inbound-http"],
   inboundL4Chains = config?.Chains?.["inbound-tcp"],
+  connectionLimitCounter = new stats.Counter('sidecar_local_rate_limit_inbound', ['label']),
 
   makePortHandler = port => (
     (
@@ -15,21 +16,34 @@
           ? Object.keys(allowedEndpointsLocal).filter(k => k in allowedEndpointsGlobal)
           : Object.keys(allowedEndpointsGlobal)
       ),
-      connectionQuota = portConfig?.TcpServiceRouteRules?.L4RateLimit?.Local && (
+      connectionQuota = portConfig?.RateLimit?.Local && (
         new algo.Quota(
-          portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Burst || portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Connections || 0,
+          portConfig.RateLimit.Local?.Burst || portConfig.RateLimit.Local?.Connections || 0,
           {
-            produce: portConfig.TcpServiceRouteRules.L4RateLimit.Local?.Connections || 0,
-            per: portConfig.TcpServiceRouteRules.L4RateLimit.Local?.StatTimeWindow || 0,
+            produce: portConfig.RateLimit.Local?.Connections || 0,
+            per: portConfig.RateLimit.Local?.StatTimeWindow || 0,
           }
         )
       ),
+      connectionLimit = connectionQuota && (
+        (
+          {
+            namespace,
+            pod,
+          } = pipy.solve('utils.js'),
+          label = namespace + '/' + pod.split('-')[0] + '_' + portConfig?.Port + '_' + portConfig?.Protocol,
+        ) => (
+          connectionLimitCounter.withLabels(label)
+        )
+      )(),
     ) => (
       !portConfig && (
         () => undefined
       ) || connectionQuota && (
         () => void (
-          allowedEndpoints.has(__inbound.remoteAddress || '127.0.0.1') && (connectionQuota.consume(1) === 1) && (
+          allowedEndpoints.has(__inbound.remoteAddress || '127.0.0.1') && (
+            (connectionQuota.consume(1) === 1) || (connectionLimit.increase(), false)
+          ) && (
             __port = portConfig,
             __protocol = protocol,
             __isHTTP2 = isHTTP2
