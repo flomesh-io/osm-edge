@@ -249,6 +249,14 @@ func (otm *OutboundTrafficMatch) setProtocol(protocol Protocol) {
 	}
 }
 
+func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		itm.TCPRateLimit = nil
+	} else {
+		itm.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
+	}
+}
+
 func (itm *InboundTrafficMatch) newTCPServiceRouteRules() *InboundTCPServiceRouteRules {
 	if itm.TCPServiceRouteRules == nil {
 		itm.TCPServiceRouteRules = new(InboundTCPServiceRouteRules)
@@ -261,14 +269,6 @@ func (otm *OutboundTrafficMatch) newTCPServiceRouteRules() *OutboundTCPServiceRo
 		otm.TCPServiceRouteRules = new(OutboundTCPServiceRouteRules)
 	}
 	return otm.TCPServiceRouteRules
-}
-
-func (srr *InboundTCPServiceRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
-	if rateLimit == nil || rateLimit.Local == nil {
-		srr.TCPRateLimit = nil
-	} else {
-		srr.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
-	}
 }
 
 func (srr *InboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
@@ -382,14 +382,6 @@ func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*Outb
 	trafficMatches = append(trafficMatches, trafficMatch)
 	otp.TrafficMatches[port] = trafficMatches
 	return trafficMatch, false
-}
-
-func (hrrs *InboundHTTPRouteRules) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
-	if rateLimit == nil || rateLimit.Local == nil {
-		hrrs.TCPRateLimit = nil
-	} else {
-		hrrs.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
-	}
 }
 
 func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {

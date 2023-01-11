@@ -32,6 +32,7 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 		tm := itp.newTrafficMatch(Port(cluster.Service.Port))
 		tm.setProtocol(Protocol(destinationProtocol))
 		tm.setPort(Port(trafficMatch.DestinationPort))
+		tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 
 		if destinationProtocol == constants.ProtocolHTTP ||
 			trafficMatch.DestinationProtocol == constants.ProtocolGRPC {
@@ -45,7 +46,6 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 
 			ruleName := HTTPRouteRuleName(httpRouteConfig.Name)
 			hsrrs := tm.newHTTPServiceRouteRules(ruleName)
-			hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 			hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
 			hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 			for _, hostname := range httpRouteConfig.Hostnames {
@@ -107,7 +107,6 @@ func generatePipyInboundTrafficPolicy(meshCatalog catalog.MeshCataloger, _ ident
 			destinationProtocol == constants.ProtocolTCPServerFirst {
 			tsrr := tm.newTCPServiceRouteRules()
 			tsrr.addWeightedCluster(ClusterName(cluster.Name), Weight(constants.ClusterWeightAcceptAll))
-			tsrr.setTCPServiceRateLimit(trafficMatch.RateLimit)
 			tsrr.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 		}
 	}
@@ -438,6 +437,7 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 			protocol := strings.ToLower(trafficMatch.Protocol)
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
+			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -466,7 +466,6 @@ func generatePipyIngressTrafficRoutePolicy(_ catalog.MeshCataloger, _ identity.S
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
-				hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 				for _, rule := range httpRouteConfig.Rules {
@@ -596,6 +595,7 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 			protocol := strings.ToLower(trafficMatch.Protocol)
 			tm.setProtocol(Protocol(protocol))
 			tm.setPort(Port(trafficMatch.Port))
+			tm.setTCPServiceRateLimit(trafficMatch.RateLimit)
 		}
 
 		var securitySpec *SourceSecuritySpec
@@ -624,7 +624,6 @@ func generatePipyAccessControlTrafficRoutePolicy(_ catalog.MeshCataloger, _ iden
 				tm.addHTTPHostPort2Service(HTTPHostPort(hostname), ruleName)
 
 				hsrrs := tm.newHTTPServiceRouteRules(ruleName)
-				hsrrs.setTCPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setHTTPServiceRateLimit(trafficMatch.RateLimit)
 				hsrrs.setPlugins(pipyConf.getTrafficMatchPluginConfigs(trafficMatch.Name))
 				for _, rule := range httpRouteConfig.Rules {
