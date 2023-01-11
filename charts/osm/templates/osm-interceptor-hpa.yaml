@@ -69,7 +69,7 @@ spec:
         - -m
         - osm
         - --use-reconnect=true
-        - --cni-mode=false
+        - --cni-mode=true
         - --kind=true
         - --debug=true
         lifecycle:
