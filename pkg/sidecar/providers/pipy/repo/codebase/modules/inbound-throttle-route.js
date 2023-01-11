@@ -1,8 +1,7 @@
 ((
   { initRateLimit } = pipy.solve('utils.js'),
-
-  rateLimitedCounter = new stats.Counter('http_local_rate_limit_route_rate_limited'),
-
+  { rateLimitCounter } = pipy.solve('metrics.js'),
+  rateLimitedCounter = rateLimitCounter.withLabels('throttle-route'),
   rateLimitCache = new algo.Cache(initRateLimit),
 ) => (
 

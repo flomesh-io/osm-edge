@@ -2,10 +2,12 @@
   (
     config = pipy.solve('config.js'),
 
-    namespace = (os.env.POD_NAMESPACE || 'default'),
-    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-    name = (os.env.SERVICE_ACCOUNT || ''),
-    pod = (os.env.POD_NAME || ''),
+    {
+      namespace,
+      kind,
+      name,
+      pod,
+    } = pipy.solve('utils.js'),
 
     identity = namespace + ',' + kind + ',' + name + ',' + pod,
 
@@ -143,6 +145,9 @@
       identity,
       metricsCache,
       identityCache,
+      rateLimitCounter: new stats.Counter('http_local_rate_limiter', [
+        'http_local_rate_limit.rate_limited'
+      ]),
     }
   )
 

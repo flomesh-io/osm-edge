@@ -1,9 +1,11 @@
 (
   (
-    namespace = (os.env.POD_NAMESPACE || 'default'),
-    kind = (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-    name = (os.env.SERVICE_ACCOUNT || ''),
-    pod = (os.env.POD_NAME || ''),
+    {
+      namespace,
+      kind,
+      name,
+      pod,
+    } = pipy.solve('utils.js'),
     address = os.env.REMOTE_LOGGING_ADDRESS,
     tracingLimitedID = os.env.REMOTE_LOGGING_SAMPLED_FRACTION && (os.env.REMOTE_LOGGING_SAMPLED_FRACTION * Math.pow(2, 63)),
     logLogging = address && new logging.JSONLogger('access-logger').toHTTP('http://' + address +
