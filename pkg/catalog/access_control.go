@@ -54,7 +54,6 @@ func (mc *MeshCatalog) GetAccessControlTrafficPolicy(svc service.MeshService) (*
 
 		if upstreamTrafficSetting != nil {
 			trafficMatch.RateLimit = upstreamTrafficSetting.Spec.RateLimit
-			trafficMatch.HeaderRateLimit = &upstreamTrafficSetting.Spec.HTTPHeaders
 		}
 
 		var sourceIPRanges []string

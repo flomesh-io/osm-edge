@@ -11,6 +11,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha2 "github.com/openservicemesh/osm/pkg/apis/config/v1alpha2"
 	auth "github.com/openservicemesh/osm/pkg/auth"
+	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -77,6 +78,20 @@ func (m *MockConfigurator) GetFeatureFlags() v1alpha2.FeatureFlags {
 func (mr *MockConfiguratorMockRecorder) GetFeatureFlags() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeatureFlags", reflect.TypeOf((*MockConfigurator)(nil).GetFeatureFlags))
+}
+
+// GetGlobalPluginChains mocks base method.
+func (m *MockConfigurator) GetGlobalPluginChains() map[string][]trafficpolicy.Plugin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGlobalPluginChains")
+	ret0, _ := ret[0].(map[string][]trafficpolicy.Plugin)
+	return ret0
+}
+
+// GetGlobalPluginChains indicates an expected call of GetGlobalPluginChains.
+func (mr *MockConfiguratorMockRecorder) GetGlobalPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGlobalPluginChains", reflect.TypeOf((*MockConfigurator)(nil).GetGlobalPluginChains))
 }
 
 // GetInboundExternalAuthConfig mocks base method.
@@ -304,6 +319,48 @@ func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingPort() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingPort", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingPort))
 }
 
+// GetRemoteLoggingSampledFraction mocks base method.
+func (m *MockConfigurator) GetRemoteLoggingSampledFraction() float32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRemoteLoggingSampledFraction")
+	ret0, _ := ret[0].(float32)
+	return ret0
+}
+
+// GetRemoteLoggingSampledFraction indicates an expected call of GetRemoteLoggingSampledFraction.
+func (mr *MockConfiguratorMockRecorder) GetRemoteLoggingSampledFraction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemoteLoggingSampledFraction", reflect.TypeOf((*MockConfigurator)(nil).GetRemoteLoggingSampledFraction))
+}
+
+// GetRepoServerCodebase mocks base method.
+func (m *MockConfigurator) GetRepoServerCodebase() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepoServerCodebase")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRepoServerCodebase indicates an expected call of GetRepoServerCodebase.
+func (mr *MockConfiguratorMockRecorder) GetRepoServerCodebase() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepoServerCodebase", reflect.TypeOf((*MockConfigurator)(nil).GetRepoServerCodebase))
+}
+
+// GetRepoServerIPAddr mocks base method.
+func (m *MockConfigurator) GetRepoServerIPAddr() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRepoServerIPAddr")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetRepoServerIPAddr indicates an expected call of GetRepoServerIPAddr.
+func (mr *MockConfiguratorMockRecorder) GetRepoServerIPAddr() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRepoServerIPAddr", reflect.TypeOf((*MockConfigurator)(nil).GetRepoServerIPAddr))
+}
+
 // GetServiceCertValidityPeriod mocks base method.
 func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
 	m.ctrl.T.Helper()
@@ -428,6 +485,34 @@ func (m *MockConfigurator) GetTracingPort() uint32 {
 func (mr *MockConfiguratorMockRecorder) GetTracingPort() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTracingPort", reflect.TypeOf((*MockConfigurator)(nil).GetTracingPort))
+}
+
+// GetTracingSampledFraction mocks base method.
+func (m *MockConfigurator) GetTracingSampledFraction() float32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTracingSampledFraction")
+	ret0, _ := ret[0].(float32)
+	return ret0
+}
+
+// GetTracingSampledFraction indicates an expected call of GetTracingSampledFraction.
+func (mr *MockConfiguratorMockRecorder) GetTracingSampledFraction() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTracingSampledFraction", reflect.TypeOf((*MockConfigurator)(nil).GetTracingSampledFraction))
+}
+
+// GetTrafficInterceptionMode mocks base method.
+func (m *MockConfigurator) GetTrafficInterceptionMode() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTrafficInterceptionMode")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetTrafficInterceptionMode indicates an expected call of GetTrafficInterceptionMode.
+func (mr *MockConfiguratorMockRecorder) GetTrafficInterceptionMode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTrafficInterceptionMode", reflect.TypeOf((*MockConfigurator)(nil).GetTrafficInterceptionMode))
 }
 
 // IsDebugServerEnabled mocks base method.

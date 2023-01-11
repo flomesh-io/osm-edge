@@ -14,6 +14,9 @@ policy; pkg/policy/mock_client_generated.go; github.com/openservicemesh/osm/pkg/
 # pkg/multicluster
 multicluster; pkg/multicluster/mock_client_generated.go; github.com/openservicemesh/osm/pkg/multicluster; Controller
 
+# pkg/plugin
+plugin; pkg/plugin/mock_client_generated.go; github.com/openservicemesh/osm/pkg/plugin; Controller
+
 # pkg/catalog
 catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
 
