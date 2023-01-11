@@ -228,7 +228,7 @@ func (ic *InformerCollection) AddEventHandler(informerKey InformerKey, handler c
 		return
 	}
 
-	i.AddEventHandler(handler)
+	_, _ = i.AddEventHandler(handler)
 }
 
 // GetByKey retrieves an item (based on the given index) from the store of the informer indexed by the given InformerKey
