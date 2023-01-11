@@ -172,6 +172,48 @@ func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
 }
 
+// GetPluginChains mocks base method.
+func (m *MockMeshCataloger) GetPluginChains() []*trafficpolicy.PluginChain {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginChains")
+	ret0, _ := ret[0].([]*trafficpolicy.PluginChain)
+	return ret0
+}
+
+// GetPluginChains indicates an expected call of GetPluginChains.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginChains", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginChains))
+}
+
+// GetPluginConfigs mocks base method.
+func (m *MockMeshCataloger) GetPluginConfigs() []*trafficpolicy.PluginConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginConfigs")
+	ret0, _ := ret[0].([]*trafficpolicy.PluginConfig)
+	return ret0
+}
+
+// GetPluginConfigs indicates an expected call of GetPluginConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginConfigs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginConfigs))
+}
+
+// GetPlugins mocks base method.
+func (m *MockMeshCataloger) GetPlugins() []*trafficpolicy.Plugin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlugins")
+	ret0, _ := ret[0].([]*trafficpolicy.Plugin)
+	return ret0
+}
+
+// GetPlugins indicates an expected call of GetPlugins.
+func (mr *MockMeshCatalogerMockRecorder) GetPlugins() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlugins", reflect.TypeOf((*MockMeshCataloger)(nil).GetPlugins))
+}
+
 // GetRetryPolicy mocks base method.
 func (m *MockMeshCataloger) GetRetryPolicy(arg0 identity.ServiceIdentity, arg1 service.MeshService) *v1alpha1.RetryPolicySpec {
 	m.ctrl.T.Helper()

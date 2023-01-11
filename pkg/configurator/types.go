@@ -11,6 +11,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 var (
@@ -34,6 +35,9 @@ type Configurator interface {
 
 	// GetMeshConfigJSON returns the MeshConfig in pretty JSON (human readable)
 	GetMeshConfigJSON() (string, error)
+
+	// GetTrafficInterceptionMode returns the traffic interception mode
+	GetTrafficInterceptionMode() string
 
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
 	IsPermissiveTrafficPolicyMode() bool
@@ -65,6 +69,9 @@ type Configurator interface {
 	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
+	// GetTracingSampledFraction returns the sampled fraction
+	GetTracingSampledFraction() float32
+
 	// IsRemoteLoggingEnabled returns whether remote logging is enabled
 	IsRemoteLoggingEnabled() bool
 
@@ -79,6 +86,9 @@ type Configurator interface {
 
 	// GetRemoteLoggingAuthorization returns the access entity that allows to authorize someone in remote logging service.
 	GetRemoteLoggingAuthorization() string
+
+	// GetRemoteLoggingSampledFraction returns the sampled fraction
+	GetRemoteLoggingSampledFraction() float32
 
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
@@ -107,6 +117,12 @@ type Configurator interface {
 	// GetSidecarDisabledMTLS returns the status of mTLS
 	GetSidecarDisabledMTLS() bool
 
+	// GetRepoServerIPAddr returns the ip address of RepoServer
+	GetRepoServerIPAddr() string
+
+	// GetRepoServerCodebase returns the codebase of RepoServer
+	GetRepoServerCodebase() string
+
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
 
@@ -132,4 +148,7 @@ type Configurator interface {
 
 	// GetFeatureFlags returns OSM's feature flags
 	GetFeatureFlags() configv1alpha2.FeatureFlags
+
+	// GetGlobalPluginChains returns plugin chains
+	GetGlobalPluginChains() map[string][]trafficpolicy.Plugin
 }

@@ -25,6 +25,20 @@ func (c *Client) GetIngressControllerServices() []service.MeshService {
 						Name:      svc,
 					})
 				}
+			} else if ns, nsExist = ingressClass.Annotations[`meta.flomesh.io/erie-canal-namespace`]; nsExist && len(ns) > 0 {
+				if svc, svcExist := ingressClass.Annotations[`meta.flomesh.io/ingress-pipy-svc`]; svcExist && len(svc) > 0 {
+					controllerServices = append(controllerServices, service.MeshService{
+						Namespace: ns,
+						Name:      svc,
+					})
+				}
+			} else if ns, nsExist = ingressClass.Annotations[`meta.flomesh.io/namespace`]; nsExist && len(ns) > 0 {
+				if svc, svcExist := ingressClass.Annotations[`meta.flomesh.io/ingress-pipy-svc`]; svcExist && len(svc) > 0 {
+					controllerServices = append(controllerServices, service.MeshService{
+						Namespace: ns,
+						Name:      svc,
+					})
+				}
 			}
 		}
 	}

@@ -205,7 +205,5 @@ type TrafficMatch struct {
 	// +optional
 	RateLimit *policyv1alpha1.RateLimitSpec
 
-	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
-
 	EgressGateWay *string
 }

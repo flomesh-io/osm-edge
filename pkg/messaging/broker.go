@@ -301,8 +301,6 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		// SMI TrafficTarget event
 		announcements.TrafficTargetAdded, announcements.TrafficTargetDeleted, announcements.TrafficTargetUpdated,
 		//
-		// Proxy events
-		//
 		// MultiCluster events
 		//
 		// ServiceImport event
@@ -311,6 +309,17 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.ServiceExportAdded, announcements.ServiceExportDeleted, announcements.ServiceExportUpdated,
 		// GlobalTrafficPolicy event
 		announcements.GlobalTrafficPolicyAdded, announcements.GlobalTrafficPolicyDeleted, announcements.GlobalTrafficPolicyUpdated,
+		//
+		// Plugin events
+		//
+		// Plugin event
+		announcements.PluginAdded, announcements.PluginDeleted, announcements.PluginUpdated,
+		// PluginChain event
+		announcements.PluginChainAdded, announcements.PluginChainDeleted, announcements.PluginChainUpdated,
+		// PluginService event
+		announcements.PluginConfigAdded, announcements.PluginConfigDeleted, announcements.PluginConfigUpdated,
+		//
+		// Proxy events
 		//
 		announcements.ProxyUpdate:
 		return &proxyUpdateEvent{
@@ -333,10 +342,12 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		if prevSpec.Traffic.EnableEgress != newSpec.Traffic.EnableEgress ||
 			prevSpec.Traffic.EnablePermissiveTrafficPolicyMode != newSpec.Traffic.EnablePermissiveTrafficPolicyMode ||
 			prevSpec.Observability.Tracing != newSpec.Observability.Tracing ||
+			prevSpec.Sidecar.LogLevel != newSpec.Sidecar.LogLevel ||
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
 			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
 			prevSpec.FeatureFlags != newSpec.FeatureFlags ||
+			!reflect.DeepEqual(prevSpec.PluginChains, newSpec.PluginChains) ||
 			!reflect.DeepEqual(prevSpec.ClusterSet, newSpec.ClusterSet) {
 			return &proxyUpdateEvent{
 				msg:   msg,

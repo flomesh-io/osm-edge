@@ -14,9 +14,13 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 }
 
 // RegisterProxy registers a newly connected proxy.
-func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) {
-	pr.connectedProxies.Store(proxy.UUID.String(), proxy)
+func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
+	actual, loaded := pr.connectedProxies.LoadOrStore(proxy.UUID.String(), proxy)
+	if loaded {
+		return actual.(*pipy.Proxy)
+	}
 	log.Debug().Str("proxy", proxy.String()).Msg("Registered new proxy")
+	return proxy
 }
 
 // GetConnectedProxy loads a connected proxy from the registry.

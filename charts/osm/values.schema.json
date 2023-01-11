@@ -169,10 +169,13 @@
             "required": [
                 "image",
                 "sidecarClass",
+                "sidecarDrivers",
+                "pluginChains",
                 "curlImage",
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
+                "trafficInterceptionMode",
                 "enableEgress",
                 "enableReconciler",
                 "deployPrometheus",
@@ -461,6 +464,119 @@
                         ]
                     ]
                 },
+                "pluginChains": {
+                    "$id": "#/properties/osm/properties/pluginChains",
+                    "type": "object",
+                    "title": "Plugin Chain Scheme",
+                    "description": "Plugin Chain Scheme",
+                    "additionalProperties": false,
+                    "properties": {
+                        "inbound-tcp": {
+                            "$id": "#/properties/osm/properties/pluginChains/inbound-tcp",
+                            "type": "array",
+                            "title": "Inbound TCP Plugin Chain Schema",
+                            "description": "Inbound TCP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "inbound-http": {
+                            "$id": "#/properties/osm/properties/pluginChains/inbound-http",
+                            "type": "array",
+                            "title": "Inbound HTTP Plugin Chain Schema",
+                            "description": "Inbound HTTP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "outbound-tcp": {
+                            "$id": "#/properties/osm/properties/pluginChains/outbound-tcp",
+                            "type": "array",
+                            "title": "Outbound TCP Plugin Chain Schema",
+                            "description": "Outbound TCP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "outbound-http": {
+                            "$id": "#/properties/osm/properties/pluginChains/outbound-http",
+                            "type": "array",
+                            "title": "Outbound HTTP Plugin Chain Schema",
+                            "description": "Outbound HTTP Plugin Chain Schema",
+                            "items": {
+                                "type": "object",
+                                "required": [
+                                    "plugin",
+                                    "priority"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "plugin": {
+                                        "type": "string"
+                                    },
+                                    "priority": {
+                                        "type": "number",
+                                        "minimum": 0
+                                    },
+                                    "disable": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "curlImage": {
                     "$id": "#/properties/osm/properties/curlImage",
                     "type": "string",
@@ -470,14 +586,56 @@
                         "curlimages/curl"
                     ]
                 },
-                "pipyRepoImage": {
-                    "$id": "#/properties/osm/properties/pipyRepoImage",
-                    "type": "string",
-                    "title": "The pipyRepoImage schema",
-                    "description": "The Pipy repo image for Pipy sidecar's proxy control plane container.",
-                    "examples": [
-                        "flomesh/pipy-repo-nightly"
-                    ]
+                "repoServer": {
+                    "$id": "#/properties/osm/properties/repoServer",
+                    "type": "object",
+                    "title": "Pipy repo server",
+                    "description": "Pipy repo server.",
+                    "required": [
+                        "image",
+                        "standalone",
+                        "ipaddr",
+                        "codebase"
+                    ],
+                    "additionalProperties": false,
+                    "properties": {
+                        "image": {
+                            "$id": "#/properties/osm/properties/repoServer/image",
+                            "type": "string",
+                            "title": "Pipy repo server's image schema",
+                            "description": "Image used for pipy repo server",
+                            "examples": [
+                                "flomesh/pipy-repo:latest"
+                            ]
+                        },
+                        "standalone": {
+                            "$id": "#/properties/osm/properties/repoServer/standalone",
+                            "type": "boolean",
+                            "title": "Install Mode of RepoServer",
+                            "description": "if false , RepoServer is installed within osmController pod.",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "ipaddr": {
+                            "$id": "#/properties/osm/properties/repoServer/ipaddr",
+                            "type": "string",
+                            "title": "The ipaddr schema for pipy repo server",
+                            "description": "Ip address of the pipy repo server",
+                            "examples": [
+                                "127.0.0.1"
+                            ]
+                        },
+                        "codebase": {
+                            "$id": "#/properties/osm/properties/repoServer/codebase",
+                            "type": "string",
+                            "title": "The codebase schema for pipy repo server",
+                            "description": "Codebase is the folder used by osmController.",
+                            "examples": [
+                                "/osm1.3.0"
+                            ]
+                        }
+                    }
                 },
                 "trustDomain": {
                     "$id": "#/properties/osm/properties/trustDomain",
@@ -556,6 +714,19 @@
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
                     "examples": [
                         false
+                    ]
+                },
+                "trafficInterceptionMode": {
+                    "$id": "#/properties/osm/properties/trafficInterceptionMode",
+                    "type": "string",
+                    "title": "The trafficInterceptionMode schema",
+                    "description": "Traffic interception mode in the mesh.",
+                    "enum": [
+                        "iptables",
+                        "ebpf"
+                    ],
+                    "examples": [
+                        "iptables"
                     ]
                 },
                 "enableEgress": {
@@ -893,6 +1064,15 @@
                                 "/api/v2/spans"
                             ]
                         },
+                        "sampledFraction": {
+                            "$id": "#/properties/osm/properties/tracing/properties/sampledFraction",
+                            "type": "string",
+                            "title": "Sampled Fraction",
+                            "description": "Sampled Fraction",
+                            "examples": [
+                                "0.2"
+                            ]
+                        },
                         "image": {
                             "$id": "#/properties/osm/properties/tracing/properties/image",
                             "type": "string",
@@ -977,72 +1157,14 @@
                             "examples": [
                                 "Basic XXX"
                             ]
-                        }
-                    },
-                    "additionalProperties": false
-                },
-                "remoteLogging": {
-                    "$id": "#/properties/osm/properties/remoteLogging",
-                    "type": "object",
-                    "title": "The remote logging schema",
-                    "description": "An explanation about the purpose of this instance.",
-                    "examples": [
-                        {
-                            "enable": true
-                        }
-                    ],
-                    "required": [
-                        "enable",
-                        "address",
-                        "port",
-                        "endpoint"
-                    ],
-                    "properties": {
-                        "enable": {
-                            "$id": "#/properties/osm/properties/remoteLogging/properties/enable",
-                            "type": "boolean",
-                            "title": "The enable schema for tracing",
-                            "description": "Indicates whether remote logging is enabled or not",
-                            "examples": [
-                                true
-                            ]
                         },
-                        "address": {
-                            "$id": "#/properties/osm/properties/remoteLogging/properties/address",
+                        "sampledFraction": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/sampledFraction",
                             "type": "string",
-                            "title": "The address schema for remote logging service",
-                            "description": "Address of the remote logging service",
+                            "title": "Sampled Fraction",
+                            "description": "Sampled Fraction",
                             "examples": [
-                                "remote-logging-service.<osm-namespace>.svc.cluster.local"
-                            ]
-                        },
-                        "port": {
-                            "$id": "#/properties/osm/properties/remoteLogging/properties/port",
-                            "type": "integer",
-                            "title": "The port schema for remote logging service",
-                            "description": "Port of the remote logging service",
-                            "minimum": 1,
-                            "maximum": 65535,
-                            "examples": [
-                                30514
-                            ]
-                        },
-                        "endpoint": {
-                            "$id": "#/properties/osm/properties/remoteLogging/properties/endpoint",
-                            "type": "string",
-                            "title": "The endpoint schema for remote logging service",
-                            "description": "API path of the collector",
-                            "examples": [
-                                "/api/v2/spans"
-                            ]
-                        },
-                        "authorization": {
-                            "$id": "#/properties/osm/properties/remoteLogging/properties/authorization",
-                            "type": "string",
-                            "title": "The authorization for remote logging service",
-                            "description": "Authorization for remote logging service",
-                            "examples": [
-                                "Basic XXX"
+                                "0.2"
                             ]
                         }
                     },
@@ -1199,6 +1321,7 @@
                         "enableSidecarActiveHealthChecks",
                         "enableSnapshotCacheMode",
                         "enableRetryPolicy",
+                        "enablePluginPolicy",
                         "enableMeshRootCertificate"
                     ],
                     "properties": {
@@ -1281,6 +1404,15 @@
                             "description": "Enable automatic request retries.",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "enablePluginPolicy": {
+                            "$id": "#/properties/osm/properties/featureFlags/properties/enablePluginPolicy",
+                            "type": "boolean",
+                            "title": "Enable Plugin Policy",
+                            "description": "Enable extend by plugin.",
+                            "examples": [
+                                false
                             ]
                         },
                         "enableMeshRootCertificate": {

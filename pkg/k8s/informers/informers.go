@@ -28,6 +28,8 @@ import (
 	multiclusterInformers "github.com/openservicemesh/osm/pkg/gen/client/multicluster/informers/externalversions"
 	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
 	networkingInformers "github.com/openservicemesh/osm/pkg/gen/client/networking/informers/externalversions"
+	pluginClientset "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned"
+	pluginInformers "github.com/openservicemesh/osm/pkg/gen/client/plugin/informers/externalversions"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
@@ -119,6 +121,17 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
 		ic.informers[InformerKeyAccessControl] = informerFactory.Policy().V1alpha1().AccessControls().Informer()
 		ic.informers[InformerKeyAccessCert] = informerFactory.Policy().V1alpha1().AccessCerts().Informer()
+	}
+}
+
+// WithPluginClient sets the plugin client for the InformerCollection
+func WithPluginClient(pluginClient pluginClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		informerFactory := pluginInformers.NewSharedInformerFactory(pluginClient, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyPlugin] = informerFactory.Plugin().V1alpha1().Plugins().Informer()
+		ic.informers[InformerKeyPluginChain] = informerFactory.Plugin().V1alpha1().PluginChains().Informer()
+		ic.informers[InformerKeyPluginConfig] = informerFactory.Plugin().V1alpha1().PluginConfigs().Informer()
 	}
 }
 

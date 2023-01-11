@@ -24,6 +24,15 @@ var (
 		},
 	}
 
+	pluginRule = admissionregv1.RuleWithOperations{
+		Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
+		Rule: admissionregv1.Rule{
+			APIGroups:   []string{"plugin.flomesh.io"},
+			APIVersions: []string{"v1alpha1"},
+			Resources:   []string{"plugins", "pluginchains", "pluginconfigs"},
+		},
+	}
+
 	trafficTargetRule = admissionregv1.RuleWithOperations{
 		Operations: []admissionregv1.OperationType{admissionregv1.Create, admissionregv1.Update},
 		Rule: admissionregv1.Rule{
@@ -51,12 +60,12 @@ func TestCreateValidatingWebhook(t *testing.T) {
 		{
 			name:                  "with smi validation enabled",
 			validateTrafficTarget: true,
-			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, trafficTargetRule},
+			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, pluginRule, trafficTargetRule},
 		},
 		{
 			name:                  "with smi validation disabled",
 			validateTrafficTarget: false,
-			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule},
+			expectedRules:         []admissionregv1.RuleWithOperations{ingressRule, pluginRule},
 		},
 	}
 

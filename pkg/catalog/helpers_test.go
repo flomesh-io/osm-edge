@@ -22,6 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
 	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/plugin"
 	"github.com/openservicemesh/osm/pkg/policy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -40,6 +41,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockPluginController := plugin.NewMockController(mockCtrl)
 	mockMulticlusterController := multicluster.NewMockController(mockCtrl)
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
@@ -142,5 +144,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockPolicyController, mockMulticlusterController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, mockPluginController, mockMulticlusterController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

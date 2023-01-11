@@ -14,7 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
+	pluginv1alpha1 "github.com/openservicemesh/osm/pkg/apis/plugin/v1alpha1"
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	pluginv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned"
 	policyv1alpha1Client "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -28,16 +30,17 @@ import (
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) Controller {
-	return newClient(informerCollection, policyClient, msgBroker, selectInformers...)
+func NewKubernetesController(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, pluginClient pluginv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) Controller {
+	return newClient(informerCollection, policyClient, pluginClient, msgBroker, selectInformers...)
 }
 
-func newClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *client {
+func newClient(informerCollection *osminformers.InformerCollection, policyClient policyv1alpha1Client.Interface, pluginClient pluginv1alpha1Client.Interface, msgBroker *messaging.Broker, selectInformers ...InformerKey) *client {
 	// Initialize client object
 	c := &client{
 		informers:    informerCollection,
 		msgBroker:    msgBroker,
 		policyClient: policyClient,
+		pluginClient: pluginClient,
 	}
 
 	// Initialize informers
@@ -282,6 +285,14 @@ func (c client) UpdateStatus(resource interface{}) (metav1.Object, error) {
 	case *policyv1alpha1.UpstreamTrafficSetting:
 		obj := resource.(*policyv1alpha1.UpstreamTrafficSetting)
 		return c.policyClient.PolicyV1alpha1().UpstreamTrafficSettings(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+
+	case *pluginv1alpha1.Plugin:
+		obj := resource.(*pluginv1alpha1.Plugin)
+		return c.pluginClient.PluginV1alpha1().Plugins(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
+
+	case *pluginv1alpha1.PluginChain:
+		obj := resource.(*pluginv1alpha1.PluginChain)
+		return c.pluginClient.PluginV1alpha1().PluginChains(obj.Namespace).UpdateStatus(context.Background(), obj, metav1.UpdateOptions{})
 
 	default:
 		return nil, fmt.Errorf("Unsupported type: %T", t)

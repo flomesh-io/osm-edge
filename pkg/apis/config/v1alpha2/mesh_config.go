@@ -30,6 +30,9 @@ type MeshConfigSpec struct {
 	// Sidecar defines the configurations of the proxy sidecar in a mesh.
 	Sidecar SidecarSpec `json:"sidecar,omitempty"`
 
+	// RepoServer defines the configurations of pipy repo server.
+	RepoServer RepoServerSpec `json:"repoServer,omitempty"`
+
 	// Traffic defines the traffic management configurations for a mesh instance.
 	Traffic TrafficSpec `json:"traffic,omitempty"`
 
@@ -41,6 +44,9 @@ type MeshConfigSpec struct {
 
 	// FeatureFlags defines the feature flags for a mesh instance.
 	FeatureFlags FeatureFlags `json:"featureFlags,omitempty"`
+
+	// PluginChains defines the default plugin chains.
+	PluginChains PluginChainsSpec `json:"pluginChains,omitempty"`
 }
 
 // LocalProxyMode is a type alias representing the way the sidecar proxies to the main application
@@ -118,6 +124,9 @@ type SidecarSpec struct {
 
 // TrafficSpec is the type used to represent OSM's traffic management configuration.
 type TrafficSpec struct {
+	// InterceptionMode defines a string indicating which traffic interception mode is used.
+	InterceptionMode string `json:"interceptionMode"`
+
 	// EnableEgress defines a boolean indicating if mesh-wide Egress is enabled.
 	EnableEgress bool `json:"enableEgress"`
 
@@ -175,6 +184,9 @@ type TracingSpec struct {
 
 	// Endpoint defines the API endpoint for tracing requests sent to the collector.
 	Endpoint string `json:"endpoint,omitempty"`
+
+	// SampledFraction defines the sampled fraction.
+	SampledFraction *string `json:"sampledFraction,omitempty"`
 }
 
 // RemoteLoggingSpec is the type to represent OSM's remote logging configuration.
@@ -193,6 +205,9 @@ type RemoteLoggingSpec struct {
 
 	// Authorization defines the access entity that allows to authorize someone in remote logging service.
 	Authorization string `json:"authorization,omitempty"`
+
+	// SampledFraction defines the sampled fraction.
+	SampledFraction *string `json:"sampledFraction,omitempty"`
 }
 
 // ExternalAuthzSpec is a type to represent external authorization configuration.
@@ -283,6 +298,9 @@ type FeatureFlags struct {
 
 	// EnableRetryPolicy defines if retry policy is enabled.
 	EnableRetryPolicy bool `json:"enableRetryPolicy"`
+
+	// EnablePluginPolicy defines if plugin policy is enabled.
+	EnablePluginPolicy bool `json:"enablePluginPolicy"`
 }
 
 // SidecarDriverSpec is the type to represent OSM's sidecar driver define.
@@ -306,6 +324,15 @@ type SidecarDriverSpec struct {
 	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
 }
 
+// RepoServerSpec is the type to represent repo server.
+type RepoServerSpec struct {
+	// IPAddr of the pipy repo server
+	IPAddr string `json:"ipaddr"`
+
+	// Codebase is the folder used by osmController
+	Codebase string `json:"codebase"`
+}
+
 // ClusterPropertySpec is the type to represent cluster property.
 type ClusterPropertySpec struct {
 	// Name defines the name of cluster property.
@@ -319,4 +346,31 @@ type ClusterPropertySpec struct {
 type ClusterSetSpec struct {
 	// Properties defines properties for cluster.
 	Properties []ClusterPropertySpec `json:"properties"`
+}
+
+// PluginChainsSpec is the type to represent plugin chains.
+type PluginChainsSpec struct {
+	// InboundTCPChains defines inbound tcp chains
+	InboundTCPChains []*PluginChainSpec `json:"inbound-tcp"`
+
+	// InboundHTTPChains defines inbound http chains
+	InboundHTTPChains []*PluginChainSpec `json:"inbound-http"`
+
+	// OutboundTCPChains defines outbound tcp chains
+	OutboundTCPChains []*PluginChainSpec `json:"outbound-tcp"`
+
+	// OutboundHTTPChains defines outbound http chains
+	OutboundHTTPChains []*PluginChainSpec `json:"outbound-http"`
+}
+
+// PluginChainSpec is the type to represent plugin chain.
+type PluginChainSpec struct {
+	// Plugin defines the name of plugin
+	Plugin string `json:"plugin"`
+
+	// Priority defines the priority of plugin
+	Priority float32 `json:"priority"`
+
+	// Disable defines the visibility of plugin
+	Disable bool `json:"disable"`
 }
