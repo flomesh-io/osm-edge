@@ -37,7 +37,7 @@ func (pr *ProxyRegistry) ReleaseCertificateHandler(certManager certificateReleas
 			}
 
 			proxyUUID := deletedPodObj.Labels[constants.SidecarUniqueIDLabelName]
-			if proxyIface, ok := pr.connectedProxies.Load(proxyUUID); ok {
+			if proxyIface, ok := connectedProxies.Load(proxyUUID); ok {
 				proxy := proxyIface.(*pipy.Proxy)
 				log.Warn().Msgf("Pod with label %s: %s found in proxy registry; releasing certificate for proxy %s", constants.SidecarUniqueIDLabelName, proxyUUID, proxy.Identity)
 				certManager.ReleaseCertificate(sidecar.NewCertCNPrefix(proxy.UUID, proxy.Kind(), proxy.Identity))
