@@ -119,7 +119,8 @@ func (p *PipyRepoClient) isCodebaseExists(codebaseName string) (success bool, co
 	return
 }
 
-func (p *PipyRepoClient) getCodebase(codebaseName string) (success bool, codebase *Codebase, err error) {
+// GetCodebase retrieves Codebase
+func (p *PipyRepoClient) GetCodebase(codebaseName string) (success bool, codebase *Codebase, err error) {
 	var resp *resty.Response
 
 	resp, err = p.httpClient.R().
@@ -152,7 +153,7 @@ func (p *PipyRepoClient) createCodebase(version string, codebaseName string) (su
 	if err == nil {
 		switch resp.StatusCode() {
 		case http.StatusOK, http.StatusCreated:
-			return p.getCodebase(codebaseName)
+			return p.GetCodebase(codebaseName)
 		default:
 			err = fmt.Errorf("error happened while creating Codebase[%s], status: %s reason:%s", codebaseName, resp.Status(), string(resp.Body()))
 			return
@@ -175,7 +176,7 @@ func (p *PipyRepoClient) deriveCodebase(codebaseName, base string, version uint6
 		success = true
 		switch resp.StatusCode() {
 		case http.StatusOK, http.StatusCreated:
-			success, codebase, err = p.getCodebase(codebaseName)
+			success, codebase, err = p.GetCodebase(codebaseName)
 			return
 		default:
 			err = fmt.Errorf("error happened while deriving Codebase[%s] base[%s], reason: %s", codebaseName, base, resp.Status())
@@ -342,7 +343,7 @@ func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint6
 
 // IsRepoUp checks whether the repo is up
 func (p *PipyRepoClient) IsRepoUp() (success bool, err error) {
-	if success, _, err = p.getCodebase("/"); err != nil || !success {
+	if success, _, err = p.GetCodebase("/"); err != nil || !success {
 		log.Err(err).Msgf("Pipy Repo is not UP:")
 		return
 	}
