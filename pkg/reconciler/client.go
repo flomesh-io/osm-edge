@@ -74,7 +74,7 @@ func (c *client) initCustomResourceDefinitionMonitor() {
 	c.informers[CrdInformerKey] = informerFactory
 
 	// Add event handler to informer
-	c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler())
+	_, _ = c.informers[CrdInformerKey].AddEventHandler(c.crdEventHandler())
 }
 
 // Initializes mutating webhook monitoring
@@ -91,7 +91,7 @@ func (c *client) initMutatingWebhookConfigurationMonitor() {
 	c.informers[MutatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().MutatingWebhookConfigurations().Informer()
 
 	// Add event handler to informer
-	c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
+	_, _ = c.informers[MutatingWebhookInformerKey].AddEventHandler(c.mutatingWebhookEventHandler())
 }
 
 // Initializes validating webhook monitoring
@@ -108,7 +108,7 @@ func (c *client) initValidatingWebhookConfigurationMonitor() {
 	c.informers[ValidatingWebhookInformerKey] = informerFactory.Admissionregistration().V1().ValidatingWebhookConfigurations().Informer()
 
 	// Add event handler to informer
-	c.informers[ValidatingWebhookInformerKey].AddEventHandler(c.validatingWebhookEventHandler())
+	_, _ = c.informers[ValidatingWebhookInformerKey].AddEventHandler(c.validatingWebhookEventHandler())
 }
 
 func (c *client) run(stop <-chan struct{}) error {

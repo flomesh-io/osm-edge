@@ -113,23 +113,30 @@ func (s *Server) fireExistProxies() []*pipy.Proxy {
 		if err != nil {
 			continue
 		}
-		s.fireUpdatedPod(s.proxyRegistry, proxy)
+		proxy = s.fireUpdatedPod(s.proxyRegistry, proxy)
 		allProxies = append(allProxies, proxy)
 	}
 	return allProxies
 }
 
-func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) {
-	if v := proxyRegistry.GetConnectedProxy(proxy.UUID.String()); v == nil {
-		s.informProxy(proxy)
+func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pipy.Proxy) *pipy.Proxy {
+	connectedProxy := proxyRegistry.GetConnectedProxy(proxy.UUID.String())
+	if connectedProxy == nil {
+		proxyPtr := &proxy
+		callback := func(storedProxyPtr **pipy.Proxy) {
+			proxyPtr = storedProxyPtr
+		}
+		s.informProxy(proxyPtr, callback)
+		return *proxyPtr
 	}
+	return connectedProxy
 }
 
-func (s *Server) informProxy(proxy *pipy.Proxy) {
+func (s *Server) informProxy(proxyPtr **pipy.Proxy, callback func(**pipy.Proxy)) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		if aggregatedErr := s.informTrafficPolicies(proxy, &wg); aggregatedErr != nil {
+		if aggregatedErr := s.informTrafficPolicies(proxyPtr, &wg, callback); aggregatedErr != nil {
 			log.Error().Err(aggregatedErr).Msgf("Pipy Aggregated Traffic Policies Error.")
 		}
 	}()
