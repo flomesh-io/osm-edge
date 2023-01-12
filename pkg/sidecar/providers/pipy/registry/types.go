@@ -10,10 +10,7 @@ import (
 var log = logger.New("proxy-registry")
 
 var (
-	//Lock registry
-	Lock sync.Mutex
-
-	//connectedProxies proxies cache map
+	lock             sync.Mutex
 	connectedProxies sync.Map
 )
 

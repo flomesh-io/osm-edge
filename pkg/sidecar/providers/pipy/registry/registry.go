@@ -15,8 +15,8 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 
 // RegisterProxy registers a newly connected proxy.
 func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
-	Lock.Lock()
-	defer Lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	actual, loaded := connectedProxies.LoadOrStore(proxy.UUID.String(), proxy)
 	if loaded {
 		return actual.(*pipy.Proxy)
@@ -27,8 +27,8 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
 
 // GetConnectedProxy loads a connected proxy from the registry.
 func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *pipy.Proxy {
-	Lock.Lock()
-	defer Lock.Unlock()
+	lock.Lock()
+	defer lock.Unlock()
 	p, ok := connectedProxies.Load(uuid)
 	if !ok {
 		return nil
