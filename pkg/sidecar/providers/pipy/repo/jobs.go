@@ -247,6 +247,11 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 		codebasePreV := proxy.ETag
 		codebaseCurV := hash(bytes)
 		if codebaseCurV != codebasePreV {
+			log.Log().Str("Proxy", proxy.GetCNPrefix()).
+				Str("ID", fmt.Sprintf("%d", proxy.ID)).
+				Str("codebasePreV", fmt.Sprintf("%d", codebasePreV)).
+				Str("codebaseCurV", fmt.Sprintf("%d", codebaseCurV)).
+				Msg("Sidecar's config.json")
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
 			success, err := repoClient.DeriveCodebase(codebase, osmCodebaseRepo, codebaseCurV-2)
 			if success {
@@ -275,6 +280,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 			}
 			if err != nil {
 				log.Error().Err(err)
+				_, _ = repoClient.Delete(codebase)
 			} else {
 				proxy.ETag = codebaseCurV
 			}

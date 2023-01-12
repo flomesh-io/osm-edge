@@ -330,6 +330,9 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 			continue
 		}
 
+		// If there's not at least 1 subdomain-ed MeshService added,
+		// add the entire headless service
+		var added bool
 		for _, subset := range endpoints.Subsets {
 			for _, address := range subset.Addresses {
 				if address.Hostname == "" {
@@ -342,10 +345,14 @@ func ServiceToMeshServices(c Controller, svc corev1.Service) []service.MeshServi
 					TargetPort: meshSvc.TargetPort,
 					Protocol:   meshSvc.Protocol,
 				})
+				added = true
 			}
 		}
-	}
 
+		if !added {
+			meshServices = append(meshServices, meshSvc)
+		}
+	}
 	return meshServices
 }
 
