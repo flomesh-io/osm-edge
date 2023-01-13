@@ -127,7 +127,7 @@ func (s *Server) fireUpdatedPod(proxyRegistry *registry.ProxyRegistry, proxy *pi
 			proxyPtr = storedProxyPtr
 		}
 		s.informProxy(proxyPtr, callback)
-		return proxy
+		return *proxyPtr
 	}
 	return connectedProxy
 }
