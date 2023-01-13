@@ -1,4 +1,15 @@
 # Release Notes
+## Release v1.2.3
+
+### Notable changes
+- Allow non-statefulset headless services to be accessed
+- Bump cert-manager version to v1.10
+
+## Release v1.2.2
+
+### Notable changes
+- Certificate rotation now ignores monotonic clock readings when checking expiration
+- Add keep-alive time to detect sidecar disconnections
 
 ## Release v1.2.1
 

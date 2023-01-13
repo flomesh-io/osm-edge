@@ -112,6 +112,22 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	})
 	if err != nil {
 		log.Error().Err(err)
+		return err
+	}
+
+	// wait until base codebase is ready
+	err = wait.PollImmediate(5*time.Second, 90*time.Second, func() (bool, error) {
+		success, _, _ := s.repoClient.GetCodebase(osmCodebase)
+		if success {
+			log.Info().Msg("Base codebase is READY!")
+			return success, nil
+		}
+		log.Error().Msg("Base codebase is NOT READY, sleeping ...")
+		return success, err
+	})
+	if err != nil {
+		log.Error().Err(err)
+		return err
 	}
 
 	// Start broadcast listener thread

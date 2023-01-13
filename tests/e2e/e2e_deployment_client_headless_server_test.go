@@ -8,10 +8,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/openservicemesh/osm/pkg/tests"
+	. "github.com/openservicemesh/osm/tests/framework"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment server",
@@ -46,7 +48,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				sourceNamespaces = append(sourceNamespaces, fmt.Sprintf("%s%d", sourceAppBaseName, i))
 			}
 
-			It("Tests HTTP traffic from multiple client deployments to a server deployment", func() {
+			It("Tests HTTP traffic from multiple client deployments to a headless service deployment", func() {
 				// Install OSM
 				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
@@ -68,7 +70,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 						ServiceName:        destApp,
 						ServiceAccountName: destApp,
 						ReplicaCount:       int32(replicaSetPerService),
-						Image:              "flomesh/httpbin:latest",
+						Image:              "simonkowallik/httpbin",
 						Ports:              []int{DefaultUpstreamServicePort},
 						Command:            HttpbinCmd,
 						OS:                 Td.ClusterOS,
@@ -94,7 +96,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				Expect(err).NotTo(HaveOccurred())
 				_, err = Td.CreateDeployment(destApp, deploymentDef)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = Td.CreateService(destApp, svcDef)
+				_, err = Td.CreateService(destApp, *tests.HeadlessSvc(&svcDef))
 				Expect(err).NotTo(HaveOccurred())
 
 				wg.Add(1)
@@ -116,7 +118,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							ReplicaCount:       int32(replicaSetPerService),
 							Command:            []string{"/bin/bash", "-c", "--"},
 							Args:               []string{"while true; do sleep 30; done;"},
-							Image:              "flomesh/alpine-debug",
+							Image:              "songrgg/alpine-debug",
 							Ports:              []int{DefaultUpstreamServicePort}, // Can't deploy services with empty/no ports
 							OS:                 Td.ClusterOS,
 						})

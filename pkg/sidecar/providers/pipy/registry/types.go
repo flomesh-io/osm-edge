@@ -9,12 +9,15 @@ import (
 
 var log = logger.New("proxy-registry")
 
+var (
+	lock             sync.Mutex
+	connectedProxies sync.Map
+)
+
 // ProxyRegistry keeps track of Sidecar proxies as they connect and disconnect
 // from the control plane.
 type ProxyRegistry struct {
 	ProxyServiceMapper
-
-	connectedProxies sync.Map
 
 	msgBroker *messaging.Broker
 
