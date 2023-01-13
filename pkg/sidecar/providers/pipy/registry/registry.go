@@ -15,7 +15,9 @@ func NewProxyRegistry(mapper ProxyServiceMapper, msgBroker *messaging.Broker) *P
 
 // RegisterProxy registers a newly connected proxy.
 func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
-	actual, loaded := pr.connectedProxies.LoadOrStore(proxy.UUID.String(), proxy)
+	lock.Lock()
+	defer lock.Unlock()
+	actual, loaded := connectedProxies.LoadOrStore(proxy.UUID.String(), proxy)
 	if loaded {
 		return actual.(*pipy.Proxy)
 	}
@@ -25,7 +27,9 @@ func (pr *ProxyRegistry) RegisterProxy(proxy *pipy.Proxy) *pipy.Proxy {
 
 // GetConnectedProxy loads a connected proxy from the registry.
 func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *pipy.Proxy {
-	p, ok := pr.connectedProxies.Load(uuid)
+	lock.Lock()
+	defer lock.Unlock()
+	p, ok := connectedProxies.Load(uuid)
 	if !ok {
 		return nil
 	}
@@ -35,12 +39,13 @@ func (pr *ProxyRegistry) GetConnectedProxy(uuid string) *pipy.Proxy {
 // RangeConnectedProxy calls f sequentially for each key and value present in the map.
 // If f returns false, range stops the iteration.
 func (pr *ProxyRegistry) RangeConnectedProxy(f func(key, value interface{}) bool) {
-	pr.connectedProxies.Range(f)
+	connectedProxies.Range(f)
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (pr *ProxyRegistry) UnregisterProxy(p *pipy.Proxy) {
-	pr.connectedProxies.Delete(p.UUID.String())
+	p.Quit <- true
+	connectedProxies.Delete(p.UUID.String())
 	log.Debug().Msgf("Unregistered proxy %s", p.String())
 }
 

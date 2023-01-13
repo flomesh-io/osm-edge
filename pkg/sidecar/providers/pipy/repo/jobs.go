@@ -327,7 +327,7 @@ func (job *PipyConfGeneratorJob) publishSidecarConf(repoClient *client.PipyRepoC
 				Str("ID", fmt.Sprintf("%d", proxy.ID)).
 				Str("codebasePreV", fmt.Sprintf("%d", codebasePreV)).
 				Str("codebaseCurV", fmt.Sprintf("%d", codebaseCurV)).
-				Msg("Sidecar's config.json")
+				Msg("config.json")
 			codebase := fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
 			success, err := repoClient.DeriveCodebase(codebase, osmCodebaseRepo, codebaseCurV-2)
 			if success {
