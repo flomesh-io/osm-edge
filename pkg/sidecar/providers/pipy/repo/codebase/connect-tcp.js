@@ -42,7 +42,14 @@ pipy({
     _metrics.sendBytesTotalCounter.increase(data.size)
   )
 )
-.connect(() => __target)
+.branch(
+  () => __target.startsWith('127.0.0.1:'), (
+    $=>$.connect(() => __target, { bind: '127.0.0.6' })
+  ),
+  (
+    $=>$.connect(() => __target)
+  )
+)
 .handleData(
   data => (
     _metrics.receiveBytesTotalCounter.increase(data.size)
