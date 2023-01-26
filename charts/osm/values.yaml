@@ -57,7 +57,7 @@ osm:
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads
-      sidecarImage: flomesh/pipy-nightly:latest
+      sidecarImage: flomesh/pipy:0.90.0-18
       # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
       proxyServerPort: 6060
     - sidecarName: envoy
@@ -69,6 +69,17 @@ osm:
       proxyServerPort: 15128
   # -- Curl image for control plane init container
   curlImage: curlimages/curl
+
+  # -- Pipy RepoServer
+  repoServer:
+    # -- Image used for Pipy RepoServer
+    image: flomesh/pipy-repo:0.90.0-18
+    # -- if false , Pipy RepoServer is installed within osmController pod.
+    standalone: false
+    # -- ipaddr of host/service where Pipy RepoServer is installed
+    ipaddr: "127.0.0.1"
+    # -- codebase is the folder used by osmController.
+    codebase: ""
 
   pluginChains:
     inbound-tcp:
@@ -125,17 +136,6 @@ osm:
         priority: 110
       - plugin: modules/outbound-http-default
         priority: 100
-
-  # -- Pipy RepoServer
-  repoServer:
-    # -- Image used for Pipy RepoServer
-    image: flomesh/pipy-repo:latest
-    # -- if false , Pipy RepoServer is installed within osmController pod.
-    standalone: false
-    # -- ipaddr of host/service where Pipy RepoServer is installed
-    ipaddr: "127.0.0.1"
-    # -- codebase is the folder used by osmController.
-    codebase: ""
 
   #
   # -- OSM controller parameters
