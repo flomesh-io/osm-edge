@@ -158,7 +158,7 @@ jobs:
 
       - name: Docker meta - ${{ matrix.id }}
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v4.1.1
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-${{ matrix.id }}
           tags: |
@@ -172,7 +172,7 @@ jobs:
           echo "GIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       - name: Build and Push - ${{ matrix.id }}
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
           file: ./dockerfiles/Dockerfile.osm-edge-${{ matrix.id }}
@@ -211,7 +211,7 @@ jobs:
 
       - name: Docker meta - ${{ matrix.id }}
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v4.1.1
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-demo-${{ matrix.id }}
           tags: |
@@ -220,7 +220,7 @@ jobs:
             latest=false
 
       - name: Build and Push - ${{ matrix.id }}
-        uses: docker/build-push-action@v3.1.1
+        uses: docker/build-push-action@v3.3.0
         with:
           context: .
           file: ./dockerfiles/Dockerfile.demo
