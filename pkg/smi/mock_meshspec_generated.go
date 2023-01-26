@@ -11,7 +11,7 @@ import (
 	identity "github.com/openservicemesh/osm/pkg/identity"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	v1alpha40 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 )
 
 // MockMeshSpec is a mock of MeshSpec interface.
@@ -108,14 +108,14 @@ func (mr *MockMeshSpecMockRecorder) ListTCPTrafficSpecs() *gomock.Call {
 }
 
 // ListTrafficSplits mocks base method.
-func (m *MockMeshSpec) ListTrafficSplits(arg0 ...TrafficSplitListOption) []*v1alpha2.TrafficSplit {
+func (m *MockMeshSpec) ListTrafficSplits(arg0 ...TrafficSplitListOption) []*v1alpha40.TrafficSplit {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range arg0 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "ListTrafficSplits", varargs...)
-	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
+	ret0, _ := ret[0].([]*v1alpha40.TrafficSplit)
 	return ret0
 }
 

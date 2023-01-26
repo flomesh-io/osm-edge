@@ -39,6 +39,13 @@ type HTTPRouteMatch struct {
 	Headers       map[string]string `json:"headers:omitempty"`
 }
 
+// HTTPRouteMatchWithWeightedClusters is a struct to represent an HTTP route match comprised of WeightedClusters, HTTPRouteMatches
+type HTTPRouteMatchWithWeightedClusters struct {
+	UpstreamClusters []service.WeightedCluster
+	RouteMatches     []HTTPRouteMatch
+	HasSplitMatches  bool
+}
+
 // TCPRouteMatch is a struct to represent a TCP route matching based on ports
 type TCPRouteMatch struct {
 	Ports []uint16 `json:"ports:omitempty"`
@@ -108,6 +115,9 @@ type OutboundMeshTrafficPolicy struct {
 	// The specified config is used to program clusters corresponding to
 	// mesh destinations.
 	ClustersConfigs []*MeshClusterConfig
+
+	// ServicesResolvableSet defines the dns database
+	ServicesResolvableSet map[string][]interface{}
 }
 
 // InboundMeshTrafficPolicy is the type used to represent the inbound mesh traffic policy configurations
@@ -194,8 +204,6 @@ type TrafficMatch struct {
 	// RateLimit defines the rate limiting policy applied for this TrafficMatch
 	// +optional
 	RateLimit *policyv1alpha1.RateLimitSpec
-
-	HeaderRateLimit *[]policyv1alpha1.HTTPHeaderSpec
 
 	EgressGateWay *string
 }

@@ -43,6 +43,22 @@ spec:
             spec:
               type: object
               properties:
+                clusterSet:
+                  description: Configuration for cluster
+                  type: object
+                  properties:
+                    properties:
+                      description: Configuration for cluster
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            description: Name defines the name of cluster property.
+                            type: string
+                          value:
+                            description: Value defines the name of cluster property.
+                            type: string
                 sidecar:
                   description: Configuration for sidecar
                   type: object
@@ -159,10 +175,42 @@ spec:
                         - Localhost
                         - PodIP
                       default: Localhost
+                    localDNSProxy:
+                      description: LocalDNSProxy improves the performance of your computer by caching the responses coming from your DNS servers
+                      type: object
+                      properties:
+                        enable:
+                          description: Enables local DNS proxy for the mesh.
+                          type: boolean
+                        primaryUpstreamDNSServerIPAddr:
+                          description: Primary upstream DNS server for local DNS Proxy.
+                          type: string
+                        secondaryUpstreamDNSServerIPAddr:
+                          description: Secondary upstream DNS server for local DNS Proxy.
+                          type: string
+                repoServer:
+                  description: Configuration for RepoServer
+                  type: object
+                  required:
+                    - ipaddr
+                    - codebase
+                  properties:
+                    ipaddr:
+                      description: IPAddr of the RepoServer.
+                      type: string
+                    codebase:
+                      description: Codebase is the folder used by osmController.
+                      type: string
                 traffic:
                   description: Configuration for traffic management
                   type: object
                   properties:
+                    interceptionMode:
+                      description: Traffic interception mode in the mesh
+                      type: string
+                      enum:
+                        - iptables
+                        - ebpf
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean
@@ -254,6 +302,9 @@ spec:
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: string
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -274,6 +325,9 @@ spec:
                           type: string
                         authorization:
                           description: Authorization for remote logging service, if remote logging is enabled.
+                          type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
                           type: string
                 certificate:
                   description: Configuration for certificate management
@@ -343,6 +397,68 @@ spec:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean
+                    enablePluginPolicy:
+                      type: boolean
+                pluginChains:
+                  description: Plugin Chains
+                  type: object
+                  properties:
+                    inbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    inbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
     - name: v1alpha1
       served: true
       storage: false
@@ -355,6 +471,22 @@ spec:
             spec:
               type: object
               properties:
+                clusterSet:
+                  description: Configuration for cluster
+                  type: object
+                  properties:
+                    properties:
+                      description: Configuration for cluster
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            description: Name defines the name of cluster property.
+                            type: string
+                          value:
+                            description: Value defines the name of cluster property.
+                            type: string
                 sidecar:
                   description: Configuration for sidecar
                   type: object
@@ -432,10 +564,29 @@ spec:
                     configResyncInterval:
                       description: Resync interval for regular proxy broadcast updates
                       type: string
+                repoServer:
+                  description: Configuration for RepoServer
+                  type: object
+                  required:
+                    - ipaddr
+                    - codebase
+                  properties:
+                    ipaddr:
+                      description: IPAddr of the RepoServer.
+                      type: string
+                    codebase:
+                      description: Codebase is the folder used by osmController.
+                      type: string
                 traffic:
                   description: Configuration for traffic management
                   type: object
                   properties:
+                    interceptionMode:
+                      description: Traffic interception mode in the mesh
+                      type: string
+                      enum:
+                        - iptables
+                        - ebpf
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean
@@ -516,6 +667,9 @@ spec:
                         endpoint:
                           description: Endpoint for tracing data, if tracing is enabled.
                           type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
+                          type: string
                     remoteLogging:
                       description: Configuration for remote logging
                       type: object
@@ -536,6 +690,9 @@ spec:
                           type: string
                         authorization:
                           description: Authorization for remote logging service, if remote logging is enabled.
+                          type: string
+                        sampledFraction:
+                          description: SampledFraction defines the sampled fraction.
                           type: string
                 certificate:
                   description: Configuration for certificate management
@@ -604,3 +761,65 @@ spec:
                       type: boolean
                     enableRetryPolicy:
                       type: boolean
+                    enablePluginPolicy:
+                      type: boolean
+                pluginChains:
+                  description: Plugin Chains
+                  type: object
+                  properties:
+                    inbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    inbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-tcp:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean
+                    outbound-http:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - plugin
+                          - priority
+                        properties:
+                          plugin:
+                            type: string
+                          priority:
+                            type: number
+                          disable:
+                            type: boolean

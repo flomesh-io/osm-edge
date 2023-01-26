@@ -34,8 +34,8 @@ spec:
     strategy: None
   versions:
     - name: v1alpha4
-      served: false
-      storage: false
+      served: true
+      storage: true
       additionalPrinterColumns:
       - name: Service
         type: string
@@ -133,7 +133,7 @@ spec:
                         type: number
     - name: v1alpha2
       served: true
-      storage: true
+      storage: false
       additionalPrinterColumns:
       - name: Service
         type: string

@@ -79,6 +79,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *admissionv1.Admissi
 		OsmNamespace:                 wh.osmNamespace,
 		OsmContainerPullPolicy:       wh.osmContainerPullPolicy,
 		Configurator:                 wh.configurator,
+		CertManager:                  wh.certManager,
 		Pod:                          pod,
 		PodOS:                        podOS,
 		PodNamespace:                 namespace,

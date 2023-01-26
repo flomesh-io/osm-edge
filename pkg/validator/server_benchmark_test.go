@@ -17,6 +17,7 @@ import (
 
 	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	configFake "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned/fake"
+	pluginFake "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned/fake"
 	policyFake "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/informers"
@@ -41,6 +42,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	smiTrafficSpecClientSet := smiSpecClientFake.NewSimpleClientset()
 	smiTrafficTargetClientSet := smiAccessClientFake.NewSimpleClientset()
 	policyClient := policyFake.NewSimpleClientset()
+	pluginClient := pluginFake.NewSimpleClientset()
 	configClient := configFake.NewSimpleClientset()
 	informerCollection, err := informers.NewInformerCollection(tests.MeshName, stop,
 		informers.WithKubeClient(kubeClient),
@@ -51,7 +53,7 @@ func BenchmarkDoValidation(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create informer collection: %s", err)
 	}
-	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, msgBroker)
+	k8sClient := k8s.NewKubernetesController(informerCollection, policyClient, pluginClient, msgBroker)
 	policyController := policy.NewPolicyController(informerCollection, kubeClient, k8sClient, msgBroker)
 	kv := &policyValidator{
 		policyClient: policyController,

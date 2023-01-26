@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/auth"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/errcode"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -63,6 +65,11 @@ func (c *Client) GetMeshConfigJSON() (string, error) {
 	return cm, nil
 }
 
+// GetTrafficInterceptionMode returns the traffic interception mode
+func (c *Client) GetTrafficInterceptionMode() string {
+	return c.getMeshConfig().Spec.Traffic.InterceptionMode
+}
+
 // IsPermissiveTrafficPolicyMode tells us whether the OSM Control Plane is in permissive mode,
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
@@ -84,6 +91,21 @@ func (c *Client) IsDebugServerEnabled() bool {
 // IsTracingEnabled returns whether tracing is enabled
 func (c *Client) IsTracingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.Tracing.Enable
+}
+
+// IsLocalDNSProxyEnabled returns whether local DNS proxy is enabled
+func (c *Client) IsLocalDNSProxyEnabled() bool {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.Enable
+}
+
+// GetLocalDNSProxyPrimaryUpstream returns the primary upstream DNS server for local DNS Proxy
+func (c *Client) GetLocalDNSProxyPrimaryUpstream() string {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.PrimaryUpstreamDNSServerIPAddr
+}
+
+// GetLocalDNSProxySecondaryUpstream returns the secondary upstream DNS server for local DNS Proxy
+func (c *Client) GetLocalDNSProxySecondaryUpstream() string {
+	return c.getMeshConfig().Spec.Sidecar.LocalDNSProxy.SecondaryUpstreamDNSServerIPAddr
 }
 
 // GetTracingHost is the host to which we send tracing spans
@@ -111,6 +133,17 @@ func (c *Client) GetTracingEndpoint() string {
 		return tracingEndpoint
 	}
 	return constants.DefaultTracingEndpoint
+}
+
+// GetTracingSampledFraction returns the sampled fraction
+func (c *Client) GetTracingSampledFraction() float32 {
+	sampledFraction := c.getMeshConfig().Spec.Observability.Tracing.SampledFraction
+	if sampledFraction != nil && len(*sampledFraction) > 0 {
+		if v, e := strconv.ParseFloat(*sampledFraction, 32); e == nil {
+			return float32(v)
+		}
+	}
+	return 1
 }
 
 // IsRemoteLoggingEnabled returns whether remote logging is enabled
@@ -152,6 +185,17 @@ func (c *Client) GetRemoteLoggingAuthorization() string {
 		return remoteLoggingAuthorization
 	}
 	return ""
+}
+
+// GetRemoteLoggingSampledFraction returns the sampled fraction
+func (c *Client) GetRemoteLoggingSampledFraction() float32 {
+	sampledFraction := c.getMeshConfig().Spec.Observability.RemoteLogging.SampledFraction
+	if sampledFraction != nil && len(*sampledFraction) > 0 {
+		if v, e := strconv.ParseFloat(*sampledFraction, 32); e == nil {
+			return float32(v)
+		}
+	}
+	return 1
 }
 
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
@@ -263,6 +307,33 @@ func (c *Client) GetSidecarDisabledMTLS() bool {
 	return disabledMTLS
 }
 
+// GetRepoServerIPAddr returns the ip address of RepoServer
+func (c *Client) GetRepoServerIPAddr() string {
+	ipAddr := os.Getenv("OSM_REPO_SERVER_IPADDR")
+	if len(ipAddr) == 0 {
+		ipAddr = c.getMeshConfig().Spec.RepoServer.IPAddr
+	}
+	if len(ipAddr) == 0 {
+		ipAddr = "127.0.0.1"
+	}
+	return ipAddr
+}
+
+// GetRepoServerCodebase returns the codebase of RepoServer
+func (c *Client) GetRepoServerCodebase() string {
+	codebase := os.Getenv("OSM_REPO_SERVER_CODEBASE")
+	if len(codebase) == 0 {
+		codebase = c.getMeshConfig().Spec.RepoServer.Codebase
+	}
+	if len(codebase) > 0 && strings.HasSuffix(codebase, "/") {
+		codebase = strings.TrimSuffix(codebase, "/")
+	}
+	if len(codebase) > 0 && strings.HasPrefix(codebase, "/") {
+		codebase = strings.TrimPrefix(codebase, "/")
+	}
+	return codebase
+}
+
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getMeshConfig().Spec.Certificate.ServiceCertValidityDuration
@@ -353,4 +424,64 @@ func (c *Client) GetFeatureFlags() configv1alpha2.FeatureFlags {
 // GetOSMLogLevel returns the configured OSM log level
 func (c *Client) GetOSMLogLevel() string {
 	return c.getMeshConfig().Spec.Observability.OSMLogLevel
+}
+
+// GetGlobalPluginChains returns plugin chains
+func (c *Client) GetGlobalPluginChains() map[string][]trafficpolicy.Plugin {
+	pluginChainMap := make(map[string][]trafficpolicy.Plugin)
+	pluginChainSpec := c.getMeshConfig().Spec.PluginChains
+
+	inboundTCPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.InboundTCPChains {
+		if plugin.Disable {
+			continue
+		}
+		inboundTCPChains = append(inboundTCPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	inboundHTTPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.InboundHTTPChains {
+		if plugin.Disable {
+			continue
+		}
+		inboundHTTPChains = append(inboundHTTPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	outboundTCPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.OutboundTCPChains {
+		if plugin.Disable {
+			continue
+		}
+		outboundTCPChains = append(outboundTCPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	outboundHTTPChains := make([]trafficpolicy.Plugin, 0)
+	for _, plugin := range pluginChainSpec.OutboundHTTPChains {
+		if plugin.Disable {
+			continue
+		}
+		outboundHTTPChains = append(outboundHTTPChains, trafficpolicy.Plugin{
+			Name:     plugin.Plugin,
+			Priority: plugin.Priority,
+			BuildIn:  true,
+		})
+	}
+
+	pluginChainMap["inbound-tcp"] = inboundTCPChains
+	pluginChainMap["inbound-http"] = inboundHTTPChains
+	pluginChainMap["outbound-tcp"] = outboundTCPChains
+	pluginChainMap["outbound-http"] = outboundHTTPChains
+	return pluginChainMap
 }

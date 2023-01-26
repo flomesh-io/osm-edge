@@ -8,19 +8,22 @@ import (
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	tresorFake "github.com/openservicemesh/osm/pkg/certificate/providers/tresor/fake"
+	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/messaging"
+	"github.com/openservicemesh/osm/pkg/multicluster"
+	"github.com/openservicemesh/osm/pkg/plugin"
 	"github.com/openservicemesh/osm/pkg/policy"
-	kubeFake "github.com/openservicemesh/osm/pkg/providers/kube/fake"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -38,6 +41,8 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockKubeController := k8s.NewMockController(mockCtrl)
 	mockPolicyController := policy.NewMockController(mockCtrl)
+	mockPluginController := plugin.NewMockController(mockCtrl)
+	mockMulticlusterController := multicluster.NewMockController(mockCtrl)
 	mockConfigurator.EXPECT().GetOSMNamespace().Return("osm-system").AnyTimes()
 
 	provider := kubeFake.NewFakeProvider()
@@ -139,5 +144,5 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, mockMeshSpec, certManager,
-		mockPolicyController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
+		mockPolicyController, mockPluginController, mockMulticlusterController, stop, mockConfigurator, serviceProviders, endpointProviders, messaging.NewBroker(stop))
 }

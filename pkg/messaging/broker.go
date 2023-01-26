@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -271,6 +272,8 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.EndpointAdded, announcements.EndpointDeleted, announcements.EndpointUpdated,
 		// k8s Ingress event
 		announcements.IngressAdded, announcements.IngressDeleted, announcements.IngressUpdated,
+		// k8s IngressClass event
+		announcements.IngressClassAdded, announcements.IngressClassDeleted, announcements.IngressClassUpdated,
 		//
 		// OSM resource events
 		//
@@ -297,6 +300,24 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		announcements.TrafficSplitAdded, announcements.TrafficSplitDeleted, announcements.TrafficSplitUpdated,
 		// SMI TrafficTarget event
 		announcements.TrafficTargetAdded, announcements.TrafficTargetDeleted, announcements.TrafficTargetUpdated,
+		//
+		// MultiCluster events
+		//
+		// ServiceImport event
+		announcements.ServiceImportAdded, announcements.ServiceImportDeleted, announcements.ServiceImportUpdated,
+		// ServiceExport event
+		announcements.ServiceExportAdded, announcements.ServiceExportDeleted, announcements.ServiceExportUpdated,
+		// GlobalTrafficPolicy event
+		announcements.GlobalTrafficPolicyAdded, announcements.GlobalTrafficPolicyDeleted, announcements.GlobalTrafficPolicyUpdated,
+		//
+		// Plugin events
+		//
+		// Plugin event
+		announcements.PluginAdded, announcements.PluginDeleted, announcements.PluginUpdated,
+		// PluginChain event
+		announcements.PluginChainAdded, announcements.PluginChainDeleted, announcements.PluginChainUpdated,
+		// PluginService event
+		announcements.PluginConfigAdded, announcements.PluginConfigDeleted, announcements.PluginConfigUpdated,
 		//
 		// Proxy events
 		//
@@ -325,7 +346,9 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
 			// Only trigger an update on InboundExternalAuthorization field changes if the new spec has the 'Enable' flag set to true.
 			(newSpec.Traffic.InboundExternalAuthorization.Enable && (prevSpec.Traffic.InboundExternalAuthorization != newSpec.Traffic.InboundExternalAuthorization)) ||
-			prevSpec.FeatureFlags != newSpec.FeatureFlags {
+			prevSpec.FeatureFlags != newSpec.FeatureFlags ||
+			!reflect.DeepEqual(prevSpec.PluginChains, newSpec.PluginChains) ||
+			!reflect.DeepEqual(prevSpec.ClusterSet, newSpec.ClusterSet) {
 			return &proxyUpdateEvent{
 				msg:   msg,
 				topic: announcements.ProxyUpdate.String(),

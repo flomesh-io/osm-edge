@@ -1,15 +1,10 @@
 # Release Notes
-## Release v1.2.3
+
+## Release v1.3.0
 
 ### Notable changes
-- Allow non-statefulset headless services to be accessed
-- Bump cert-manager version to v1.10
 
-## Release v1.2.2
-
-### Notable changes
-- Certificate rotation now ignores monotonic clock readings when checking expiration
-- Add keep-alive time to detect sidecar disconnections
+- Multi cluster service support
 
 ## Release v1.2.1
 
@@ -20,7 +15,7 @@
 - Remove CRD conversion webhook (the webhook does not act differently than how if the CRD conversion strategy was set to `None`)
 - Fixed ingress backend SAN's (the trust domain was getting appended to the provided SAN)
 
-## Release v1.2.1
+## Release v1.2.0
 
 ### Notable changes
 

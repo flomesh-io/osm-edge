@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -34,8 +35,13 @@ var (
 )
 
 // NewRepoServer creates a new Aggregated Discovery Service server
-func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string,
-	cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.ProxyRegistry, _ bool, osmNamespace string, cfg configurator.Configurator, certManager *certificate.Manager, kubecontroller k8s.Controller, msgBroker *messaging.Broker) *Server {
+	if len(cfg.GetRepoServerCodebase()) > 0 {
+		osmCodebase = fmt.Sprintf("%s/%s", cfg.GetRepoServerCodebase(), osmCodebase)
+		osmSidecarCodebase = fmt.Sprintf("%s/%s", cfg.GetRepoServerCodebase(), osmSidecarCodebase)
+		osmCodebaseRepo = fmt.Sprintf("/%s", osmCodebase)
+	}
+
 	server := Server{
 		catalog:        meshCatalog,
 		proxyRegistry:  proxyRegistry,
@@ -46,8 +52,9 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 		kubeController: kubecontroller,
 		configVerMutex: sync.Mutex{},
 		configVersion:  make(map[string]uint64),
+		pluginSet:      mapset.NewSet(),
 		msgBroker:      msgBroker,
-		repoClient:     client.NewRepoClient("127.0.0.1", uint16(cfg.GetProxyServerPort())),
+		repoClient:     client.NewRepoClient(cfg.GetRepoServerIPAddr(), uint16(cfg.GetProxyServerPort())),
 	}
 
 	return &server
@@ -56,7 +63,7 @@ func NewRepoServer(meshCatalog catalog.MeshCataloger, proxyRegistry *registry.Pr
 // Start starts the codebase push server
 func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	// wait until pipy repo is up
-	err := wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
+	err := wait.PollImmediate(5*time.Second, 90*time.Second, func() (bool, error) {
 		success, err := s.repoClient.IsRepoUp()
 		if success {
 			log.Info().Msg("Repo is READY!")
@@ -67,47 +74,13 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 	})
 	if err != nil {
 		log.Error().Err(err)
+		return err
 	}
 
 	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
 		{
 			Basepath: osmCodebase,
-			Items: []client.BatchItem{
-
-				{Filename: "outbound-tcp-load-balance.js", Content: codebaseOutboundTCPLoadBalanceJs},
-				{Filename: "logging-init.js", Content: codebaseLoggingInitJs},
-				{Filename: "utils.js", Content: codebaseUtilsJs},
-				{Filename: "tracing-init.js", Content: codebaseTracingInitJs},
-				{Filename: "metrics-http.js", Content: codebaseMetricsHTTPJs},
-				{Filename: "config.js", Content: codebaseConfigJs},
-				{Filename: "tracing.js", Content: codebaseTracingJs},
-				{Filename: "metrics-init.js", Content: codebaseMetricsInitJs},
-				{Filename: "logging.js", Content: codebaseLoggingJs},
-				{Filename: "metrics-tcp.js", Content: codebaseMetricsTCPJs},
-				{Filename: "inbound-throttle.js", Content: codebaseInboundThrottleJs},
-				{Filename: "main.js", Content: codebaseMainJs},
-				{Filename: "breaker.js", Content: codebaseBreakerJs},
-				{Filename: "inbound-mux-http.js", Content: codebaseInboundMuxHTTPJs},
-				{Filename: "outbound-mux-http.js", Content: codebaseOutboundMuxHTTPJs},
-				{Filename: "outbound-http-routing.js", Content: codebaseOutboundHTTPRoutingJs},
-				{Filename: "inbound-demux-http.js", Content: codebaseInboundDemuxHTTPJs},
-				{Filename: "inbound-tls-termination.js", Content: codebaseInboundTLSTerminationJs},
-				{Filename: "outbound-breaker.js", Content: codebaseOutboundBreakerJs},
-				{Filename: "inbound-proxy-tcp.js", Content: codebaseInboundProxyTCPJs},
-				{Filename: "stats.js", Content: codebaseStatsJs},
-				{Filename: "outbound-classifier.js", Content: codebaseOutboundClassifierJs},
-				{Filename: "inbound-http-routing.js", Content: codebaseInboundHTTPRoutingJs},
-				{Filename: "outbound-proxy-tcp.js", Content: codebaseOutboundProxyTCPJs},
-				{Filename: "codes.js", Content: codebaseCodesJs},
-				{Filename: "inbound-classifier.js", Content: codebaseInboundClassifierJs},
-				{Filename: "inbound-tcp-load-balance.js", Content: codebaseInboundTCPLoadBalanceJs},
-				{Filename: "outbound-demux-http.js", Content: codebaseOutboundDemuxHTTPJs},
-
-				{
-					Filename: osmCodebaseConfig,
-					Content:  codebaseConfigJSON,
-				},
-			},
+			Items:    osmCodebaseItems,
 		},
 	})
 	if err != nil {

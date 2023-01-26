@@ -33,7 +33,7 @@ func (s *Server) broadcastListener() {
 		slidingTimer.Reset(time.Second * 5)
 	}
 
-	s.retryJob = slidingTimerReset
+	s.retryProxiesJob = slidingTimerReset
 	s.proxyRegistry.UpdateProxies = slidingTimerReset
 
 	reconfirm := true
@@ -96,7 +96,7 @@ func (s *Server) broadcastListener() {
 					for _, proxy := range disconnectedProxies {
 						s.proxyRegistry.UnregisterProxy(proxy)
 						if _, err := s.repoClient.Delete(fmt.Sprintf("%s/%s", osmSidecarCodebase, proxy.GetCNPrefix())); err != nil {
-							log.Err(err).Msgf("fail to delete %s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
+							log.Debug().Msgf("fail to delete %s/%s", osmSidecarCodebase, proxy.GetCNPrefix())
 						}
 					}
 				}

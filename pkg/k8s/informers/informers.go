@@ -24,6 +24,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	configClientset "github.com/openservicemesh/osm/pkg/gen/client/config/clientset/versioned"
 	configInformers "github.com/openservicemesh/osm/pkg/gen/client/config/informers/externalversions"
+	multiclusterClientset "github.com/openservicemesh/osm/pkg/gen/client/multicluster/clientset/versioned"
+	multiclusterInformers "github.com/openservicemesh/osm/pkg/gen/client/multicluster/informers/externalversions"
+	networkingClientset "github.com/openservicemesh/osm/pkg/gen/client/networking/clientset/versioned"
+	networkingInformers "github.com/openservicemesh/osm/pkg/gen/client/networking/informers/externalversions"
+	pluginClientset "github.com/openservicemesh/osm/pkg/gen/client/plugin/clientset/versioned"
+	pluginInformers "github.com/openservicemesh/osm/pkg/gen/client/plugin/informers/externalversions"
 	policyClientset "github.com/openservicemesh/osm/pkg/gen/client/policy/clientset/versioned"
 	policyInformers "github.com/openservicemesh/osm/pkg/gen/client/policy/informers/externalversions"
 )
@@ -85,7 +91,7 @@ func WithSMIClients(smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTr
 		ic.informers[InformerKeyTCPRoute] = specInformerFactory.Specs().V1alpha4().TCPRoutes().Informer()
 		ic.informers[InformerKeyHTTPRouteGroup] = specInformerFactory.Specs().V1alpha4().HTTPRouteGroups().Informer()
 		ic.informers[InformerKeyTrafficTarget] = accessInformerFactory.Access().V1alpha3().TrafficTargets().Informer()
-		ic.informers[InformerKeyTrafficSplit] = splitInformerFactory.Split().V1alpha2().TrafficSplits().Informer()
+		ic.informers[InformerKeyTrafficSplit] = splitInformerFactory.Split().V1alpha4().TrafficSplits().Informer()
 	}
 }
 
@@ -115,6 +121,37 @@ func WithPolicyClient(policyClient policyClientset.Interface) InformerCollection
 		ic.informers[InformerKeyRetry] = informerFactory.Policy().V1alpha1().Retries().Informer()
 		ic.informers[InformerKeyAccessControl] = informerFactory.Policy().V1alpha1().AccessControls().Informer()
 		ic.informers[InformerKeyAccessCert] = informerFactory.Policy().V1alpha1().AccessCerts().Informer()
+	}
+}
+
+// WithPluginClient sets the plugin client for the InformerCollection
+func WithPluginClient(pluginClient pluginClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		informerFactory := pluginInformers.NewSharedInformerFactory(pluginClient, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyPlugin] = informerFactory.Plugin().V1alpha1().Plugins().Informer()
+		ic.informers[InformerKeyPluginChain] = informerFactory.Plugin().V1alpha1().PluginChains().Informer()
+		ic.informers[InformerKeyPluginConfig] = informerFactory.Plugin().V1alpha1().PluginConfigs().Informer()
+	}
+}
+
+// WithMultiClusterClient sets the multicluster client for the InformerCollection
+func WithMultiClusterClient(multiclusterClient multiclusterClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		informerFactory := multiclusterInformers.NewSharedInformerFactory(multiclusterClient, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyServiceExport] = informerFactory.Flomesh().V1alpha1().ServiceExports().Informer()
+		ic.informers[InformerKeyServiceImport] = informerFactory.Flomesh().V1alpha1().ServiceImports().Informer()
+		ic.informers[InformerKeyGlobalTrafficPolicy] = informerFactory.Flomesh().V1alpha1().GlobalTrafficPolicies().Informer()
+	}
+}
+
+// WithNetworkingClient sets the networking client for the InformerCollection
+func WithNetworkingClient(networkingClient networkingClientset.Interface) InformerCollectionOption {
+	return func(ic *InformerCollection) {
+		informerFactory := networkingInformers.NewSharedInformerFactory(networkingClient, DefaultKubeEventResyncInterval)
+
+		ic.informers[InformerKeyIngressClass] = informerFactory.Networking().V1().IngressClasses().Informer()
 	}
 }
 

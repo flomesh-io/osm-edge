@@ -1,79 +1,72 @@
 (
   (
     config = JSON.decode(pipy.load('config.json')),
-    global
-  ) => (
 
-    global = {
-      config: config,
-      isDebugEnabled: (config?.Spec?.SidecarLogLevel === 'debug'),
-      namespace: (os.env.POD_NAMESPACE || 'default'),
-      kind: (os.env.POD_CONTROLLER_KIND || 'Deployment'),
-      name: (os.env.SERVICE_ACCOUNT || ''),
-      pod: (os.env.POD_NAME || ''),
-      tlsCertChain: config?.Certificate?.CertChain,
-      tlsPrivateKey: config?.Certificate?.PrivateKey,
-      tlsIssuingCA: config?.Certificate?.IssuingCA,
-      specEnableEgress: null,
-      inTrafficMatches: null,
-      inClustersConfigs: null,
-      outTrafficMatches: null,
-      outClustersConfigs: null,
-      allowedEndpoints: null,
-      prometheusTarget: null,
-      probeScheme: null,
-      probeTarget: null,
-      probePath: null,
-      forwardMatches: null,
-      forwardEgressGateways: null,
-      mapIssuingCA: {},
-      listIssuingCA: [],
-      inboundPort: config?.Inbound?.TrafficMatches ? 15003 : 0,
-      outboundPort: config?.Outbound || config?.Spec?.Traffic?.EnableEgress ? 15001 : 0,
-    },
+    uniqueTrafficMatches = {},
+    uniqueTrafficMatchesFlag = {},
 
-    global.inTrafficMatches = config?.Inbound?.TrafficMatches,
-
-    global.inClustersConfigs = config?.Inbound?.ClustersConfigs,
-
-    global.outTrafficMatches = config?.Outbound?.TrafficMatches,
-
-    global.outClustersConfigs = config?.Outbound?.ClustersConfigs,
-
-    global.forwardMatches = config?.Forward?.ForwardMatches,
-
-    global.forwardEgressGateways = config?.Forward?.EgressGateways,
-
-    // Initialize probeScheme, probeTarget, probePath
-    config?.Inbound?.TrafficMatches && Object.entries(config.Inbound.TrafficMatches).map(
-      ([port, match]) => (
-        (match.Protocol === 'http') && (!global.probeTarget || !match.SourceIPRanges) && (global.probeTarget = '127.0.0.1:' + port)
-      )
-    ),
-    config?.Spec?.Probes?.LivenessProbes && config.Spec.Probes.LivenessProbes[0]?.httpGet?.port == 15901 &&
-    (global.probeScheme = config.Spec.Probes.LivenessProbes[0].httpGet.scheme) && !global.probeTarget &&
-    ((global.probeScheme === 'HTTP' && (global.probeTarget = '127.0.0.1:80')) || (global.probeScheme === 'HTTPS' && (global.probeTarget = '127.0.0.1:443'))) &&
-    (global.probePath = '/'),
-
-    // PIPY admin port
-    global.prometheusTarget = '127.0.0.1:6060',
-    global.allowedEndpoints = config?.AllowedEndpoints,
-    global.specEnableEgress = config?.Spec?.Traffic?.EnableEgress,
-
-    global.addIssuingCA = ca => (
-      (md5 => (
-        md5 = '' + algo.hash(ca),
-        !global.mapIssuingCA[md5] && (
-          global.listIssuingCA.push(new crypto.Certificate(ca)),
-          global.mapIssuingCA[md5] = true
-        )
+    uniqueIdentity = (port, protocol, destinationIPRanges,) => (
+      ((id = '',) => (
+        Object.keys(destinationIPRanges).sort().map(k => id += '|' + port + '_' + protocol + '_' + k + '|'), id
       ))()
     ),
 
-    global.tlsIssuingCA && (
-      global.addIssuingCA(global.tlsIssuingCA)
+    findIdentity = (id) => (
+      ((key) => (
+        key = Object.keys(uniqueTrafficMatches).find(k => (k.indexOf(id) >= 0)),
+        key ? uniqueTrafficMatches[key] : null
+      ))()
     ),
 
-    global
+    outTrafficMatches = config?.Outbound?.TrafficMatches && Object.fromEntries(
+      Object.entries(config.Outbound.TrafficMatches).map(
+        ([port, match]) => [
+          port,
+          (
+            match?.map(o => (
+              (
+                obj,
+                stub,
+              ) => (
+                obj = Object.assign({}, o),
+                obj.Identity = uniqueIdentity(o.Port, o.Protocol, o.DestinationIPRanges || { '*': null }),
+                (stub = findIdentity(obj.Identity)) && (
+                  stub.HttpHostPort2Service = Object.assign(stub.HttpHostPort2Service, obj.HttpHostPort2Service),
+                  stub.HttpServiceRouteRules = Object.assign(stub.HttpServiceRouteRules, obj.HttpServiceRouteRules),
+                  stub.Plugins = Object.assign(stub.Plugins, obj.Plugins),
+                  obj.Identity = stub.Identity
+                ),
+                !stub && (uniqueTrafficMatches[obj.Identity] = obj),
+                obj
+              )
+            )())
+          )
+        ]
+      )
+    ),
+
+    outMergeTrafficMatches = outTrafficMatches && Object.fromEntries(
+      Object.entries(outTrafficMatches).map(
+        ([port, match]) => [
+          port,
+          match?.map(
+            o => (
+              uniqueTrafficMatchesFlag[o.Identity] ?
+                (console.log('Merge outbound TrafficMatches : ', uniqueTrafficMatches[o.Identity]), null)
+                :
+                (uniqueTrafficMatchesFlag[o.Identity] = true, uniqueTrafficMatches[o.Identity])
+            )
+          ).filter(e => e)
+        ]
+      )
+    ),
+
+  ) => (
+
+    outMergeTrafficMatches && (
+      config.Outbound.TrafficMatches = outMergeTrafficMatches
+    ),
+
+    config
   )
 )()

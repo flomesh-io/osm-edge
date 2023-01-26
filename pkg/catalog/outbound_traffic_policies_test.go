@@ -7,7 +7,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha4"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/multicluster"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -583,18 +584,21 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 			mockCfg := configurator.NewMockConfigurator(mockCtrl)
 			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
 			mockPolicyController := policy.NewMockController(mockCtrl)
+			mockMultiClusterController := multicluster.NewMockController(mockCtrl)
 
 			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-				serviceProviders:   []service.Provider{mockServiceProvider},
-				configurator:       mockCfg,
-				meshSpec:           mockMeshSpec,
-				policyController:   mockPolicyController,
+				kubeController:         mockKubeController,
+				endpointsProviders:     []endpoint.Provider{mockEndpointProvider},
+				serviceProviders:       []service.Provider{mockServiceProvider},
+				configurator:           mockCfg,
+				meshSpec:               mockMeshSpec,
+				policyController:       mockPolicyController,
+				multiclusterController: mockMultiClusterController,
 			}
 
 			// Mock calls to k8s client caches
 			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).AnyTimes()
+			mockCfg.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 			mockCfg.EXPECT().GetFeatureFlags().Return(configv1alpha2.FeatureFlags{}).AnyTimes()
 			mockServiceProvider.EXPECT().ListServices().Return(allMeshServices).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficTargets().Return(trafficTargets).AnyTimes()
@@ -613,6 +617,7 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 					}
 					return nil
 				}).AnyTimes()
+			mockKubeController.EXPECT().IsMonitoredNamespace(gomock.Any()).Return(true).AnyTimes()
 			mockKubeController.EXPECT().GetTargetPortForServicePort(
 				types.NamespacedName{Namespace: meshSvc3V1.Namespace, Name: meshSvc3V1.Name}, meshSvc3.Port).Return(meshSvc3V1.TargetPort, nil).AnyTimes()
 			mockKubeController.EXPECT().GetTargetPortForServicePort(
@@ -644,6 +649,11 @@ func TestGetOutboundMeshTrafficPolicy(t *testing.T) {
 						(*opt.MeshService == meshSvc1P1 || *opt.MeshService == meshSvc1P2) {
 						return &upstreamTrafficSettingSvc1
 					}
+					return nil
+				}).AnyTimes()
+
+			mockMultiClusterController.EXPECT().GetTargetPortForServicePort(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(namespacedSvc types.NamespacedName, port uint16) map[uint16]bool {
 					return nil
 				}).AnyTimes()
 

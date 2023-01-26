@@ -49,8 +49,7 @@ func newRepoAPIURI(serverAddr string, serverPort uint16) *repoAPIURI {
 }
 
 func (api *repoAPIURI) init() *repoAPIURI {
-	api.baseURI = fmt.Sprintf(`%s://%s:%d/%s/%s`,
-		api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version)
+	api.baseURI = fmt.Sprintf(`%s://%s:%d/%s/%s`, api.schema, api.serverAddr, api.serverPort, api.apiURI, api.version)
 	return api
 }
 
@@ -219,7 +218,8 @@ func (p *PipyRepoClient) upsertFile(path string, content interface{}) (success b
 func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
 	var resp *resty.Response
 
-	resp, err = p.httpClient.R().Delete(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
+	resp, err = p.httpClient.R().
+		Delete(fmt.Sprintf("%s/%s", p.apiURI.repoURI, codebaseName))
 
 	if err == nil {
 		if resp.IsSuccess() {
@@ -231,6 +231,26 @@ func (p *PipyRepoClient) Delete(codebaseName string) (success bool, err error) {
 	}
 
 	log.Err(err).Msgf("error happened while deleting codebase[%s]", codebaseName)
+	return
+}
+
+// deleteFile delete codebase file
+func (p *PipyRepoClient) deleteFile(fileName string) (success bool, err error) {
+	var resp *resty.Response
+
+	resp, err = p.httpClient.R().
+		Delete(fmt.Sprintf("%s/%s", p.apiURI.repoFilesURI, fileName))
+
+	if err == nil {
+		if resp.IsSuccess() {
+			success = true
+			return
+		}
+		err = fmt.Errorf("error happened while deleting codebase[%s], reason: %s", fileName, resp.Status())
+		return
+	}
+
+	log.Err(err).Msgf("error happened while deleting codebase[%s]", fileName)
 	return
 }
 
@@ -291,16 +311,25 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 		// 2. upload each json to repo
 		for _, item := range batch.Items {
 			fullPath := fmt.Sprintf("%s%s/%s", batch.Basepath, item.Path, item.Filename)
-			//log.Info().Msgf("Creating/updating config %q", fullPath)
-			success, err = p.upsertFile(fullPath, item.Content)
-			if err != nil || !success {
-				return
+			if item.Obsolete {
+				//log.Info().Msgf("Deleting config %q", fullPath)
+				_, err = p.deleteFile(fullPath)
+				if err != nil {
+					log.Debug().Msgf("fail to delete %q", fullPath)
+				}
+			} else {
+				//log.Info().Msgf("Creating/updating config %q", fullPath)
+				success, err = p.upsertFile(fullPath, item.Content)
+				if err != nil || !success {
+					return
+				}
 			}
 		}
 
 		// 3. commit the repo, so that changes can take effect
 		//log.Info().Msgf("Committing batch.Basepath = %q", batch.Basepath)
 		if success, err = p.commit(batch.Basepath, codebaseV); err != nil || !success {
+			log.Err(err).Msgf("codebase:%s etag:%s", batch.Basepath, codebaseV)
 			return
 		}
 	}

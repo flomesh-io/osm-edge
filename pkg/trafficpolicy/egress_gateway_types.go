@@ -15,6 +15,7 @@ type EgressGatewayPolicy struct {
 type EgressGatewayConfig struct {
 	Service   string
 	Namespace string
+	Mode      string
 	Weight    *int
 	Endpoints []endpoint.Endpoint
 }

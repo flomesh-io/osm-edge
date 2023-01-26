@@ -100,6 +100,21 @@ func (mr *MockMeshCatalogerMockRecorder) GetEgressTrafficPolicy(arg0 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEgressTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetEgressTrafficPolicy), arg0)
 }
 
+// GetExportTrafficPolicy mocks base method.
+func (m *MockMeshCataloger) GetExportTrafficPolicy(arg0 service.MeshService) (*trafficpolicy.ServiceExportTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetExportTrafficPolicy", arg0)
+	ret0, _ := ret[0].(*trafficpolicy.ServiceExportTrafficPolicy)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetExportTrafficPolicy indicates an expected call of GetExportTrafficPolicy.
+func (mr *MockMeshCatalogerMockRecorder) GetExportTrafficPolicy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExportTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetExportTrafficPolicy), arg0)
+}
+
 // GetInboundMeshTrafficPolicy mocks base method.
 func (m *MockMeshCataloger) GetInboundMeshTrafficPolicy(arg0 identity.ServiceIdentity, arg1 []service.MeshService) *trafficpolicy.InboundMeshTrafficPolicy {
 	m.ctrl.T.Helper()
@@ -155,6 +170,48 @@ func (m *MockMeshCataloger) GetOutboundMeshTrafficPolicy(arg0 identity.ServiceId
 func (mr *MockMeshCatalogerMockRecorder) GetOutboundMeshTrafficPolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundMeshTrafficPolicy", reflect.TypeOf((*MockMeshCataloger)(nil).GetOutboundMeshTrafficPolicy), arg0)
+}
+
+// GetPluginChains mocks base method.
+func (m *MockMeshCataloger) GetPluginChains() []*trafficpolicy.PluginChain {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginChains")
+	ret0, _ := ret[0].([]*trafficpolicy.PluginChain)
+	return ret0
+}
+
+// GetPluginChains indicates an expected call of GetPluginChains.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginChains() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginChains", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginChains))
+}
+
+// GetPluginConfigs mocks base method.
+func (m *MockMeshCataloger) GetPluginConfigs() []*trafficpolicy.PluginConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPluginConfigs")
+	ret0, _ := ret[0].([]*trafficpolicy.PluginConfig)
+	return ret0
+}
+
+// GetPluginConfigs indicates an expected call of GetPluginConfigs.
+func (mr *MockMeshCatalogerMockRecorder) GetPluginConfigs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPluginConfigs", reflect.TypeOf((*MockMeshCataloger)(nil).GetPluginConfigs))
+}
+
+// GetPlugins mocks base method.
+func (m *MockMeshCataloger) GetPlugins() []*trafficpolicy.Plugin {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPlugins")
+	ret0, _ := ret[0].([]*trafficpolicy.Plugin)
+	return ret0
+}
+
+// GetPlugins indicates an expected call of GetPlugins.
+func (mr *MockMeshCatalogerMockRecorder) GetPlugins() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPlugins", reflect.TypeOf((*MockMeshCataloger)(nil).GetPlugins))
 }
 
 // GetRetryPolicy mocks base method.

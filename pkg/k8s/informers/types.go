@@ -50,6 +50,21 @@ const (
 	InformerKeyAccessControl InformerKey = "AccessControl"
 	// InformerKeyAccessCert is the InformerKey for a AccessCert informer
 	InformerKeyAccessCert InformerKey = "AccessCert"
+	// InformerKeyServiceImport is the InformerKey for a ServiceImport informer
+	InformerKeyServiceImport InformerKey = "ServiceImport"
+	// InformerKeyServiceExport is the InformerKey for a ServiceExport informer
+	InformerKeyServiceExport InformerKey = "ServiceExport"
+	// InformerKeyGlobalTrafficPolicy is the InformerKey for a GlobalTrafficPolicy informer
+	InformerKeyGlobalTrafficPolicy InformerKey = "GlobalTrafficPolicy"
+	// InformerKeyIngressClass is the InformerKey for a IngressClass informer
+	InformerKeyIngressClass InformerKey = "IngressClass"
+
+	// InformerKeyPlugin is the InformerKey for a Plugin informer
+	InformerKeyPlugin InformerKey = "Plugin"
+	// InformerKeyPluginChain is the InformerKey for a PluginChain informer
+	InformerKeyPluginChain InformerKey = "PluginChain"
+	// InformerKeyPluginConfig is the InformerKey for a PluginConfig informer
+	InformerKeyPluginConfig InformerKey = "PluginConfig"
 )
 
 const (

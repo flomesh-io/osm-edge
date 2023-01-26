@@ -2,11 +2,15 @@ package repo
 
 import (
 	"fmt"
+	"reflect"
 	"regexp"
 	"sort"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	multiclusterv1alpha1 "github.com/openservicemesh/osm/pkg/apis/multicluster/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/k8s"
@@ -18,11 +22,32 @@ var (
 	addrWithPort, _ = regexp.Compile(`:\d+$`)
 )
 
+func (plugin *Pluggable) setPlugins(plugins map[string]*runtime.RawExtension) {
+	plugin.Plugins = plugins
+}
+
 func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) (update bool) {
 	if update = !strings.EqualFold(p.Spec.SidecarLogLevel, sidecarLogLevel); update {
 		p.Spec.SidecarLogLevel = sidecarLogLevel
 	}
 	return
+}
+
+func (p *PipyConf) setLocalDNSProxy(enable bool, primary, secondary string) {
+	if enable {
+		p.Spec.LocalDNSProxy = new(LocalDNSProxy)
+		if len(primary) > 0 || len(secondary) > 0 {
+			p.Spec.LocalDNSProxy.UpstreamDNSServers = new(UpstreamDNSServers)
+			if len(primary) > 0 {
+				p.Spec.LocalDNSProxy.UpstreamDNSServers.Primary = &primary
+			}
+			if len(secondary) > 0 {
+				p.Spec.LocalDNSProxy.UpstreamDNSServers.Secondary = &secondary
+			}
+		}
+	} else {
+		p.Spec.LocalDNSProxy = nil
+	}
 }
 
 func (p *PipyConf) setEnableSidecarActiveHealthChecks(enableSidecarActiveHealthChecks bool) (update bool) {
@@ -83,9 +108,30 @@ func (p *PipyConf) rebalancedOutboundClusters() {
 		if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 			continue
 		}
-		for upstreamEndpoint, weight := range *weightedEndpoints {
-			if weight == 0 {
-				(*weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
+		hasLocalEndpoints := false
+		for _, wze := range *weightedEndpoints {
+			if len(wze.Cluster) == 0 {
+				hasLocalEndpoints = true
+				break
+			}
+		}
+		for _, wze := range *weightedEndpoints {
+			if len(wze.Cluster) > 0 {
+				if multiclusterv1alpha1.FailOverLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
+					if hasLocalEndpoints {
+						wze.Weight = constants.ClusterWeightFailOver
+					} else {
+						wze.Weight = constants.ClusterWeightAcceptAll
+					}
+				} else if multiclusterv1alpha1.ActiveActiveLbType == multiclusterv1alpha1.LoadBalancerType(wze.LBType) {
+					if wze.Weight == 0 {
+						wze.Weight = constants.ClusterWeightAcceptAll
+					}
+				}
+			} else {
+				if wze.Weight == 0 {
+					wze.Weight = constants.ClusterWeightAcceptAll
+				}
 			}
 		}
 	}
@@ -113,9 +159,9 @@ func (p *PipyConf) rebalancedForwardClusters() {
 			if weightedEndpoints == nil || len(*weightedEndpoints) == 0 {
 				continue
 			}
-			for upstreamEndpoint, weight := range *weightedEndpoints {
-				if weight == 0 {
-					(*weightedEndpoints)[upstreamEndpoint] = constants.ClusterWeightAcceptAll
+			for _, wze := range *weightedEndpoints {
+				if wze.Weight == 0 {
+					wze.Weight = constants.ClusterWeightAcceptAll
 				}
 			}
 		}
@@ -168,23 +214,6 @@ func (itm *InboundTrafficMatch) addSourceIPRange(ipRange SourceIPRange, sourceSp
 	}
 }
 
-func (itm *InboundTrafficMatch) addAllowedEndpoint(address Address, serviceName ServiceName) {
-	if itm.AllowedEndpoints == nil {
-		itm.AllowedEndpoints = make(AllowedEndpoints)
-	}
-	if _, exists := itm.AllowedEndpoints[address]; !exists {
-		itm.AllowedEndpoints[address] = serviceName
-	}
-}
-
-func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
-	if rateLimit == nil || rateLimit.Local == nil {
-		itm.RateLimit = nil
-	} else {
-		itm.RateLimit = newTCPRateLimit(rateLimit.Local)
-	}
-}
-
 func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRange, destinationSpec *DestinationSecuritySpec) {
 	if otm.DestinationIPRanges == nil {
 		otm.DestinationIPRanges = make(map[DestinationIPRange]*DestinationSecuritySpec)
@@ -194,24 +223,12 @@ func (otm *OutboundTrafficMatch) addDestinationIPRange(ipRange DestinationIPRang
 	}
 }
 
-func (otm *OutboundTrafficMatch) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
-	otm.ServiceIdentity = serviceIdentity
-}
-
-func (otm *OutboundTrafficMatch) setAllowedEgressTraffic(allowedEgressTraffic bool) {
-	otm.AllowedEgressTraffic = allowedEgressTraffic
-}
-
 func (itm *InboundTrafficMatch) setPort(port Port) {
 	itm.Port = port
 }
 
 func (otm *OutboundTrafficMatch) setPort(port Port) {
 	otm.Port = port
-}
-
-func (otm *OutboundTrafficMatch) setEgressForwardGateway(egresssGateway *string) {
-	otm.EgressForwardGateway = egresssGateway
 }
 
 func (itm *InboundTrafficMatch) setProtocol(protocol Protocol) {
@@ -232,18 +249,48 @@ func (otm *OutboundTrafficMatch) setProtocol(protocol Protocol) {
 	}
 }
 
-func (itm *InboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if itm.TargetClusters == nil {
-		itm.TargetClusters = make(WeightedClusters)
+func (itm *InboundTrafficMatch) setTCPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
+	if rateLimit == nil || rateLimit.Local == nil {
+		itm.TCPRateLimit = nil
+	} else {
+		itm.TCPRateLimit = newTCPRateLimit(rateLimit.Local)
 	}
-	itm.TargetClusters[clusterName] = weight
 }
 
-func (otm *OutboundTrafficMatch) addWeightedCluster(clusterName ClusterName, weight Weight) {
-	if otm.TargetClusters == nil {
-		otm.TargetClusters = make(WeightedClusters)
+func (itm *InboundTrafficMatch) newTCPServiceRouteRules() *InboundTCPServiceRouteRules {
+	if itm.TCPServiceRouteRules == nil {
+		itm.TCPServiceRouteRules = new(InboundTCPServiceRouteRules)
 	}
-	otm.TargetClusters[clusterName] = weight
+	return itm.TCPServiceRouteRules
+}
+
+func (otm *OutboundTrafficMatch) newTCPServiceRouteRules() *OutboundTCPServiceRouteRules {
+	if otm.TCPServiceRouteRules == nil {
+		otm.TCPServiceRouteRules = new(OutboundTCPServiceRouteRules)
+	}
+	return otm.TCPServiceRouteRules
+}
+
+func (srr *InboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if srr.TargetClusters == nil {
+		srr.TargetClusters = make(WeightedClusters)
+	}
+	srr.TargetClusters[clusterName] = weight
+}
+
+func (srr *OutboundTCPServiceRouteRules) addWeightedCluster(clusterName ClusterName, weight Weight) {
+	if srr.TargetClusters == nil {
+		srr.TargetClusters = make(WeightedClusters)
+	}
+	srr.TargetClusters[clusterName] = weight
+}
+
+func (srr *OutboundTCPServiceRouteRules) setAllowedEgressTraffic(allowedEgressTraffic bool) {
+	srr.AllowedEgressTraffic = allowedEgressTraffic
+}
+
+func (srr *OutboundTCPServiceRouteRules) setEgressForwardGateway(egresssGateway *string) {
+	srr.EgressForwardGateway = egresssGateway
 }
 
 func (itm *InboundTrafficMatch) addHTTPHostPort2Service(hostPort HTTPHostPort, ruleName HTTPRouteRuleName) {
@@ -285,9 +332,9 @@ func (otm *OutboundTrafficMatch) newHTTPServiceRouteRules(httpRouteRuleName HTTP
 	}
 	rules, exist := otm.HTTPServiceRouteRules[httpRouteRuleName]
 	if !exist || rules == nil {
-		newCluster := make(OutboundHTTPRouteRules, 0)
-		otm.HTTPServiceRouteRules[httpRouteRuleName] = &newCluster
-		return &newCluster
+		newCluster := new(OutboundHTTPRouteRules)
+		otm.HTTPServiceRouteRules[httpRouteRuleName] = newCluster
+		return newCluster
 	}
 	return rules
 }
@@ -315,74 +362,97 @@ func (itp *InboundTrafficPolicy) getTrafficMatch(port Port) *InboundTrafficMatch
 	return nil
 }
 
-func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port) *OutboundTrafficMatch {
-	trafficMatch := new(OutboundTrafficMatch)
+func (otp *OutboundTrafficPolicy) newTrafficMatch(port Port, name string) (*OutboundTrafficMatch, bool) {
+	namedPort := fmt.Sprintf(`%d=%s`, port, name)
+	if otp.namedTrafficMatches == nil {
+		otp.namedTrafficMatches = make(namedOutboundTrafficMatches)
+	}
+	trafficMatch, exists := otp.namedTrafficMatches[namedPort]
+	if exists {
+		return trafficMatch, true
+	}
+
+	trafficMatch = new(OutboundTrafficMatch)
+	otp.namedTrafficMatches[namedPort] = trafficMatch
+
 	if otp.TrafficMatches == nil {
 		otp.TrafficMatches = make(OutboundTrafficMatches)
 	}
 	trafficMatches := otp.TrafficMatches[port]
 	trafficMatches = append(trafficMatches, trafficMatch)
 	otp.TrafficMatches[port] = trafficMatches
-	return trafficMatch
+	return trafficMatch, false
 }
 
-func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *v1alpha1.RateLimitSpec) {
+func (hrrs *InboundHTTPRouteRules) setHTTPServiceRateLimit(rateLimit *policyv1alpha1.RateLimitSpec) {
 	if rateLimit == nil || rateLimit.Local == nil {
-		hrrs.RateLimit = nil
+		hrrs.HTTPRateLimit = nil
 	} else {
-		hrrs.RateLimit = newHTTPRateLimit(rateLimit.Local)
+		hrrs.HTTPRateLimit = newHTTPRateLimit(rateLimit.Local)
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) setHTTPHeadersRateLimit(rateLimit *[]v1alpha1.HTTPHeaderSpec) {
-	if rateLimit == nil {
-		hrrs.HeaderRateLimits = nil
-	} else {
-		hrrs.HeaderRateLimits = newHTTPHeaderRateLimit(rateLimit)
+func (hrrs *InboundHTTPRouteRules) addAllowedEndpoint(address Address, serviceName ServiceName) {
+	if hrrs.AllowedEndpoints == nil {
+		hrrs.AllowedEndpoints = make(AllowedEndpoints)
+	}
+	if _, exists := hrrs.AllowedEndpoints[address]; !exists {
+		hrrs.AllowedEndpoints[address] = serviceName
 	}
 }
 
-func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *InboundHTTPRouteRule {
-	if hrrs.RouteRules == nil {
-		hrrs.RouteRules = make(map[URIPathRegexp]*InboundHTTPRouteRule)
+func (hrrs *InboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *InboundHTTPRouteRule, duplicate bool) {
+	for _, routeRule := range hrrs.RouteRules {
+		if reflect.DeepEqual(*matchRule, routeRule.HTTPMatchRule) {
+			return routeRule, true
+		}
 	}
-	routeRule, exist := hrrs.RouteRules[pathReg]
-	if !exist || routeRule == nil {
-		routeRule = new(InboundHTTPRouteRule)
-		hrrs.RouteRules[pathReg] = routeRule
-		return routeRule
-	}
-	return routeRule
+
+	routeRule := new(InboundHTTPRouteRule)
+	routeRule.HTTPMatchRule = *matchRule
+	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
+	return routeRule, false
 }
 
-func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(pathReg URIPathRegexp) *HTTPRouteRule {
-	routeRule, exist := (*hrrs)[pathReg]
-	if !exist || routeRule == nil {
-		routeRule = new(HTTPRouteRule)
-		(*hrrs)[pathReg] = routeRule
-		return routeRule
-	}
-	return routeRule
+func (hrrs *OutboundHTTPRouteRules) setServiceIdentity(serviceIdentity identity.ServiceIdentity) {
+	hrrs.ServiceIdentity = serviceIdentity
 }
 
-func (hrr *HTTPRouteRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
-	if hrr.Headers == nil {
-		hrr.Headers = make(Headers)
+func (hrrs *OutboundHTTPRouteRules) newHTTPServiceRouteRule(matchRule *HTTPMatchRule) (route *OutboundHTTPRouteRule, duplicate bool) {
+	for _, routeRule := range hrrs.RouteRules {
+		if reflect.DeepEqual(*matchRule, routeRule.HTTPMatchRule) {
+			return routeRule, true
+		}
 	}
-	hrr.Headers[header] = headerRegexp
+
+	routeRule := new(OutboundHTTPRouteRule)
+	routeRule.HTTPMatchRule = *matchRule
+	hrrs.RouteRules = append(hrrs.RouteRules, routeRule)
+	return routeRule, false
 }
 
-func (hrr *HTTPRouteRule) addMethodMatch(method Method) {
-	if hrr.allowedAnyMethod {
+func (hrrs *OutboundHTTPRouteRules) setEgressForwardGateway(egresssGateway *string) {
+	hrrs.EgressForwardGateway = egresssGateway
+}
+
+func (hmr *HTTPMatchRule) addHeaderMatch(header Header, headerRegexp HeaderRegexp) {
+	if hmr.Headers == nil {
+		hmr.Headers = make(Headers)
+	}
+	hmr.Headers[header] = headerRegexp
+}
+
+func (hmr *HTTPMatchRule) addMethodMatch(method Method) {
+	if hmr.allowedAnyMethod {
 		return
 	}
 	if "*" == method {
-		hrr.allowedAnyMethod = true
+		hmr.allowedAnyMethod = true
 	}
-	if hrr.allowedAnyMethod {
-		hrr.Methods = nil
+	if hmr.allowedAnyMethod {
+		hmr.Methods = nil
 	} else {
-		hrr.Methods = append(hrr.Methods, method)
+		hmr.Methods = append(hmr.Methods, method)
 	}
 }
 
@@ -407,7 +477,7 @@ func (hrr *HTTPRouteRule) addAllowedService(serviceName ServiceName) {
 	}
 }
 
-func (ihrr *InboundHTTPRouteRule) setRateLimit(rateLimit *v1alpha1.HTTPPerRouteRateLimitSpec) {
+func (ihrr *InboundHTTPRouteRule) setRateLimit(rateLimit *policyv1alpha1.HTTPPerRouteRateLimitSpec) {
 	ihrr.RateLimit = newHTTPPerRouteRateLimit(rateLimit)
 }
 
@@ -439,10 +509,52 @@ func (otp *OutboundTrafficPolicy) newClusterConfigs(clusterName ClusterName) *Cl
 
 func (otp *ClusterConfigs) addWeightedEndpoint(address Address, port Port, weight Weight) {
 	if otp.Endpoints == nil {
-		weightedEndpoints := make(WeightedEndpoint)
+		weightedEndpoints := make(WeightedEndpoints)
 		otp.Endpoints = &weightedEndpoints
 	}
 	otp.Endpoints.addWeightedEndpoint(address, port, weight)
+}
+
+func (otp *ClusterConfigs) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, lbType, contextPath string) {
+	if otp.Endpoints == nil {
+		weightedEndpoints := make(WeightedEndpoints)
+		otp.Endpoints = &weightedEndpoints
+	}
+	otp.Endpoints.addWeightedZoneEndpoint(address, port, weight, cluster, lbType, contextPath)
+}
+
+func (wes *WeightedEndpoints) addWeightedEndpoint(address Address, port Port, weight Weight) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight: weight,
+		}
+	}
+}
+
+func (wes *WeightedEndpoints) addWeightedZoneEndpoint(address Address, port Port, weight Weight, cluster, lbType, contextPath string) {
+	if addrWithPort.MatchString(string(address)) {
+		httpHostPort := HTTPHostPort(address)
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			LBType:      lbType,
+			ContextPath: contextPath,
+		}
+	} else {
+		httpHostPort := HTTPHostPort(fmt.Sprintf("%s:%d", address, port))
+		(*wes)[httpHostPort] = &WeightedZoneEndpoint{
+			Weight:      weight,
+			Cluster:     cluster,
+			LBType:      lbType,
+			ContextPath: contextPath,
+		}
+	}
 }
 
 func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weight Weight) {
@@ -455,7 +567,7 @@ func (we *WeightedEndpoint) addWeightedEndpoint(address Address, port Port, weig
 	}
 }
 
-func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.ConnectionSettingsSpec) {
+func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *policyv1alpha1.ConnectionSettingsSpec) {
 	if connectionSettings == nil {
 		otp.ConnectionSettings = nil
 		return
@@ -500,7 +612,7 @@ func (otp *ClusterConfigs) setConnectionSettings(connectionSettings *v1alpha1.Co
 	}
 }
 
-func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *v1alpha1.RetryPolicySpec) {
+func (otp *ClusterConfigs) setRetryPolicy(retryPolicy *policyv1alpha1.RetryPolicySpec) {
 	if retryPolicy == nil {
 		otp.RetryPolicy = nil
 		return
@@ -527,13 +639,14 @@ func (ftp *ForwardTrafficPolicy) newForwardMatch(rule string) WeightedClusters {
 	return forwardMatch
 }
 
-func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName) *ClusterConfigs {
+func (ftp *ForwardTrafficPolicy) newEgressGateway(clusterName ClusterName, mode string) *EgressGatewayClusterConfigs {
 	if ftp.EgressGateways == nil {
-		ftp.EgressGateways = make(map[ClusterName]*ClusterConfigs)
+		ftp.EgressGateways = make(map[ClusterName]*EgressGatewayClusterConfigs)
 	}
 	cluster, exist := ftp.EgressGateways[clusterName]
 	if !exist || cluster == nil {
-		newCluster := new(ClusterConfigs)
+		newCluster := new(EgressGatewayClusterConfigs)
+		newCluster.Mode = mode
 		ftp.EgressGateways[clusterName] = newCluster
 		return newCluster
 	}
@@ -598,9 +711,65 @@ func (otms OutboundTrafficMatchSlice) Swap(i, j int) {
 // data.Less and data.Swap. The sort is not guaranteed to be stable.
 func (otms *OutboundTrafficMatches) Sort() {
 	for _, trafficMatches := range *otms {
-		if len(trafficMatches) <= 1 {
-			continue
+		if len(trafficMatches) > 1 {
+			sort.Sort(trafficMatches)
 		}
-		sort.Sort(trafficMatches)
 	}
+}
+
+func (hrrs *OutboundHTTPRouteRuleSlice) sort() {
+	if len(*hrrs) > 1 {
+		sort.Sort(hrrs)
+	}
+}
+
+func (hrrs *OutboundHTTPRouteRuleSlice) Len() int {
+	return len(*hrrs)
+}
+
+func (hrrs *OutboundHTTPRouteRuleSlice) Swap(i, j int) {
+	(*hrrs)[j], (*hrrs)[i] = (*hrrs)[i], (*hrrs)[j]
+}
+
+func (hrrs *OutboundHTTPRouteRuleSlice) Less(i, j int) bool {
+	a, b := (*hrrs)[i], (*hrrs)[j]
+	if a.Path == constants.RegexMatchAll {
+		return false
+	}
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
+}
+
+func (hrrs *InboundHTTPRouteRules) sort() {
+	if len(hrrs.RouteRules) > 1 {
+		sort.Sort(hrrs.RouteRules)
+	}
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Len() int {
+	return len(irrs)
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Swap(i, j int) {
+	irrs[j], irrs[i] = irrs[i], irrs[j]
+}
+
+func (irrs InboundHTTPRouteRuleSlice) Less(i, j int) bool {
+	a, b := irrs[i], irrs[j]
+	if a.Path == constants.RegexMatchAll {
+		return false
+	}
+	return strings.Compare(string(a.Path), string(b.Path)) == -1
+}
+
+func (ps *PluginSlice) Len() int {
+	return len(*ps)
+}
+
+func (ps *PluginSlice) Swap(i, j int) {
+	(*ps)[j], (*ps)[i] = (*ps)[i], (*ps)[j]
+}
+
+func (ps *PluginSlice) Less(i, j int) bool {
+	a, b := (*ps)[i], (*ps)[j]
+	return a.Priority > b.Priority
 }

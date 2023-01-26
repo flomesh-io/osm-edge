@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/openservicemesh/osm/pkg/identity"
 )
 
@@ -49,6 +51,9 @@ type MeshService struct {
 
 	// Protocol is the protocol served by the service's port
 	Protocol string
+
+	// ServiceImportUID is the uid of service import
+	ServiceImportUID types.UID
 }
 
 // NamespacedKey is the key (i.e. namespace + ProviderKey()) with which to lookup the backing service within the provider
@@ -72,6 +77,11 @@ func (ms *MeshService) ProviderKey() string {
 	nameComponents := strings.Split(ms.Name, ".")
 
 	return nameComponents[len(nameComponents)-1]
+}
+
+// IsMultiClusterService checks whether it is a multi cluster service
+func (ms *MeshService) IsMultiClusterService() bool {
+	return len(ms.ServiceImportUID) > 0
 }
 
 // SiblingTo returns true if svc and ms are derived from the same resource
@@ -129,6 +139,11 @@ func (ms MeshService) AccessControlTrafficMatchName() string {
 // AccessControlTrafficMatchName returns the acl traffic match name
 func AccessControlTrafficMatchName(name, namespace string, targetPort uint16, protocol string) string {
 	return fmt.Sprintf("acl_%s/%s_%d_%s", namespace, name, targetPort, protocol)
+}
+
+// ExportedServiceTrafficMatchName returns the export service traffic match name
+func ExportedServiceTrafficMatchName(name, namespace string, targetPort uint16, protocol string) string {
+	return fmt.Sprintf("exp_%s/%s_%d_%s", namespace, name, targetPort, protocol)
 }
 
 // ClusterName is a type for a service name

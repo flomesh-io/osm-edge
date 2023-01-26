@@ -123,6 +123,17 @@ const (
 
 	// ---
 
+	// IngressClassAdded is the type of announcement emitted when we observe an addition of a Kubernetes IngressClass
+	IngressClassAdded Kind = "ingressclass-added"
+
+	// IngressClassDeleted the type of announcement emitted when we observe the deletion of a Kubernetes IngressClass
+	IngressClassDeleted Kind = "ingressclass-deleted"
+
+	// IngressClassUpdated is the type of announcement emitted when we observe an update to a Kubernetes IngressClass
+	IngressClassUpdated Kind = "ingressclass-updated"
+
+	// ---
+
 	// CertificateRotated is the type of announcement emitted when a certificate is rotated by the certificate provider
 	CertificateRotated Kind = "certificate-rotated"
 
@@ -193,6 +204,33 @@ const (
 	// AccessCertUpdated is the type of announcement emitted when we observe an update to accesscerts.policy.openservicemesh.io
 	AccessCertUpdated Kind = "accesscert-updated"
 
+	// ServiceExportAdded is the type of announcement emitted when we observe an addition of serviceexports.flomesh.io
+	ServiceExportAdded Kind = "serviceexport-added"
+
+	// ServiceExportDeleted the type of announcement emitted when we observe a deletion of serviceexports.flomesh.io
+	ServiceExportDeleted Kind = "serviceexport-deleted"
+
+	// ServiceExportUpdated is the type of announcement emitted when we observe an update to serviceexports.flomesh.io
+	ServiceExportUpdated Kind = "serviceexport-updated"
+
+	// ServiceImportAdded is the type of announcement emitted when we observe an addition of serviceimports.flomesh.io
+	ServiceImportAdded Kind = "serviceimport-added"
+
+	// ServiceImportDeleted the type of announcement emitted when we observe a deletion of serviceimports.flomesh.io
+	ServiceImportDeleted Kind = "serviceimport-deleted"
+
+	// ServiceImportUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
+	ServiceImportUpdated Kind = "serviceimport-updated"
+
+	// GlobalTrafficPolicyAdded is the type of announcement emitted when we observe an addition of serviceimports.flomesh.io
+	GlobalTrafficPolicyAdded Kind = "globaltrafficpolicy-added"
+
+	// GlobalTrafficPolicyDeleted the type of announcement emitted when we observe a deletion of serviceimports.flomesh.io
+	GlobalTrafficPolicyDeleted Kind = "globaltrafficpolicy-deleted"
+
+	// GlobalTrafficPolicyUpdated is the type of announcement emitted when we observe an update to serviceimports.flomesh.io
+	GlobalTrafficPolicyUpdated Kind = "globaltrafficpolicy-updated"
+
 	// RetryPolicyAdded is the type of announcement emitted when we observe an addition of retries.policy.openservicemesh.io
 	RetryPolicyAdded Kind = "retry-added"
 
@@ -210,6 +248,35 @@ const (
 
 	// UpstreamTrafficSettingUpdated is the type of announcement emitted when we observe an update of upstreamtrafficsettings.policy.openservicemesh.io
 	UpstreamTrafficSettingUpdated Kind = "upstreamtrafficsetting-updated"
+
+	// ---
+
+	// PluginAdded is the type of announcement emitted when we observe an addition of plugins.plugin.flomesh.io
+	PluginAdded Kind = "plugin-added"
+
+	// PluginDeleted the type of announcement emitted when we observe a deletion of plugins.plugin.flomesh.io
+	PluginDeleted Kind = "plugin-deleted"
+
+	// PluginUpdated is the type of announcement emitted when we observe an update to plugins.plugin.flomesh.io
+	PluginUpdated Kind = "plugin-updated"
+
+	// PluginChainAdded is the type of announcement emitted when we observe an addition of pluginchains.plugin.flomesh.io
+	PluginChainAdded Kind = "pluginchain-added"
+
+	// PluginChainDeleted the type of announcement emitted when we observe a deletion of pluginchains.plugin.flomesh.io
+	PluginChainDeleted Kind = "pluginchain-deleted"
+
+	// PluginChainUpdated is the type of announcement emitted when we observe an update to pluginchains.plugin.flomesh.io
+	PluginChainUpdated Kind = "pluginchain-updated"
+
+	// PluginConfigAdded is the type of announcement emitted when we observe an addition of pluginconfigs.flomesh.io
+	PluginConfigAdded Kind = "pluginconfig-added"
+
+	// PluginConfigDeleted the type of announcement emitted when we observe a deletion of pluginconfigs.plugin.flomesh.io
+	PluginConfigDeleted Kind = "pluginconfig-deleted"
+
+	// PluginConfigUpdated is the type of announcement emitted when we observe an update to pluginconfigs.plugin.flomesh.io
+	PluginConfigUpdated Kind = "pluginconfig-updated"
 )
 
 // Announcement is a struct for messages between various components of OSM signaling a need for a change in Sidecar proxy configuration

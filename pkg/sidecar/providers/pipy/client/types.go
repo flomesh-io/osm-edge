@@ -50,6 +50,7 @@ type Batch struct {
 
 // BatchItem is a resource wrapper
 type BatchItem struct {
+	Obsolete bool
 	Path     string
 	Filename string
 	Content  interface{}

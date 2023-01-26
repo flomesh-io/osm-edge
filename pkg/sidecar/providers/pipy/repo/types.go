@@ -4,7 +4,9 @@ import (
 	"sync"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openservicemesh/osm/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -17,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/registry"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/workerpool"
 )
 
@@ -41,11 +44,16 @@ type Server struct {
 	configVerMutex sync.Mutex
 	configVersion  map[string]uint64
 
+	pluginSet        mapset.Set
+	pluginPri        map[string]float32
+	pluginSetVersion string
+	pluginMutex      sync.RWMutex
+
 	msgBroker *messaging.Broker
 
 	repoClient *client.PipyRepoClient
 
-	retryJob func()
+	retryProxiesJob func()
 }
 
 // Protocol is a string wrapper type
@@ -84,8 +92,36 @@ type Methods []Method
 // WeightedClusters is a wrapper type of map[ClusterName]Weight
 type WeightedClusters map[ClusterName]Weight
 
-// URIPathRegexp is a string wrapper type
-type URIPathRegexp string
+// URIPathValue is a uri value wrapper
+type URIPathValue string
+
+// URIMatchType is a match type wrapper
+type URIMatchType string
+
+const (
+	// PathMatchRegex is the type used to specify regex based path matching
+	PathMatchRegex URIMatchType = "Regex"
+
+	// PathMatchExact is the type used to specify exact path matching
+	PathMatchExact URIMatchType = "Exact"
+
+	// PathMatchPrefix is the type used to specify prefix based path matching
+	PathMatchPrefix URIMatchType = "Prefix"
+)
+
+// PluginSlice plugin array
+type PluginSlice []trafficpolicy.Plugin
+
+// Pluggable is the base struct supported plugin
+type Pluggable struct {
+	Plugins map[string]*runtime.RawExtension `json:"Plugins"`
+}
+
+// URIPath is a uri wrapper type
+type URIPath struct {
+	Value URIPathValue
+	Type  URIMatchType
+}
 
 // ServiceName is a string wrapper type
 type ServiceName string
@@ -93,15 +129,21 @@ type ServiceName string
 // Services is a wrapper type of []ServiceName
 type Services []ServiceName
 
-// HTTPRouteRule http route rule
-type HTTPRouteRule struct {
-	Headers         Headers          `json:"Headers"`
-	Methods         Methods          `json:"Methods"`
-	TargetClusters  WeightedClusters `json:"TargetClusters"`
-	AllowedServices Services         `json:"AllowedServices"`
-
+// HTTPMatchRule http match rule
+type HTTPMatchRule struct {
+	Path              URIPathValue
+	Type              URIMatchType
+	Headers           Headers `json:"Headers"`
+	Methods           Methods `json:"Methods"`
 	allowedAnyService bool
 	allowedAnyMethod  bool
+}
+
+// HTTPRouteRule http route rule
+type HTTPRouteRule struct {
+	HTTPMatchRule
+	TargetClusters  WeightedClusters `json:"TargetClusters"`
+	AllowedServices Services         `json:"AllowedServices"`
 }
 
 // HTTPRouteRuleName is a string wrapper type
@@ -140,18 +182,6 @@ type SourceIPRanges map[SourceIPRange]*SourceSecuritySpec
 // AllowedEndpoints is a wrapper type of map[Address]ServiceName
 type AllowedEndpoints map[Address]ServiceName
 
-// PipyConf is a policy used by pipy sidecar
-type PipyConf struct {
-	Ts               *time.Time
-	Version          *string
-	Spec             MeshConfigSpec
-	Certificate      *Certificate
-	Inbound          *InboundTrafficPolicy  `json:"Inbound"`
-	Outbound         *OutboundTrafficPolicy `json:"Outbound"`
-	Forward          *ForwardTrafficPolicy  `json:"Forward"`
-	AllowedEndpoints map[string]string      `json:"AllowedEndpoints"`
-}
-
 // FeatureFlags represents the flags of feature
 type FeatureFlags struct {
 	EnableSidecarActiveHealthChecks bool
@@ -163,16 +193,32 @@ type TrafficSpec struct {
 	enablePermissiveTrafficPolicyMode bool
 }
 
+// UpstreamDNSServers defines upstream DNS servers for local DNS Proxy.
+type UpstreamDNSServers struct {
+	// Primary defines a primary upstream DNS server for local DNS Proxy.
+	Primary *string `json:"Primary,omitempty"`
+	// Secondary defines a secondary upstream DNS server for local DNS Proxy.
+	Secondary *string `json:"Secondary,omitempty"`
+}
+
+// LocalDNSProxy is the type to represent OSM's local DNS proxy configuration.
+type LocalDNSProxy struct {
+	// UpstreamDNSServers defines upstream DNS servers for local DNS Proxy.
+	UpstreamDNSServers *UpstreamDNSServers `json:"UpstreamDNSServers,omitempty"`
+}
+
 // MeshConfigSpec represents the spec of mesh config
 type MeshConfigSpec struct {
 	SidecarLogLevel string
 	Traffic         TrafficSpec
 	FeatureFlags    FeatureFlags
 	Probes          struct {
-		ReadinessProbes []v1.Probe
-		LivenessProbes  []v1.Probe
-		StartupProbes   []v1.Probe
+		ReadinessProbes []v1.Probe `json:"ReadinessProbes,omitempty"`
+		LivenessProbes  []v1.Probe `json:"LivenessProbes,omitempty"`
+		StartupProbes   []v1.Probe `json:"StartupProbes,omitempty"`
 	}
+	ClusterSet    map[string]string
+	LocalDNSProxy *LocalDNSProxy `json:"LocalDNSProxy,omitempty"`
 }
 
 // Certificate represents an x509 certificate.
@@ -227,36 +273,66 @@ type InboundHTTPRouteRule struct {
 	RateLimit *HTTPPerRouteRateLimit `json:"RateLimit"`
 }
 
+// InboundHTTPRouteRuleSlice http route rule array
+type InboundHTTPRouteRuleSlice []*InboundHTTPRouteRule
+
 // InboundHTTPRouteRules is a wrapper type
 type InboundHTTPRouteRules struct {
-	RouteRules       map[URIPathRegexp]*InboundHTTPRouteRule `json:"RouteRules"`
-	RateLimit        *HTTPRateLimit                          `json:"RateLimit"`
-	HeaderRateLimits []*HTTPHeaderRateLimit                  `json:"HeaderRateLimits"`
+	RouteRules InboundHTTPRouteRuleSlice `json:"RouteRules"`
+	Pluggable
+	HTTPRateLimit    *HTTPRateLimit   `json:"RateLimit"`
+	AllowedEndpoints AllowedEndpoints `json:"AllowedEndpoints"`
 }
 
 // InboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*InboundHTTPRouteRules
 type InboundHTTPServiceRouteRules map[HTTPRouteRuleName]*InboundHTTPRouteRules
 
+// InboundTCPServiceRouteRules is a wrapper type
+type InboundTCPServiceRouteRules struct {
+	TargetClusters WeightedClusters `json:"TargetClusters"`
+	Pluggable
+}
+
 // InboundTrafficMatch represents the match of InboundTraffic
 type InboundTrafficMatch struct {
-	Port                  Port     `json:"Port"`
-	Protocol              Protocol `json:"Protocol"`
-	SourceIPRanges        SourceIPRanges
+	Port                  Port                         `json:"Port"`
+	Protocol              Protocol                     `json:"Protocol"`
+	SourceIPRanges        SourceIPRanges               `json:"SourceIPRanges"`
 	HTTPHostPort2Service  HTTPHostPort2Service         `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules InboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters             `json:"TargetClusters"`
-	AllowedEndpoints      AllowedEndpoints
-	RateLimit             *TCPRateLimit `json:"RateLimit"`
+	TCPServiceRouteRules  *InboundTCPServiceRouteRules `json:"TcpServiceRouteRules"`
+	TCPRateLimit          *TCPRateLimit                `json:"RateLimit"`
 }
 
 // InboundTrafficMatches is a wrapper type of map[Port]*InboundTrafficMatch
 type InboundTrafficMatches map[Port]*InboundTrafficMatch
 
-// OutboundHTTPRouteRules is a wrapper type of map[URIPathRegexp]*HTTPRouteRule
-type OutboundHTTPRouteRules map[URIPathRegexp]*HTTPRouteRule
+// OutboundHTTPRouteRule http route rule
+type OutboundHTTPRouteRule struct {
+	HTTPRouteRule
+}
+
+// OutboundHTTPRouteRuleSlice http route rule array
+type OutboundHTTPRouteRuleSlice []*OutboundHTTPRouteRule
+
+// OutboundHTTPRouteRules is a wrapper type
+type OutboundHTTPRouteRules struct {
+	RouteRules           OutboundHTTPRouteRuleSlice `json:"RouteRules"`
+	ServiceIdentity      identity.ServiceIdentity
+	EgressForwardGateway *string
+	Pluggable
+}
 
 // OutboundHTTPServiceRouteRules is a wrapper type of map[HTTPRouteRuleName]*HTTPRouteRules
 type OutboundHTTPServiceRouteRules map[HTTPRouteRuleName]*OutboundHTTPRouteRules
+
+// OutboundTCPServiceRouteRules is a wrapper type
+type OutboundTCPServiceRouteRules struct {
+	TargetClusters       WeightedClusters `json:"TargetClusters"`
+	AllowedEgressTraffic bool
+	EgressForwardGateway *string
+	Pluggable
+}
 
 // OutboundTrafficMatch represents the match of OutboundTraffic
 type OutboundTrafficMatch struct {
@@ -265,10 +341,7 @@ type OutboundTrafficMatch struct {
 	Protocol              Protocol                      `json:"Protocol"`
 	HTTPHostPort2Service  HTTPHostPort2Service          `json:"HttpHostPort2Service"`
 	HTTPServiceRouteRules OutboundHTTPServiceRouteRules `json:"HttpServiceRouteRules"`
-	TargetClusters        WeightedClusters              `json:"TargetClusters"`
-	ServiceIdentity       identity.ServiceIdentity
-	AllowedEgressTraffic  bool
-	EgressForwardGateway  *string
+	TCPServiceRouteRules  *OutboundTCPServiceRouteRules `json:"TcpServiceRouteRules"`
 }
 
 // OutboundTrafficMatchSlice is a wrapper type of []*OutboundTrafficMatch
@@ -277,24 +350,45 @@ type OutboundTrafficMatchSlice []*OutboundTrafficMatch
 // OutboundTrafficMatches is a wrapper type of map[Port][]*OutboundTrafficMatch
 type OutboundTrafficMatches map[Port]OutboundTrafficMatchSlice
 
+// namedOutboundTrafficMatches is a wrapper type of map[string]*OutboundTrafficMatch
+type namedOutboundTrafficMatches map[string]*OutboundTrafficMatch
+
 // InboundTrafficPolicy represents the policy of InboundTraffic
 type InboundTrafficPolicy struct {
 	TrafficMatches  InboundTrafficMatches             `json:"TrafficMatches"`
 	ClustersConfigs map[ClusterName]*WeightedEndpoint `json:"ClustersConfigs"`
 }
 
+// WeightedZoneEndpoint represents the endpoint with zone and weight
+type WeightedZoneEndpoint struct {
+	Weight      Weight `json:"Weight"`
+	Cluster     string `json:"Key,omitempty"`
+	LBType      string `json:"-"`
+	ContextPath string `json:"Path,omitempty"`
+}
+
+// WeightedEndpoints is a wrapper type of map[HTTPHostPort]WeightedZoneEndpoint
+type WeightedEndpoints map[HTTPHostPort]*WeightedZoneEndpoint
+
 // ClusterConfigs represents the configs of Cluster
 type ClusterConfigs struct {
-	Endpoints          *WeightedEndpoint   `json:"Endpoints"`
+	Endpoints          *WeightedEndpoints  `json:"Endpoints"`
 	ConnectionSettings *ConnectionSettings `json:"ConnectionSettings,omitempty"`
 	RetryPolicy        *RetryPolicy        `json:"RetryPolicy,omitempty"`
 	SourceCert         *Certificate        `json:"SourceCert,omitempty"`
 }
 
+// EgressGatewayClusterConfigs represents the configs of Egress Gateway Cluster
+type EgressGatewayClusterConfigs struct {
+	ClusterConfigs
+	Mode string `json:"Mode"`
+}
+
 // OutboundTrafficPolicy represents the policy of OutboundTraffic
 type OutboundTrafficPolicy struct {
-	TrafficMatches  OutboundTrafficMatches          `json:"TrafficMatches"`
-	ClustersConfigs map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
+	namedTrafficMatches namedOutboundTrafficMatches
+	TrafficMatches      OutboundTrafficMatches          `json:"TrafficMatches"`
+	ClustersConfigs     map[ClusterName]*ClusterConfigs `json:"ClustersConfigs"`
 }
 
 // ForwardTrafficMatches is a wrapper type of map[Port]WeightedClusters
@@ -302,8 +396,8 @@ type ForwardTrafficMatches map[string]WeightedClusters
 
 // ForwardTrafficPolicy represents the policy of Egress Gateway
 type ForwardTrafficPolicy struct {
-	ForwardMatches ForwardTrafficMatches           `json:"ForwardMatches"`
-	EgressGateways map[ClusterName]*ClusterConfigs `json:"EgressGateways"`
+	ForwardMatches ForwardTrafficMatches                        `json:"ForwardMatches"`
+	EgressGateways map[ClusterName]*EgressGatewayClusterConfigs `json:"EgressGateways"`
 }
 
 // ConnectionSettings defines the connection settings for an
@@ -400,4 +494,20 @@ type HTTPConnectionSettings struct {
 
 	// CircuitBreaking specifies the HTTP connection circuit breaking setting.
 	CircuitBreaking *HTTPCircuitBreaking `json:"CircuitBreaking,omitempty"`
+}
+
+// PipyConf is a policy used by pipy sidecar
+type PipyConf struct {
+	Ts               *time.Time
+	Version          *string
+	Spec             MeshConfigSpec
+	Certificate      *Certificate
+	Inbound          *InboundTrafficPolicy    `json:"Inbound"`
+	Outbound         *OutboundTrafficPolicy   `json:"Outbound"`
+	Forward          *ForwardTrafficPolicy    `json:"Forward"`
+	AllowedEndpoints map[string]string        `json:"AllowedEndpoints"`
+	Chains           map[string][]string      `json:"Chains,omitempty"`
+	DNSResolveDB     map[string][]interface{} `json:"DNSResolveDB,omitempty"`
+
+	pluginPolicies map[string]map[string]*map[string]*runtime.RawExtension
 }

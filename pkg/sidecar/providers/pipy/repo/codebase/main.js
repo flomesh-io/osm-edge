@@ -1,145 +1,50 @@
 ((
-  {
-    prometheusTarget,
-    probeScheme,
-    probeTarget,
-    probePath,
-    inboundPort,
-    outboundPort,
-  } = pipy.solve('config.js')) => (
+  config = pipy.solve('config.js'),
+  probeScheme = config?.Spec?.Probes?.LivenessProbes?.[0]?.httpGet?.scheme,
+) => pipy()
 
-  pipy({
-  })
+.branch(
+  Boolean(config?.Inbound?.TrafficMatches), (
+    $=>$
+    .listen(15003, { transparent: true })
+    .onStart(() => new Data)
+    .use('modules/inbound-main.js')
+  )
+)
 
-    .export('main', {
-      _flow: null,
-    })
+.branch(
+  Boolean(config?.Outbound || config?.Spec?.Traffic?.EnableEgress), (
+    $=>$
+    .listen(15001, { transparent: true })
+    .onStart(() => new Data)
+    .use('modules/outbound-main.js')
+  )
+)
 
-    //
-    // inbound
-    //
-    .listen(inboundPort, {
-      'transparent': true
-    })
-    .onStart(
-      () => (
-        new Data
-      )
-    )
-    .use('inbound-classifier.js')
+.listen(probeScheme ? 15901 : 0)
+.use('probes.js', 'liveness')
 
-    //
-    // outbound
-    //
-    .listen(outboundPort, {
-      'transparent': true
-    })
-    .onStart(
-      () => (
-        new Data
-      )
-    )
-    .use('outbound-classifier.js')
+.listen(probeScheme ? 15902 : 0)
+.use('probes.js', 'readiness')
 
-    //
-    // liveness probe
-    //
-    .listen(probeScheme ? 15901 : 0)
-    .branch(
-      () => probeScheme === 'HTTP', $ => $
-        .demuxHTTP().to($ => $
-          .handleMessageStart(
-            msg => (
-              msg.head.path === '/osm-liveness-probe' && (msg.head.path = '/liveness'),
-              probePath && (msg.head.path = probePath)
-            )
-          )
-          .muxHTTP(() => probeTarget).to($ => $
-            .connect(() => probeTarget)
-          )
-        ),
-      () => Boolean(probeTarget), $ => $
-        .connect(() => probeTarget),
-      $ => $
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
-        )
-    )
+.listen(probeScheme ? 15903 : 0)
+.use('probes.js', 'startup')
 
-    //
-    // readiness probe
-    //
-    .listen(probeScheme ? 15902 : 0)
-    .branch(
-      () => probeScheme === 'HTTP', $ => $
-        .demuxHTTP().to($ => $
-          .handleMessageStart(
-            msg => (
-              msg.head.path === '/osm-readiness-probe' && (msg.head.path = '/readiness'),
-              probePath && (msg.head.path = probePath)
-            )
-          )
-          .muxHTTP(() => probeTarget).to($ => $
-            .connect(() => probeTarget)
-          )
-        ),
-      () => Boolean(probeTarget), $ => $
-        .connect(() => probeTarget),
-      $ => $
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
-        )
-    )
+.listen(15010)
+.use('stats.js', 'prometheus')
 
-    //
-    // startup probe
-    //
-    .listen(probeScheme ? 15903 : 0)
-    .branch(
-      () => probeScheme === 'HTTP', $ => $
-        .demuxHTTP().to($ => $
-          .handleMessageStart(
-            msg => (
-              msg.head.path === '/osm-startup-probe' && (msg.head.path = '/startup'),
-              probePath && (msg.head.path = probePath)
-            )
-          )
-          .muxHTTP(() => probeTarget).to($ => $
-            .connect(() => probeTarget)
-          )
-        ),
-      () => Boolean(probeTarget), $ => $
-        .connect(() => probeTarget),
-      $ => $
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
-        )
-    )
+.listen(':::15000')
+.use('stats.js', 'osm-stats')
 
-    //
-    // Prometheus collects metrics
-    //
-    .listen(15010)
-    .demuxHTTP()
-    .to($ => $
-      .handleMessageStart(
-        msg => (
-          (msg.head.path === '/stats/prometheus' && (msg.head.path = '/metrics')) || (msg.head.path = '/stats' + msg.head.path)
-        )
-      )
-      .muxHTTP(() => prometheusTarget)
-      .to($ => $
-        .connect(() => prometheusTarget)
-      )
-    )
+//
+// Local DNS server
+//
+.branch(
+  Boolean(os.env.LOCAL_DNS_PROXY), (
+    $=>$
+    .listen('127.0.0.153:5300', { protocol: 'udp', transparent: true } )
+    .chain(['dns-main.js'])
+  )
+)
 
-    //
-    // PIPY configuration file and osm get proxy
-    //
-    .listen(':::15000')
-    .demuxHTTP()
-    .to(
-      $ => $.chain(['stats.js'])
-    )
-
-))()
+)()

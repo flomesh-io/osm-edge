@@ -1,75 +1,110 @@
-((
-  {
-    namespace,
-    kind,
-    name,
-    pod,
-  } = pipy.solve('config.js'),
-  tracing = pipy.solve('tracing-init.js')
-) => (
+(
+  (
+    {
+      namespace,
+      kind,
+      name,
+      pod,
+    } = pipy.solve('utils.js'),
+    tracingAddress = os.env.TRACING_ADDRESS,
+    tracingEndpoint = (os.env.TRACING_ENDPOINT || '/api/v2/spans'),
+    tracingLimitedID = os.env.TRACING_SAMPLED_FRACTION && (os.env.TRACING_SAMPLED_FRACTION * Math.pow(2, 63)),
+    logZipkin = tracingAddress && new logging.JSONLogger('zipkin').toHTTP('http://' + tracingAddress + tracingEndpoint, {
+      batch: {
+        timeout: 1,
+        interval: 1,
+        prefix: '[',
+        postfix: ']',
+        separator: ','
+      },
+      headers: {
+        'Host': tracingAddress,
+        'Content-Type': 'application/json',
+      }
+    }).log,
+    {
+      toInt63,
+    } = pipy.solve('utils.js'),
+  ) => (
+    {
+      tracingEnabled: Boolean(logZipkin),
 
-  pipy({
-    type: null,
-    shared: null,
-    target: null,
-    protocol: null,
-    zipkinData: null,
-    clusterName: null,
-    httpBytesStruct: null,
-  })
-
-    .import({
-      _flow: 'main',
-      _inTarget: 'inbound-classifier',
-      _localClusterName: 'inbound-classifier',
-      _outMatch: 'outbound-classifier',
-      _outTarget: 'outbound-classifier',
-      _upstreamClusterName: 'outbound-classifier'
-    })
-
-    .pipeline()
-
-    .onStart(
-      () => (
-        tracing.logZipkin && void (
-          (_flow === 'inbound') && (
-            type = 'SERVER',
-            shared = true,
-            target = _inTarget?.id,
-            clusterName = _localClusterName
+      initTracingHeaders: (headers, proto) => (
+        (
+          sampled = true,
+          uuid = algo.uuid(),
+          id = uuid.substring(0, 18).replaceAll('-', ''),
+        ) => (
+          proto && (headers['x-forwarded-proto'] = proto),
+          headers['x-b3-spanid'] && (
+            (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) && (headers['x-b3-spanid'] = id)
           ),
-          (_flow === 'outbound') && (
-            type = 'CLIENT',
-            shared = false,
-            target = _outTarget.id,
-            protocol = _outMatch?.Protocol,
-            clusterName = _upstreamClusterName
+          !headers['x-b3-traceid'] && (
+            (headers['x-b3-traceid'] = id) && (headers['x-b3-spanid'] = id)
           ),
-          httpBytesStruct = {},
-          httpBytesStruct.requestSize = httpBytesStruct.responseSize = 0
+          headers['x-b3-sampled'] && (
+            sampled = (headers['x-b3-sampled'] === '1'), true
+          ) || (
+            (sampled = (!tracingLimitedID || toInt63(headers['x-b3-traceid']) < tracingLimitedID)) ? (headers['x-b3-sampled'] = '1') : (headers['x-b3-sampled'] = '0')
+          ),
+          !headers['x-request-id'] && (
+            headers['x-request-id'] = uuid
+          ),
+          headers['osm-stats-namespace'] = namespace,
+          headers['osm-stats-kind'] = kind,
+          headers['osm-stats-name'] = name,
+          headers['osm-stats-pod'] = pod,
+          sampled
         )
-      )
-    )
+      )(),
 
-    .handleMessage(
-      (msg) => (
-        tracing.logZipkin && (
-          httpBytesStruct.requestSize += msg?.body?.size,
-          !shared && tracing.initTracingHeaders(namespace, kind, name, pod, msg.head.headers, protocol),
-          zipkinData = tracing.makeZipKinData(name, msg, msg.head.headers, clusterName, type, shared)
+      makeZipKinData: (msg, headers, clusterName, kind, shared) => (
+        (data) => (
+          data = {
+            'traceId': headers?.['x-b3-traceid'] && headers['x-b3-traceid'].toString(),
+            'id': headers?.['x-b3-spanid'] && headers['x-b3-spanid'].toString(),
+            'name': headers?.host,
+            'timestamp': Date.now() * 1000,
+            'localEndpoint': {
+              'port': 0,
+              'ipv4': os.env.POD_IP || '',
+              'serviceName': name,
+            },
+            'tags': {
+              'component': 'proxy',
+              'http.url': headers?.['x-forwarded-proto'] + '://' + headers?.host + msg?.head?.path,
+              'http.method': msg?.head?.method,
+              'node_id': os.env.POD_UID || '',
+              'http.protocol': msg?.head?.protocol,
+              'guid:x-request-id': headers?.['x-request-id'],
+              'user_agent': headers?.['user-agent'],
+              'upstream_cluster': clusterName
+            },
+            'annotations': []
+          },
+          headers['x-b3-parentspanid'] && (data['parentId'] = headers['x-b3-parentspanid']),
+          data['kind'] = kind,
+          shared && (data['shared'] = shared),
+          data.tags['request_size'] = '0',
+          data.tags['response_size'] = '0',
+          data.tags['http.status_code'] = '502',
+          data.tags['peer.address'] = '',
+          data['duration'] = 0,
+          data
         )
-      )
-    )
+      )(),
 
-    .chain()
-
-    .handleMessage(
-      (msg) => (
-        tracing.logZipkin && msg?.head?.status && (
-          httpBytesStruct.responseSize += msg?.body?.size,
-          tracing.save(zipkinData, msg?.head, httpBytesStruct, target)
+      saveTracing: (zipkinData, messageHead, bytesStruct, target) => (
+        zipkinData && (
+          zipkinData.tags['peer.address'] = target,
+          zipkinData.tags['http.status_code'] = messageHead.status?.toString?.(),
+          zipkinData.tags['request_size'] = bytesStruct.requestSize.toString(),
+          zipkinData.tags['response_size'] = bytesStruct.responseSize.toString(),
+          zipkinData['duration'] = Date.now() * 1000 - zipkinData['timestamp'],
+          logZipkin(zipkinData)
+          // , console.log('zipkinData : ', zipkinData)
         )
-      )
-    )
-
-))()
+      ),
+    }
+  )
+)()

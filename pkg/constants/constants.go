@@ -129,6 +129,9 @@ const (
 	// ClusterWeightAcceptAll is the weight for a cluster that accepts 100 percent of traffic sent to it
 	ClusterWeightAcceptAll = 100
 
+	// ClusterWeightFailOver is the weight for a cluster that accepts 0 percent of traffic sent to it
+	ClusterWeightFailOver = 0
+
 	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
 	PrometheusDefaultRetentionTime = "15d"
 
@@ -233,6 +236,30 @@ const (
 	PrometheusPathAnnotation = "prometheus.io/path"
 )
 
+// Annotations used for Egress Gateway
+const (
+	// EgressGatewayModeAnnotation is the key of the annotation used to indicate the mode of egress gateway
+	EgressGatewayModeAnnotation = "openservicemesh.io/egress-gateway-mode"
+)
+
+// Egress Gateway Mode
+const (
+	// http2tunnel
+	EgressGatewayModeHTTP2Tunnel = "http2tunnel"
+
+	// sock5
+	EgressGatewayModeSock5 = "sock5"
+)
+
+// Annotations used for sidecar
+const (
+	// SidecarResourceLimitsAnnotationPrefix is the key of the annotation used to indicate sidecar resource limits annotation prefix
+	SidecarResourceLimitsAnnotationPrefix = "openservicemesh.io/sidecar-resource-limits"
+
+	// SidecarResourceRequestsAnnotationPrefix is the key of the annotation used to indicate sidecar resource requests annotation prefix
+	SidecarResourceRequestsAnnotationPrefix = "openservicemesh.io/sidecar-resource-requests"
+)
+
 // App labels as defined in the "osm.labels" template in _helpers.tpl of the Helm chart.
 const (
 	OSMAppNameLabelKey     = "app.kubernetes.io/name"
@@ -326,4 +353,12 @@ const (
 
 	// SidecarClassPipy is the SidecarClass field value for context field.
 	SidecarClassPipy = "pipy"
+)
+
+const (
+	//TrafficInterceptionModeIptables defines the iptables traffic interception mode
+	TrafficInterceptionModeIptables = "iptables"
+
+	//TrafficInterceptionModeEbpf defines the ebpf traffic interception mode
+	TrafficInterceptionModeEbpf = "ebpf"
 )

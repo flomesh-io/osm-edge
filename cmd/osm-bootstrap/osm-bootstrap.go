@@ -248,6 +248,10 @@ func applyOrUpdateCRDs(crdClient *apiclient.ApiextensionsV1Client) {
 			log.Fatal().Err(err).Msgf("Error decoding CRD file %s", file)
 		}
 
+		if crd.Labels == nil {
+			crd.Labels = make(map[string]string)
+		}
+
 		crd.Labels[constants.ReconcileLabel] = strconv.FormatBool(enableReconciler)
 
 		crdExisting, err := crdClient.CustomResourceDefinitions().Get(context.Background(), crd.Name, metav1.GetOptions{})
@@ -294,7 +298,7 @@ func (b *bootstrap) createDefaultMeshConfig() error {
 	if err != nil {
 		return err
 	}
-	if _, err := b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
+	if _, err = b.configClient.ConfigV1alpha2().MeshConfigs(b.namespace).Create(context.TODO(), defaultMeshConfig, metav1.CreateOptions{}); err == nil {
 		log.Info().Msgf("MeshConfig (%s) created in namespace %s", meshConfigName, b.namespace)
 		return nil
 	}
