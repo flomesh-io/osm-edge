@@ -15,11 +15,11 @@ type PluginChain struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec is the PlugIn specification
+	// Spec is the PluginChain specification
 	// +optional
 	Spec PluginChainSpec `json:"spec,omitempty"`
 
-	// Status is the status of the PlugIn configuration.
+	// Status is the status of the PluginChain configuration.
 	// +optional
 	Status PluginChainStatus `json:"status,omitempty"`
 }
@@ -62,11 +62,11 @@ type PluginChainList struct {
 
 // PluginChainStatus is the type used to represent the status of a PluginChain resource.
 type PluginChainStatus struct {
-	// CurrentStatus defines the current status of an AccessCert resource.
+	// CurrentStatus defines the current status of an PluginChain resource.
 	// +optional
 	CurrentStatus string `json:"currentStatus,omitempty"`
 
-	// Reason defines the reason for the current status of an AccessCert resource.
+	// Reason defines the reason for the current status of an PluginChain resource.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 }

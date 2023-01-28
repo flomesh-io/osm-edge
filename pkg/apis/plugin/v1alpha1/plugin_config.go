@@ -47,13 +47,13 @@ type PluginConfigList struct {
 	Items []PluginConfig `json:"items"`
 }
 
-// PluginConfigStatus is the type used to represent the status of a plugin service resource.
+// PluginConfigStatus is the type used to represent the status of a PluginConfig resource.
 type PluginConfigStatus struct {
-	// CurrentStatus defines the current status of an AccessCert resource.
+	// CurrentStatus defines the current status of an PluginConfig resource.
 	// +optional
 	CurrentStatus string `json:"currentStatus,omitempty"`
 
-	// Reason defines the reason for the current status of an AccessCert resource.
+	// Reason defines the reason for the current status of an PluginConfig resource.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 }
