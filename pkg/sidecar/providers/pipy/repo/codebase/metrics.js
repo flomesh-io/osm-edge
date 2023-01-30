@@ -146,7 +146,7 @@
       metricsCache,
       identityCache,
       rateLimitCounter: new stats.Counter('http_local_rate_limiter', [
-        'http_local_rate_limit.rate_limited'
+        'http_local_rate_limit'
       ]),
     }
   )
