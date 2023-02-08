@@ -68,7 +68,7 @@
             ),
 
             checkError: statusCode => (
-              errorEnabled && (statusCode < 200 || statusCode > 399) && (
+              errorEnabled && (statusCode > 499) && (
                 lastDegraded = degraded,
                 (errorAmount < total) && ++errorAmount,
                 errorQuota && (errorQuota.consume(1) != 1) && (degraded = true) || (

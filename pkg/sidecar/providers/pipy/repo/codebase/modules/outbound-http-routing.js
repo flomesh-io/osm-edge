@@ -136,7 +136,7 @@
         (
           status = msg?.head?.status
         ) => (
-          _failoverCluster && (!status || status < '200' || status > '399') ? new StreamEnd('Replay') : msg
+          _failoverCluster && (!status || status > '499') ? new StreamEnd('Replay') : msg
         )
       )()
     )
