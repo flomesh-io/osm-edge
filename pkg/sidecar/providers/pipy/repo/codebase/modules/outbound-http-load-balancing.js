@@ -154,7 +154,7 @@
           (
             status = msg?.head?.status
           ) => (
-            _failoverObject && (!status || status < '200' || status > '399') ? (
+            _failoverObject && (!status || status > '499') ? (
               _targetObject = _failoverObject,
               __target = _targetObject.id,
               _failoverObject = null,
