@@ -105,6 +105,8 @@
 
 .import({
   __port: 'outbound',
+  __protocol: 'outbound',
+  __isHTTP2: 'outbound',
 })
 
 .export('outbound-http-routing', {
@@ -114,6 +116,15 @@
 })
 
 .pipeline()
+.branch(
+  () => __protocol === 'http', (
+    $=>$.detectProtocol(
+      proto => proto === 'HTTP2' && (__isHTTP2 = true)
+    )
+  ), (
+    $=>$
+  )
+)
 .demuxHTTP().to(
   $=>$
   .replay({ 'delay': 0 }).to(
