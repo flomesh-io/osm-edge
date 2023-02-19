@@ -115,7 +115,7 @@ const (
 	// KubernetesOpaqueSecretRootPrivateKeyKey is the key which holds the CA's private key in a Kubernetes secret.
 	KubernetesOpaqueSecretRootPrivateKeyKey = "private.key"
 
-	// SidecarUniqueIDLabelName is the label applied to pods with the unique ID of the Envoy sidecar.
+	// SidecarUniqueIDLabelName is the label applied to pods with the unique ID of the sidecar.
 	SidecarUniqueIDLabelName = "osm-proxy-uuid"
 
 	// ----- Environment Variables
