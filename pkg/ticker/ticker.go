@@ -45,7 +45,11 @@ func NewResyncTicker(msgBroker *messaging.Broker, minTickInterval time.Duration)
 
 // Start starts the ResyncTicker's configuration watcher in a goroutine which runs
 // until the given channel is closed.
-func (r *ResyncTicker) Start(quit <-chan struct{}) {
+func (r *ResyncTicker) Start(quit <-chan struct{}, resyncInterval time.Duration) {
+	if r.running {
+		r.stopTicker()
+	}
+	go r.startTicker(resyncInterval)
 	go r.watchConfig(quit)
 }
 
