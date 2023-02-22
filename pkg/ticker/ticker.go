@@ -45,7 +45,13 @@ func NewResyncTicker(msgBroker *messaging.Broker, minTickInterval time.Duration)
 
 // Start starts the ResyncTicker's configuration watcher in a goroutine which runs
 // until the given channel is closed.
-func (r *ResyncTicker) Start(quit <-chan struct{}) {
+func (r *ResyncTicker) Start(quit <-chan struct{}, resyncInterval time.Duration) {
+	if r.running {
+		r.stopTicker()
+	}
+	if resyncInterval >= r.minTickInterval {
+		go r.startTicker(resyncInterval)
+	}
 	go r.watchConfig(quit)
 }
 
@@ -131,7 +137,7 @@ func (r *ResyncTicker) stopTicker() {
 // startTicker runs the ticker routine and ticks periodically at the given interval.
 // It stops when 'stopTicker()' is invoked.
 func (r *ResyncTicker) startTicker(tickIterval time.Duration) {
-	ticker := time.NewTicker(time.Duration(tickIterval))
+	ticker := time.NewTicker(tickIterval)
 	r.running = true
 
 	for {

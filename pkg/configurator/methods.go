@@ -384,7 +384,7 @@ func (c *Client) GetConfigResyncInterval() time.Duration {
 	resyncDuration := c.getMeshConfig().Spec.Sidecar.ConfigResyncInterval
 	duration, err := time.ParseDuration(resyncDuration)
 	if err != nil {
-		log.Debug().Err(err).Msgf("Error parsing config resync interval: %s", duration)
+		log.Warn().Msgf("Error parsing config resync interval: %s", duration)
 		return time.Duration(0)
 	}
 	return duration
