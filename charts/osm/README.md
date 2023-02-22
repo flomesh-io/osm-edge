@@ -307,9 +307,9 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
 | osm.remoteLogging.sampledFraction | string | `"1.0"` | Sampled Fraction |
-| osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:0.90.0-18","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |
+| osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:0.90.0-54","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |
 | osm.repoServer.codebase | string | `""` | codebase is the folder used by osmController. |
-| osm.repoServer.image | string | `"flomesh/pipy-repo:0.90.0-18"` | Image used for Pipy RepoServer |
+| osm.repoServer.image | string | `"flomesh/pipy-repo:0.90.0-54"` | Image used for Pipy RepoServer |
 | osm.repoServer.ipaddr | string | `"127.0.0.1"` | ipaddr of host/service where Pipy RepoServer is installed |
 | osm.repoServer.standalone | bool | `false` | if false , Pipy RepoServer is installed within osmController pod. |
 | osm.sidecarClass | string | `"pipy"` | The class of the OSM Sidecar Driver |
