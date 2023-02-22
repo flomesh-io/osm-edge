@@ -73,7 +73,7 @@ osm:
   # -- Pipy RepoServer
   repoServer:
     # -- Image used for Pipy RepoServer
-    image: flomesh/pipy-repo:0.90.0-18
+    image: flomesh/pipy-repo:0.90.0-54
     # -- if false , Pipy RepoServer is installed within osmController pod.
     standalone: false
     # -- ipaddr of host/service where Pipy RepoServer is installed
