@@ -44,7 +44,7 @@ func NewMeshCatalog(kubeController k8s.Controller,
 	// Starting the resync ticker only starts the ticker config watcher which
 	// internally manages the lifecycle of the ticker routine.
 	resyncTicker := ticker.NewResyncTicker(msgBroker, 30*time.Second /* min resync interval */)
-	resyncTicker.Start(stop)
+	resyncTicker.Start(stop, cfg.GetConfigResyncInterval())
 
 	return mc
 }

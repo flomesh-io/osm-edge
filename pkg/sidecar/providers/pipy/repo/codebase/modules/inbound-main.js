@@ -11,11 +11,29 @@
       isHTTP2 = portConfig?.Protocol === 'grpc',
       allowedEndpointsLocal = portConfig?.AllowedEndpoints,
       allowedEndpointsGlobal = config?.AllowedEndpoints || {},
-      allowedEndpoints = new Set(
-        allowedEndpointsLocal
-          ? Object.keys(allowedEndpointsLocal).filter(k => k in allowedEndpointsGlobal)
-          : Object.keys(allowedEndpointsGlobal)
-      ),
+      allow = (
+        (
+          allowedEndpoints = allowedEndpointsLocal
+            ? Object.keys(allowedEndpointsLocal).filter(k => k in allowedEndpointsGlobal)
+            : Object.keys(allowedEndpointsGlobal),
+          ips = allowedEndpoints.filter(k => k.indexOf('/') < 0),
+          ipSet = ips.length > 0 && new Set(ips),
+          masks = allowedEndpoints.filter(k => k.indexOf('/') > 0),
+          maskArray = masks.length > 0 && masks.map(e => new Netmask(e)),
+        ) => (
+          ipSet && maskArray ? (
+            ip => (ipSet.has(ip) || maskArray.find(e => e.contains(ip)))
+          ) : (
+            ipSet ? (
+              ip => ipSet.has(ip)
+            ) : (
+              maskArray ? (
+                ip => maskArray.find(e => e.contains(ip))
+              ) : () => false
+            )
+          )
+        )
+      )(),
       connectionQuota = portConfig?.RateLimit?.Local && (
         new algo.Quota(
           portConfig.RateLimit.Local?.Burst || portConfig.RateLimit.Local?.Connections || 0,
@@ -41,7 +59,7 @@
         () => undefined
       ) || connectionQuota && (
         () => void (
-          allowedEndpoints.has(__inbound.remoteAddress || '127.0.0.1') && (
+          allow(__inbound.remoteAddress || '127.0.0.1') && (
             (connectionQuota.consume(1) === 1) || (connectionLimit.increase(), false)
           ) && (
             __port = portConfig,
@@ -51,7 +69,7 @@
         )
       ) || (
         () => void (
-          allowedEndpoints.has(__inbound.remoteAddress || '127.0.0.1') && (
+          allow(__inbound.remoteAddress || '127.0.0.1') && (
             __port = portConfig,
             __protocol = protocol,
             __isHTTP2 = isHTTP2

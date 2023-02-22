@@ -61,16 +61,14 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: "cybwan/osm-edge-interceptor:latest"
+      - image: "flomesh/osm-edge-interceptor:latest"
         imagePullPolicy: Always
         name: osm-interceptor
         args:
         - /app/mbctl
-        - -m
-        - osm
         - --use-reconnect=true
         - --cni-mode=true
-        - --kind=true
+        - --kind=false
         - --debug=true
         lifecycle:
           preStop:
