@@ -120,6 +120,8 @@
 
 .import({
   __port: 'inbound',
+  __protocol: 'inbound',
+  __isHTTP2: 'inbound',
   __isIngress: 'inbound',
 })
 
@@ -130,6 +132,15 @@
 })
 
 .pipeline()
+.branch(
+  () => __protocol === 'http', (
+    $=>$.detectProtocol(
+      proto => proto === 'HTTP2' && (__isHTTP2 = true)
+    )
+  ), (
+    $=>$
+  )
+)
 .demuxHTTP().to(
   $=>$.handleMessageStart(
     msg => portHandlers.get(__port)(msg)

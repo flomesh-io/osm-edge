@@ -19,10 +19,11 @@ func TestResyncTicker(t *testing.T) {
 	defer close(stop)
 	msgBroker := messaging.NewBroker(stop)
 
+	resyncInterval := time.Duration(0)
 	minTickerInterval := 100 * time.Millisecond
 	r := NewResyncTicker(msgBroker, minTickerInterval)
 	// Start the ResyncTicker
-	r.Start(stop)
+	r.Start(stop, resyncInterval)
 	// Give enough time for Ticker to start and subscribe to MeshConfig updates
 	time.Sleep(500 * time.Millisecond)
 

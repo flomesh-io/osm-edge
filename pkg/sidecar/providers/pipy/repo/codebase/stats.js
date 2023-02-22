@@ -50,17 +50,17 @@ pipy({
               s = s.indexOf('rq_retry') > 0 ? (
                 (
                   items = s.replace('sidecar_cluster_', '').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
-                ) => 'cluster.' + items[2] + '.' + items[0] + ': ' + items[4]
+                ) => items[4] ? 'cluster.' + items[2] + '.' + items[0] + ': ' + items[4] : s
               )() : s,
               s = s.startsWith('sidecar_local_rate_limit') ? (
                 (
                   items = s.replace('sidecar_local_rate_limit_inbound', 'local_rate_limit.inbound').split('{').join(',').split('"').join(',').split(' ').join(',').split(','),
-                ) => items[0] + "_" + items[2] + ".rate_limited: " + items[4]
+                ) => items[4] ? items[0] + "_" + items[2] + ".rate_limited: " + items[4] : s
               )() : s,
               s = s.startsWith('http_local_rate_limiter') ? (
                 (
                   items = s.split('{').join(',').split('"').join(',').split(' ').join(',').split('=').join(',').split(','),
-                ) => items[0] + "." + items[1] + ": " + items[5]
+                ) => items[5] ? items[0] + "." + items[1] + ".rate_limited: " + items[5] : s
               )() : s
             )
           ),
