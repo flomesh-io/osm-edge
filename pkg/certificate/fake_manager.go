@@ -74,12 +74,13 @@ type fakeIssuer struct {
 }
 
 // IssueCertificate is a testing helper to satisfy the certificate client interface
-func (i *fakeIssuer) IssueCertificate(cn CommonName, validityPeriod time.Duration) (*Certificate, error) {
+func (i *fakeIssuer) IssueCertificate(cn CommonName, saNames []string, validityPeriod time.Duration) (*Certificate, error) {
 	if i.err {
 		return nil, fmt.Errorf("%s failed", i.id)
 	}
 	return &Certificate{
 		CommonName: cn,
+		SANames:    saNames,
 		Expiration: time.Now().Add(validityPeriod),
 		// simply used to distinguish the private/public key from other issuers
 		IssuingCA:  pem.RootCertificate(i.id),

@@ -2,6 +2,7 @@ package vault
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/vault/api"
@@ -54,7 +55,7 @@ func New(vaultAddr, token, role string) (*CertManager, error) {
 }
 
 // IssueCertificate requests a new signed certificate from the configured Vault issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, saNames []string, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	secret, err := cm.client.Logical().Write(getIssueURL(cm.role), getIssuanceData(cn, validityPeriod))
 	if err != nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
@@ -62,12 +63,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 			Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
 	}
-	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
+	cert := newCert(cn, secret, uniqueSubjectAlternativeNames(saNames), time.Now().Add(validityPeriod))
+	return cert, nil
 }
 
-func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *certificate.Certificate {
+func newCert(cn certificate.CommonName, secret *api.Secret, saNames []string, expiration time.Time) *certificate.Certificate {
 	return &certificate.Certificate{
 		CommonName:   cn,
+		SANames:      saNames,
 		SerialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
 		Expiration:   expiration,
 		CertChain:    pem.Certificate(secret.Data[certificateField].(string)),
@@ -75,4 +78,34 @@ func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time
 		IssuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
 		TrustedCAs:   pem.RootCertificate(secret.Data[issuingCAField].(string)),
 	}
+}
+
+func uniqueSubjectAlternativeNames(saNames []string, excludeSANS ...string) []string {
+	if len(saNames) > 1 {
+		sanMap := make(map[string]uint8)
+		uniqueSans := make([]string, 0)
+		for _, san := range saNames {
+			if strings.Contains(san, ":") {
+				continue
+			}
+			if len(excludeSANS) > 0 {
+				exclude := false
+				for _, exs := range excludeSANS {
+					if san == exs {
+						exclude = true
+						break
+					}
+				}
+				if exclude {
+					continue
+				}
+			}
+			if _, ok := sanMap[san]; !ok {
+				sanMap[san] = 0
+				uniqueSans = append(uniqueSans, san)
+			}
+		}
+		return uniqueSans
+	}
+	return saNames
 }

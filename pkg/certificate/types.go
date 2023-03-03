@@ -60,6 +60,9 @@ type Certificate struct {
 	// The CommonName of the certificate
 	CommonName CommonName
 
+	// The SubjectAlternateNames of the certificate
+	SANames []string
+
 	// The serial number of the certificate
 	SerialNumber SerialNumber
 
@@ -87,7 +90,7 @@ type Certificate struct {
 // Issuer is the interface for a certificate authority that can issue certificates from a given root certificate.
 type Issuer interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, time.Duration) (*Certificate, error)
+	IssueCertificate(CommonName, []string, time.Duration) (*Certificate, error)
 }
 
 type issuer struct {

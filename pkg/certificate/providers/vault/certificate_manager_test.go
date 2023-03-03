@@ -36,7 +36,7 @@ var _ = Describe("Test client helpers", func() {
 
 			expiration := time.Now().Add(1 * time.Hour)
 
-			actual := newCert(cn, secret, expiration)
+			actual := newCert(cn, secret, nil, expiration)
 
 			expected := &certificate.Certificate{
 				IssuingCA:    pem.RootCertificate("zz"),
@@ -147,7 +147,7 @@ func TestIssueCertificate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			tassert := assert.New(t)
-			_, err = cm.IssueCertificate(tc.cn, tc.vP)
+			_, err = cm.IssueCertificate(tc.cn, nil, tc.vP)
 			if tc.wantErr {
 				tassert.Error(err, "expected error, got nil")
 			} else {

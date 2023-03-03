@@ -78,6 +78,7 @@ func NewFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey) (*Certificate, e
 
 	return &Certificate{
 		CommonName:   CommonName(x509Cert.Subject.CommonName),
+		SANames:      x509Cert.DNSNames,
 		SerialNumber: SerialNumber(x509Cert.SerialNumber.String()),
 		CertChain:    pemCert,
 		IssuingCA:    pem.RootCertificate(pemCert),

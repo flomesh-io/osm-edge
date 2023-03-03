@@ -12,6 +12,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+var (
+	trustDomain = `cluster.local`
+)
+
+// SetTrustDomain sets the trust domain
+func SetTrustDomain(domain string) {
+	if len(domain) > 0 {
+		trustDomain = domain
+	}
+}
+
 // GetHostnamesForService returns the hostnames over which the service is accessible
 func GetHostnamesForService(svc service.MeshService, localNamespace bool) []string {
 	var hostnames []string
@@ -24,15 +35,28 @@ func GetHostnamesForService(svc service.MeshService, localNamespace bool) []stri
 	}
 
 	hostnames = append(hostnames, []string{
-		fmt.Sprintf("%s.%s", svc.Name, svc.Namespace),                                // service.namespace
-		fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Port),                   // service.namespace:port
-		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),                            // service.namespace.svc
-		fmt.Sprintf("%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Port),               // service.namespace.svc:port
-		fmt.Sprintf("%s.%s.svc.cluster", svc.Name, svc.Namespace),                    // service.namespace.svc.cluster
-		fmt.Sprintf("%s.%s.svc.cluster:%d", svc.Name, svc.Namespace, svc.Port),       // service.namespace.svc.cluster:port
-		fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),              // service.namespace.svc.cluster.local
-		fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
+		fmt.Sprintf("%s.%s", svc.Name, svc.Namespace),                  // service.namespace
+		fmt.Sprintf("%s.%s:%d", svc.Name, svc.Namespace, svc.Port),     // service.namespace:port
+		fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace),              // service.namespace.svc
+		fmt.Sprintf("%s.%s.svc:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc:port
+		//fmt.Sprintf("%s.%s.svc.cluster", svc.Name, svc.Namespace),                    // service.namespace.svc.cluster
+		//fmt.Sprintf("%s.%s.svc.cluster:%d", svc.Name, svc.Namespace, svc.Port),       // service.namespace.svc.cluster:port
+		//fmt.Sprintf("%s.%s.svc.cluster.local", svc.Name, svc.Namespace),              // service.namespace.svc.cluster.local
+		//fmt.Sprintf("%s.%s.svc.cluster.local:%d", svc.Name, svc.Namespace, svc.Port), // service.namespace.svc.cluster.local:port
 	}...)
+
+	segs := strings.Split(trustDomain, ".")
+	if len(segs) > 0 {
+		hostname := fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace)
+		for _, seg := range segs {
+			if len(seg) == 0 {
+				continue
+			}
+			hostname = fmt.Sprintf("%s.%s", hostname, seg)
+			hostnames = append(hostnames, hostname)
+			hostnames = append(hostnames, fmt.Sprintf("%s:%d", hostname, svc.Port))
+		}
+	}
 
 	return hostnames
 }
