@@ -2,6 +2,7 @@ package certmanager
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -65,4 +66,34 @@ func certificateRequestHasCondition(cr *cmapi.CertificateRequest, c cmapi.Certif
 		}
 	}
 	return false
+}
+
+func uniqueSubjectAlternativeNames(saNames []string, excludeSANS ...string) []string {
+	if len(saNames) > 1 {
+		sanMap := make(map[string]uint8)
+		uniqueSans := make([]string, 0)
+		for _, san := range saNames {
+			if strings.Contains(san, ":") {
+				continue
+			}
+			if len(excludeSANS) > 0 {
+				exclude := false
+				for _, exs := range excludeSANS {
+					if san == exs {
+						exclude = true
+						break
+					}
+				}
+				if exclude {
+					continue
+				}
+			}
+			if _, ok := sanMap[san]; !ok {
+				sanMap[san] = 0
+				uniqueSans = append(uniqueSans, san)
+			}
+		}
+		return uniqueSans
+	}
+	return saNames
 }

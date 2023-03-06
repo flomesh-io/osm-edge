@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/errcode"
 	"github.com/openservicemesh/osm/pkg/identity"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy"
 	"github.com/openservicemesh/osm/pkg/sidecar/providers/pipy/client"
@@ -53,7 +54,7 @@ func (job *PipyConfGeneratorJob) Run() {
 
 	probes(proxy, pipyConf)
 	features(s, proxy, pipyConf)
-	certs(s, proxy, pipyConf)
+	certs(s, proxy, pipyConf, proxyServices)
 	pluginSetV := plugin(cataloger, s, pipyConf, proxy)
 	inbound(cataloger, proxy.Identity, s, pipyConf, proxyServices)
 	outbound(cataloger, proxy.Identity, s, pipyConf, proxy)
@@ -231,7 +232,7 @@ func plugin(cataloger catalog.MeshCataloger, s *Server, pipyConf *PipyConf, prox
 	return
 }
 
-func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
+func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf, proxyServices []service.MeshService) {
 	if mc, ok := s.catalog.(*catalog.MeshCatalog); ok {
 		meshConf := mc.GetConfigurator()
 		if !(*meshConf).GetSidecarDisabledMTLS() {
@@ -247,14 +248,21 @@ func certs(s *Server, proxy *pipy.Proxy, pipyConf *PipyConf) {
 			}
 			if proxy.SidecarCert == nil || s.certManager.ShouldRotate(proxy.SidecarCert) {
 				pipyConf.Certificate = nil
-				ct := proxy.PodMetadata.CreationTime
 				now := time.Now()
 				certValidityPeriod := s.cfg.GetServiceCertValidityPeriod()
-				aliveDuration := now.Sub(ct)
-				expirationDuration := (aliveDuration + certValidityPeriod/2).Round(certValidityPeriod)
-				certExpiration := ct.Add(expirationDuration)
+				certExpiration := now.Add(certValidityPeriod)
 				certValidityPeriod = certExpiration.Sub(now)
-				sidecarCert, certErr := s.certManager.IssueCertificate(cnPrefix, certificate.Service, certificate.ValidityDurationProvided(&certValidityPeriod))
+
+				var sans []string
+				if len(proxyServices) > 0 {
+					for _, proxySvc := range proxyServices {
+						sans = append(sans, k8s.GetHostnamesForService(proxySvc, true)...)
+					}
+				}
+
+				sidecarCert, certErr := s.certManager.IssueCertificate(cnPrefix, certificate.Service,
+					certificate.SubjectAlternativeNames(sans...),
+					certificate.ValidityDurationProvided(&certValidityPeriod))
 				if certErr != nil {
 					proxy.SidecarCert = nil
 				} else {

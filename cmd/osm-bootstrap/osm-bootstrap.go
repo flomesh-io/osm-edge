@@ -37,6 +37,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/httpserver"
+	"github.com/openservicemesh/osm/pkg/k8s"
 	"github.com/openservicemesh/osm/pkg/k8s/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -150,6 +151,8 @@ func main() {
 		log.Fatal().Err(err).Msgf("Could not access Kubernetes cluster, check kubeconfig.")
 		return
 	}
+
+	k8s.SetTrustDomain(trustDomain)
 
 	bootstrap := bootstrap{
 		kubeClient:   kubeClient,
