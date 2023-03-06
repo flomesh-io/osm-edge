@@ -40,5 +40,14 @@ issues:
     - linters:
         - staticcheck
       text: "SA1019:"
+    - linters:
+        - gosec
+      text: "G101:"
+    - linters:
+        - gosec
+      text: "G103:"
+    - linters:
+        - gosec
+      text: "G304:"
   exclude-use-default: false
 

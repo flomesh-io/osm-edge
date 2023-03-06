@@ -28,13 +28,13 @@ import (
 
 const (
 	// Additional values for the root certificate
-	rootCertCountry      = "US"
-	rootCertLocality     = "CA"
-	rootCertOrganization = "Open Service Mesh"
+	rootCertCountry      = "ZH"
+	rootCertLocality     = "CN"
+	rootCertOrganization = "Open Service Mesh Edge"
 )
 
 var getCA = func(i certificate.Issuer) (pem.RootCertificate, error) {
-	cert, err := i.IssueCertificate("init-cert", 1*time.Second)
+	cert, err := i.IssueCertificate("init-cert", nil, 1*time.Second)
 	if err != nil {
 		return nil, err
 	}

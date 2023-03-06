@@ -134,7 +134,7 @@ jobs:
       BUILD_GITCOMMIT_VAR: 'github.com/openservicemesh/osm/pkg/version.GitCommit'
     strategy:
       matrix:
-        id: [ "sidecar-init", "controller", "injector", "crds", "bootstrap", "preinstall", "healthcheck" ]
+        id: [ "sidecar-init", "controller", "injector", "crds", "bootstrap", "preinstall", "healthcheck", "interceptor" ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0

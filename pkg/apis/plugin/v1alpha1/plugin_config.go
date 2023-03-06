@@ -49,11 +49,11 @@ type PluginConfigList struct {
 
 // PluginConfigStatus is the type used to represent the status of a PluginConfig resource.
 type PluginConfigStatus struct {
-	// CurrentStatus defines the current status of an PluginConfig resource.
+	// CurrentStatus defines the current status of a PluginConfig resource.
 	// +optional
 	CurrentStatus string `json:"currentStatus,omitempty"`
 
-	// Reason defines the reason for the current status of an PluginConfig resource.
+	// Reason defines the reason for the current status of a PluginConfig resource.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 }

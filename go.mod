@@ -69,7 +69,7 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/sys v0.4.0
 	google.golang.org/genproto v0.0.0-20230109162033-3c3c17ce83e6 // indirect
 	honnef.co/go/tools v0.1.1 // indirect
 )
@@ -77,8 +77,15 @@ require (
 require (
 	github.com/briandowns/spinner v1.19.0
 	github.com/cert-manager/cert-manager v1.11.0
+	github.com/cilium/ebpf v0.10.0
+	github.com/containernetworking/cni v1.1.1
+	github.com/containernetworking/plugins v1.1.1
+	github.com/florianl/go-tc v0.4.2
+	github.com/fsnotify/fsnotify v1.6.0
+	github.com/ftrvxmtrx/fd v0.0.0-20150925145434-c6d800382fff
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/pkg/errors v0.9.1
+	github.com/sirupsen/logrus v1.9.0
 	k8s.io/kubectl v0.26.0
 )
 
@@ -154,7 +161,6 @@ require (
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-critic/go-critic v0.5.2 // indirect
 	github.com/go-errors/errors v1.4.1 // indirect
 	github.com/go-gorp/gorp/v3 v3.1.0 // indirect
@@ -267,6 +273,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/josharian/native v1.1.0 // indirect
 	github.com/joyent/triton-go v1.7.1-0.20200416154420-6801d15b779f // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
@@ -289,6 +296,8 @@ require (
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mbilski/exhaustivestruct v1.1.0 // indirect
+	github.com/mdlayher/netlink v1.6.0 // indirect
+	github.com/mdlayher/socket v0.1.1 // indirect
 	github.com/miekg/dns v1.1.50 // indirect
 	github.com/mitchellh/cli v1.1.2 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
@@ -350,7 +359,6 @@ require (
 	github.com/shazow/go-diff v0.0.0-20160112020656-b6b7b6733b8c // indirect
 	github.com/shirou/gopsutil/v3 v3.22.6 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/softlayer/softlayer-go v0.0.0-20180806151055-260589d94c7d // indirect
 	github.com/sonatard/noctx v0.0.1 // indirect
 	github.com/sony/gobreaker v0.4.2-0.20210216022020-dd874f9dd33b // indirect
