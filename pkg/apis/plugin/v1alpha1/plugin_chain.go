@@ -62,11 +62,11 @@ type PluginChainList struct {
 
 // PluginChainStatus is the type used to represent the status of a PluginChain resource.
 type PluginChainStatus struct {
-	// CurrentStatus defines the current status of an PluginChain resource.
+	// CurrentStatus defines the current status of a PluginChain resource.
 	// +optional
 	CurrentStatus string `json:"currentStatus,omitempty"`
 
-	// Reason defines the reason for the current status of an PluginChain resource.
+	// Reason defines the reason for the current status of a PluginChain resource.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 }
