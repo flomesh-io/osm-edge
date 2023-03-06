@@ -157,6 +157,8 @@ func main() {
 	pluginClient := pluginClientset.NewForConfigOrDie(kubeConfig)
 	configClient := configClientset.NewForConfigOrDie(kubeConfig)
 
+	k8s.SetTrustDomain(trustDomain)
+
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-injector pod resource
 	injectorPod, err := getInjectorPod(kubeClient)
 	if err != nil {

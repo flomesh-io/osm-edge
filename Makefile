@@ -189,6 +189,10 @@ docker-build-osm-edge-preinstall:
 docker-build-osm-edge-healthcheck:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-healthcheck:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-healthcheck --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
+.PHONY: docker-build-osm-edge-interceptor
+docker-build-osm-edge-interceptor:
+	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-interceptor:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-interceptor --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
+
 OSM_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 

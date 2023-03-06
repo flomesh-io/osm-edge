@@ -219,6 +219,7 @@ func (m *Manager) checkAndRotate() {
 		opts := []IssueOption{}
 		if key == cert.CommonName.String() {
 			opts = append(opts, FullCNProvided())
+			opts = append(opts, SubjectAlternativeNames(uniqueSubjectAlternativeNames(cert.SANames, key)...))
 		}
 
 		_, err := m.IssueCertificate(key, cert.certType, opts...)
@@ -296,6 +297,9 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 	for _, o := range opts {
 		o(options)
 	}
+	if cert != nil && rotate {
+		options.saNames = uniqueSubjectAlternativeNames(cert.SANames)
+	}
 
 	m.mu.Lock()
 	validatingIssuer := m.validatingIssuer
@@ -304,7 +308,7 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	start := time.Now()
 	validityDuration := m.getValidityDurationForCertType(ct)
-	newCert, err := signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), options.validityPeriod(validityDuration))
+	newCert, err := signingIssuer.IssueCertificate(options.formatCN(prefix, signingIssuer.TrustDomain), options.subjectAlternativeNames(), options.validityPeriod(validityDuration))
 	if err != nil {
 		return nil, err
 	}
@@ -317,9 +321,7 @@ func (m *Manager) issueCertificate(prefix string, ct CertType, opts ...IssueOpti
 
 	newCert.signingIssuerID = signingIssuer.ID
 	newCert.validatingIssuerID = validatingIssuer.ID
-
 	newCert.certType = ct
-
 	m.cache.Store(prefix, newCert)
 
 	log.Trace().Msgf("It took %s to issue certificate with SerialNumber=%s", time.Since(start), newCert.GetSerialNumber())

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -36,7 +37,7 @@ func New(
 }
 
 // IssueCertificate requests a new signed certificate from the configured cert-manager issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, saNames []string, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	if cm.ca == nil {
 		// TODO(#3962): metric might not be scraped before process restart resulting from this error
 		log.Error().Str(errcode.Kind, errcode.GetErrCodeWithMetric(errcode.ErrInvalidCA)).
@@ -73,6 +74,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+	}
+
+	if len(saNames) > 0 {
+		template.DNSNames = append(template.DNSNames, saNames...)
+	}
+
+	if len(template.DNSNames) > 1 {
+		template.DNSNames = uniqueSubjectAlternativeNames(template.DNSNames)
 	}
 
 	x509Root, err := certificate.DecodePEMCertificate(cm.ca.GetCertificateChain())
@@ -117,6 +126,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 	cert := &certificate.Certificate{
 		CommonName:   cn,
+		SANames:      template.DNSNames,
 		SerialNumber: certificate.SerialNumber(serialNumber.String()),
 		CertChain:    certPEM,
 		PrivateKey:   privKeyPEM,
@@ -128,4 +138,34 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	log.Trace().Msgf("Created new certificate for SerialNumber=%s; validity=%+v; expires on %+v; serial: %x", serialNumber, validityPeriod, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
+}
+
+func uniqueSubjectAlternativeNames(saNames []string, excludeSANS ...string) []string {
+	if len(saNames) > 1 {
+		sanMap := make(map[string]uint8)
+		uniqueSans := make([]string, 0)
+		for _, san := range saNames {
+			if strings.Contains(san, ":") {
+				continue
+			}
+			if len(excludeSANS) > 0 {
+				exclude := false
+				for _, exs := range excludeSANS {
+					if san == exs {
+						exclude = true
+						break
+					}
+				}
+				if exclude {
+					continue
+				}
+			}
+			if _, ok := sanMap[san]; !ok {
+				sanMap[san] = 0
+				uniqueSans = append(uniqueSans, san)
+			}
+		}
+		return uniqueSans
+	}
+	return saNames
 }

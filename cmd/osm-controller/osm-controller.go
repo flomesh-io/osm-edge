@@ -179,6 +179,8 @@ func main() {
 	multiclusterClient := multiclusterClientset.NewForConfigOrDie(kubeConfig)
 	networkingClient := networkingClientset.NewForConfigOrDie(kubeConfig)
 
+	k8s.SetTrustDomain(trustDomain)
+
 	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
 	controllerPod, err := getOSMControllerPod(kubeClient)
 	if err != nil {

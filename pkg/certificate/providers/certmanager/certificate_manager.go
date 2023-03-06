@@ -69,6 +69,7 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 
 	return &certificate.Certificate{
 		CommonName:   certificate.CommonName(cert.Subject.CommonName),
+		SANames:      cert.DNSNames,
 		SerialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
 		Expiration:   cert.NotAfter,
 		CertChain:    cr.Status.Certificate,
@@ -79,7 +80,7 @@ func (cm *CertManager) certificateFromCertificateRequest(cr *cmapi.CertificateRe
 }
 
 // IssueCertificate will request a new signed certificate from the configured cert-manager issuer.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (*certificate.Certificate, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, saNames []string, validityPeriod time.Duration) (*certificate.Certificate, error) {
 	duration := &metav1.Duration{
 		Duration: validityPeriod,
 	}
@@ -108,6 +109,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 			CommonName: cn.String(),
 		},
 		DNSNames: []string{cn.String()},
+	}
+
+	if len(saNames) > 0 {
+		csr.DNSNames = append(csr.DNSNames, saNames...)
+	}
+
+	if len(csr.DNSNames) > 0 {
+		csr.DNSNames = uniqueSubjectAlternativeNames(csr.DNSNames)
 	}
 
 	csrDER, err := x509.CreateCertificateRequest(rand.Reader, csr, certPrivKey)

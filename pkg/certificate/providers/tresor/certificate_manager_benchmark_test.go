@@ -39,7 +39,7 @@ func BenchmarkIssueCertificate(b *testing.B) {
 	b.ResetTimer()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		bmCert, _ = m.IssueCertificate(serviceFQDN, validity)
+		bmCert, _ = m.IssueCertificate(serviceFQDN, nil, validity)
 	}
 	b.StopTimer()
 }
