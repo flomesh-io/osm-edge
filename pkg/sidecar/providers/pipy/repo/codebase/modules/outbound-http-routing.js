@@ -101,6 +101,7 @@
 ) => pipy({
   _origPath: null,
   _failoverCluster: null,
+  _useHttp2: false,
 })
 
 .import({
@@ -117,9 +118,9 @@
 
 .pipeline()
 .branch(
-  () => __protocol === 'http', (
+  () => (__protocol === 'http') && !__isHTTP2, (
     $=>$.detectProtocol(
-      proto => proto === 'HTTP2' && (__isHTTP2 = true)
+      proto => proto === 'HTTP2' && (_useHttp2 = true)
     )
   ), (
     $=>$
@@ -131,6 +132,9 @@
     $=>$
     .handleMessageStart(
       msg => (
+        _useHttp2 && msg?.head?.headers?.['content-type'] === 'application/grpc' && (
+          __isHTTP2 = true
+        ),
         _origPath && (msg.head.path = _origPath) || (_origPath = msg?.head?.path),
         _failoverCluster && (
           __cluster = _failoverCluster,
