@@ -1,0 +1,143 @@
+name: Depend-Images
+on:
+  push:
+    branches:
+      - depend-images
+jobs:
+  UbuntuImages:
+    name: Ubuntu Images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        id: [ "20.04", "22.04" ]
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.4.1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2.1.0
+        with:
+          username: ${{ secrets.RELEASE_DOCKER_USER }}
+          password: ${{ secrets.RELEASE_DOCKER_PASS }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Docker meta - ${{ matrix.id }}
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
+        with:
+          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          tags: |
+            type=raw,value=ubuntu${{ matrix.id }}
+
+      - name: Build and Push - ${{ matrix.id }}
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-ubuntu
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            DOCKER_REGISTRY=docker.io/library
+            UBUNTU_VERSION=${{ matrix.id }}
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+
+  CompilerImages:
+    name: Compiler Images
+    runs-on: ubuntu-latest
+    needs: [UbuntuImages]
+    strategy:
+      matrix:
+        id: [ {ubuntu: "20.04", kernel: "v5.4"}, {ubuntu: "22.04", kernel: "v5.15"} ]
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.4.1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2.1.0
+        with:
+          username: ${{ secrets.RELEASE_DOCKER_USER }}
+          password: ${{ secrets.RELEASE_DOCKER_PASS }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Docker meta - ${{ matrix.id.ubuntu }}
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
+        with:
+          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          tags: |
+            type=raw,value=compiler${{ matrix.id.ubuntu }}
+
+      - name: Build and Push - ${{ matrix.id.ubuntu }}
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-compiler
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            CTR_REGISTRY=${{ secrets.RELEASE_REGISTRY }}
+            CTR_TAG=${{ matrix.id.ubuntu }}
+            KERNEL_VERSION=${{ matrix.id.kernel }}
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+
+  BaseImages:
+    name: Base Images
+    runs-on: ubuntu-latest
+    needs: [ UbuntuImages, CompilerImages]
+    strategy:
+      matrix:
+        id: [ "20.04", "22.04" ]
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2.1.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.4.1
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2.1.0
+        with:
+          username: ${{ secrets.RELEASE_DOCKER_USER }}
+          password: ${{ secrets.RELEASE_DOCKER_PASS }}
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Docker meta - ${{ matrix.id }}
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v4.3.0
+        with:
+          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          tags: |
+            type=raw,value=base${{ matrix.id }}
+
+      - name: Build and Push - ${{ matrix.id }}
+        uses: docker/build-push-action@v4.0.0
+        with:
+          context: .
+          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-base
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            CTR_REGISTRY=${{ secrets.RELEASE_REGISTRY }}
+            CTR_TAG=${{ matrix.id }}
+          push: true
+          tags: ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}

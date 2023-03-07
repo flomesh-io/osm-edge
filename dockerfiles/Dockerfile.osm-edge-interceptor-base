@@ -1,0 +1,14 @@
+ARG CTR_REGISTRY
+ARG CTR_TAG
+
+FROM $CTR_REGISTRY/osm-edge-interceptor:compiler$CTR_TAG as compiler
+
+FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG
+
+COPY --from=compiler /usr/local/sbin/bpftool /usr/local/sbin/bpftool
+
+RUN apt-get update && \
+    apt-get install -y libelf-dev make sudo clang iproute2 ethtool && \
+    apt-get purge --auto-remove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
