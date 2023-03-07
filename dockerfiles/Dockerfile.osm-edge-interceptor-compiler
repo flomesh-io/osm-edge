@@ -1,0 +1,24 @@
+ARG CTR_REGISTRY
+ARG CTR_TAG
+ARG KERNEL_VERSION
+
+FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG
+
+WORKDIR /app
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update &&\
+    apt-get upgrade -y && \
+    apt-get install -y git cmake make gcc python3 libncurses-dev gawk flex bison openssl \
+    libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf \
+    apt-transport-https ca-certificates && \
+    apt-get purge --auto-remove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+ARG KERNEL_VERSION
+RUN git clone -b ${KERNEL_VERSION} https://github.com/torvalds/linux.git --depth 1
+
+RUN cd /app/linux/tools/bpf/bpftool && \
+    make && make install

@@ -1,0 +1,13 @@
+ARG DOCKER_REGISTRY
+ARG UBUNTU_VERSION
+
+FROM $DOCKER_REGISTRY/ubuntu:$UBUNTU_VERSION as rootfs
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get purge --auto-remove && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM scratch
+LABEL maintainer="baili@flomesh.io"
+COPY --from=rootfs / /
