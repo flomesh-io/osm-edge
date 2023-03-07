@@ -1,43 +1,36 @@
-# set default platform for docker build
-ARG BUILDPLATFORM=linux/amd64
-FROM --platform=$BUILDPLATFORM golang:1.19 as osm-interceptor
+ARG GO_VERSION
 
-ARG TARGETOS
-ARG TARGETARCH
+FROM golang$GO_VERSION as gobuild
 
 WORKDIR /app
 
 ADD go.mod .
 ADD go.sum .
 
-RUN go mod download
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    go mod download
 
 ADD . .
 
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w" -o ./dist/osm-interceptor ./cmd/osm-interceptor/osm-interceptor.go
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w" -o ./dist/osm-cni ./cmd/osm-interceptor/osm-cni/osm-cni.go
-RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-s -w" -o ./dist/osm-fd-back ./cmd/osm-interceptor/osm-fd-back/osm-fd-back.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    go build -v -ldflags "-s -w" -o ./dist/osm-interceptor ./cmd/osm-interceptor/osm-interceptor.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    go build -v -ldflags "-s -w" -o ./dist/osm-cni ./cmd/osm-interceptor/osm-cni/osm-cni.go
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg \
+    go build -v -ldflags "-s -w" -o ./dist/osm-fd-back ./cmd/osm-interceptor/osm-fd-back/osm-fd-back.go
 
-FROM ubuntu:20.04 as compiler
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y git cmake make gcc python3 libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf
-
-RUN git clone -b v5.4 https://github.com/torvalds/linux.git --depth 1
-
-RUN cd /app/linux/tools/bpf/bpftool && make && make install
-
-FROM ubuntu:20.04
+FROM flomesh/osm-edge-interceptor:base20.04
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libelf-dev make sudo clang iproute2 ethtool
-COPY --from=compiler /usr/local/sbin/bpftool /usr/local/sbin/bpftool
 COPY bpf bpf
 COPY Makefile.CNI Makefile
-COPY --from=osm-interceptor /app/dist/osm-interceptor osm-interceptor
-COPY --from=osm-interceptor /app/dist/osm-cni osm-cni
-COPY --from=osm-interceptor /app/dist/osm-fd-back osm-fd-back
+COPY --from=gobuild /app/dist/osm-interceptor osm-interceptor
+COPY --from=gobuild /app/dist/osm-cni osm-cni
+COPY --from=gobuild /app/dist/osm-fd-back osm-fd-back
 
 CMD /app/osm-interceptor
