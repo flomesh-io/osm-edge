@@ -1,6 +1,6 @@
 ARG GO_VERSION
 
-FROM golang$GO_VERSION as gobuild
+FROM golang:$GO_VERSION as gobuild
 
 WORKDIR /app
 
