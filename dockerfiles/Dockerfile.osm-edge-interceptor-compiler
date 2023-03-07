@@ -2,23 +2,42 @@ ARG CTR_REGISTRY
 ARG CTR_TAG
 ARG KERNEL_VERSION
 
-FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG
+FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG as rootfs
 
 WORKDIR /app
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update &&\
-    apt-get upgrade -y && \
-    apt-get install -y git cmake make gcc python3 libncurses-dev gawk flex bison openssl \
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y git cmake make gcc python3 python3-pip libncurses-dev gawk flex bison openssl \
     libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf \
     apt-transport-https ca-certificates && \
+    python3 -m pip install pip --upgrade --force && \
     apt-get purge --auto-remove && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/pypa/wheel.git --depth 1
+RUN cd /app/wheel && pip install . && rm -rf /app/wheel
+
+RUN git clone -b 1.26.x https://github.com/urllib3/urllib3.git --depth 1
+RUN cd /app/urllib3 && pip install . && rm -rf /app/urllib3
+
+RUN git clone https://github.com/certifi/python-certifi.git --depth 1
+RUN cd /app/python-certifi && pip install . && rm -rf /app/python-certifi
+
+RUN git clone -b 5.4.1.1 https://github.com/yaml/pyyaml.git --depth 1
+RUN cd /app/pyyaml && pip install . && rm -rf /app/pyyaml
+
+RUN git clone https://github.com/pygments/pygments.git --depth 1
+RUN cd /app/pygments && pip install . && rm -rf /app/pygments
 
 ARG KERNEL_VERSION
 RUN git clone -b ${KERNEL_VERSION} https://github.com/torvalds/linux.git --depth 1
 
 RUN cd /app/linux/tools/bpf/bpftool && \
-    make && make install
+    make && make install && \
+    rm -rf /app/linux
+
+FROM scratch
+COPY --from=rootfs / /
