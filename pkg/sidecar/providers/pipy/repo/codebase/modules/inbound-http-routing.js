@@ -116,7 +116,9 @@
   )(),
 
   portHandlers = new algo.Cache(makePortHandler),
-) => pipy()
+) => pipy({
+  _useHttp2: false,
+})
 
 .import({
   __port: 'inbound',
@@ -133,9 +135,9 @@
 
 .pipeline()
 .branch(
-  () => __protocol === 'http', (
+  () => (__protocol === 'http') && !__isHTTP2, (
     $=>$.detectProtocol(
-      proto => proto === 'HTTP2' && (__isHTTP2 = true)
+      proto => proto === 'HTTP2' && (_useHttp2 = true)
     )
   ), (
     $=>$
@@ -143,7 +145,12 @@
 )
 .demuxHTTP().to(
   $=>$.handleMessageStart(
-    msg => portHandlers.get(__port)(msg)
+    msg => (
+      _useHttp2 && msg?.head?.headers?.['content-type'] === 'application/grpc' && (
+        __isHTTP2 = true
+      ),
+      portHandlers.get(__port)(msg)
+    )
   )
   .chain()
 )
