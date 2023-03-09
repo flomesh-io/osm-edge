@@ -51,7 +51,7 @@ static inline int osm_cni_sockops_ipv4(struct bpf_sock_ops *skops) {
         __u32 remote_ip4 = get_ipv4(p.dip);
         __u32 local_ip4 = get_ipv4(p.sip);
         debugf("osm_cni_sockops_ipv4 [established] remote_ip4: %pI4 -> local_ip4: %pI4", &remote_ip4, &local_ip4);
-        debugf("osm_cni_sockops_ipv4 [established] remote_port:%d -> local_port: %d", bpf_htons(p.dport), skops->local_port);
+        debugf("osm_cni_sockops_ipv4 [established] remote_port: %d -> local_port: %d", bpf_htons(p.dport), skops->local_port);
         // get_sockopts can read pid and cookie,
         // we should write a new map named osm_nat_fib
         bpf_map_update_elem(&osm_nat_fib, &p, &dd, BPF_ANY);
@@ -62,7 +62,7 @@ static inline int osm_cni_sockops_ipv4(struct bpf_sock_ops *skops) {
         __u32 remote_ip4 = get_ipv4(p.dip);
         __u32 local_ip4 = get_ipv4(p.sip);
         debugf("osm_cni_sockops_ipv4 [established] remote_ip4: %pI4 -> local_ip4: %pI4", &remote_ip4, &local_ip4);
-        debugf("osm_cni_sockops_ipv4 [established] remote_port:%d -> local_port: %d", bpf_htons(p.dport), skops->local_port);
+        debugf("osm_cni_sockops_ipv4 [established] remote_port: %d -> local_port: %d", bpf_htons(p.dport), skops->local_port);
         bpf_sock_hash_update(skops, &osm_sock_fib, &p, BPF_NOEXIST);
     }
     return 0;

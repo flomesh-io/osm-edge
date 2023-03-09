@@ -26,8 +26,7 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
         return 1;
     }
     if (!cg_info.is_in_mesh) {
-        // bypass normal traffic. we only deal pod's
-        // traffic managed by mesh.
+        // bypass normal traffic. we only deal pod's traffic managed by mesh.
         return 1;
     }
     __u32 curr_pod_ip;
@@ -40,7 +39,7 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
     }
     __u64 uid = bpf_get_current_uid_gid() & 0xffffffff;
     __u32 dst_ip = ctx->user_ip4;
-    debugf("osm_cni_tcp_connect4 uid: %d pod ip: %pI4 dst ip: %pI4", uid, &curr_pod_ip, &dst_ip);
+    debugf("osm_cni_tcp_connect4 uid: %d cur pod ip: %pI4 dst ip: %pI4", uid, &curr_pod_ip, &dst_ip);
     if (uid != SIDECAR_USER_ID) {
         if ((dst_ip & 0xff) == 0x7f) {
             debugf("osm_cni_tcp_connect4 [App->Local]: bypass");
@@ -69,7 +68,7 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
                 IS_EXCLUDE_PORT(pod->exclude_out_ports, ctx->user_port,
                                 &exclude);
                 if (exclude) {
-                    debugf("osm_cni_tcp_connect4 ignored dest port by exclude_out_ports, ip: "
+                    debugf("osm_cni_tcp_connect4 ignored dst port by exclude_out_ports, ip: "
                            "%pI4, port: %d",
                            &curr_pod_ip, bpf_htons(ctx->user_port));
                     return 1;
@@ -155,11 +154,9 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
         set_ipv4(_dst_ip, dst_ip);
         struct pod_config *pod = bpf_map_lookup_elem(&osm_pod_fib, _dst_ip);
         if (!pod) {
-            debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: uid: %d", uid);
-            debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: cur pod ip: %pI4 src port: %d", &curr_pod_ip);
-            debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: dst pod ip: %pI4 dst port: %d", &dst_ip, bpf_htons(ctx->user_port));
-            // dst ip is not in this node, bypass
-            debugf("osm_cni_tcp_connect4 dest ip: %pI4 not in this node, bypass", &dst_ip);
+            // bypass
+            debugf("osm_cni_tcp_connect4 [Sidecar->Others]: dst ip: %pI4 dst port: %d bypass",
+                  &dst_ip, bpf_htons(ctx->user_port));
             return 1;
         }
 
@@ -170,30 +167,32 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
         set_ipv4(origin.ip, dst_ip);
         origin.port = ctx->user_port;
 
-        debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: uid: %d", uid);
-        debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: cur pod ip: %pI4", &curr_pod_ip);
-        debugf("osm_cni_tcp_connect4 [Sidecar->Sidecar]: dst pod ip: %pI4 dst port: %d", &dst_ip, bpf_htons(ctx->user_port));
+        debugf("osm_cni_tcp_connect4 [Sidecar->Others]: uid: %d", uid);
+        debugf("osm_cni_tcp_connect4 [Sidecar->Others]: cur pod ip: %pI4", &curr_pod_ip);
+        debugf("osm_cni_tcp_connect4 [Sidecar->Others]: dst pod ip: %pI4 dst port: %d", &dst_ip, bpf_htons(ctx->user_port));
 
         if (curr_pod_ip) {
             if (curr_pod_ip != dst_ip) {
                 // call other pod, need redirect port.
                 int exclude = 0;
-                IS_EXCLUDE_PORT(pod->exclude_in_ports, ctx->user_port,
-                                &exclude);
+                IS_EXCLUDE_PORT(pod->exclude_in_ports, ctx->user_port, &exclude);
                 if (exclude) {
-                    debugf("osm_cni_tcp_connect4 ignored dest port by exclude_in_ports, ip: %pI4, port: %d",
+                    debugf("osm_cni_tcp_connect4 [Sidecar->Others]: ignored dst port by exclude_in_ports, ip: %pI4, port: %d",
                            &dst_ip, bpf_htons(ctx->user_port));
                     return 1;
                 }
                 int include = 0;
-                IS_INCLUDE_PORT(pod->include_in_ports, ctx->user_port,
-                                &include);
+                IS_INCLUDE_PORT(pod->include_in_ports, ctx->user_port, &include);
                 if (!include) {
-                    debugf("osm_cni_tcp_connect4 ignored dest port by include_in_ports, ip: %pI4, port: %d",
+                    debugf("osm_cni_tcp_connect4 [Sidecar->Others]: ignored dst port by include_in_ports, ip: %pI4, port: %d",
                            &dst_ip, bpf_htons(ctx->user_port));
                     return 1;
                 }
+                debugf("osm_cni_tcp_connect4 [Sidecar->Others{Sidecar}]: sidecar to sidecar, rewrite dst port from %d to %d",
+                       bpf_htons(ctx->user_port), IN_REDIRECT_PORT);
                 ctx->user_port = bpf_htons(IN_REDIRECT_PORT);
+            } else {
+                debugf("osm_cni_tcp_connect4 [Sidecar->Others{Self}]");
             }
             origin.flags |= 1;
         } else {
@@ -207,39 +206,35 @@ static inline int osm_cni_tcp_connect4(struct bpf_sock_addr *ctx) {
             // pid may be thread id, we should use tgid
             __u32 pid = bpf_get_current_pid_tgid() >> 32; // tgid
             void *curr_ip = bpf_map_lookup_elem(&osm_proc_fib, &pid);
-            debugf("osm_cni_tcp_connect4 [Sidecar->Others]: pid: %d, dst ip: %pI4 dst port:%d", pid, &dst_ip,
-                   bpf_htons(ctx->user_port));
+            debugf("osm_cni_tcp_connect4 [Sidecar->Others]: pid: %d", pid);
             if (curr_ip) {
                 // sidecar to other sidecar
                 if (*(__u32 * )curr_ip != dst_ip) {
-                    debugf("osm_cni_tcp_connect4 sidecar to other, rewrite dst port from %d to %d",
+                    debugf("osm_cni_tcp_connect4 [Sidecar->Others{Sidecar}]: rewrite dst port from %d to %d",
                            bpf_htons(ctx->user_port), IN_REDIRECT_PORT);
                     ctx->user_port = bpf_htons(IN_REDIRECT_PORT);
+                } else {
+                    debugf("osm_cni_tcp_connect4 [Sidecar->Others{Self}]");
                 }
                 //origin.flags |= 1;
                 origin.flags = 0;
                 origin.pid = pid;
-                // sidecar to app, no rewrite
-                debugf("osm_cni_tcp_connect4 [Sidecar->Others{App}]: sidecar to app, rewrite");
             } else {
                 origin.flags = 0;
                 origin.pid = pid;
                 // sidecar to sidecar
-                // try redirect to 15006
-                // but it may cause error if it is envoy call self pod,
+                // try redirect to 15003
+                // but it may cause error if it is sidecar call self pod,
                 // in this case, we can read src and dst ip in sockops,
-                // if src is equals dst, it means envoy call self pod,
+                // if src is equals dst, it means sidecar call self pod,
                 // we should reject this traffic in sockops,
-                // envoy will create a new connection to self pod.
-                debugf("osm_cni_tcp_connect4 [Sidecar->Others{Sidecar}]: sidecar to sidecar, rewrite dst port from %d to %d",
+                // sidecar will create a new connection to self pod.
+                debugf("osm_cni_tcp_connect4 [Sidecar->Others{Sidecar}]: rewrite dst port from %d to %d",
                        bpf_htons(ctx->user_port), IN_REDIRECT_PORT);
                 ctx->user_port = bpf_htons(IN_REDIRECT_PORT);
-                //debugf("osm_cni_tcp_connect4 [Sidecar->Others{Sidecar}]: sidecar to sidecar, dst port: %d", bpf_htons(ctx->user_port));
             }
         }
         __u64 cookie = bpf_get_socket_cookie_addr(ctx);
-        debugf("osm_cni_tcp_connect4 [Sidecar->Others]: call from sidecar container: cookie: %d, dst ip: %pI4, dst port: %d",
-               cookie, &dst_ip, bpf_htons(ctx->user_port));
         if (bpf_map_update_elem(&osm_cki_fib, &cookie, &origin, BPF_NOEXIST)) {
             printk("osm_cni_tcp_connect4 update cookie origin failed");
             return 0;

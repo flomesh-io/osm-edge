@@ -44,7 +44,7 @@ __section("cgroup/getsockopt") int osm_cni_sock_opt(struct bpf_sockopt *ctx) {
             set_ipv4(p.sip, ctx->sk->dst_ip4);
             __u32 dst_ip4 = get_ipv4(p.dip);
             __u32 src_ip4 = get_ipv4(p.sip);
-            debugf("osm_cni_sock_opt src ip4: %pI4 src port: %d", &src_ip4, p.sport);
+            debugf("osm_cni_sock_opt src ip4: %pI4 src port: %d", &src_ip4, bpf_htons(p.sport));
             debugf("osm_cni_sock_opt dst ip4: %pI4 dst port: %d", &dst_ip4, bpf_htons(p.dport));
             origin = bpf_map_lookup_elem(&osm_nat_fib, &p);
             if (origin) {
@@ -65,23 +65,9 @@ __section("cgroup/getsockopt") int osm_cni_sock_opt(struct bpf_sockopt *ctx) {
                 *(struct sockaddr_in *) ctx->optval = sa;
 
                 __u32 origin_ip4 = get_ipv4(origin->ip);
-                debugf("osm_cni_sock_opt origin dst ip4:%pI4 origin dst port: %d", &origin_ip4, bpf_htons(origin->port));
+                debugf("osm_cni_sock_opt origin dst ip4: %pI4 origin dst port: %d", &origin_ip4, bpf_htons(origin->port));
             } else {
                 debugf("osm_cni_sock_opt osm_nat_fib:NOT FOUND");
-                //ctx->optlen = (__s32)sizeof(struct sockaddr_in);
-                //if ((void *)((struct sockaddr_in *)ctx->optval + 1) >
-                //    ctx->optval_end) {
-                //    printk("optname: %d: invalid getsockopt optval", ctx->optname);
-                //    return 1;
-                //}
-                //ctx->retval = 0;
-                //struct sockaddr_in sa = {
-                //    .sin_family = ctx->sk->family,
-                //    .sin_addr.s_addr = localhost,
-                //    .sin_port = bpf_htons(5000),
-                //};
-                //*(struct sockaddr_in *)ctx->optval = sa;
-                //debugf("osm_cni_sock_opt rewite_origin_ip4:127.0.0.1  rewite_origin_port: %d", 5000);
             }
             break;
     }
