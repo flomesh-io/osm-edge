@@ -5,6 +5,7 @@ DOCKER_BUILDX_OUTPUT ?= type=registry
 DOCKER_REGISTRY ?= docker.io/library
 UBUNTU_VERSION ?= 20.04
 KERNEL_VERSION ?= v5.4
+PYTHON_VERSION ?= 3.8
 DOCKER_BUILDX_PLATFORM ?= linux/amd64
 LDFLAGS ?= "-s -w"
 
@@ -55,6 +56,7 @@ docker-build-interceptor-base:
 	-f ./dockerfiles/Dockerfile.osm-edge-interceptor-base \
 	--build-arg CTR_REGISTRY=$(CTR_REGISTRY) \
 	--build-arg CTR_TAG=$(UBUNTU_VERSION) \
+	--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
 	.
 
 .PHONY: docker-build-cross-interceptor-base
