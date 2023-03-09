@@ -39,32 +39,31 @@ static inline int get_current_cgroup_info(void *ctx,
                 .detected_flags = 0,
         };
         // not checked ever
-        if (!is_port_listen_current_ns(ctx, ip_zero, OUT_REDIRECT_PORT)) {
-            // not in mesh
-            _default.is_in_mesh = 0;
-            //debugf("can not get port listen for cgroup(%ld)", cgroup_id);
-        } else {
-            _default.is_in_mesh = 1;
-            // get ip addresses of current pod/ns.
+        __u64 uid = bpf_get_current_uid_gid() & 0xffffffff;
+        if (uid != SIDECAR_USER_ID) {
             struct bpf_sock_tuple tuple = {};
             tuple.ipv4.dport = bpf_htons(SOCK_IP_MARK_PORT);
             tuple.ipv4.daddr = 0;
-            struct bpf_sock *s = bpf_sk_lookup_tcp(
-                    ctx, &tuple, sizeof(tuple.ipv4), BPF_F_CURRENT_NETNS, 0);
+            struct bpf_sock *s = bpf_sk_lookup_tcp(ctx, &tuple, sizeof(tuple.ipv4), BPF_F_CURRENT_NETNS, 0);
             if (s) {
+                _default.is_in_mesh = 1;
                 __u32 curr_ip_mark = s->mark;
                 bpf_sk_release(s);
-                __u32 *ip = (__u32 *) bpf_map_lookup_elem(&osm_mark_fib,
-                                                          &curr_ip_mark);
+                __u32 *ip = (__u32 *) bpf_map_lookup_elem(&osm_mark_fib, &curr_ip_mark);
                 if (!ip) {
                     debugf("get ip for mark 0x%x error", curr_ip_mark);
                 } else {
                     set_ipv6(_default.cgroup_ip, ip); // network order
                 }
+            } else {
+                // regard sidecar as a non-mesh
+                _default.is_in_mesh = 0;
             }
+        } else {
+            // not in mesh
+            _default.is_in_mesh = 0;
         }
-        if (bpf_map_update_elem(&osm_cgr_fib, &cgroup_id, &_default,
-                                BPF_ANY)) {
+        if (bpf_map_update_elem(&osm_cgr_fib, &cgroup_id, &_default, BPF_ANY)) {
             printk("update osm_cgr_fib of cgroup(%ld) error", cgroup_id);
             return 0;
         }
@@ -73,35 +72,4 @@ static inline int get_current_cgroup_info(void *ctx,
         *cg_info = *(struct cgroup_info *) info;
     }
     return 1;
-}
-
-// is_port_listen_in_cgroup is used to detect whether a port is listened to in
-// the current cgroup, using osm_cgr_fib for caching.
-static inline int is_port_listen_in_cgroup(void *ctx, __u16 is_tcp, __u32 ip,
-                                           __u16 port, __u16 port_flag) {
-    struct cgroup_info cg_info;
-    if (!get_current_cgroup_info(ctx, &cg_info)) {
-        return 0;
-    }
-    if (!cg_info.is_in_mesh) {
-        return 0;
-    }
-    if (cg_info.detected_flags & port_flag) {
-        if (cg_info.flags & port_flag) {
-            return 1;
-        }
-        return 0;
-    }
-    // need detect
-    int listen;
-    if (is_tcp) {
-        listen = is_port_listen_current_ns(ctx, ip, port);
-    } else {
-        listen = is_port_listen_udp_current_ns(ctx, ip, port);
-    }
-    cg_info.detected_flags |= port_flag;
-    if (listen)
-        cg_info.flags |= port_flag;
-    bpf_map_update_elem(&osm_cgr_fib, &cg_info.id, &cg_info, BPF_ANY);
-    return listen;
 }
