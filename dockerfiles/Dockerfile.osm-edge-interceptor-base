@@ -1,14 +1,18 @@
 ARG CTR_REGISTRY
 ARG CTR_TAG
+ARG PYTHON_VERSION
 
 FROM $CTR_REGISTRY/osm-edge-interceptor:compiler$CTR_TAG as compiler
 
 FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG
 
-COPY --from=compiler /usr/local/sbin/bpftool /usr/local/sbin/bpftool
-
 RUN apt-get update && \
-    apt-get install -y libelf-dev make sudo clang iproute2 ethtool && \
-    apt-get purge --auto-remove && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+apt-get install -y libelf-dev make sudo clang iproute2 ethtool && \
+apt-get purge --auto-remove && \
+apt-get clean && \
+rm -rf /usr/lib/python3/dist-packages && \
+rm -rf /var/lib/apt/lists/*
+
+ARG PYTHON_VERSION
+COPY --from=compiler /usr/local/lib/python${PYTHON_VERSION}/dist-packages /usr/lib/python3/dist-packages
+COPY --from=compiler /usr/local/sbin/bpftool /usr/local/sbin/bpftool

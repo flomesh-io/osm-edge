@@ -99,10 +99,10 @@ jobs:
   BaseImages:
     name: Base Images
     runs-on: ubuntu-latest
-    needs: [ UbuntuImages, CompilerImages]
+    needs: [UbuntuImages, CompilerImages]
     strategy:
       matrix:
-        id: [ "20.04", "22.04" ]
+        id: [ {ubuntu: "20.04", python: "3.8"}, {ubuntu: "22.04", python: "3.10"} ]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2.1.0
@@ -121,15 +121,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Docker meta - ${{ matrix.id }}
+      - name: Docker meta - ${{ matrix.id.ubuntu }}
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
           tags: |
-            type=raw,value=base${{ matrix.id }}
+            type=raw,value=base${{ matrix.id.ubuntu }}
 
-      - name: Build and Push - ${{ matrix.id }}
+      - name: Build and Push - ${{ matrix.id.ubuntu }}
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
@@ -137,7 +137,32 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             CTR_REGISTRY=${{ secrets.RELEASE_REGISTRY }}
-            CTR_TAG=${{ matrix.id }}
+            CTR_TAG=${{ matrix.id.ubuntu }}
+            PYTHON_VERSION=${{ matrix.id.python }}
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+
+  ImageScan:
+    name: Scan Ubuntu images for security vulnerabilities
+    runs-on: ubuntu-latest
+    needs: [BaseImages]
+    strategy:
+      matrix:
+        id: [ { ubuntu: "20.04", kernel: "v5.4", python: "3.8" }, { ubuntu: "22.04", kernel: "v5.15", python: "3.10" } ]
+    env:
+      CTR_REGISTRY: ${{ secrets.RELEASE_REGISTRY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Build docker images - ${{ matrix.id }}
+        env:
+          DOCKER_BUILDX_OUTPUT: type=docker
+          UBUNTU_VERSION: ${{ matrix.id.ubuntu }}
+          KERNEL_VERSION: ${{ matrix.id.kernel }}
+          PYTHON_VERSION: ${{ matrix.id.python }}
+        run: make docker-build-osm
+      - name: Setup Trivy
+        run: make trivy-ci-setup
+      - name: Scan docker images for vulnerabilities
+        run: make trivy-scan-images
