@@ -190,7 +190,7 @@ func parsePodConfigFromAnnotations(annotations map[string]string, pod *podConfig
 		}
 	}
 	pod.statusPort = uint16(statusPort)
-	excludeInboundPorts := []uint16{15006, 15001, 15008, 15090, 15021, 15020, 15000} // todo changeme
+	excludeInboundPorts := []uint16{15000, 15001, 15003, 15010, 15021, 15050, 15128, 15901, 15902, 15903, 15904}
 	if v, ok := annotations["openservicemesh.io/inbound-port-exclusion-list"]; ok {
 		excludeInboundPorts = append(excludeInboundPorts, getPortsFromString(v)...)
 	}
