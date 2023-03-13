@@ -66,7 +66,7 @@ load-map-osm_cki_fib:
 	[ -f $(PIN_OBJECT_NS_PATH)/osm_cki_fib ] || sudo bpftool map create $(PIN_OBJECT_NS_PATH)/osm_cki_fib type lru_hash key 8 value 24 entries 65535 name osm_cki_fib
 
 load-map-osm_pod_fib:
-	[ -f $(PIN_GLOBAL_NS_PATH)/osm_pod_fib ] || sudo bpftool map create $(PIN_GLOBAL_NS_PATH)/osm_pod_fib type hash key 16 value 244 entries 1024 name osm_pod_fib
+	[ -f $(PIN_GLOBAL_NS_PATH)/osm_pod_fib ] || sudo bpftool map create $(PIN_GLOBAL_NS_PATH)/osm_pod_fib type hash key 16 value 484 entries 1024 name osm_pod_fib
 
 load-map-osm_proc_fib:
 	[ -f $(PIN_OBJECT_NS_PATH)/osm_proc_fib ] || sudo bpftool map create $(PIN_OBJECT_NS_PATH)/osm_proc_fib type lru_hash key 4 value 4 entries 1024 name osm_proc_fib

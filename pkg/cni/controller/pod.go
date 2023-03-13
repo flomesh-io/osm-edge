@@ -89,7 +89,7 @@ func createLocalPodController(client kubernetes.Interface) watcher {
 	}
 }
 
-const maxItemLen = 10 // todo changeme
+const maxItemLen = 20 // todo changeme
 
 type cidr struct {
 	net  uint32 // network order
