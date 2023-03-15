@@ -350,6 +350,9 @@ const (
 	//TrafficInterceptionModeIptables defines the iptables traffic interception mode
 	TrafficInterceptionModeIptables = "iptables"
 
-	//TrafficInterceptionModeEbpf defines the ebpf traffic interception mode
-	TrafficInterceptionModeEbpf = "ebpf"
+	//TrafficInterceptionModeEBPF defines the ebpf traffic interception mode
+	TrafficInterceptionModeEBPF = "ebpf"
+
+	//TrafficInterceptionModeNone defines the none traffic interception mode
+	TrafficInterceptionModeNone = "none"
 )

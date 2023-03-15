@@ -775,7 +775,8 @@
                     "description": "Traffic interception mode in the mesh.",
                     "enum": [
                         "iptables",
-                        "ebpf"
+                        "ebpf",
+                        "none"
                     ],
                     "examples": [
                         "iptables"

@@ -71,14 +71,14 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
         if (tcph->dest == in_port) {
             // same node, already rewrite dest port by connect.
             // bypass.
-            debugf("osm_cni_tc_nat[ingress]: already dnat");
+            debugf("osm_cni_tc_nat [ingress]: already dnat");
             return TC_ACT_OK;
         }
         // ingress without osm_cni_grp_connect
         struct pod_config *pod = bpf_map_lookup_elem(&osm_pod_fib, dst_ip);
         if (!pod) {
             // dest ip is not on this node or not injected sidecar.
-            debugf("osm_cni_tc_nat[ingress]: pod not found, bypassed");
+            debugf("osm_cni_tc_nat [ingress]: pod not found, bypassed");
             return TC_ACT_OK;
         }
         if (bpf_htons(tcph->dest) == pod->status_port) {
@@ -87,14 +87,14 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
         int exclude = 0;
         IS_EXCLUDE_PORT(pod->exclude_in_ports, tcph->dest, &exclude);
         if (exclude) {
-            debugf("osm_cni_tc_nat[ingress]: ignored dest port by exclude_in_ports, ip: %pI4/%pI6c, port: %d",
+            debugf("osm_cni_tc_nat [ingress]: ignored dest port by exclude_in_ports, ip: %pI4/%pI6c, port: %d",
                    &dst_ip[3], dst_ip, bpf_htons(tcph->dest));
             return TC_ACT_OK;
         }
         int include = 0;
         IS_INCLUDE_PORT(pod->include_in_ports, tcph->dest, &include);
         if (!include) {
-            debugf("osm_cni_tc_nat[ingress]: ignored dest port by include_in_ports, ip: %pI4/%pI6c, port: %d",
+            debugf("osm_cni_tc_nat [ingress]: ignored dest port by include_in_ports, ip: %pI4/%pI6c, port: %d",
                    &dst_ip[3], dst_ip, bpf_htons(tcph->dest));
             return TC_ACT_OK;
         }
@@ -119,7 +119,7 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
 
         bpf_l4_csum_replace(skb, csum_off, dst_port, in_port, sizeof(dst_port));
         bpf_skb_store_bytes(skb, dport_off, &in_port, sizeof(in_port), 0);
-        debugf("osm_cni_tc_nat[ingress]: first dnat");
+        debugf("osm_cni_tc_nat [ingress]: first dnat");
     } else {
         // request
         struct pair p;
@@ -144,13 +144,13 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
         }
         if (!(origin->flags & TC_ORIGIN_FLAG)) {
             // not tc origin
-            debugf("osm_cni_tc_nat[ingress]: no tc origin flag");
+            debugf("osm_cni_tc_nat [ingress]: no tc origin flag");
             return TC_ACT_OK;
         }
         __u16 dst_port = tcph->dest;
         bpf_l4_csum_replace(skb, csum_off, dst_port, in_port, sizeof(dst_port));
         bpf_skb_store_bytes(skb, dport_off, &in_port, sizeof(in_port), 0);
-        debugf("osm_cni_tc_nat[ingress]: dnat");
+        debugf("osm_cni_tc_nat [ingress]: dnat");
     }
     return TC_ACT_OK;
 }
@@ -216,23 +216,23 @@ __section("classifier_egress") int osm_cni_tc_snat(struct __sk_buff *skb) {
     struct origin_info *origin = bpf_map_lookup_elem(&osm_nat_fib, &p);
     if (!origin) {
         // not exists
-        debugf("osm_cni_tc_nat[egress]: resp origin not found");
+        debugf("osm_cni_tc_nat [egress]: resp origin not found");
         return TC_ACT_OK;
     }
     if (!(origin->flags & TC_ORIGIN_FLAG)) {
         // not tc origin
-        printk("osm_cni_tc_nat[egress]: resp origin flags %x error", origin->flags);
+        printk("osm_cni_tc_nat [egress]: resp origin flags %x error", origin->flags);
         return TC_ACT_OK;
     }
     if (tcph->fin && tcph->ack) {
         // todo delete key
-        debugf("osm_cni_tc_nat[egress]: original deleted");
+        debugf("osm_cni_tc_nat [egress]: original deleted");
         bpf_map_delete_elem(&osm_nat_fib, &p);
     }
     __u16 src_port = origin->port;
     bpf_l4_csum_replace(skb, csum_off, in_port, src_port, sizeof(src_port));
     bpf_skb_store_bytes(skb, sport_off, &src_port, sizeof(src_port), 0);
-    debugf("osm_cni_tc_nat[egress]: snat");
+    debugf("osm_cni_tc_nat [egress]: snat");
     return TC_ACT_OK;
 }
 
