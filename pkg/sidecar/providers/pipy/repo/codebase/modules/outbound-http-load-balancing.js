@@ -104,8 +104,6 @@
 .onStart(
   () => void (
     (_clusterConfig = clusterConfigs.get(__cluster)) && (
-      _targetObject = _clusterConfig.targetBalancer?.next?.(),
-      __target = _targetObject?.id,
       _muxHttpOptions = _clusterConfig.muxHttpOptions,
       _clusterConfig.failoverBalancer && (
         _failoverObject = _clusterConfig.failoverBalancer.next()
@@ -115,7 +113,10 @@
 )
 .handleMessageStart(
   msg => (
-    __target && (
+    _clusterConfig && (
+      _targetObject = _clusterConfig.targetBalancer?.next?.({}),
+      __target = _targetObject?.id
+    ) && (
       (
         attrs = _clusterConfig?.endpointAttributes?.[__target]
       ) => (
