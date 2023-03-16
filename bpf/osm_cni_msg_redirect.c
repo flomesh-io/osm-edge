@@ -32,7 +32,7 @@ __section("sk_msg") int osm_cni_msg_redirect(struct sk_msg_md *msg) {
     __u32 local_ip4 = get_ipv4(p.dip);
     __u32 remote_ip4 = get_ipv4(p.sip);
     debugf("osm_cni_msg_redirect src ip4: %pI4 -> dst ip4: %pI4", &local_ip4, &remote_ip4);
-    debugf("osm_cni_msg_redirect src port:%d -> dst port: %d", p.dport, bpf_htons(p.sport));
+    debugf("osm_cni_msg_redirect src port: %d -> dst port: %d", bpf_htons(p.dport), bpf_htons(p.sport));
 
     long ret = bpf_msg_redirect_hash(msg, &osm_sock_fib, &p, BPF_F_INGRESS);
     if (ret)

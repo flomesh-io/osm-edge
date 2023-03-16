@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma once
-#define SOCK_IP_MARK_PORT 39807
+#define SOCK_IP_MARK_PORT 15050
 
 #ifndef OUT_REDIRECT_PORT
 #define OUT_REDIRECT_PORT 15001
