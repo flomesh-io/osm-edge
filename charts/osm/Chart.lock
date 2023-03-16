@@ -5,5 +5,5 @@ dependencies:
 - name: fsm
   repository: https://charts.flomesh.io
   version: 0.2.3
-digest: sha256:be8ced3d604a29b0ba0238a3e5ce023e0481f3a4dbedb72addaa49eed1d9c665
-generated: "2023-01-26T22:30:29.607702+08:00"
+digest: sha256:29f244de2965bf725d0c6bc693b7cd95b1e0e8937da5e39713a4ed25e81535cf
+generated: "2023-03-08T18:41:39.703551+08:00"

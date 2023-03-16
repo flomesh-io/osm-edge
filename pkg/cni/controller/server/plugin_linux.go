@@ -83,7 +83,7 @@ func (s *server) CmdAdd(args *skel.CmdArgs) (err error) {
 	}
 
 	err = netns.Do(func(_ ns.NetNS) error {
-		// listen on 39807
+		// listen on 15050
 		if err := s.buildListener(netns.Path()); err != nil {
 			return err
 		}
@@ -131,7 +131,7 @@ func (s *server) CmdDelete(args *skel.CmdArgs) (err error) {
 	return m.Delete(key)
 }
 
-// listen on 39807
+// listen on 15050
 func (s *server) buildListener(netns string) error {
 	inode, err := file.Inode(netns)
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *server) buildListener(netns string) error {
 
 	lc := s.listenConfig(addrs[0], netns)
 	var l net.Listener
-	l, err = lc.Listen(context.Background(), "tcp", "0.0.0.0:39807")
+	l, err = lc.Listen(context.Background(), "tcp", "0.0.0.0:15050")
 	if err != nil {
 		if config.EnableHotRestart && errors.Is(err, syscall.EADDRINUSE) {
 			if err != nil {
@@ -254,7 +254,7 @@ func (s *server) checkAndRepairPodPrograms() error {
 			}
 			if err = netns.Do(func(_ ns.NetNS) error {
 				log.Infof("build listener for pid(%s)", pid)
-				// listen on 39807
+				// listen on 15050
 				if err := s.buildListener(netns.Path()); err != nil {
 					return err
 				}
@@ -272,7 +272,7 @@ func (s *server) checkAndRepairPodPrograms() error {
 				return fmt.Errorf("device not found for pid(%s)", pid)
 			}); err != nil {
 				if errors.Is(err, syscall.EADDRINUSE) {
-					// skip if it has listened on 39807
+					// skip if it has listened on 15050
 					continue
 				}
 				return err

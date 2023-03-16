@@ -43,18 +43,18 @@
               (path, headers) => matchPath(path) && headerRules.every(([k, v]) => v.test(headers[k] || '')) && (
                 __route = config,
                 __service = service,
-                __cluster = clusterCache.get(balancer.next()?.id),
+                __cluster = clusterCache.get(balancer.next({})?.id),
                 failoverBalancer && (
-                  _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
+                  _failoverCluster = clusterCache.get(failoverBalancer.next({})?.id)
                 )
               )
             ) : (
               (path) => matchPath(path) && (
                 __route = config,
                 __service = service,
-                __cluster = clusterCache.get(balancer.next()?.id),
+                __cluster = clusterCache.get(balancer.next({})?.id),
                 failoverBalancer && (
-                  _failoverCluster = clusterCache.get(failoverBalancer.next()?.id)
+                  _failoverCluster = clusterCache.get(failoverBalancer.next({})?.id)
                 )
               )
             ),
