@@ -2,7 +2,7 @@ ARG CTR_REGISTRY
 ARG CTR_TAG
 ARG KERNEL_VERSION
 
-FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG as rootfs
+FROM $CTR_REGISTRY/ebpf:ubuntu$CTR_TAG as rootfs
 
 WORKDIR /app
 
@@ -35,4 +35,6 @@ make && make install && \
 rm -rf /app/linux
 
 FROM scratch
+LABEL maintainer="flomesh.io"
+LABEL repository="https://github.com/flomesh-io/osm-edge/tree/depend-images"
 COPY --from=rootfs / /
