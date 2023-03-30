@@ -2,9 +2,11 @@ ARG CTR_REGISTRY
 ARG CTR_TAG
 ARG PYTHON_VERSION
 
-FROM $CTR_REGISTRY/osm-edge-interceptor:compiler$CTR_TAG as compiler
+FROM $CTR_REGISTRY/ebpf:compiler$CTR_TAG as compiler
 
-FROM $CTR_REGISTRY/osm-edge-interceptor:ubuntu$CTR_TAG
+FROM $CTR_REGISTRY/ebpf:ubuntu$CTR_TAG
+LABEL maintainer="flomesh.io"
+LABEL repository="https://github.com/flomesh-io/osm-edge/tree/depend-images"
 
 RUN apt-get update && \
 apt-get install -y libelf-dev make sudo clang iproute2 ethtool && \

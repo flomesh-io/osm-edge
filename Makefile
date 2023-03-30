@@ -10,65 +10,65 @@ DOCKER_BUILDX_PLATFORM ?= linux/amd64
 LDFLAGS ?= "-s -w"
 
 UBUNTU_TARGETS = ubuntu compiler base
-DOCKER_UBUNTU_TARGETS = $(addprefix docker-build-interceptor-, $(UBUNTU_TARGETS))
+DOCKER_UBUNTU_TARGETS = $(addprefix docker-build-ebpf-, $(UBUNTU_TARGETS))
 
 .PHONY: buildx-context
 buildx-context:
 	@if ! docker buildx ls | grep -q "^osm "; then docker buildx create --name osm --driver-opt network=host; fi
 
-.PHONY: docker-build-interceptor-ubuntu
-docker-build-interceptor-ubuntu:
+.PHONY: docker-build-ebpf-ubuntu
+docker-build-ebpf-ubuntu:
 	docker buildx build --builder osm \
 	--platform=$(DOCKER_BUILDX_PLATFORM) \
 	-o $(DOCKER_BUILDX_OUTPUT) \
-	-t $(CTR_REGISTRY)/osm-edge-interceptor:ubuntu$(UBUNTU_VERSION) \
-	-f ./dockerfiles/Dockerfile.osm-edge-interceptor-ubuntu \
+	-t $(CTR_REGISTRY)/ebpf:ubuntu$(UBUNTU_VERSION) \
+	-f ./dockerfiles/Dockerfile.ubuntu \
 	--build-arg DOCKER_REGISTRY=$(DOCKER_REGISTRY) \
 	--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
 	.
 
-.PHONY: docker-build-cross-interceptor-ubuntu
-docker-build-cross-interceptor-ubuntu: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
-docker-build-cross-interceptor-ubuntu: docker-build-interceptor-ubuntu
+.PHONY: docker-build-cross-ebpf-ubuntu
+docker-build-cross-ebpf-ubuntu: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross-ebpf-ubuntu: docker-build-ebpf-ubuntu
 
-.PHONY: docker-build-interceptor-compiler
-docker-build-interceptor-compiler:
+.PHONY: docker-build-ebpf-compiler
+docker-build-ebpf-compiler:
 	docker buildx build --builder osm \
 	--platform=$(DOCKER_BUILDX_PLATFORM) \
 	-o $(DOCKER_BUILDX_OUTPUT) \
-	-t $(CTR_REGISTRY)/osm-edge-interceptor:compiler$(UBUNTU_VERSION) \
-	-f ./dockerfiles/Dockerfile.osm-edge-interceptor-compiler \
+	-t $(CTR_REGISTRY)/ebpf:compiler$(UBUNTU_VERSION) \
+	-f ./dockerfiles/Dockerfile.compiler \
 	--build-arg CTR_REGISTRY=$(CTR_REGISTRY) \
 	--build-arg CTR_TAG=$(UBUNTU_VERSION) \
 	--build-arg KERNEL_VERSION=$(KERNEL_VERSION) \
 	.
 
-.PHONY: docker-build-cross-interceptor-compiler
-docker-build-cross-interceptor-compiler: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
-docker-build-cross-interceptor-compiler: docker-build-interceptor-compiler
+.PHONY: docker-build-cross-ebpf-compiler
+docker-build-cross-ebpf-compiler: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross-ebpf-compiler: docker-build-ebpf-compiler
 
-.PHONY: docker-build-interceptor-base
-docker-build-interceptor-base:
+.PHONY: docker-build-ebpf-base
+docker-build-ebpf-base:
 	docker buildx build --builder osm \
 	--platform=$(DOCKER_BUILDX_PLATFORM) \
 	-o $(DOCKER_BUILDX_OUTPUT) \
-	-t $(CTR_REGISTRY)/osm-edge-interceptor:base$(UBUNTU_VERSION) \
-	-f ./dockerfiles/Dockerfile.osm-edge-interceptor-base \
+	-t $(CTR_REGISTRY)/ebpf:base$(UBUNTU_VERSION) \
+	-f ./dockerfiles/Dockerfile.base \
 	--build-arg CTR_REGISTRY=$(CTR_REGISTRY) \
 	--build-arg CTR_TAG=$(UBUNTU_VERSION) \
 	--build-arg PYTHON_VERSION=$(PYTHON_VERSION) \
 	.
 
-.PHONY: docker-build-cross-interceptor-base
-docker-build-cross-interceptor-base: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
-docker-build-cross-interceptor-base: docker-build-interceptor-base
+.PHONY: docker-build-cross-ebpf-base
+docker-build-cross-ebpf-base: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross-ebpf-base: docker-build-ebpf-base
 
-.PHONY: docker-build-osm
-docker-build-osm: buildx-context $(DOCKER_UBUNTU_TARGETS)
+.PHONY: docker-build
+docker-build: buildx-context $(DOCKER_UBUNTU_TARGETS)
 
-.PHONY: docker-build-cross-osm
-docker-build-cross-osm: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
-docker-build-cross-osm: docker-build-osm
+.PHONY: docker-build-cross
+docker-build-cross: DOCKER_BUILDX_PLATFORM=linux/amd64,linux/arm64
+docker-build-cross: docker-build
 
 .PHONY: trivy-ci-setup
 trivy-ci-setup:
@@ -79,12 +79,12 @@ trivy-ci-setup:
 # Show all vulnerabilities in logs
 trivy-scan-ubuntu-verbose-%: NAME=$(@:trivy-scan-ubuntu-verbose-%=%)
 trivy-scan-ubuntu-verbose-%:
-	trivy image "$(CTR_REGISTRY)/osm-edge-interceptor:$(NAME)$(UBUNTU_VERSION)"
+	trivy image "$(CTR_REGISTRY)/ebpf:$(NAME)$(UBUNTU_VERSION)"
 
 # Exit if vulnerability exists
 trivy-scan-ubuntu-fail-%: NAME=$(@:trivy-scan-ubuntu-fail-%=%)
 trivy-scan-ubuntu-fail-%:
-	trivy image --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/osm-edge-interceptor:$(NAME)$(UBUNTU_VERSION)"
+	trivy image --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/ebpf:$(NAME)$(UBUNTU_VERSION)"
 
 .PHONY: trivy-scan-images trivy-scan-images-fail trivy-scan-images-verbose
 trivy-scan-images-verbose: $(addprefix trivy-scan-ubuntu-verbose-, $(UBUNTU_TARGETS))

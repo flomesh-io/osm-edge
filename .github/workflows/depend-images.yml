@@ -32,7 +32,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
-          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          images: ${{ secrets.RELEASE_REGISTRY }}/ebpf
           tags: |
             type=raw,value=ubuntu${{ matrix.id }}
 
@@ -40,7 +40,7 @@ jobs:
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
-          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-ubuntu
+          file: ./dockerfiles/Dockerfile.ubuntu
           platforms: linux/amd64,linux/arm64
           build-args: |
             DOCKER_REGISTRY=docker.io/library
@@ -78,7 +78,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
-          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          images: ${{ secrets.RELEASE_REGISTRY }}/ebpf
           tags: |
             type=raw,value=compiler${{ matrix.id.ubuntu }}
 
@@ -86,7 +86,7 @@ jobs:
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
-          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-compiler
+          file: ./dockerfiles/Dockerfile.compiler
           platforms: linux/amd64,linux/arm64
           build-args: |
             CTR_REGISTRY=${{ secrets.RELEASE_REGISTRY }}
@@ -125,7 +125,7 @@ jobs:
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v4.3.0
         with:
-          images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-interceptor
+          images: ${{ secrets.RELEASE_REGISTRY }}/ebpf
           tags: |
             type=raw,value=base${{ matrix.id.ubuntu }}
 
@@ -133,7 +133,7 @@ jobs:
         uses: docker/build-push-action@v4.0.0
         with:
           context: .
-          file: ./dockerfiles/Dockerfile.osm-edge-interceptor-base
+          file: ./dockerfiles/Dockerfile.base
           platforms: linux/amd64,linux/arm64
           build-args: |
             CTR_REGISTRY=${{ secrets.RELEASE_REGISTRY }}
@@ -161,7 +161,7 @@ jobs:
           UBUNTU_VERSION: ${{ matrix.id.ubuntu }}
           KERNEL_VERSION: ${{ matrix.id.kernel }}
           PYTHON_VERSION: ${{ matrix.id.python }}
-        run: make docker-build-osm
+        run: make docker-build
       - name: Setup Trivy
         run: make trivy-ci-setup
       - name: Scan docker images for vulnerabilities
