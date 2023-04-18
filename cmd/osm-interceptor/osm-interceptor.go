@@ -1,107 +1,123 @@
-/*
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
-// Package main implements osm intercepter.
+// Package main implements osm interceptor.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
-	"runtime"
-	"strings"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/cni/config"
-	"github.com/openservicemesh/osm/pkg/cni/controller"
+	"github.com/openservicemesh/osm/pkg/cni/controller/cniserver"
 	"github.com/openservicemesh/osm/pkg/cni/controller/helpers"
-	cniserver "github.com/openservicemesh/osm/pkg/cni/controller/server"
+	"github.com/openservicemesh/osm/pkg/cni/controller/podwatcher"
+	"github.com/openservicemesh/osm/pkg/k8s"
+	"github.com/openservicemesh/osm/pkg/k8s/events"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "osm-interceptor",
-	Short: "Use eBPF to speed up your Service Mesh like crossing an Einstein-Rosen Bridge.",
-	Long:  `Use eBPF to speed up your Service Mesh like crossing an Einstein-Rosen Bridge.`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := helpers.LoadProgs(config.Debug, config.Skip); err != nil {
-			return fmt.Errorf("failed to load ebpf programs: %v", err)
-		}
+var (
+	verbosity         string
+	meshName          string // An ID that uniquely identifies an OSM instance
+	kubeConfigFile    string
+	osmNamespace      string
+	osmMeshConfigName string
+	osmVersion        string
+	trustDomain       string
 
-		stop := make(chan struct{}, 1)
-		cniReady := make(chan struct{}, 1)
-		if config.EnableCNI {
-			s := cniserver.NewServer(path.Join(config.HostVarRun, "osm-cni.sock"),
-				"/sys/fs/bpf", cniReady, stop)
-			if err := s.Start(); err != nil {
-				log.Fatal(err)
-				return err
-			}
-		}
-		// todo: wait for stop
-		if err := controller.Run(config.DisableWatcher, config.Skip, cniReady, stop); err != nil {
-			log.Fatal(err)
-			return err
-		}
-		return nil
-	},
+	scheme = runtime.NewScheme()
+
+	flags = pflag.NewFlagSet(`osm-interceptor`, pflag.ExitOnError)
+	log   = logger.New("osm-interceptor/main")
+)
+
+func init() {
+	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
+	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&osmMeshConfigName, "osm-config-name", "osm-mesh-config", "Name of the OSM MeshConfig")
+	flags.StringVar(&osmVersion, "osm-version", "", "Version of OSM")
+	flags.StringVar(&trustDomain, "trust-domain", "cluster.local", "The trust domain to use as part of the common name when requesting new certificates")
+
+	// Get some flags from commands
+	flags.BoolVarP(&config.KernelTracing, "kernel-tracing", "d", false, "KernelTracing mode")
+	flags.BoolVarP(&config.IsKind, "kind", "k", false, "Enable when Kubernetes is running in Kind")
+	flags.BoolVar(&config.EnableCNI, "cni-mode", false, "Enable CNI plugin")
+	flags.StringVar(&config.HostProc, "host-proc", "/host/proc", "/proc mount path")
+	flags.StringVar(&config.CNIBinDir, "cni-bin-dir", "/host/opt/cni/bin", "/opt/cni/bin mount path")
+	flags.StringVar(&config.CNIConfigDir, "cni-config-dir", "/host/etc/cni/net.d", "/etc/cni/net.d mount path")
+	flags.StringVar(&config.HostVarRun, "host-var-run", "/host/var/run", "/var/run mount path")
+
+	_ = clientgoscheme.AddToScheme(scheme)
 }
 
-func execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+func parseFlags() error {
+	if err := flags.Parse(os.Args); err != nil {
+		return err
 	}
+	_ = flag.CommandLine.Parse([]string{})
+	return nil
+}
+
+// validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
+func validateCLIParams() error {
+	if meshName == "" {
+		return fmt.Errorf("Please specify the mesh name using --mesh-name")
+	}
+
+	if osmNamespace == "" {
+		return fmt.Errorf("Please specify the OSM namespace using --osm-namespace")
+	}
+
+	return nil
 }
 
 func main() {
-	execute()
-}
+	log.Info().Msgf("Starting osm-interceptor %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+	if err := parseFlags(); err != nil {
+		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+	}
+	if err := logger.SetLogLevel(verbosity); err != nil {
+		log.Fatal().Err(err).Msg("Error setting log level")
+	}
 
-func init() {
-	// Setup log format
-	log.SetFormatter(&log.TextFormatter{
-		DisableTimestamp:       false,
-		FullTimestamp:          true,
-		DisableLevelTruncation: true,
-		DisableColors:          true,
-		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
-			fs := strings.Split(f.File, "/")
-			filename := fs[len(fs)-1]
-			ff := strings.Split(f.Function, "/")
-			_f := ff[len(ff)-1]
-			return fmt.Sprintf("%s()", _f), fmt.Sprintf("%s:%d", filename, f.Line)
-		},
-	})
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
-	log.SetReportCaller(true)
+	// This ensures CLI parameters (and dependent values) are correct.
+	if err := validateCLIParams(); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
+	}
 
-	// Get some flags from commands
-	rootCmd.PersistentFlags().BoolVarP(&config.Debug, "debug", "d", false, "Debug mode")
-	rootCmd.PersistentFlags().BoolVarP(&config.Skip, "skip", "s", false, "Skip init bpf")
-	rootCmd.PersistentFlags().BoolVarP(&config.DisableWatcher, "disableWatcher", "w", false, "disable Pod watcher")
-	rootCmd.PersistentFlags().BoolVarP(&config.IsKind, "kind", "k", false, "Enable when Kubernetes is running in Kind")
-	_ = rootCmd.PersistentFlags().MarkDeprecated("ips-file", "no need to collect node IPs")
-	rootCmd.PersistentFlags().BoolVar(&config.EnableCNI, "cni-mode", false, "Enable CNI plugin")
-	rootCmd.PersistentFlags().StringVar(&config.HostProc, "host-proc", "/host/proc", "/proc mount path")
-	rootCmd.PersistentFlags().StringVar(&config.CNIBinDir, "cni-bin-dir", "/host/opt/cni/bin", "/opt/cni/bin mount path")
-	rootCmd.PersistentFlags().StringVar(&config.CNIConfigDir, "cni-config-dir", "/host/etc/cni/net.d", "/etc/cni/net.d mount path")
-	rootCmd.PersistentFlags().StringVar(&config.HostVarRun, "host-var-run", "/host/var/run", "/var/run mount path")
-	rootCmd.PersistentFlags().StringVar(&config.KubeConfig, "kubeconfig", "", "Kubernetes configuration file")
-	rootCmd.PersistentFlags().StringVar(&config.Context, "kubecontext", "", "The name of the kube config context to use")
-	rootCmd.PersistentFlags().BoolVar(&config.EnableHotRestart, "enable-hot-restart", false, "enable hot restart")
+	// Initialize kube config and client
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
+	}
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+
+	k8s.SetTrustDomain(trustDomain)
+
+	if err = helpers.LoadProgs(config.EnableCNI, config.KernelTracing); err != nil {
+		log.Fatal().Msgf("failed to load ebpf programs: %v", err)
+	}
+
+	stop := make(chan struct{}, 1)
+	if config.EnableCNI {
+		cniReady := make(chan struct{}, 1)
+		s := cniserver.NewServer(path.Join("/host", config.CNISock), "/sys/fs/bpf", cniReady, stop)
+		if err = s.Start(); err != nil {
+			log.Fatal().Err(err)
+		}
+	}
+	if err = podwatcher.Run(kubeClient, stop); err != nil {
+		log.Fatal().Err(err)
+	}
+
+	log.Info().Msgf("Stopping osm-interceptor %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }

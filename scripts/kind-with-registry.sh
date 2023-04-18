@@ -41,7 +41,7 @@ echo "Registry Host: ${reg_host}"
 
 if [ "${KIND_INGRESS_ENABLE}" != 'true' ]; then
 # create a cluster with the local registry enabled in containerd
-cat <<EOF | kind create cluster --image kindest/node:v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
+cat <<EOF | kind create cluster --image kindest/node:v1.24.0 --name "${KIND_CLUSTER_NAME}" --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -55,7 +55,7 @@ containerdConfigPatches:
 EOF
 else
 # create a cluster with the local registry enabled in containerd
-cat <<EOF | kind create cluster --image kindest/node:v1.20.15 --name "${KIND_CLUSTER_NAME}" --config=-
+cat <<EOF | kind create cluster --image kindest/node:v1.24.0 --name "${KIND_CLUSTER_NAME}" --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

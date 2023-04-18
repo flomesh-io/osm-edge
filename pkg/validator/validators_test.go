@@ -87,7 +87,7 @@ func TestIngressBackendValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Expected 'port.protocol' to be 'http' or 'https', got: invalid",
+			expErrStr: "Expected 'port.protocol' to be 'http', 'https' or 'grpc', got: invalid",
 		},
 		{
 			name: "IngressBackend with valid TLS config succeeds",
@@ -870,7 +870,7 @@ func TestAccessControlValidator(t *testing.T) {
 				},
 			},
 			expResp:   nil,
-			expErrStr: "Expected 'port.protocol' to be 'http' or 'https', got: invalid",
+			expErrStr: "Expected 'port.protocol' to be 'http', 'https' or 'grpc', got: invalid",
 		},
 		{
 			name: "AccessControl with valid TLS config succeeds",

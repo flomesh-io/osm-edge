@@ -211,6 +211,7 @@ spec:
                       enum:
                         - iptables
                         - ebpf
+                        - none
                     enableEgress:
                       description: Enables egress in the mesh
                       type: boolean

@@ -15,15 +15,12 @@ ADD . .
 
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    go build -v -ldflags "-s -w" -o ./dist/osm-interceptor ./cmd/osm-interceptor/osm-interceptor.go
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/osm-interceptor -ldflags "$LDFLAGS" ./cmd/osm-interceptor/osm-interceptor.go
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg \
-    go build -v -ldflags "-s -w" -o ./dist/osm-cni ./cmd/osm-interceptor/osm-cni/osm-cni.go
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    --mount=type=cache,target=/go/pkg \
-    go build -v -ldflags "-s -w" -o ./dist/osm-fd-back ./cmd/osm-interceptor/osm-fd-back/osm-fd-back.go
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -v -o ./dist/osm-cni -ldflags "$LDFLAGS" ./cmd/osm-interceptor/osm-cni/osm-cni.go
 
-FROM flomesh/osm-edge-interceptor:base20.04
+FROM flomesh/ebpf:base20.04
 
 WORKDIR /app
 
@@ -31,6 +28,5 @@ COPY bpf bpf
 COPY Makefile.CNI Makefile
 COPY --from=gobuild /app/dist/osm-interceptor osm-interceptor
 COPY --from=gobuild /app/dist/osm-cni osm-cni
-COPY --from=gobuild /app/dist/osm-fd-back osm-fd-back
 
 CMD /app/osm-interceptor

@@ -1,16 +1,4 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package server
+package cniserver
 
 import (
 	"bytes"
@@ -26,10 +14,8 @@ import (
 
 	"github.com/containernetworking/cni/libcni"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/openservicemesh/osm/pkg/cni/config"
-	"github.com/openservicemesh/osm/pkg/cni/file"
 	"github.com/openservicemesh/osm/pkg/cni/util"
 )
 
@@ -104,15 +90,15 @@ func (in *installer) Run(ctx context.Context, cniReady chan struct{}) error {
 		if err = sleepCheckInstall(ctx, in.cniConfigFilepath); err != nil {
 			return err
 		}
-		log.Info("Restarting CNI installer...")
+		log.Info().Msg("Restarting CNI installer...")
 	}
 }
 
 // Cleanup remove CNI's config, kubeconfig file, and binaries.
 func (in *installer) Cleanup() error {
-	log.Info("Cleaning up.")
-	if len(in.cniConfigFilepath) > 0 && file.Exists(in.cniConfigFilepath) {
-		log.Infof("Removing CNI config from CNI config file: %s", in.cniConfigFilepath)
+	log.Info().Msg("Cleaning up.")
+	if len(in.cniConfigFilepath) > 0 && util.Exists(in.cniConfigFilepath) {
+		log.Info().Msgf("Removing CNI config from CNI config file: %s", in.cniConfigFilepath)
 
 		// Read JSON from CNI config file
 		cniConfigMap, err := readCNIConfigMap(in.cniConfigFilepath)
@@ -139,21 +125,21 @@ func (in *installer) Cleanup() error {
 		if err != nil {
 			return err
 		}
-		if err = file.AtomicWrite(in.cniConfigFilepath, cniConfig, os.FileMode(0o644)); err != nil {
+		if err = util.AtomicWrite(in.cniConfigFilepath, cniConfig, os.FileMode(0o644)); err != nil {
 			return err
 		}
 	}
 
-	if len(in.kubeConfigFilepath) > 0 && file.Exists(in.kubeConfigFilepath) {
-		log.Infof("Removing CNI kubeconfig file: %s", in.kubeConfigFilepath)
+	if len(in.kubeConfigFilepath) > 0 && util.Exists(in.kubeConfigFilepath) {
+		log.Info().Msgf("Removing CNI kubeconfig file: %s", in.kubeConfigFilepath)
 		if err := os.Remove(in.kubeConfigFilepath); err != nil {
 			return err
 		}
 	}
 
-	log.Info("Removing existing binaries")
+	log.Info().Msg("Removing existing binaries")
 	cniBinPath := path.Join(config.CNIBinDir, osmCniName)
-	if file.Exists(cniBinPath) {
+	if util.Exists(cniBinPath) {
 		if err := os.Remove(cniBinPath); err != nil {
 			return err
 		}
@@ -241,13 +227,13 @@ func writeCNIConfig(ctx context.Context, cniConfig []byte) (string, error) {
 		return "", err
 	}
 
-	if err = file.AtomicWrite(cniConfigFilepath, mergeConfig, os.FileMode(0o644)); err != nil {
+	if err = util.AtomicWrite(cniConfigFilepath, mergeConfig, os.FileMode(0o644)); err != nil {
 		return "", err
 	}
 
 	if strings.HasSuffix(cniConfigFilepath, ".conf") {
 		// If the old CNI config filename ends with .conf, rename it to .conflist, because it has to be changed to a list
-		log.Infof("Renaming %s extension to .conflist", cniConfigFilepath)
+		log.Info().Msgf("Renaming %s extension to .conflist", cniConfigFilepath)
 		err = os.Rename(cniConfigFilepath, cniConfigFilepath+"list")
 		if err != nil {
 			return "", err
@@ -255,7 +241,7 @@ func writeCNIConfig(ctx context.Context, cniConfig []byte) (string, error) {
 		cniConfigFilepath += "list"
 	}
 
-	log.Infof("Created CNI config %s", cniConfigFilepath)
+	log.Info().Msgf("Created CNI config %s", cniConfigFilepath)
 	return cniConfigFilepath, nil
 }
 
@@ -283,22 +269,22 @@ func getCNIConfigFilepath(ctx context.Context) (string, error) {
 
 	cniConfigFilepath := filepath.Join(config.CNIConfigDir, filename)
 
-	for !file.Exists(cniConfigFilepath) {
-		if strings.HasSuffix(cniConfigFilepath, ".conf") && file.Exists(cniConfigFilepath+"list") {
-			log.Infof("%s doesn't exist, but %[1]slist does; Using it as the CNI config file instead.", cniConfigFilepath)
+	for !util.Exists(cniConfigFilepath) {
+		if strings.HasSuffix(cniConfigFilepath, ".conf") && util.Exists(cniConfigFilepath+"list") {
+			log.Info().Msgf("%s doesn't exist, but %[1]slist does; Using it as the CNI config file instead.", cniConfigFilepath)
 			cniConfigFilepath += "list"
-		} else if strings.HasSuffix(cniConfigFilepath, ".conflist") && file.Exists(cniConfigFilepath[:len(cniConfigFilepath)-4]) {
-			log.Infof("%s doesn't exist, but %s does; Using it as the CNI config file instead.", cniConfigFilepath, cniConfigFilepath[:len(cniConfigFilepath)-4])
+		} else if strings.HasSuffix(cniConfigFilepath, ".conflist") && util.Exists(cniConfigFilepath[:len(cniConfigFilepath)-4]) {
+			log.Info().Msgf("%s doesn't exist, but %s does; Using it as the CNI config file instead.", cniConfigFilepath, cniConfigFilepath[:len(cniConfigFilepath)-4])
 			cniConfigFilepath = cniConfigFilepath[:len(cniConfigFilepath)-4]
 		} else {
-			log.Infof("CNI config file %s does not exist. Waiting for file to be written...", cniConfigFilepath)
+			log.Info().Msgf("CNI config file %s does not exist. Waiting for file to be written...", cniConfigFilepath)
 			if err = util.WaitForFileMod(ctx, fileModified, errChan); err != nil {
 				return "", err
 			}
 		}
 	}
 
-	log.Infof("CNI config file %s exists. Proceeding.", cniConfigFilepath)
+	log.Info().Msgf("CNI config file %s exists. Proceeding.", cniConfigFilepath)
 
 	return cniConfigFilepath, err
 }
@@ -320,7 +306,7 @@ func sleepCheckInstall(ctx context.Context, cniConfigFilepath string) error {
 	for {
 		if checkErr := checkInstall(cniConfigFilepath); checkErr != nil {
 			// Pod set to "NotReady" due to invalid configuration
-			log.Infof("Invalid configuration. %v", checkErr)
+			log.Info().Msgf("Invalid configuration. %v", checkErr)
 			return nil
 		}
 		// Check if file has been modified or if an error has occurred during checkInstall before setting isReady to true
@@ -344,14 +330,14 @@ func sleepCheckInstall(ctx context.Context, cniConfigFilepath string) error {
 func copyBinaries() error {
 	srcFile := "/app/osm-cni"
 
-	if file.IsDirWriteable(config.CNIBinDir) != nil {
+	if util.IsDirWriteable(config.CNIBinDir) != nil {
 		return fmt.Errorf("directory %s is not writable", config.CNIBinDir)
 	}
-	err := file.AtomicCopy(srcFile, config.CNIBinDir, osmCniName)
+	err := util.AtomicCopy(srcFile, config.CNIBinDir, osmCniName)
 	if err != nil {
 		return err
 	}
-	log.Infof("Copied %s to %s.", srcFile, config.CNIBinDir)
+	log.Info().Msgf("Copied %s to %s.", srcFile, config.CNIBinDir)
 	return nil
 }
 
@@ -366,7 +352,7 @@ func checkInstall(cniConfigFilepath string) error {
 		return fmt.Errorf("cni config file %s preempted by %s", cniConfigFilepath, defaultCNIConfigFilepath)
 	}
 
-	if !file.Exists(cniConfigFilepath) {
+	if !util.Exists(cniConfigFilepath) {
 		return fmt.Errorf("cni config file removed: %s", cniConfigFilepath)
 	}
 
@@ -441,8 +427,8 @@ func createKubeconfigFile(saToken string) (kubeconfigFilepath string, err error)
 	}
 
 	kubeconfigFilepath = filepath.Join(config.CNIConfigDir, kubeConfigFileName)
-	log.Infof("write kubeconfig file %s with: \n%+v", kubeconfigFilepath, kcbbToPrint.String())
-	if err = file.AtomicWrite(kubeconfigFilepath, kcbb.Bytes(), os.FileMode(0o600)); err != nil {
+	log.Info().Msgf("write kubeconfig file %s with: \n%+v", kubeconfigFilepath, kcbbToPrint.String())
+	if err = util.AtomicWrite(kubeconfigFilepath, kcbb.Bytes(), os.FileMode(0o600)); err != nil {
 		return "", err
 	}
 
@@ -450,7 +436,7 @@ func createKubeconfigFile(saToken string) (kubeconfigFilepath string, err error)
 }
 
 func readServiceAccountToken() (string, error) {
-	if !file.Exists(tokenPath) {
+	if !util.Exists(tokenPath) {
 		return "", fmt.Errorf("service account token file %s does not exist. Is this not running within a pod?", tokenPath)
 	}
 
@@ -479,30 +465,30 @@ func getDefaultCNINetwork(confDir string) (string, error) {
 		if strings.HasSuffix(confFile, ".conflist") {
 			confList, err = libcni.ConfListFromFile(confFile)
 			if err != nil {
-				log.Warnf("Error loading CNI config list file %s: %v", confFile, err)
+				log.Warn().Msgf("Error loading CNI config list file %s: %v", confFile, err)
 				continue
 			}
 		} else {
 			conf, err := libcni.ConfFromFile(confFile)
 			if err != nil {
-				log.Warnf("Error loading CNI config file %s: %v", confFile, err)
+				log.Warn().Msgf("Error loading CNI config file %s: %v", confFile, err)
 				continue
 			}
 			// Ensure the config has a "type" so we know what plugin to run.
 			// Also catches the case where somebody put a conflist into a conf file.
 			if conf.Network.Type == "" {
-				log.Warnf("Error loading CNI config file %s: no 'type'; perhaps this is a .conflist?", confFile)
+				log.Warn().Msgf("Error loading CNI config file %s: no 'type'; perhaps this is a .conflist?", confFile)
 				continue
 			}
 
 			confList, err = libcni.ConfListFromConf(conf)
 			if err != nil {
-				log.Warnf("Error converting CNI config file %s to list: %v", confFile, err)
+				log.Warn().Msgf("Error converting CNI config file %s to list: %v", confFile, err)
 				continue
 			}
 		}
 		if len(confList.Plugins) == 0 {
-			log.Warnf("CNI config list %s has no networks, skipping", confList.Name)
+			log.Warn().Msgf("CNI config list %s has no networks, skipping", confList.Name)
 			continue
 		}
 

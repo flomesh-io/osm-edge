@@ -1,16 +1,4 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-package controller
+package podwatcher
 
 import (
 	"fmt"
@@ -20,11 +8,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 	"unsafe"
 
 	"github.com/cilium/ebpf"
-	log "github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -34,20 +20,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func runLocalPodController(skip bool, client kubernetes.Interface, stop chan struct{}) error {
+func runLocalPodController(client kubernetes.Interface, stop chan struct{}) error {
 	var err error
 
 	if err = helpers.InitLoadPinnedMap(); err != nil {
 		return fmt.Errorf("failed to load ebpf maps: %v", err)
 	}
-
-	go func() {
-		for {
-			tracePodFibMap()
-			traceNatFibMap()
-			time.Sleep(time.Second * 20)
-		}
-	}()
 
 	w := newWatcher(createLocalPodController(client))
 
@@ -55,8 +33,8 @@ func runLocalPodController(skip bool, client kubernetes.Interface, stop chan str
 		return fmt.Errorf("start watcher failed: %v", err)
 	}
 
-	log.Info("Pod watcher Ready")
-	if err = helpers.AttachProgs(skip); err != nil {
+	log.Info().Msg("Pod watcher Ready")
+	if err = helpers.AttachProgs(); err != nil {
 		return fmt.Errorf("failed to attach ebpf programs: %v", err)
 	}
 	if config.EnableCNI {
@@ -68,10 +46,10 @@ func runLocalPodController(skip bool, client kubernetes.Interface, stop chan str
 	}
 	w.shutdown()
 
-	if err = helpers.UnLoadProgs(skip); err != nil {
+	if err = helpers.UnLoadProgs(); err != nil {
 		return fmt.Errorf("unload failed: %v", err)
 	}
-	log.Info("Pod watcher Down")
+	log.Info().Msg("Pod watcher Down")
 	return nil
 }
 
@@ -116,9 +94,6 @@ func isInjectedSidecar(pod *v1.Pod) bool {
 }
 
 func addFunc(obj interface{}) {
-	if disableWatch {
-		return
-	}
 	pod, ok := obj.(*v1.Pod)
 	if !ok || len(pod.Status.PodIP) == 0 {
 		return
@@ -126,15 +101,15 @@ func addFunc(obj interface{}) {
 	if !isInjectedSidecar(pod) {
 		return
 	}
-	log.Debugf("got pod updated %s/%s", pod.Namespace, pod.Name)
+	log.Debug().Msgf("got pod updated %s/%s", pod.Namespace, pod.Name)
 
 	_ip, _ := util.IP2Pointer(pod.Status.PodIP)
-	log.Infof("update osm_pod_fib with ip: %s", pod.Status.PodIP)
+	log.Info().Msgf("update osm_pod_fib with ip: %s", pod.Status.PodIP)
 	p := podConfig{}
 	parsePodConfigFromAnnotations(pod.Annotations, &p)
 	err := helpers.GetPodFibMap().Update(_ip, &p, ebpf.UpdateAny)
 	if err != nil {
-		log.Errorf("update osm_pod_fib %s error: %v", pod.Status.PodIP, err)
+		log.Error().Msgf("update osm_pod_fib %s error: %v", pod.Status.PodIP, err)
 	}
 }
 
@@ -164,7 +139,7 @@ func getIPRangesFromString(v string) []cidr {
 		if p := strings.TrimSpace(vv); p != "" {
 			_, n, err := net.ParseCIDR(vv)
 			if err != nil {
-				log.Errorf("parse cidr from %s error: %v", vv, err)
+				log.Error().Msgf("parse cidr from %s error: %v", vv, err)
 				continue
 			}
 			c := cidr{}
@@ -262,9 +237,6 @@ func parsePodConfigFromAnnotations(annotations map[string]string, pod *podConfig
 }
 
 func updateFunc(old, cur interface{}) {
-	if disableWatch {
-		return
-	}
 	oldPod, ok := old.(*v1.Pod)
 	if !ok {
 		return
@@ -280,11 +252,8 @@ func updateFunc(old, cur interface{}) {
 }
 
 func deleteFunc(obj interface{}) {
-	if disableWatch {
-		return
-	}
 	if pod, ok := obj.(*v1.Pod); ok {
-		log.Debugf("got pod delete %s/%s", pod.Namespace, pod.Name)
+		log.Debug().Msgf("got pod delete %s/%s", pod.Namespace, pod.Name)
 		_ip, _ := util.IP2Pointer(pod.Status.PodIP)
 		_ = helpers.GetPodFibMap().Delete(_ip)
 	}
