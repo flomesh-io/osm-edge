@@ -239,6 +239,7 @@ func skipListening(pid string) bool {
 	//comm := strings.TrimSpace(string(b))
 
 	findStr := func(path string, str []byte) bool {
+		//#nosec G304
 		f, _ := os.Open(path)
 		defer func(f *os.File) {
 			_ = f.Close()

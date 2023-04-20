@@ -22,7 +22,9 @@ import (
 const (
 	osmCniName         = "osm-cni"
 	kubeConfigFileName = "ZZZ-osm-cni-kubeconfig"
-	tokenPath          = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+
+	//#nosec G101
+	tokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
 	kubeConfigTemplate = `# Kubeconfig file for OSM CNI plugin.
 apiVersion: v1
@@ -218,6 +220,7 @@ func writeCNIConfig(ctx context.Context, cniConfig []byte) (string, error) {
 	}
 
 	// This section overwrites an existing plugins list entry for osm-cni
+	//#nosec G304
 	existingCNIConfig, err := os.ReadFile(cniConfigFilepath)
 	if err != nil {
 		return "", err
@@ -380,6 +383,7 @@ func checkInstall(cniConfigFilepath string) error {
 
 // Read CNI config from file and return the unmarshalled JSON as a map
 func readCNIConfigMap(path string) (map[string]interface{}, error) {
+	//#nosec G304
 	cniConfig, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err

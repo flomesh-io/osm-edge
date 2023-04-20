@@ -10,6 +10,7 @@ import (
 
 // AtomicCopy copies file by reading the file then writing atomically into the target directory
 func AtomicCopy(srcFilepath, targetDir, targetFilename string) error {
+	//#nosec G304
 	in, err := os.Open(srcFilepath)
 	if err != nil {
 		return err

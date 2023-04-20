@@ -124,6 +124,7 @@ func GetNS(nspath string) (NetNS, error) {
 		return nil, err
 	}
 
+	//#nosec G304
 	fd, err := os.Open(nspath)
 	if err != nil {
 		return nil, err

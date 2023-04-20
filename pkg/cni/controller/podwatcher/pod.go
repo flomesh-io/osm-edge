@@ -146,8 +146,10 @@ func getIPRangesFromString(v string) []cidr {
 			ones, _ := n.Mask.Size()
 			c.mask = uint8(ones)
 			if len(n.IP) == 16 {
+				//#nosec G103
 				c.net = *(*uint32)(unsafe.Pointer(&n.IP[12]))
 			} else {
+				//#nosec G103
 				c.net = *(*uint32)(unsafe.Pointer(&n.IP[0]))
 			}
 			ranges = append(ranges, c)

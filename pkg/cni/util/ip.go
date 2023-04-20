@@ -18,5 +18,6 @@ func IP2Pointer(ipstr string) (unsafe.Pointer, error) {
 			ip[i] = 0
 		}
 	}
+	//#nosec G103
 	return unsafe.Pointer(&ip[0]), nil
 }
