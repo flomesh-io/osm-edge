@@ -158,7 +158,7 @@ jobs:
 
       - name: Docker meta - ${{ matrix.id }}
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v4.3.0
+        uses: crazy-max/ghaction-docker-meta@v4.4.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-${{ matrix.id }}
           tags: |
@@ -211,7 +211,7 @@ jobs:
 
       - name: Docker meta - ${{ matrix.id }}
         id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v4.3.0
+        uses: crazy-max/ghaction-docker-meta@v4.4.0
         with:
           images: ${{ secrets.RELEASE_REGISTRY }}/osm-edge-demo-${{ matrix.id }}
           tags: |
