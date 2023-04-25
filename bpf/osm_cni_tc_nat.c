@@ -1,16 +1,3 @@
-/*
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 #include "headers/helpers.h"
 #include "headers/maps.h"
 #include "headers/mesh.h"
@@ -22,11 +9,12 @@ limitations under the License.
 #include <linux/tcp.h>
 #include <stddef.h>
 
-__section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
-    void *data = (void *) (long) skb->data;
-    void *data_end = (void *) (long) skb->data_end;
-    struct ethhdr *eth = (struct ethhdr *) data;
-    if ((void *) (eth + 1) > data_end) {
+__section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb)
+{
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+    struct ethhdr *eth = (struct ethhdr *)data;
+    if ((void *)(eth + 1) > data_end) {
         return TC_ACT_SHOT;
     }
 
@@ -37,40 +25,41 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
     __u32 dport_off;
 
     switch (bpf_htons(eth->h_proto)) {
-        case ETH_P_IP: {
-            struct iphdr *iph = (struct iphdr *) (eth + 1);
-            if ((void *) (iph + 1) > data_end) {
-                return TC_ACT_SHOT;
-            }
-            if (iph->protocol == IPPROTO_IPIP) {
-                iph = ((void *) iph + iph->ihl * 4);
-                if ((void *) (iph + 1) > data_end) {
-                    return TC_ACT_OK;
-                }
-            }
-            if (iph->protocol != IPPROTO_TCP) {
+    case ETH_P_IP: {
+        struct iphdr *iph = (struct iphdr *)(eth + 1);
+        if ((void *)(iph + 1) > data_end) {
+            return TC_ACT_SHOT;
+        }
+        if (iph->protocol == IPPROTO_IPIP) {
+            iph = ((void *)iph + iph->ihl * 4);
+            if ((void *)(iph + 1) > data_end) {
                 return TC_ACT_OK;
             }
-            set_ipv4(src_ip, iph->saddr);
-            set_ipv4(dst_ip, iph->daddr);
-            tcph = (struct tcphdr *) (iph + 1);
-            csum_off = ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, check);
-            dport_off = ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, dest);
-            break;
         }
-        default:
+        if (iph->protocol != IPPROTO_TCP) {
             return TC_ACT_OK;
+        }
+        set_ipv4(src_ip, iph->saddr);
+        set_ipv4(dst_ip, iph->daddr);
+        tcph = (struct tcphdr *)(iph + 1);
+        csum_off =
+            ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, check);
+        dport_off =
+            ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, dest);
+        break;
+    }
+    default:
+        return TC_ACT_OK;
     }
 
-    if ((void *) (tcph + 1) > data_end) {
+    if ((void *)(tcph + 1) > data_end) {
         return TC_ACT_SHOT;
     }
     __u16 in_port = bpf_htons(IN_REDIRECT_PORT);
     if (tcph->syn && !tcph->ack) {
         // first packet
         if (tcph->dest == in_port) {
-            // same node, already rewrite dest port by connect.
-            // bypass.
+            // same node, already rewrite dest port by connect. bypass.
             debugf("osm_cni_tc_nat [ingress]: already dnat");
             return TC_ACT_OK;
         }
@@ -87,21 +76,20 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
         int exclude = 0;
         IS_EXCLUDE_PORT(pod->exclude_in_ports, tcph->dest, &exclude);
         if (exclude) {
-            debugf("osm_cni_tc_nat [ingress]: ignored dest port by exclude_in_ports, ip: %pI4/%pI6c, port: %d",
+            debugf("osm_cni_tc_nat [ingress]: ignored dest port by "
+                   "exclude_in_ports, ip: %pI4/%pI6c, port: %d",
                    &dst_ip[3], dst_ip, bpf_htons(tcph->dest));
             return TC_ACT_OK;
         }
         int include = 0;
         IS_INCLUDE_PORT(pod->include_in_ports, tcph->dest, &include);
         if (!include) {
-            debugf("osm_cni_tc_nat [ingress]: ignored dest port by include_in_ports, ip: %pI4/%pI6c, port: %d",
+            debugf("osm_cni_tc_nat [ingress]: ignored dest port by "
+                   "include_in_ports, ip: %pI4/%pI6c, port: %d",
                    &dst_ip[3], dst_ip, bpf_htons(tcph->dest));
             return TC_ACT_OK;
         }
 
-        // like from 10.0.0.1:23456 => 172.31.0.123:80
-        // we will rewrite the dest port from 80 to 15003
-        // which will be: 10.0.0.1:23456 => 172.31.0.123:15003
         struct pair p;
         memset(&p, 0, sizeof(p));
         set_ipv6(p.sip, src_ip);
@@ -128,18 +116,8 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
         set_ipv6(p.dip, dst_ip);
         p.sport = tcph->source;
         p.dport = in_port;
-        struct origin_info *origin =
-                bpf_map_lookup_elem(&osm_nat_fib, &p);
+        struct origin_info *origin = bpf_map_lookup_elem(&osm_nat_fib, &p);
         if (!origin) {
-            // not exists
-            // char srcip[16];
-            // ipstr(src_ip, srcip);
-            // char dip[16];
-            // ipstr(dst_ip, dip);
-            // debugf("request origin not found %s -> %s", srcip, dip);
-            // debugf("request origin not found port %d -> %d",
-            //        bpf_htons(tcph->source), bpf_htons(tcph->dest));
-            //debugf("osm_cni_tc_nat: no origin");
             return TC_ACT_OK;
         }
         if (!(origin->flags & TC_ORIGIN_FLAG)) {
@@ -155,11 +133,12 @@ __section("classifier_ingress") int osm_cni_tc_dnat(struct __sk_buff *skb) {
     return TC_ACT_OK;
 }
 
-__section("classifier_egress") int osm_cni_tc_snat(struct __sk_buff *skb) {
-    void *data = (void *) (long) skb->data;
-    void *data_end = (void *) (long) skb->data_end;
-    struct ethhdr *eth = (struct ethhdr *) data;
-    if ((void *) (eth + 1) > data_end) {
+__section("classifier_egress") int osm_cni_tc_snat(struct __sk_buff *skb)
+{
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+    struct ethhdr *eth = (struct ethhdr *)data;
+    if ((void *)(eth + 1) > data_end) {
         return TC_ACT_SHOT;
     }
 
@@ -170,43 +149,42 @@ __section("classifier_egress") int osm_cni_tc_snat(struct __sk_buff *skb) {
     __u32 sport_off;
 
     switch (bpf_htons(eth->h_proto)) {
-        case ETH_P_IP: {
-            struct iphdr *iph = (struct iphdr *) (eth + 1);
-            if ((void *) (iph + 1) > data_end) {
-                return TC_ACT_SHOT;
-            }
-            if (iph->protocol == IPPROTO_IPIP) {
-                iph = ((void *) iph + iph->ihl * 4);
-                if ((void *) (iph + 1) > data_end) {
-                    return TC_ACT_OK;
-                }
-            }
-            if (iph->protocol != IPPROTO_TCP) {
+    case ETH_P_IP: {
+        struct iphdr *iph = (struct iphdr *)(eth + 1);
+        if ((void *)(iph + 1) > data_end) {
+            return TC_ACT_SHOT;
+        }
+        if (iph->protocol == IPPROTO_IPIP) {
+            iph = ((void *)iph + iph->ihl * 4);
+            if ((void *)(iph + 1) > data_end) {
                 return TC_ACT_OK;
             }
-            set_ipv4(src_ip, iph->saddr);
-            set_ipv4(dst_ip, iph->daddr);
-            tcph = (struct tcphdr *) (iph + 1);
-            csum_off = ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, check);
-            sport_off = ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, source);
-            break;
         }
-        default:
+        if (iph->protocol != IPPROTO_TCP) {
             return TC_ACT_OK;
+        }
+        set_ipv4(src_ip, iph->saddr);
+        set_ipv4(dst_ip, iph->daddr);
+        tcph = (struct tcphdr *)(iph + 1);
+        csum_off =
+            ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, check);
+        sport_off =
+            ETH_HLEN + sizeof(struct iphdr) + offsetof(struct tcphdr, source);
+        break;
+    }
+    default:
+        return TC_ACT_OK;
     }
 
-    if ((void *) (tcph + 1) > data_end) {
+    if ((void *)(tcph + 1) > data_end) {
         return TC_ACT_SHOT;
     }
     __u16 in_port = bpf_htons(IN_REDIRECT_PORT);
     if (tcph->source != in_port) {
-        //debugf("osm_cni_tc_nat[egress]: no need to rewrite src port, bypassed");
+        // debugf("osm_cni_tc_nat[egress]: no need to rewrite src port,
+        // bypassed");
         return TC_ACT_OK;
     }
-    // response
-    // like from 172.31.0.123:15003 => 10.0.0.1:23456
-    // to avoid the client drop packet, we must reset the source port from
-    // 15003 to 80.
     struct pair p;
     memset(&p, 0, sizeof(p));
     set_ipv6(p.dip, src_ip);
@@ -221,7 +199,8 @@ __section("classifier_egress") int osm_cni_tc_snat(struct __sk_buff *skb) {
     }
     if (!(origin->flags & TC_ORIGIN_FLAG)) {
         // not tc origin
-        printk("osm_cni_tc_nat [egress]: resp origin flags %x error", origin->flags);
+        printk("osm_cni_tc_nat [egress]: resp origin flags %x error",
+               origin->flags);
         return TC_ACT_OK;
     }
     if (tcph->fin && tcph->ack) {

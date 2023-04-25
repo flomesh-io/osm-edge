@@ -116,7 +116,6 @@ var _ = OSMDescribe("Test Retry Policy",
 					}
 					_, err = Td.PolicyClient.PolicyV1alpha1().Retries(client).Create(context.TODO(), retry, metav1.CreateOptions{})
 					Expect(err).ToNot((HaveOccurred()))
-					time.Sleep(10 * time.Second)
 
 					req := HTTPRequestDef{
 						SourceNs:        client,
@@ -126,7 +125,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					}
 
 					By("A request that will be retried NumRetries times then fail")
-					err = wait.Poll(time.Second*3, time.Second*30, func() (bool, error) {
+					err = wait.Poll(time.Second*30, time.Second*30, func() (bool, error) {
 						defer GinkgoRecover()
 						result := Td.HTTPRequest(req)
 
@@ -238,7 +237,6 @@ var _ = OSMDescribe("Test Retry Policy",
 					}
 					_, err = Td.PolicyClient.PolicyV1alpha1().Retries(client).Create(context.TODO(), retry, metav1.CreateOptions{})
 					Expect(err).ToNot((HaveOccurred()))
-					time.Sleep(5 * time.Second)
 
 					req := HTTPRequestDef{
 						SourceNs:        client,
@@ -248,8 +246,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					}
 
 					By("A request that will be retried 0 times and then fail")
-					time.Sleep(10 * time.Second)
-					err = wait.Poll(time.Second*3, time.Second*30, func() (bool, error) {
+					err = wait.Poll(time.Second*30, time.Second*30, func() (bool, error) {
 						defer GinkgoRecover()
 						result := Td.HTTPRequest(req)
 

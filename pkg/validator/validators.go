@@ -238,8 +238,9 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 		switch strings.ToLower(backend.Port.Protocol) {
 		case constants.ProtocolHTTP:
 			// Valid
-
 		case constants.ProtocolHTTPS:
+			// Valid
+		case constants.ProtocolGRPC:
 			// Valid
 			// If mTLS is enabled, verify there is an AuthenticatedPrincipal specified
 			authenticatedSourceFound := false
@@ -255,7 +256,7 @@ func (kc *policyValidator) ingressBackendValidator(req *admissionv1.AdmissionReq
 			}
 
 		default:
-			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http' or 'https', got: %s", backend.Port.Protocol)
+			return nil, fmt.Errorf("Expected 'port.protocol' to be 'http', 'https' or 'grpc', got: %s", backend.Port.Protocol)
 		}
 	}
 
