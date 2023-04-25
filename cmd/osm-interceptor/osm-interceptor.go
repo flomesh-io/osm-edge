@@ -4,6 +4,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/cilium/ebpf/rlimit"
 	"os"
 	"path"
 
@@ -105,6 +106,10 @@ func main() {
 
 	if err = helpers.LoadProgs(config.EnableCNI, config.KernelTracing); err != nil {
 		log.Fatal().Msgf("failed to load ebpf programs: %v", err)
+	}
+
+	if err = rlimit.RemoveMemlock(); err != nil {
+		log.Fatal().Msgf("remove memlock error: %v", err)
 	}
 
 	stop := make(chan struct{}, 1)
