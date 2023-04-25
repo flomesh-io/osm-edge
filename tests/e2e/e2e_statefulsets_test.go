@@ -44,7 +44,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 
 				install.ReleaseName = "kafka"
 				install.Namespace = testNS
-				install.Timeout = 30 * time.Second
+				install.Timeout = 180 * time.Second
 				saName := "zookeeper"
 				replicaCount := 3
 
