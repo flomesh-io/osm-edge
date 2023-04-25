@@ -4,10 +4,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cilium/ebpf/rlimit"
 	"os"
 	"path"
 
+	"github.com/cilium/ebpf/rlimit"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
