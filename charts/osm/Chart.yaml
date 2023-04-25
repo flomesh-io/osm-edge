@@ -29,6 +29,6 @@ dependencies:
   repository: https://charts.bitnami.com/bitnami
   condition: contour.enabled
 - name: fsm
-  version: 0.2.3
+  version: 0.2.4
   repository: https://charts.flomesh.io
   condition: fsm.enabled
