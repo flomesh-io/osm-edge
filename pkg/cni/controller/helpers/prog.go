@@ -1,16 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// Package helpers implements ebpf helpers.
 package helpers
 
 import (
@@ -19,21 +6,20 @@ import (
 	"os/exec"
 
 	"github.com/cilium/ebpf"
-	log "github.com/sirupsen/logrus"
 )
 
 // LoadProgs load ebpf progs
-func LoadProgs(debug bool, skip bool) error {
-	if skip {
-		return nil
-	}
+func LoadProgs(useCniMode, kernelTracing bool) error {
 	if os.Getuid() != 0 {
 		return fmt.Errorf("root user in required for this process or container")
 	}
 	cmd := exec.Command("make", "load")
 	cmd.Env = os.Environ()
-	if debug {
-		cmd.Env = append(cmd.Env, "DEBUG=1")
+	if useCniMode {
+		cmd.Env = append(cmd.Env, "CNI_MODE=true")
+	}
+	if !kernelTracing {
+		cmd.Env = append(cmd.Env, "DEBUG=0")
 	}
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -45,10 +31,7 @@ func LoadProgs(debug bool, skip bool) error {
 }
 
 // AttachProgs attach ebpf progs
-func AttachProgs(skip bool) error {
-	if skip {
-		return nil
-	}
+func AttachProgs() error {
 	if os.Getuid() != 0 {
 		return fmt.Errorf("root user in required for this process or container")
 	}
@@ -64,10 +47,7 @@ func AttachProgs(skip bool) error {
 }
 
 // UnLoadProgs unload ebpf progs
-func UnLoadProgs(skip bool) error {
-	if skip {
-		return nil
-	}
+func UnLoadProgs() error {
 	cmd := exec.Command("make", "-k", "clean")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -88,7 +68,7 @@ func GetTrafficControlIngressProg() *ebpf.Program {
 	if ingress == nil {
 		err := initTrafficControlProgs()
 		if err != nil {
-			log.Errorf("init tc prog filed: %v", err)
+			log.Error().Msgf("init tc prog filed: %v", err)
 		}
 	}
 	return ingress
@@ -99,7 +79,7 @@ func GetTrafficControlEgressProg() *ebpf.Program {
 	if egress == nil {
 		err := initTrafficControlProgs()
 		if err != nil {
-			log.Errorf("init tc prog filed: %v", err)
+			log.Error().Msgf("init tc prog filed: %v", err)
 		}
 	}
 	return egress

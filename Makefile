@@ -125,6 +125,12 @@ go-test-coverage: embed-files
 go-benchmark: embed-files
 	./scripts/go-benchmark.sh
 
+lint-c:
+	clang-format --Werror -n bpf/*.c bpf/headers/*.h
+
+format-c:
+	find . -regex '.*\.\(c\|h\)' -exec clang-format -style=file -i {} \;
+
 .PHONY: kind-up
 kind-up:
 	./scripts/kind-with-registry.sh
@@ -193,7 +199,7 @@ docker-build-osm-edge-healthcheck:
 docker-build-osm-edge-interceptor:
 	docker buildx build --builder osm --platform=$(DOCKER_BUILDX_PLATFORM) -o $(DOCKER_BUILDX_OUTPUT) -t $(CTR_REGISTRY)/osm-edge-interceptor:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-edge-interceptor --build-arg GO_VERSION=$(DOCKER_GO_VERSION) --build-arg LDFLAGS=$(LDFLAGS) .
 
-OSM_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck
+OSM_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck osm-edge-interceptor
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
 .PHONY: docker-build-osm

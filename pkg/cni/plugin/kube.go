@@ -1,15 +1,3 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package plugin
 
 import (
@@ -17,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,11 +37,11 @@ func newKubeClient(conf Config) (*kubernetes.Clientset, error) {
 
 	config, err := DefaultRestConfig(kubeconfig, "")
 	if err != nil {
-		log.Errorf("Failed setting up kubernetes client with kubeconfig %s", kubeconfig)
+		log.Error().Msgf("Failed setting up kubernetes client with kubeconfig %s", kubeconfig)
 		return nil, err
 	}
 
-	log.Debugf("osm-cni set up kubernetes client with kubeconfig %s", kubeconfig)
+	log.Debug().Msgf("osm-cni set up kubernetes client with kubeconfig %s", kubeconfig)
 
 	// Create the clientset
 	return kubernetes.NewForConfig(config)
@@ -164,7 +151,7 @@ func getKubePodInfo(client *kubernetes.Clientset, podName, podNamespace string) 
 		ProxyEnvironments: make(map[string]string),
 	}
 	for containerIdx, container := range pod.Spec.Containers {
-		log.Debugf("Inspecting pod %v/%v container %v", podNamespace, podName, container.Name)
+		log.Debug().Msgf("Inspecting pod %v/%v container %v", podNamespace, podName, container.Name)
 		pi.Containers[containerIdx] = container.Name
 
 		if container.Name == proxyContainerName {
@@ -174,7 +161,7 @@ func getKubePodInfo(client *kubernetes.Clientset, podName, podNamespace string) 
 			continue
 		}
 	}
-	log.Debugf("Pod %v/%v info: \n%+v", podNamespace, podName, pi)
+	log.Debug().Msgf("Pod %v/%v info: \n%+v", podNamespace, podName, pi)
 
 	return pi, nil
 }
