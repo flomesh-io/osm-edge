@@ -1,15 +1,4 @@
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
+// Package plugin implements osm cni plugin.
 package plugin
 
 import (
@@ -25,9 +14,9 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	cniv1 "github.com/containernetworking/cni/pkg/types/100"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/openservicemesh/osm/pkg/cni/config"
+	"github.com/openservicemesh/osm/pkg/cni/util"
 )
 
 const (
@@ -59,13 +48,13 @@ func ignore(conf *Config, k8sArgs *K8sArgs) bool {
 	if ns != "" && name != "" {
 		for _, excludeNs := range conf.Kubernetes.ExcludeNamespaces {
 			if ns == excludeNs {
-				log.Infof("Pod %s/%s excluded", ns, name)
+				log.Info().Msgf("Pod %s/%s excluded", ns, name)
 				return true
 			}
 		}
 		client, err := newKubeClient(*conf)
 		if err != nil {
-			log.Error(err)
+			log.Error().Err(err)
 			return true
 		}
 		pi := &podInfo{}
@@ -74,17 +63,17 @@ func ignore(conf *Config, k8sArgs *K8sArgs) bool {
 			if err == nil {
 				break
 			}
-			log.Debugf("Failed to get %s/%s pod info: %v", ns, name, err)
+			log.Debug().Msgf("Failed to get %s/%s pod info: %v", ns, name, err)
 			time.Sleep(podRetrievalInterval)
 		}
 		if err != nil {
-			log.Errorf("Failed to get %s/%s pod info: %v", ns, name, err)
+			log.Error().Msgf("Failed to get %s/%s pod info: %v", ns, name, err)
 			return true
 		}
 
 		return ignoreMeshlessPod(ns, name, pi)
 	}
-	log.Debugf("Not a kubernetes pod")
+	log.Debug().Msgf("Not a kubernetes pod")
 	return true
 }
 
@@ -92,10 +81,10 @@ func ignoreMeshlessPod(namespace, name string, pod *podInfo) bool {
 	if len(pod.Containers) > 1 {
 		// Check if the pod is annotated for injection
 		if podInjectAnnotationExists, injectEnabled, err := isAnnotatedForInjection(pod.Annotations); err != nil {
-			log.Warnf("Pod %s/%s error determining sidecar-injection annotation", namespace, name)
+			log.Warn().Msgf("Pod %s/%s error determining sidecar-injection annotation", namespace, name)
 			return true
 		} else if podInjectAnnotationExists && !injectEnabled {
-			log.Infof("Pod %s/%s excluded due to sidecar-injection annotation", namespace, name)
+			log.Info().Msgf("Pod %s/%s excluded due to sidecar-injection annotation", namespace, name)
 			return true
 		}
 
@@ -107,12 +96,12 @@ func ignoreMeshlessPod(namespace, name string, pod *podInfo) bool {
 			}
 		}
 		if !sidecarExists {
-			log.Infof("Pod %s/%s excluded due to not existing sidecar", namespace, name)
+			log.Info().Msgf("Pod %s/%s excluded due to not existing sidecar", namespace, name)
 			return true
 		}
 		return false
 	}
-	log.Infof("Pod %s/%s excluded because it only has %d containers", namespace, name, len(pod.Containers))
+	log.Info().Msgf("Pod %s/%s excluded because it only has %d containers", namespace, name, len(pod.Containers))
 	return true
 }
 
@@ -134,30 +123,31 @@ func isAnnotatedForInjection(annotations map[string]string) (exists bool, enable
 }
 
 // CmdAdd is the implementation of the cmdAdd interface of CNI plugin
-func CmdAdd(args *skel.CmdArgs) (err error) {
+func CmdAdd(args *skel.CmdArgs) error {
 	conf, err := parseConfig(args.StdinData)
 	if err != nil {
-		log.Errorf("osm-cni cmdAdd failed to parse config %v %v", string(args.StdinData), err)
-		return err
-	}
-	k8sArgs := K8sArgs{}
-	if err := types.LoadArgs(args.Args, &k8sArgs); err != nil {
-		return err
-	}
-
-	if !ignore(conf, &k8sArgs) {
-		httpc := http.Client{
-			Transport: &http.Transport{
-				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-					return net.Dial("unix", "/var/run/osm-cni.sock")
-				},
-			},
-		}
-		bs, _ := json.Marshal(args)
-		body := bytes.NewReader(bs)
-		_, err = httpc.Post("http://osm-cni"+config.CNICreatePodURL, "application/json", body)
-		if err != nil {
-			return err
+		log.Error().Msgf("osm-cni cmdAdd failed to parse config %v %v", string(args.StdinData), err)
+	} else {
+		k8sArgs := K8sArgs{}
+		if err = types.LoadArgs(args.Args, &k8sArgs); err != nil {
+			log.Error().Msgf("osm-cni cmdAdd failed to load args %v %v", string(args.StdinData), err)
+		} else {
+			if !ignore(conf, &k8sArgs) {
+				if util.Exists(config.CNISock) {
+					httpc := http.Client{
+						Transport: &http.Transport{
+							DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+								return net.Dial("unix", config.CNISock)
+							},
+						},
+					}
+					bs, _ := json.Marshal(args)
+					body := bytes.NewReader(bs)
+					if _, err = httpc.Post("http://ecnet-cni"+config.CNICreatePodURL, "application/json", body); err != nil {
+						log.Error().Msgf("ecnet-cni cmdAdd failed to post args %v %v", string(args.StdinData), err)
+					}
+				}
+			}
 		}
 	}
 
@@ -175,20 +165,25 @@ func CmdAdd(args *skel.CmdArgs) (err error) {
 
 // CmdCheck is the implementation of the cmdCheck interface of CNI plugin
 func CmdCheck(*skel.CmdArgs) (err error) {
-	return err
+	return nil
 }
 
 // CmdDelete is the implementation of the cmdDelete interface of CNI plugin
-func CmdDelete(args *skel.CmdArgs) (err error) {
+func CmdDelete(args *skel.CmdArgs) error {
+	if !util.Exists(config.CNISock) {
+		return nil
+	}
+
 	httpc := http.Client{
 		Transport: &http.Transport{
 			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", "/var/run/osm-cni.sock")
+				return net.Dial("unix", config.CNISock)
 			},
 		},
 	}
 	bs, _ := json.Marshal(args)
 	body := bytes.NewReader(bs)
-	_, err = httpc.Post("http://osm-cni"+config.CNIDeletePodURL, "application/json", body)
-	return err
+	_, err := httpc.Post("http://osm-cni"+config.CNIDeletePodURL, "application/json", body)
+	log.Error().Msgf("osm-cni cmdDelete failed to parse config %v %v", string(args.StdinData), err)
+	return nil
 }

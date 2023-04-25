@@ -111,10 +111,12 @@ func testEgressPolicy(scenario testScenario) {
 
 		cond := Td.WaitForRepeatedSuccess(func() bool {
 			result := Td.HTTPRequest(httpRequest)
-
-			if result.Err != nil || result.StatusCode != 200 {
-				Td.T.Logf("> Request %s failed, status code: %d, err: %s", url, result.StatusCode, result.Err)
+			if result.Err != nil {
+				Td.T.Logf("> Request %s failed, err: %s", url, result.Err)
 				return false
+			}
+			if result.StatusCode != 200 {
+				Td.T.Logf("> Request %s failed, status code: %d", url, result.StatusCode)
 			}
 			Td.T.Logf("> Request %s succeeded, status code: %d", url, result.StatusCode)
 			return true

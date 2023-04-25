@@ -1,16 +1,3 @@
-/*
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 #pragma once
 
 #include <asm-generic/int-ll64.h>
@@ -53,68 +40,68 @@ struct bpf_elf_map {
 };
 
 static __u64 (*bpf_get_current_pid_tgid)() = (void *)
-        BPF_FUNC_get_current_pid_tgid;
+    BPF_FUNC_get_current_pid_tgid;
 
 static __u64 (*bpf_get_current_uid_gid)() = (void *)
-        BPF_FUNC_get_current_uid_gid;
+    BPF_FUNC_get_current_uid_gid;
 
 static __u64 (*bpf_get_current_cgroup_id)() = (void *)
-        BPF_FUNC_get_current_cgroup_id;
+    BPF_FUNC_get_current_cgroup_id;
 
 static void (*bpf_trace_printk)(const char *fmt, int fmt_size,
-                                ...) = (void *) BPF_FUNC_trace_printk;
+                                ...) = (void *)BPF_FUNC_trace_printk;
 
 static __u64 (*bpf_get_current_comm)(void *buf, __u32 size_of_buf) = (void *)
-        BPF_FUNC_get_current_comm;
+    BPF_FUNC_get_current_comm;
 
 static __u64 (*bpf_get_socket_cookie_ops)(struct bpf_sock_ops *skops) = (void *)
-        BPF_FUNC_get_socket_cookie;
+    BPF_FUNC_get_socket_cookie;
 
 static __u64 (*bpf_get_socket_cookie_addr)(struct bpf_sock_addr *ctx) = (void *)
-        BPF_FUNC_get_socket_cookie;
+    BPF_FUNC_get_socket_cookie;
 
 static void *(*bpf_map_lookup_elem)(struct bpf_elf_map *map, const void *key) =
-(void *) BPF_FUNC_map_lookup_elem;
+    (void *)BPF_FUNC_map_lookup_elem;
 
 static __u64 (*bpf_map_update_elem)(struct bpf_elf_map *map, const void *key,
                                     const void *value, __u64 flags) = (void *)
-        BPF_FUNC_map_update_elem;
+    BPF_FUNC_map_update_elem;
 
 static __u64 (*bpf_map_delete_elem)(struct bpf_elf_map *map, const void *key) =
-(void *) BPF_FUNC_map_delete_elem;
+    (void *)BPF_FUNC_map_delete_elem;
 
 static struct bpf_sock *(*bpf_sk_lookup_tcp)(
-        void *ctx, struct bpf_sock_tuple *tuple, __u32 tuple_size, __u64 netns,
-        __u64 flags) = (void *) BPF_FUNC_sk_lookup_tcp;
+    void *ctx, struct bpf_sock_tuple *tuple, __u32 tuple_size, __u64 netns,
+    __u64 flags) = (void *)BPF_FUNC_sk_lookup_tcp;
 
 static struct bpf_sock *(*bpf_sk_lookup_udp)(
-        void *ctx, struct bpf_sock_tuple *tuple, __u32 tuple_size, __u64 netns,
-        __u64 flags) = (void *) BPF_FUNC_sk_lookup_udp;
+    void *ctx, struct bpf_sock_tuple *tuple, __u32 tuple_size, __u64 netns,
+    __u64 flags) = (void *)BPF_FUNC_sk_lookup_udp;
 
 static long (*bpf_sk_release)(struct bpf_sock *sock) = (void *)
-        BPF_FUNC_sk_release;
+    BPF_FUNC_sk_release;
 
 static long (*bpf_sock_hash_update)(
-        struct bpf_sock_ops *skops, struct bpf_elf_map *map, void *key,
-        __u64 flags) = (void *) BPF_FUNC_sock_hash_update;
+    struct bpf_sock_ops *skops, struct bpf_elf_map *map, void *key,
+    __u64 flags) = (void *)BPF_FUNC_sock_hash_update;
 
 static long (*bpf_msg_redirect_hash)(
-        struct sk_msg_md *md, struct bpf_elf_map *map, void *key,
-        __u64 flags) = (void *) BPF_FUNC_msg_redirect_hash;
+    struct sk_msg_md *md, struct bpf_elf_map *map, void *key,
+    __u64 flags) = (void *)BPF_FUNC_msg_redirect_hash;
 
 static long (*bpf_bind)(struct bpf_sock_addr *ctx, struct sockaddr_in *addr,
-                        int addr_len) = (void *) BPF_FUNC_bind;
+                        int addr_len) = (void *)BPF_FUNC_bind;
 
 static long (*bpf_l4_csum_replace)(struct __sk_buff *skb, __u32 offset,
                                    __u64 from, __u64 to, __u64 flags) = (void *)
-        BPF_FUNC_l4_csum_replace;
+    BPF_FUNC_l4_csum_replace;
 
-static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to, int len) =
-(void *) BPF_FUNC_skb_load_bytes;
+static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to,
+                                 int len) = (void *)BPF_FUNC_skb_load_bytes;
 
 static long (*bpf_skb_store_bytes)(struct __sk_buff *skb, __u32 offset,
                                    const void *from, __u32 len, __u64 flags) =
-(void *) BPF_FUNC_skb_store_bytes;
+    (void *)BPF_FUNC_skb_store_bytes;
 
 #ifdef PRINTNL
 #define PRINT_SUFFIX "\n"
@@ -155,12 +142,14 @@ static const __u32 localhost = 127 + (1 << 24);
 
 static inline __u32 get_ipv4(__u32 *ip) { return ip[3]; }
 
-static inline void set_ipv4(__u32 *dst, __u32 src) {
+static inline void set_ipv4(__u32 *dst, __u32 src)
+{
     memset(dst, 0, sizeof(__u32) * 3);
     dst[3] = src;
 }
 
-static inline int is_port_listen_current_ns(void *ctx, __u32 ip, __u16 port) {
+static inline int is_port_listen_current_ns(void *ctx, __u32 ip, __u16 port)
+{
 
     struct bpf_sock_tuple tuple = {};
     tuple.ipv4.dport = bpf_htons(port);
@@ -174,7 +163,8 @@ static inline int is_port_listen_current_ns(void *ctx, __u32 ip, __u16 port) {
     return 0;
 }
 
-static inline int is_port_listen_udp_current_ns(void *ctx, __u32 ip, __u16 port) {
+static inline int is_port_listen_udp_current_ns(void *ctx, __u32 ip, __u16 port)
+{
     struct bpf_sock_tuple tuple = {};
     tuple.ipv4.dport = bpf_htons(port);
     tuple.ipv4.daddr = ip;
@@ -191,18 +181,21 @@ static const __u32 ip_zero6[4] = {0, 0, 0, 0};
 // ::1 (network order)
 static const __u32 localhost6[4] = {0, 0, 0, 1 << 24};
 
-static inline void set_ipv6(__u32 *dst, __u32 *src) {
+static inline void set_ipv6(__u32 *dst, __u32 *src)
+{
     dst[0] = src[0];
     dst[1] = src[1];
     dst[2] = src[2];
     dst[3] = src[3];
 }
 
-static inline int ipv6_equal(__u32 *a, __u32 *b) {
+static inline int ipv6_equal(__u32 *a, __u32 *b)
+{
     return a[0] == b[0] && a[1] == b[1] && a[2] == b[2] && a[3] == b[3];
 }
 
-static inline int is_port_listen_current_ns6(void *ctx, __u32 *ip, __u16 port) {
+static inline int is_port_listen_current_ns6(void *ctx, __u32 *ip, __u16 port)
+{
     struct bpf_sock_tuple tuple = {};
     tuple.ipv6.dport = bpf_htons(port);
     set_ipv6(tuple.ipv6.daddr, ip);
@@ -215,7 +208,9 @@ static inline int is_port_listen_current_ns6(void *ctx, __u32 *ip, __u16 port) {
     return 0;
 }
 
-static inline int is_port_listen_udp_current_ns6(void *ctx, __u32 *ip, __u16 port) {
+static inline int is_port_listen_udp_current_ns6(void *ctx, __u32 *ip,
+                                                 __u16 port)
+{
     struct bpf_sock_tuple tuple = {};
     tuple.ipv6.dport = bpf_htons(port);
     set_ipv6(tuple.ipv6.daddr, ip);
@@ -268,7 +263,8 @@ struct cidr {
     __u8 __pad[3];
 };
 
-static inline int is_in_cidr(struct cidr *c, __u32 ip) {
+static inline int is_in_cidr(struct cidr *c, __u32 ip)
+{
     return (bpf_htonl(c->net) >> (32 - c->mask)) ==
            bpf_htonl(ip) >> (32 - c->mask);
 }

@@ -17,44 +17,46 @@ pipy({
 .pipeline()
 .branch(
   () => _rateLimit = rateLimitCache.get(__service?.RateLimit), (
-      $=>$
-      .branch(
-        () => _rateLimit.backlog > 0, (
+    $=>$.branch(
+      () => _rateLimit.backlog > 0, (
+        $=>$.mux(() => _rateLimit, () => ({ maxQueue: _rateLimit.backlog })).to(
           $=>$
-          .muxQueue(() => _rateLimit, () => ({ maxQueue: _rateLimit.backlog })).to(
-            $=>$
-            .onStart((_, n) => void (_overflow = (n > 1)))
-            .branch(
-              () => _overflow, (
-                $=>$
-                .replaceData()
-                .replaceMessage(
-                  () => (
-                    rateLimitedCounter.increase(),
-                    [_rateLimit.response, new StreamEnd]
-                  )
+          .onStart(({ sessionCount }) => void (_overflow = (sessionCount > 1)))
+          .branch(
+            () => _overflow, (
+              $=>$
+              .replaceData()
+              .replaceMessage(
+                () => (
+                  rateLimitedCounter.increase(),
+                  [_rateLimit.response, new StreamEnd]
                 )
-              ), (
-                $=>$
-                .throttleMessageRate(() => _rateLimit.quota)
-                .demuxQueue().to($=>$.chain())
               )
-            )
-          )
-        ), (
-          $=>$.replaceMessage(
-            msg => (
-              _rateLimit.quota.consume(1) !== 1 ? (
-                rateLimitedCounter.increase(),
-                [_rateLimit.response, new StreamEnd]
-              ) : msg
+            ), (
+              $=>$
+              .throttleMessageRate(() => _rateLimit.quota)
+              .demux().to($=>$.chain())
             )
           )
         )
+      ), (
+        $=>$
+        .branch(
+          () => _rateLimit.quota.consume(1) !== 1, (
+            $=>$.replaceMessage(
+              () => (
+                  rateLimitedCounter.increase(),
+                  [_rateLimit.response, new StreamEnd]
+              )
+            )
+          ), (
+            $=>$.chain()
+          )
+        )
       )
-    ), (
-      $=>$.chain()
     )
+  ), (
+    $=>$.chain()
   )
-
+)
 ))()
