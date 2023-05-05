@@ -77,27 +77,35 @@ func (s *Server) Start(_ uint32, _ *certificate.Certificate) error {
 		return err
 	}
 
-	_, err = s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
-		{
-			Basepath: osmCodebase,
-			Items:    osmCodebaseItems,
-		},
-	})
-	if err != nil {
-		log.Error().Err(err)
-		return err
+	s.repoClient.Restore = func() error {
+		_, restoreErr := s.repoClient.Batch(fmt.Sprintf("%d", 0), []client.Batch{
+			{
+				Basepath: osmCodebase,
+				Items:    osmCodebaseItems,
+			},
+		})
+		if restoreErr != nil {
+			log.Error().Err(restoreErr)
+			return restoreErr
+		}
+		// wait until base codebase is ready
+		restoreErr = wait.PollImmediate(5*time.Second, 90*time.Second, func() (bool, error) {
+			success, _, codebaseErr := s.repoClient.GetCodebase(osmCodebase)
+			if success {
+				log.Info().Msg("Base codebase is READY!")
+				return success, nil
+			}
+			log.Error().Msg("Base codebase is NOT READY, sleeping ...")
+			return success, codebaseErr
+		})
+		if restoreErr != nil {
+			log.Error().Err(restoreErr)
+			return restoreErr
+		}
+		return nil
 	}
 
-	// wait until base codebase is ready
-	err = wait.PollImmediate(5*time.Second, 90*time.Second, func() (bool, error) {
-		success, _, _ := s.repoClient.GetCodebase(osmCodebase)
-		if success {
-			log.Info().Msg("Base codebase is READY!")
-			return success, nil
-		}
-		log.Error().Msg("Base codebase is NOT READY, sleeping ...")
-		return success, err
-	})
+	err = s.repoClient.Restore()
 	if err != nil {
 		log.Error().Err(err)
 		return err
