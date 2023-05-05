@@ -66,7 +66,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.caBundleSecretName | string | `"osm-ca-bundle"` | The Kubernetes secret name to store CA bundle for the root CA used in OSM |
 | osm.certificateProvider.certKeyBitSize | int | `2048` | Certificate key bit size for data plane certificates issued to workloads to communicate over mTLS |
 | osm.certificateProvider.kind | string | `"tresor"` | The Certificate manager type: `tresor`, `vault` or `cert-manager` |
-| osm.certificateProvider.serviceCertValidityDuration | string | `"24h"` | Service certificate validity duration for certificate issued to workloads to communicate over mTLS |
+| osm.certificateProvider.serviceCertValidityDuration | string | `"365d"` | Service certificate validity duration for certificate issued to workloads to communicate over mTLS |
 | osm.certmanager.issuerGroup | string | `"cert-manager.io"` | cert-manager issuer group |
 | osm.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | osm.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
