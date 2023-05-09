@@ -112,13 +112,11 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(testNS, 90*time.Second, replicaCount, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(testNS, 180*time.Second, replicaCount, nil)).To(Succeed())
 
 				pods, err := Td.Client.CoreV1().Pods(testNS).List(context.TODO(), metav1.ListOptions{})
 
 				Expect(err).NotTo(HaveOccurred())
-
-				time.Sleep(180 * time.Second)
 
 				// this command will exit 1 if connectivity isn't established
 				cmd := "/opt/bitnami/zookeeper/bin/zkServer.sh status"
