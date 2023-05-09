@@ -1,107 +1,88 @@
 ((
   config = pipy.solve('config.js'),
-  inboundTarget,
-  parseProbe,
-  livenessProbe,
-  readinessProbe,
-  startupProbe,
+  probeScheme,
+  probeTarget,
+  probePath,
 ) => (
-  (
-    config?.Inbound?.TrafficMatches && Object.entries(config.Inbound.TrafficMatches).map(
-      ([port, match]) => (
-        (match.Protocol === 'http') && (!inboundTarget || !match.SourceIPRanges) && (inboundTarget = '127.0.0.1:' + port)
+(
+  // Initialize probeScheme, probeTarget, probePath
+  config?.Inbound?.TrafficMatches && Object.entries(config.Inbound.TrafficMatches).map(
+    ([port, match]) => (
+      (match.Protocol === 'http') && (!probeTarget || !match.SourceIPRanges) && (probeTarget = '127.0.0.1:' + port)
+    )
+  ),
+  config?.Spec?.Probes?.LivenessProbes && config.Spec.Probes.LivenessProbes[0]?.httpGet?.port == 15901 &&
+  (probeScheme = config.Spec.Probes.LivenessProbes[0].httpGet.scheme) && !probeTarget &&
+  ((probeScheme === 'HTTP' && (probeTarget = '127.0.0.1:80')) || (probeScheme === 'HTTPS' && (probeTarget = '127.0.0.1:443'))) &&
+  (probePath = '/')
+),
+
+pipy()
+
+.pipeline('liveness')
+.branch(
+  () => probeScheme === 'HTTP', $ => $
+    .demuxHTTP().to($ => $
+      .handleMessageStart(
+        msg => (
+          msg.head.path === '/osm-liveness-probe' && (msg.head.path = '/liveness'),
+          probePath && (msg.head.path = probePath)
+        )
+      )
+      .muxHTTP(() => probeTarget).to($ => $
+        .connect(() => probeTarget)
       )
     ),
+  () => Boolean(probeTarget), $ => $
+    .connect(() => probeTarget),
+  $ => $
+    .replaceStreamStart(
+      new StreamEnd('ConnectionReset')
+    )
+)
 
-    parseProbe = (config, port, prefix) => (
-      (path, target = inboundTarget, scheme) => (
-        (config?.httpGet?.port === port) && (
-          scheme = config?.httpGet?.scheme,
-          config?.httpGet?.path?.startsWith?.(prefix) && (
-            path = config.httpGet.path.substring(prefix.length),
-            path?.split?.('/')?.[0] && (target = '127.0.0.1:' + path.split('/')[0]),
-            !target && (
-              (scheme === 'HTTP') && (target = '127.0.0.1:80'),
-              (scheme === 'HTTPS') && (target = '127.0.0.1:443')
-            ),
-            path?.split?.('/')?.[1] ? (
-              path = path.substring(path?.split?.('/')?.[0].length)
-            ) : (path = '/')
-          )
-        ),
-        { path, target, scheme }
+.pipeline('readiness')
+.branch(
+  () => probeScheme === 'HTTP', $ => $
+    .demuxHTTP().to($ => $
+      .handleMessageStart(
+        msg => (
+          msg.head.path === '/osm-readiness-probe' && (msg.head.path = '/readiness'),
+          probePath && (msg.head.path = probePath)
+        )
       )
-    )(),
-
-    livenessProbe = parseProbe(config?.Spec?.Probes?.LivenessProbes?.[0], 15901, '/osm-liveness-probe/'),
-    readinessProbe = parseProbe(config?.Spec?.Probes?.ReadinessProbes?.[0], 15902, '/osm-readiness-probe/'),
-    startupProbe = parseProbe(config?.Spec?.Probes?.StartupProbes?.[0], 15903, '/osm-startup-probe/')
-
-  ),
-
-  pipy()
-
-    .pipeline('liveness')
-    .branch(
-      () => livenessProbe?.scheme === 'HTTP', $=>$
-        .demuxHTTP().to($=>$
-          .handleMessageStart(
-            msg => (
-              msg.head.path = livenessProbe?.path
-            )
-          )
-          .muxHTTP(() => livenessProbe?.target).to($=>$
-            .connect(() => livenessProbe?.target)
-          )
-        ),
-      () => Boolean(livenessProbe?.target), $=>$
-        .connect(() => livenessProbe?.target),
-      $=>$
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
-        )
+      .muxHTTP(() => probeTarget).to($ => $
+        .connect(() => probeTarget)
+      )
+    ),
+  () => Boolean(probeTarget), $ => $
+    .connect(() => probeTarget),
+  $ => $
+    .replaceStreamStart(
+      new StreamEnd('ConnectionReset')
     )
+)
 
-    .pipeline('readiness')
-    .branch(
-      () => readinessProbe?.scheme === 'HTTP', $=>$
-        .demuxHTTP().to($=>$
-          .handleMessageStart(
-            msg => (
-              msg.head.path = readinessProbe?.path
-            )
-          )
-          .muxHTTP(() => readinessProbe?.target).to($=>$
-            .connect(() => readinessProbe?.target)
-          )
-        ),
-      () => Boolean(readinessProbe?.target), $=>$
-        .connect(() => readinessProbe?.target),
-      $=>$
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
+.pipeline('startup')
+.branch(
+  () => probeScheme === 'HTTP', $ => $
+    .demuxHTTP().to($ => $
+      .handleMessageStart(
+        msg => (
+          msg.head.path === '/osm-startup-probe' && (msg.head.path = '/startup'),
+          probePath && (msg.head.path = probePath)
         )
+      )
+      .muxHTTP(() => probeTarget).to($ => $
+        .connect(() => probeTarget)
+      )
+    ),
+  () => Boolean(probeTarget), $ => $
+    .connect(() => probeTarget),
+  $ => $
+    .replaceStreamStart(
+      new StreamEnd('ConnectionReset')
     )
-
-    .pipeline('startup')
-    .branch(
-      () => startupProbe?.scheme === 'HTTP', $=>$
-        .demuxHTTP().to($=>$
-          .handleMessageStart(
-            msg => (
-              msg.head.path = startupProbe?.path
-            )
-          )
-          .muxHTTP(() => startupProbe?.target).to($=>$
-            .connect(() => startupProbe?.target)
-          )
-        ),
-      () => Boolean(startupProbe?.target), $=>$
-        .connect(() => startupProbe?.target),
-      $=>$
-        .replaceStreamStart(
-          new StreamEnd('ConnectionReset')
-        )
-    )
+)
 
 ))()
