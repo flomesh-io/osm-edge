@@ -75,11 +75,11 @@ var _ = BeforeEach(func() {
 
 // Cleanup when error
 var _ = AfterEach(func() {
-	//Td.Cleanup(Test)
+	Td.Cleanup(Test)
 })
 
 var _ = AfterSuite(func() {
-	//Td.Cleanup(Suite)
+	Td.Cleanup(Suite)
 })
 
 func (o OSMDescribeInfo) String() string {
