@@ -118,6 +118,8 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 
 				Expect(err).NotTo(HaveOccurred())
 
+				time.Sleep(180 * time.Second)
+
 				// this command will exit 1 if connectivity isn't established
 				cmd := "/opt/bitnami/zookeeper/bin/zkServer.sh status"
 
