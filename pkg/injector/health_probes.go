@@ -56,7 +56,11 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		originalProbe.IsHTTP = len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
 		originalProbe.Path = probe.HTTPGet.Path
 		if originalProbe.IsHTTP {
-			probe.HTTPGet.Path = fmt.Sprintf("%s/%s%s", path, definedPort.String(), probe.HTTPGet.Path)
+			probePort := definedPort.IntVal
+			if probePort == 0 {
+				probePort = 80
+			}
+			probe.HTTPGet.Path = fmt.Sprintf("%s/%d%s", path, probePort, probe.HTTPGet.Path)
 			newPath = probe.HTTPGet.Path
 		}
 	} else if probe.TCPSocket != nil {

@@ -160,6 +160,7 @@ func TestRewriteProbe(t *testing.T) {
 			originalPort int32
 			newPort      int32
 			expected     *models.HealthProbe
+			expectedPath string
 		}{
 			{
 				name:     "nil",
@@ -180,6 +181,7 @@ func TestRewriteProbe(t *testing.T) {
 					IsHTTP:  true,
 					Timeout: probeTimeoutDuration,
 				},
+				expectedPath: "/80/x/y/z",
 			},
 			{
 				name:    "http",
@@ -192,11 +194,11 @@ func TestRewriteProbe(t *testing.T) {
 					IsHTTP:  true,
 					Timeout: probeTimeoutDuration,
 				},
+				expectedPath: "/x/3456/x/y/z",
 			},
 			{
 				name:    "https",
 				probe:   makeHTTPSProbe("/x/y/z", 3456),
-				newPath: "/x/y/z",
 				newPort: 3465,
 				expected: &models.HealthProbe{
 					Path:    "/x/y/z",
@@ -204,12 +206,12 @@ func TestRewriteProbe(t *testing.T) {
 					IsHTTP:  false,
 					Timeout: probeTimeoutDuration,
 				},
+				expectedPath: "/x/y/z",
 			},
 			{
 				name:         "tcp",
 				probe:        makeTCPProbe(3456),
 				originalPort: 3456,
-				newPath:      "/osm-healthcheck",
 				newPort:      15904,
 				expected: &models.HealthProbe{
 					Port:        3456,
@@ -217,6 +219,7 @@ func TestRewriteProbe(t *testing.T) {
 					IsTCPSocket: true,
 					Timeout:     probeTimeoutDuration,
 				},
+				expectedPath: "/osm-healthcheck",
 			},
 		}
 
@@ -234,7 +237,7 @@ func TestRewriteProbe(t *testing.T) {
 				if test.probe != nil {
 					if test.probe.ProbeHandler.HTTPGet != nil {
 						assert.Equal(intstr.FromInt(int(test.newPort)), test.probe.ProbeHandler.HTTPGet.Port)
-						assert.Equal(test.newPath, test.probe.ProbeHandler.HTTPGet.Path)
+						assert.Equal(test.expectedPath, test.probe.ProbeHandler.HTTPGet.Path)
 					}
 					// After rewrite there should be no TCPSocket probes
 					assert.Nil(test.probe.ProbeHandler.TCPSocket)
