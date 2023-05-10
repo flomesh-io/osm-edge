@@ -51,7 +51,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	originalProbe := &models.HealthProbe{}
 	var newPath string
 	var definedPort *intstr.IntOrString
-	var isHTTPs bool
+	var isHTTPS bool
 	if probe.HTTPGet != nil {
 		definedPort = &probe.HTTPGet.Port
 		originalProbe.IsHTTP = len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
@@ -62,7 +62,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 			newPath = probe.HTTPGet.Path
 		} else if originalProbe.IsTCPSocket {
 			probe.HTTPGet.Scheme = corev1.URISchemeHTTP
-			isHTTPs = true
+			isHTTPS = true
 		}
 	} else if probe.TCPSocket != nil {
 		// Transform the TCPSocket probe into a HttpGet probe
@@ -88,7 +88,7 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	if originalProbe.IsTCPSocket {
 		probePort := originalProbe.Port
 		if probePort == 0 {
-			if isHTTPs {
+			if isHTTPS {
 				probePort = 443
 			}
 		}
