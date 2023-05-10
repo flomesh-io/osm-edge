@@ -95,9 +95,9 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Wait for client and server pods to be ready
-				Expect(Td.WaitForPodsRunningReady(sourceOne, 90*time.Second, 1, nil)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(sourceTwo, 90*time.Second, 1, nil)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceOne, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceTwo, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(destName, 1, nil)).To(Succeed())
 
 				// The test creates 2 policies:
 				// 1. Policy to allow client 'sourceOne' to access server 'destName' on the HTTP path '/anything'
@@ -264,8 +264,8 @@ var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 				clientPod, err := Td.CreatePod(clientName, clientSrcPodDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(clientName, 90*time.Second, 1, nil)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(clientName, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(destName, 1, nil)).To(Succeed())
 
 				// HTTP request from 'client': http://<address>/anything
 				clientToServer := HTTPRequestDef{

@@ -33,10 +33,10 @@ const (
 func NewBroker(stopCh <-chan struct{}) *Broker {
 	b := &Broker{
 		queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-		proxyUpdatePubSub: pubsub.New(0),
+		proxyUpdatePubSub: pubsub.New(10240),
 		proxyUpdateCh:     make(chan proxyUpdateEvent),
-		kubeEventPubSub:   pubsub.New(0),
-		certPubSub:        pubsub.New(0),
+		kubeEventPubSub:   pubsub.New(10240),
+		certPubSub:        pubsub.New(10240),
 	}
 
 	go b.runWorkqueueProcessor(stopCh)

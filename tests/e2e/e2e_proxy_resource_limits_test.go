@@ -2,11 +2,9 @@ package e2e
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,5 +112,5 @@ func createSimpleApp(appName string, ns string) {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 1, nil)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(Succeed())
 }

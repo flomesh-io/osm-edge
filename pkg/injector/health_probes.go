@@ -51,13 +51,18 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 	originalProbe := &models.HealthProbe{}
 	var newPath string
 	var definedPort *intstr.IntOrString
+	var isHTTPS bool
 	if probe.HTTPGet != nil {
 		definedPort = &probe.HTTPGet.Port
 		originalProbe.IsHTTP = len(probe.HTTPGet.Scheme) == 0 || probe.HTTPGet.Scheme == corev1.URISchemeHTTP
+		originalProbe.IsTCPSocket = probe.HTTPGet.Scheme == corev1.URISchemeHTTPS
 		originalProbe.Path = probe.HTTPGet.Path
+		probe.HTTPGet.Path = constants.HealthcheckPath
 		if originalProbe.IsHTTP {
-			probe.HTTPGet.Path = path
 			newPath = probe.HTTPGet.Path
+		} else if originalProbe.IsTCPSocket {
+			probe.HTTPGet.Scheme = corev1.URISchemeHTTP
+			isHTTPS = true
 		}
 	} else if probe.TCPSocket != nil {
 		// Transform the TCPSocket probe into a HttpGet probe
@@ -81,7 +86,20 @@ func rewriteProbe(probe *corev1.Probe, probeType, path string, port int32, conta
 		log.Error().Err(err).Msgf("Error finding a matching port for %+v on container %+v", *definedPort, containerPorts)
 	}
 	if originalProbe.IsTCPSocket {
-		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Tcp-Port", Value: fmt.Sprint(originalProbe.Port)})
+		probePort := originalProbe.Port
+		if probePort == 0 {
+			if isHTTPS {
+				probePort = 443
+			}
+		}
+		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Tcp-Port", Value: fmt.Sprint(probePort)})
+	} else if originalProbe.IsHTTP {
+		probePort := originalProbe.Port
+		if probePort == 0 {
+			probePort = 80
+		}
+		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Http-Port", Value: fmt.Sprint(probePort)})
+		probe.HTTPGet.HTTPHeaders = append(probe.HTTPGet.HTTPHeaders, corev1.HTTPHeader{Name: "Original-Http-Path", Value: originalProbe.Path})
 	}
 	*definedPort = intstr.IntOrString{Type: intstr.Int, IntVal: port}
 	originalProbe.Timeout = time.Duration(probe.TimeoutSeconds) * time.Second

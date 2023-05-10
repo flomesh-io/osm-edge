@@ -44,7 +44,7 @@ var _ = OSMDescribe("HTTP and HTTPS Egress",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Expect it to be up and running in it's receiver namespace
-				Expect(Td.WaitForPodsRunningReady(sourceNs, Td.PodDeploymentTimeout, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceNs, 1, nil)).To(Succeed())
 				protocols := []string{
 					"http://",
 					"https://",

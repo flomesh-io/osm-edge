@@ -80,7 +80,7 @@ func testTCPTraffic(permissiveMode bool) {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destNs, 120*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destNs, 1, nil)).To(Succeed())
 
 		srcPod := setupFortioSource(sourceNs, false /* no kubernetes service for the client */)
 

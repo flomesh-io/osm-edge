@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -56,7 +55,7 @@ var _ = OSMDescribe("Ignore Namespaces",
 				_, err = Td.CreateService(ignoreNs, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(ignoreNs, 90*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(ignoreNs, 1, nil)).To(Succeed())
 
 				pod, err = Td.Client.CoreV1().Pods(ignoreNs).Get(context.Background(), pod.Name, v1.GetOptions{})
 				Expect(err).NotTo(HaveOccurred())

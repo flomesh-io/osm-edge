@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -58,6 +59,8 @@ type PipyRepoClient struct {
 	apiURI           *repoAPIURI
 	defaultTransport *http.Transport
 	httpClient       *resty.Client
+	lock             sync.Mutex
+	Restore          func() error
 }
 
 // NewRepoClient creates a Repo Client
@@ -340,10 +343,29 @@ func (p *PipyRepoClient) Batch(version string, batches []Batch) (success bool, e
 // DeriveCodebase derives Codebase
 func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint64) (success bool, err error) {
 	var codebase *Codebase
-	//log.Info().Msgf("Checking if exists, codebase %q", codebaseName)
-	success, codebase, err = p.isCodebaseExists(codebaseName)
 
-	if err != nil {
+	baseCodebase := strings.TrimPrefix(base, "/")
+	success, codebase, err = p.isCodebaseExists(baseCodebase)
+	if err != nil || !success || codebase == nil {
+		success = false
+		log.Error().Msgf("Codebase %q not exists, ignore deriving[%s] ...", baseCodebase, codebaseName)
+		p.lock.Lock()
+		defer p.lock.Unlock()
+		if p.Restore != nil {
+			retrySuccess, retryCodebase, retryErr := p.isCodebaseExists(baseCodebase)
+			if retryErr != nil || !retrySuccess || retryCodebase == nil {
+				restoreErr := p.Restore()
+				if restoreErr != nil {
+					log.Error().Err(restoreErr)
+				}
+			}
+		}
+		return
+	}
+
+	success, codebase, err = p.isCodebaseExists(codebaseName)
+	if err != nil || !success {
+		success = false
 		return
 	}
 
@@ -355,6 +377,7 @@ func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint6
 	//log.Info().Msgf("Codebase %q doesn't exist, deriving ...", codebaseName)
 	success, codebase, err = p.deriveCodebase(codebaseName, base, version)
 	if err != nil {
+		success = false
 		log.Err(err).Msgf("Deriving codebase %q", codebaseName)
 		return
 	}
@@ -362,6 +385,7 @@ func (p *PipyRepoClient) DeriveCodebase(codebaseName, base string, version uint6
 
 	//log.Info().Msgf("Committing the changes of codebase %q", codebaseName)
 	if success, err = p.commit(codebaseName, codebase.Version); err != nil || !success {
+		success = false
 		log.Err(err).Msgf("Committing codebase %q", codebaseName)
 		return
 	}
