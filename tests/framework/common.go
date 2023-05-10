@@ -219,11 +219,9 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 		td.ClusterOS = constants.OSWindows
 		//TODO(#4027): Make the timeouts equal on all platforms.
 		td.ReqSuccessTimeout = 5 * 60 * time.Second
-		td.PodDeploymentTimeout = 240 * time.Second
 	} else {
 		td.ClusterOS = constants.OSLinux
 		td.ReqSuccessTimeout = 60 * time.Second
-		td.PodDeploymentTimeout = 90 * time.Second
 	}
 
 	// String parameter validation
@@ -314,7 +312,7 @@ nodeRegistration:
 	// After client creations, do a wait for kind cluster just in case it's not done yet coming up
 	// Ballparking pod number. kind has a large number of containers to run by default
 	if (td.InstType == KindCluster) && td.ClusterProvider != nil {
-		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5, nil); err != nil {
+		if err := td.WaitForPodsRunningReady("kube-system", 5, nil); err != nil {
 			return fmt.Errorf("failed to wait for kube-system pods")
 		}
 	}
@@ -532,7 +530,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 			fmt.Sprintf("osm.vault.port=%d", instOpts.VaultPort),
 		)
 		// Wait for the vault pod
-		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 60*time.Second, 1, nil); err != nil {
+		if err := td.WaitForPodsRunningReady(instOpts.ControlPlaneNS, 1, nil); err != nil {
 			return fmt.Errorf("failed waiting for vault pod to become ready")
 		}
 	case "cert-manager":
@@ -581,7 +579,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	// Ensure osm-injector, osm-controller and osm-bootstrap are ready
-	err = td.waitForOSMControlPlane(30 * time.Second)
+	err = td.waitForOSMControlPlane()
 	if err != nil {
 		return err
 	}
@@ -916,7 +914,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		},
 	}
 
-	if err := td.WaitForPodsRunningReady(install.Namespace, 60*time.Second, 3, nil); err != nil {
+	if err := td.WaitForPodsRunningReady(install.Namespace, 3, nil); err != nil {
 		return fmt.Errorf("failed to wait for cert-manager pods ready")
 	}
 
@@ -1131,7 +1129,8 @@ func (td *OsmTestData) RunRemote(
 
 // WaitForPodsRunningReady waits for a <n> number of pods on an NS to be running and ready
 // `labelSelector` can be optionally passed to further select the pods to wait for
-func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration, nExpectedRunningPods int, labelSelector *metav1.LabelSelector) error {
+func (td *OsmTestData) WaitForPodsRunningReady(ns string, nExpectedRunningPods int, labelSelector *metav1.LabelSelector) error {
+	timeout := 5 * time.Minute
 	td.T.Logf("Wait up to %v for %d pods ready in ns [%s]...", timeout, nExpectedRunningPods, ns)
 
 	listOpts := metav1.ListOptions{

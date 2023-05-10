@@ -55,7 +55,7 @@ var _ = OSMDescribe("Test garbage collection for unused sidecar bootstrap config
 				_, err = Td.CreateService(userService, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(userService, 200*time.Second, userReplicaSet, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(userService, userReplicaSet, nil)).To(Succeed())
 
 				By("Verifying the secrets have been patched with OwnerReference")
 

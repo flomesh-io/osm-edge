@@ -103,7 +103,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 				go func(wg *sync.WaitGroup, srcClient string) {
 					defer GinkgoRecover()
 					defer wg.Done()
-					Expect(Td.WaitForPodsRunningReady(destApp, 200*time.Second, replicaSetPerService, nil)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(destApp, replicaSetPerService, nil)).To(Succeed())
 				}(&wg, destApp)
 
 				// Create all client deployments, also with replicaset
@@ -135,7 +135,7 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 					go func(wg *sync.WaitGroup, srcClient string) {
 						defer GinkgoRecover()
 						defer wg.Done()
-						Expect(Td.WaitForPodsRunningReady(srcClient, 200*time.Second, replicaSetPerService, nil)).To(Succeed())
+						Expect(Td.WaitForPodsRunningReady(srcClient, replicaSetPerService, nil)).To(Succeed())
 					}(&wg, srcClient)
 				}
 				wg.Wait()

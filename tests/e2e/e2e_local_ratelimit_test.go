@@ -3,8 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +51,7 @@ func testRateLimtiting() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destName, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destName, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, false)
 

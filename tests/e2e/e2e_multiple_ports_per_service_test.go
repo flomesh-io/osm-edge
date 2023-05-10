@@ -79,8 +79,8 @@ func testMultipleServicePorts() {
 		// Create the client application.
 		srcPod := setupSource(clientName, false)
 
-		Expect(Td.WaitForPodsRunningReady(serverName, 90*time.Second, 1, nil)).To(Succeed())
-		Expect(Td.WaitForPodsRunningReady(clientName, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(serverName, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(clientName, 1, nil)).To(Succeed())
 
 		clientToServerRequest := HTTPRequestDef{
 			SourceNs:        clientName,

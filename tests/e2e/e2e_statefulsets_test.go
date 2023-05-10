@@ -112,7 +112,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(testNS, 300*time.Second, replicaCount, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(testNS, replicaCount, nil)).To(Succeed())
 
 				time.Sleep(30 * time.Second)
 

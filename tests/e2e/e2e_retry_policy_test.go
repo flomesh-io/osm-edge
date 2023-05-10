@@ -66,7 +66,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					serverSvc, err := Td.CreateService(server, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(Td.WaitForPodsRunningReady(server, 300*time.Second, 1, nil)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(server, 1, nil)).To(Succeed())
 
 					// Get simple Pod definitions for the source/client
 					svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
@@ -86,7 +86,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					_, err = Td.CreateService(client, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(Td.WaitForPodsRunningReady(client, 300*time.Second, 1, nil)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(client, 1, nil)).To(Succeed())
 
 					retry := &v1alpha1.Retry{
 						ObjectMeta: metav1.ObjectMeta{
@@ -189,7 +189,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					serverSvc, err := Td.CreateService(server, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(Td.WaitForPodsRunningReady(server, 300*time.Second, 1, nil)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(server, 1, nil)).To(Succeed())
 
 					// Get simple Pod definitions for the source/client
 					svcAccDef, podDef, svcDef, err = Td.SimplePodApp(SimplePodAppDef{
@@ -209,7 +209,7 @@ var _ = OSMDescribe("Test Retry Policy",
 					_, err = Td.CreateService(client, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 
-					Expect(Td.WaitForPodsRunningReady(client, 300*time.Second, 1, nil)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(client, 1, nil)).To(Succeed())
 
 					retry := &v1alpha1.Retry{
 						ObjectMeta: metav1.ObjectMeta{

@@ -3,8 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -261,7 +259,7 @@ location = /50x.html {
 			}
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(ns, 60*time.Second, len(pods), nil)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(ns, len(pods), nil)).To(Succeed())
 		})
 
 		It("Incorrectly configures Pods' TCPSocket probes so they fail as expected", func() {
@@ -282,8 +280,7 @@ location = /50x.html {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to not be ready
-			timeout := 60 * time.Second
-			Expect(Td.WaitForPodsRunningReady(ns, timeout, 1, nil)).To(MatchError(fmt.Sprintf("not all pods were Running & Ready in NS healthprobe after %v", timeout)))
+			Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(MatchError(fmt.Sprintf("not all pods were Running & Ready in NS healthprobe")))
 		})
 
 	},

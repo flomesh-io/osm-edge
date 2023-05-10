@@ -70,8 +70,7 @@ type OsmTestData struct {
 
 	ClusterOS string // The operating system of the working nodes in the cluster. Mixed OS traffic is not supported.
 
-	ReqSuccessTimeout    time.Duration // ReqSuccessTimeout timeout duration that the test expects for all requests from the client to server to succeed.
-	PodDeploymentTimeout time.Duration // PodDeploymentTimeout timeout duration that the test expects for all pods to be in ready state after they are deployed.
+	ReqSuccessTimeout time.Duration // ReqSuccessTimeout timeout duration that the test expects for all requests from the client to server to succeed.
 
 	// Cluster handles and rest config
 	Env             *cli.EnvSettings

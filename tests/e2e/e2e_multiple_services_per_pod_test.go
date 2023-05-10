@@ -70,7 +70,7 @@ func testMultipleServicePerPod() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(podDef.Name, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(podDef.Name, 1, nil)).To(Succeed())
 
 		srcPod := setupSource(sourceName, false /* no service for client */)
 

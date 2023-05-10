@@ -38,7 +38,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 					"osm.injector.webhookTimeoutSeconds=30",
 				}
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 5 /* 3 cert-manager pods, 1 controller, 1 injector */, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 5 /* 3 cert-manager pods, 1 controller, 1 injector */, nil)).To(Succeed())
 
 				// Create namespaces
 				for _, n := range ns {
@@ -66,7 +66,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Expect it to be up and running in it's receiver namespace
-				Expect(Td.WaitForPodsRunningReady(serverNamespace, 60*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(serverNamespace, 1, nil)).To(Succeed())
 
 				// Get simple Pod definitions for the client
 				clientSvcAccDef, clientPodDef, clientSvcDef, err := Td.SimplePodApp(SimplePodAppDef{
@@ -87,7 +87,7 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using cert-manager",
 				Expect(err).NotTo(HaveOccurred())
 
 				// Expect it to be up and running in it's receiver namespace
-				Expect(Td.WaitForPodsRunningReady(clientNamespace, 60*time.Second, 1, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(clientNamespace, 1, nil)).To(Succeed())
 
 				// Deploy allow rule client->server
 				httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(

@@ -132,7 +132,7 @@ var _ = OSMDescribe("Upgrade from latest",
 			_, err = Td.CreateService(ns, svcDef)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(Td.WaitForPodsRunningReady(ns, 90*time.Second, 2, nil)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(ns, 2, nil)).To(Succeed())
 
 			// Deploy allow rule client->server
 			httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(

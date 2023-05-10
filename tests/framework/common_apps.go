@@ -692,14 +692,14 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}, nil
 }
 
-func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
+func (td *OsmTestData) waitForOSMControlPlane() error {
 	var errController, errInjector, errBootstrap error
 	waitGroup := sync.WaitGroup{}
 	waitGroup.Add(3)
 
 	go func() {
 		defer GinkgoRecover()
-		errController = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+		errController = td.WaitForPodsRunningReady(td.OsmNamespace, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				constants.AppLabel: constants.OSMControllerName,
 			},
@@ -709,7 +709,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 
 	go func() {
 		defer GinkgoRecover()
-		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+		errInjector = td.WaitForPodsRunningReady(td.OsmNamespace, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				constants.AppLabel: constants.OSMInjectorName,
 			},
@@ -719,7 +719,7 @@ func (td *OsmTestData) waitForOSMControlPlane(timeout time.Duration) error {
 
 	go func() {
 		defer GinkgoRecover()
-		errBootstrap = td.WaitForPodsRunningReady(td.OsmNamespace, timeout, 1, &metav1.LabelSelector{
+		errBootstrap = td.WaitForPodsRunningReady(td.OsmNamespace, 1, &metav1.LabelSelector{
 			MatchLabels: map[string]string{
 				constants.AppLabel: constants.OSMBootstrapName,
 			},

@@ -85,7 +85,7 @@ func testEgressPolicy(scenario testScenario) {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's namespace
-		Expect(Td.WaitForPodsRunningReady(sourceNs, 180*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(sourceNs, 1, nil)).To(Succeed())
 
 		url, policy, smiHTTPRoute := getTestAttributes(srcSvcAcc, scenario)
 

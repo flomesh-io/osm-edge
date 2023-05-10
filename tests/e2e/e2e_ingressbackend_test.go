@@ -66,7 +66,7 @@ func testIngressBackend() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destNs, 60*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destNs, 1, nil)).To(Succeed())
 
 		// Install nginx ingress controller
 		ingressAddr, err := Td.InstallNginxIngress()
