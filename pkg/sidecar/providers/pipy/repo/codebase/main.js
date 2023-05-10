@@ -1,6 +1,5 @@
 ((
   config = pipy.solve('config.js'),
-  probeScheme = config?.Spec?.Probes?.LivenessProbes?.[0]?.httpGet?.scheme,
 ) => pipy()
 
 .branch(
@@ -21,14 +20,20 @@
   )
 )
 
-.listen(probeScheme ? 15901 : 0)
-.use('probes.js', 'liveness')
+.branch(
+  config?.Spec?.Probes?.LivenessProbes?.[0]?.httpGet?.port === 15901,
+  $=>$.listen(15901).use('probes.js', 'liveness')
+)
 
-.listen(probeScheme ? 15902 : 0)
-.use('probes.js', 'readiness')
+.branch(
+  config?.Spec?.Probes?.ReadinessProbes?.[0]?.httpGet?.port === 15902,
+  $=>$.listen(15902).use('probes.js', 'readiness')
+)
 
-.listen(probeScheme ? 15903 : 0)
-.use('probes.js', 'startup')
+.branch(
+  config?.Spec?.Probes?.StartupProbes?.[0]?.httpGet?.port === 15903,
+  $=>$.listen(15903).use('probes.js', 'startup')
+)
 
 .listen(15010)
 .use('stats.js', 'prometheus')
@@ -42,7 +47,7 @@
 .branch(
   Boolean(os.env.LOCAL_DNS_PROXY), (
     $=>$
-    .listen('127.0.0.153:5300', { protocol: 'udp', transparent: true } )
+    .listen('127.0.0.153:5300', { protocol: 'udp', transparent: true })
     .chain(['dns-main.js'])
   )
 )

@@ -280,7 +280,7 @@ location = /50x.html {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to not be ready
-			Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(MatchError("not all pods were Running & Ready in NS healthprobe"))
+			Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(MatchError("not all pods were Running & Ready in NS healthprobe after 5m0s"))
 		})
 
 	},
