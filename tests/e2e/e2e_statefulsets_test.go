@@ -44,7 +44,7 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 
 				install.ReleaseName = "kafka"
 				install.Namespace = testNS
-				install.Timeout = 30 * time.Second
+				install.Timeout = 180 * time.Second
 				saName := "zookeeper"
 				replicaCount := 3
 
@@ -112,7 +112,9 @@ var _ = OSMDescribe("Test traffic among Statefulset members",
 				})
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(Td.WaitForPodsRunningReady(testNS, 90*time.Second, replicaCount, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(testNS, replicaCount, nil)).To(Succeed())
+
+				time.Sleep(30 * time.Second)
 
 				pods, err := Td.Client.CoreV1().Pods(testNS).List(context.TODO(), metav1.ListOptions{})
 

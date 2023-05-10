@@ -68,7 +68,7 @@ var _ = OSMDescribe("TCP server-first traffic",
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(Td.WaitForPodsRunningReady(destNs, 120*time.Second, 1, nil)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(destNs, 1, nil)).To(Succeed())
 
 			svcAccDef, podDef, _, err = Td.SimplePodApp(SimplePodAppDef{
 				PodName:   framework.RandomNameWithPrefix("client"),
@@ -83,7 +83,7 @@ var _ = OSMDescribe("TCP server-first traffic",
 			_, err = Td.CreatePod(sourceNs, podDef)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(Td.WaitForPodsRunningReady(sourceNs, 120*time.Second, 1, nil)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(sourceNs, 1, nil)).To(Succeed())
 
 			Eventually(func() (string, error) {
 				return getPodLogs(sourceNs, podDef.Name, podDef.Name)

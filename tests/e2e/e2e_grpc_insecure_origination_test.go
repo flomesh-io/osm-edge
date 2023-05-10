@@ -66,7 +66,7 @@ func testGRPCTraffic() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Expect it to be up and running in it's receiver namespace
-		Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1, nil)).To(Succeed())
+		Expect(Td.WaitForPodsRunningReady(destNs, 1, nil)).To(Succeed())
 
 		srcPod := setupFortioClient(sourceNs)
 
@@ -164,7 +164,7 @@ func setupFortioClient(sourceName string) *corev1.Pod {
 	Expect(err).NotTo(HaveOccurred())
 
 	// Expect it to be up and running in it's receiver namespace
-	Expect(Td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1, nil)).To(Succeed())
+	Expect(Td.WaitForPodsRunningReady(sourceName, 1, nil)).To(Succeed())
 
 	return srcPod
 }

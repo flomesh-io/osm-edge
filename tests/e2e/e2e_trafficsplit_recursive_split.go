@@ -115,7 +115,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet, nil)).To(Succeed())
+			Expect(Td.WaitForPodsRunningReady(serverNamespace, numberOfServerServices*serverReplicaSet, nil)).To(Succeed())
 		}()
 
 		// Client apps
@@ -146,7 +146,7 @@ func testRecursiveTrafficSplit(appProtocol string) {
 			go func(app string) {
 				defer GinkgoRecover()
 				defer wg.Done()
-				Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet, nil)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(app, clientReplicaSet, nil)).To(Succeed())
 			}(clientApp)
 		}
 
