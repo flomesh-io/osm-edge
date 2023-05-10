@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"context"
-	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -280,7 +280,7 @@ location = /50x.html {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to not be ready
-			Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(MatchError(fmt.Sprintf("not all pods were Running & Ready in NS healthprobe")))
+			Expect(Td.WaitForPodsRunningReady(ns, 1, nil)).To(MatchError("not all pods were Running & Ready in NS healthprobe"))
 		})
 
 	},
