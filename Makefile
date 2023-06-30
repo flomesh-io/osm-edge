@@ -202,6 +202,8 @@ docker-build-osm-edge-interceptor:
 OSM_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck osm-edge-interceptor
 DOCKER_OSM_TARGETS = $(addprefix docker-build-, $(OSM_TARGETS))
 
+TRIVY_SCAN_TARGETS = osm-edge-sidecar-init osm-edge-controller osm-edge-injector osm-edge-crds osm-edge-bootstrap osm-edge-preinstall osm-edge-healthcheck
+
 .PHONY: docker-build-osm
 docker-build-osm: $(DOCKER_OSM_TARGETS)
 
@@ -260,8 +262,8 @@ trivy-scan-fail-%:
 	trivy image --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
 
 .PHONY: trivy-scan-images trivy-scan-images-fail trivy-scan-images-verbose
-trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(OSM_TARGETS))
-trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(OSM_TARGETS))
+trivy-scan-images-verbose: $(addprefix trivy-scan-verbose-, $(TRIVY_SCAN_TARGETS))
+trivy-scan-images-fail: $(addprefix trivy-scan-fail-, $(TRIVY_SCAN_TARGETS))
 trivy-scan-images: trivy-scan-images-verbose trivy-scan-images-fail
 
 .PHONY: shellcheck
