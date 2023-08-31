@@ -990,6 +990,15 @@
                         "30s"
                     ]
                 },
+                "sidecarTimeout": {
+                    "$id": "#/properties/osm/properties/sidecarTimeout",
+                    "type": "integer",
+                    "title": "The sidecarTimeout schema",
+                    "description": "Sets connect/idle/read/write timeout",
+                    "examples": [
+                        "60"
+                    ]
+                },
                 "sidecarLogLevel": {
                     "$id": "#/properties/osm/properties/sidecarLogLevel",
                     "type": "string",

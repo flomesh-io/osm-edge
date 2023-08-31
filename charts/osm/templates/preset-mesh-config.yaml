@@ -14,6 +14,7 @@ data:
         "logLevel": {{.Values.osm.sidecarLogLevel | mustToJson}},
         "maxDataPlaneConnections": {{.Values.osm.maxDataPlaneConnections | mustToJson}},
         "configResyncInterval": {{.Values.osm.configResyncInterval | mustToJson}},
+        "sidecarTimeout": {{.Values.osm.sidecarTimeout | mustToJson}},
         "sidecarClass": {{.Values.osm.sidecarClass | mustToJson }},
         "sidecarImage": {{.Values.osm.sidecarImage | mustToJson }},
         "sidecarDrivers": {{.Values.osm.sidecarDrivers | mustToJson }},

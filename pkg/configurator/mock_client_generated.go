@@ -431,6 +431,20 @@ func (mr *MockConfiguratorMockRecorder) GetSidecarLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarLogLevel))
 }
 
+// GetSidecarTimeout mocks base method.
+func (m *MockConfigurator) GetSidecarTimeout() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSidecarTimeout")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// GetSidecarTimeout indicates an expected call of GetSidecarTimeout.
+func (mr *MockConfiguratorMockRecorder) GetSidecarTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSidecarTimeout", reflect.TypeOf((*MockConfigurator)(nil).GetSidecarTimeout))
+}
+
 // GetSidecarWindowsImage mocks base method.
 func (m *MockConfigurator) GetSidecarWindowsImage() string {
 	m.ctrl.T.Helper()
