@@ -156,7 +156,7 @@ func testPermissiveMode(withSourceKubernetesService bool) {
 		cond = Td.WaitForRepeatedSuccess(func() bool {
 			result := Td.HTTPRequest(extReq)
 
-			if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 56 ") {
+			if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 56 ") || result.StatusCode == 0 {
 				Td.T.Logf("> REST req received unexpected response (status: %d) %v", result.StatusCode, result.Err)
 				return false
 			}
