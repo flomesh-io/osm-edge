@@ -342,6 +342,7 @@ func getProxyUpdateEvent(msg events.PubSubMessage) *proxyUpdateEvent {
 		if prevSpec.Traffic.EnableEgress != newSpec.Traffic.EnableEgress ||
 			prevSpec.Traffic.EnablePermissiveTrafficPolicyMode != newSpec.Traffic.EnablePermissiveTrafficPolicyMode ||
 			prevSpec.Observability.Tracing != newSpec.Observability.Tracing ||
+			prevSpec.Observability.RemoteLogging != newSpec.Observability.RemoteLogging ||
 			prevSpec.Sidecar.LogLevel != newSpec.Sidecar.LogLevel ||
 			prevSpec.Sidecar.SidecarTimeout != newSpec.Sidecar.SidecarTimeout ||
 			prevSpec.Traffic.InboundExternalAuthorization.Enable != newSpec.Traffic.InboundExternalAuthorization.Enable ||
