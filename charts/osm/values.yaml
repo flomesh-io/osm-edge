@@ -519,6 +519,8 @@ osm:
   remoteLogging:
     # -- Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh
     enable: false
+    # -- Level of the remote logging service
+    level: 2
     # -- Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local".
     address: ""
     # -- Port of the remote logging service

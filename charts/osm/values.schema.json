@@ -1186,6 +1186,7 @@
                     ],
                     "required": [
                         "enable",
+                        "level",
                         "address",
                         "port",
                         "endpoint"
@@ -1198,6 +1199,17 @@
                             "description": "Indicates whether remote logging is enabled or not",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "level": {
+                            "$id": "#/properties/osm/properties/remoteLogging/properties/level",
+                            "type": "integer",
+                            "title": "The level schema for remote logging service",
+                            "description": "Level of the remote logging service",
+                            "minimum": 0,
+                            "maximum": 2,
+                            "examples": [
+                                2
                             ]
                         },
                         "address": {

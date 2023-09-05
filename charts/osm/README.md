@@ -327,6 +327,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.remoteLogging.authorization | string | `""` | The authorization for remote logging service |
 | osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
+| osm.remoteLogging.level | int | `2` | Level of the remote logging service |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
 | osm.remoteLogging.sampledFraction | string | `"1.0"` | Sampled Fraction |
 | osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:0.90.2-14","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |

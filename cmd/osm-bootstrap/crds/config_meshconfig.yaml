@@ -316,6 +316,11 @@ spec:
                         enable:
                           description: Enables remote logging for the mesh.
                           type: boolean
+                        level:
+                          description: Level on which remote logging is enabled.
+                          type: integer
+                          minimum: 0
+                          maximum: 2
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer
@@ -684,6 +689,11 @@ spec:
                         enable:
                           description: Enables remote logging for the mesh.
                           type: boolean
+                        level:
+                          description: Level on which remote logging is enabled.
+                          type: integer
+                          minimum: 0
+                          maximum: 2
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer

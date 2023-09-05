@@ -46,6 +46,7 @@ data:
         "remoteLogging": {
           "enable": {{.Values.osm.remoteLogging.enable | mustToJson}}{{- if .Values.osm.remoteLogging.enable }},{{- end }}
           {{- if .Values.osm.remoteLogging.enable }}
+          "level": {{.Values.osm.remoteLogging.level | mustToJson}},
           "port": {{.Values.osm.remoteLogging.port | mustToJson}},
           "address": {{.Values.osm.remoteLogging.address | mustToJson}},
           "endpoint": {{.Values.osm.remoteLogging.endpoint | mustToJson}},
