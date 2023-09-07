@@ -32,11 +32,11 @@
         id = uuid.substring(0, 18).replaceAll('-', ''),
       ) => (
         headers['x-forwarded-proto'] = 'http',
-        headers['x-b3-spanid'] && (
-          (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) && (headers['x-b3-spanid'] = id)
+        headers['x-b4-spanid'] && (
+          (headers['x-b4-parentspanid'] = headers['x-b4-spanid']) && (headers['x-b4-spanid'] = id)
         ),
-        !headers['x-b3-traceid'] && (
-          (headers['x-b3-traceid'] = id) && (headers['x-b3-spanid'] = id)
+        !headers['x-b4-traceid'] && (
+          (headers['x-b4-traceid'] = id) && (headers['x-b4-spanid'] = id)
         ),
         !headers['x-request-id'] && (
           headers['x-request-id'] = uuid
@@ -57,10 +57,10 @@
         ) => (
           msg?.head?.headers && (
             (config?.Spec?.RemoteLoggingLevel > 0) ? (
-              ((config.Spec.RemoteLoggingLevel === 2 && isOutbound) || !msg.head.headers['x-b3-traceid']) && (
+              ((config.Spec.RemoteLoggingLevel === 2 && isOutbound) || !msg.head.headers['x-b4-traceid']) && (
                 initTracingHeaders(msg.head.headers)
               ),
-              sampled = (!tracingLimitedID || toInt63(msg.head.headers['x-b3-traceid']) < tracingLimitedID)
+              sampled = (!tracingLimitedID || toInt63(msg.head.headers['x-b4-traceid']) < tracingLimitedID)
             ) : (
               sampled = true
             )
@@ -83,9 +83,9 @@
                 name: os.env.POD_NAME || os.env.HOSTNAME || 'localhost',
               },
               trace: {
-                id: msg.head?.headers?.['x-b3-traceid'] || '',
-                span: msg.head?.headers?.['x-b3-spanid'] || '',
-                parent: msg.head?.headers?.['x-b3-parentspanid'] || '',
+                id: msg.head?.headers?.['x-b4-traceid'] || '',
+                span: msg.head?.headers?.['x-b4-spanid'] || '',
+                parent: msg.head?.headers?.['x-b4-parentspanid'] || '',
                 sampled: '1',
               },
               req: Object.assign({ reqSize: msg.body?.size, body: msg.body?.toString?.('base64') }, msg.head)
