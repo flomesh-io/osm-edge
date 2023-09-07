@@ -75,6 +75,9 @@ type Configurator interface {
 	// IsRemoteLoggingEnabled returns whether remote logging is enabled
 	IsRemoteLoggingEnabled() bool
 
+	// GetRemoteLoggingLevel returns the remote logging level
+	GetRemoteLoggingLevel() uint16
+
 	// GetRemoteLoggingHost is the host to which we send logging spans
 	GetRemoteLoggingHost() string
 
@@ -92,6 +95,9 @@ type Configurator interface {
 
 	// GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 	GetMaxDataPlaneConnections() int
+
+	// GetSidecarTimeout returns connect/idle/read/write timeout
+	GetSidecarTimeout() int
 
 	// GetOSMLogLevel returns the configured OSM log level
 	GetOSMLogLevel() string

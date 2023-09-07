@@ -151,6 +151,11 @@ func (c *Client) IsRemoteLoggingEnabled() bool {
 	return c.getMeshConfig().Spec.Observability.RemoteLogging.Enable
 }
 
+// GetRemoteLoggingLevel returns the remote logging level
+func (c *Client) GetRemoteLoggingLevel() uint16 {
+	return c.getMeshConfig().Spec.Observability.RemoteLogging.Level
+}
+
 // GetRemoteLoggingHost is the host to which we send logging spans
 func (c *Client) GetRemoteLoggingHost() string {
 	remoteLoggingAddress := c.getMeshConfig().Spec.Observability.RemoteLogging.Address
@@ -201,6 +206,15 @@ func (c *Client) GetRemoteLoggingSampledFraction() float32 {
 // GetMaxDataPlaneConnections returns the max data plane connections allowed, 0 if disabled
 func (c *Client) GetMaxDataPlaneConnections() int {
 	return c.getMeshConfig().Spec.Sidecar.MaxDataPlaneConnections
+}
+
+// GetSidecarTimeout returns connect/idle/read/write timeout
+func (c *Client) GetSidecarTimeout() int {
+	timeout := c.getMeshConfig().Spec.Sidecar.SidecarTimeout
+	if timeout <= 0 {
+		timeout = 60
+	}
+	return timeout
 }
 
 // GetSidecarLogLevel returns the sidecar log level

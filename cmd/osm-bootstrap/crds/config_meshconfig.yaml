@@ -138,6 +138,9 @@ spec:
                     configResyncInterval:
                       description: Resync interval for regular proxy broadcast updates
                       type: string
+                    sidecarTimeout:
+                      description: connect/idle/read/write timeout
+                      type: integer
                     tlsMinProtocolVersion:
                       description: The minimum TLS protocol version that the sidecar supports. Valid TLS protocol versions are TLS_AUTO, TLSv1_0, TLSv1_1, TLSv1_2 and TLSv1_3.
                       type: string
@@ -313,6 +316,11 @@ spec:
                         enable:
                           description: Enables remote logging for the mesh.
                           type: boolean
+                        level:
+                          description: Level on which remote logging is enabled.
+                          type: integer
+                          minimum: 0
+                          maximum: 2
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer
@@ -565,6 +573,9 @@ spec:
                     configResyncInterval:
                       description: Resync interval for regular proxy broadcast updates
                       type: string
+                    sidecarTimeout:
+                      description: connect/idle/read/write timeout
+                      type: integer
                 repoServer:
                   description: Configuration for RepoServer
                   type: object
@@ -678,6 +689,11 @@ spec:
                         enable:
                           description: Enables remote logging for the mesh.
                           type: boolean
+                        level:
+                          description: Level on which remote logging is enabled.
+                          type: integer
+                          minimum: 0
+                          maximum: 2
                         port:
                           description: Port on which remote logging is enabled.
                           type: integer
