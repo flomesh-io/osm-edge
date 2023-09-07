@@ -23,7 +23,7 @@ pipy({
 .handleMessage(
   (msg) => (
     tracingEnabled && (
-      (_sampled = (msg?.head?.headers?.['x-b4-sampled'] === '1')) && (
+      (_sampled = (msg?.head?.headers?.['x-b3-sampled'] === '1')) && (
         _httpBytesStruct = {},
         _httpBytesStruct.requestSize = msg?.body?.size,
         _zipkinData = makeZipKinData(msg, msg.head.headers, __cluster?.name, 'SERVER', true)
