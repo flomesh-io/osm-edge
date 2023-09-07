@@ -1,6 +1,6 @@
 # Open Service Mesh Edge Helm Chart
 
-![Version: 1.3.6](https://img.shields.io/badge/Version-1.3.6-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.3.6](https://img.shields.io/badge/AppVersion-v1.3.6-informational?style=flat-square)
+![Version: 1.3.7](https://img.shields.io/badge/Version-1.3.7-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v1.3.7](https://img.shields.io/badge/AppVersion-v1.3.7-informational?style=flat-square)
 
 A Helm chart to install the [osm-edge](https://github.com/flomesh-io/osm-edge) control plane on Kubernetes.
 
@@ -150,7 +150,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.image.name.osmSidecarInit | string | `"osm-edge-sidecar-init"` | Sidecar init container's image name |
 | osm.image.pullPolicy | string | `"IfNotPresent"` | Container image pull policy for control plane containers |
 | osm.image.registry | string | `"flomesh"` | Container image registry for control plane images |
-| osm.image.tag | string | `"1.3.6"` | Container image tag for control plane images |
+| osm.image.tag | string | `"1.3.7"` | Container image tag for control plane images |
 | osm.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | osm.inboundPortExclusionList | list | `[]` | Specifies a global list of ports to exclude from inbound traffic interception by the sidecar proxy. If specified, must be a list of positive integers. |
 | osm.injector.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
@@ -327,6 +327,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.remoteLogging.authorization | string | `""` | The authorization for remote logging service |
 | osm.remoteLogging.enable | bool | `false` | Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh |
 | osm.remoteLogging.endpoint | string | `""` | Remote logging's API path where the spans will be sent to |
+| osm.remoteLogging.level | int | `2` | Level of the remote logging service |
 | osm.remoteLogging.port | int | `30514` | Port of the remote logging service |
 | osm.remoteLogging.sampledFraction | string | `"1.0"` | Sampled Fraction |
 | osm.repoServer | object | `{"codebase":"","image":"flomesh/pipy-repo:0.90.2-14","ipaddr":"127.0.0.1","standalone":false}` | Pipy RepoServer |
@@ -343,6 +344,7 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.sidecarDrivers[1].sidecarWindowsImage | string | `"envoyproxy/envoy-windows:latest"` | Sidecar image for Windows workloads |
 | osm.sidecarImage | string | `""` | Sidecar image for Linux workloads |
 | osm.sidecarLogLevel | string | `"error"` | Log level for the proxy sidecar. Non developers should generally never set this value. In production environments the LogLevel should be set to `error` |
+| osm.sidecarTimeout | int | `60` | Sets connect/idle/read/write timeout |
 | osm.tracing.address | string | `""` | Address of the tracing collector service (must contain the namespace). When left empty, this is computed in helper template to "jaeger.<osm-namespace>.svc.cluster.local". Please override for BYO-tracing as documented in tracing.md |
 | osm.tracing.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].key | string | `"kubernetes.io/os"` |  |
 | osm.tracing.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[0].matchExpressions[0].operator | string | `"In"` |  |

@@ -78,6 +78,9 @@ type SidecarSpec struct {
 	// ConfigResyncInterval defines the resync interval for regular proxy broadcast updates.
 	ConfigResyncInterval string `json:"configResyncInterval,omitempty"`
 
+	// SidecarTimeout defines the connect/idle/read/write timeout.
+	SidecarTimeout int `json:"sidecarTimeout,omitempty"`
+
 	// Resources defines the compute resources for the sidecar.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 }
@@ -144,6 +147,9 @@ type TracingSpec struct {
 type RemoteLoggingSpec struct {
 	// Enable defines a boolean indicating if the sidecars are enabled for remote logging.
 	Enable bool `json:"enable"`
+
+	// Level defines the remote logging's level.
+	Level uint16 `json:"level,omitempty"`
 
 	// Port defines the remote loggings port.
 	Port uint16 `json:"port,omitempty"`

@@ -12,7 +12,7 @@ osm:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "1.3.6"
+    tag: "1.3.7"
     # -- Image name defaults
     name:
       # -- osm-controller's image name
@@ -449,6 +449,9 @@ osm:
   # -- Sets the resync interval for regular proxy broadcast updates, set to 0s to not enforce any resync
   configResyncInterval: "90s"
 
+  # -- Sets connect/idle/read/write timeout
+  sidecarTimeout: 60
+
   # -- Controller log verbosity
   controllerLogLevel: info
 
@@ -516,6 +519,8 @@ osm:
   remoteLogging:
     # -- Toggles Sidecar's remote logging functionality on/off for all sidecar proxies in the mesh
     enable: false
+    # -- Level of the remote logging service
+    level: 2
     # -- Address of the remote logging service (must contain the namespace). When left empty, this is computed in helper template to "remote-logging-service.<osm-namespace>.svc.cluster.local".
     address: ""
     # -- Port of the remote logging service

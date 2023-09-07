@@ -33,6 +33,20 @@ func (p *PipyConf) setSidecarLogLevel(sidecarLogLevel string) (update bool) {
 	return
 }
 
+func (p *PipyConf) setSidecarTimeout(sidecarTimeout int) (update bool) {
+	if update = p.Spec.SidecarTimeout != sidecarTimeout; update {
+		p.Spec.SidecarTimeout = sidecarTimeout
+	}
+	return
+}
+
+func (p *PipyConf) setRemoteLoggingLevel(remoteLoggingLevel uint16) (update bool) {
+	if update = p.Spec.RemoteLoggingLevel != remoteLoggingLevel; update {
+		p.Spec.RemoteLoggingLevel = remoteLoggingLevel
+	}
+	return
+}
+
 func (p *PipyConf) setLocalDNSProxy(enable bool, primary, secondary string) {
 	if enable {
 		p.Spec.LocalDNSProxy = new(LocalDNSProxy)
