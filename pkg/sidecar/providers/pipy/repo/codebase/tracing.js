@@ -36,16 +36,16 @@
           id = uuid.substring(0, 18).replaceAll('-', ''),
         ) => (
           proto && (headers['x-forwarded-proto'] = proto),
-          headers['x-b3-spanid'] && (
-            (headers['x-b3-parentspanid'] = headers['x-b3-spanid']) && (headers['x-b3-spanid'] = id)
+          headers['x-b4-spanid'] && (
+            (headers['x-b4-parentspanid'] = headers['x-b4-spanid']) && (headers['x-b4-spanid'] = id)
           ),
-          !headers['x-b3-traceid'] && (
-            (headers['x-b3-traceid'] = id) && (headers['x-b3-spanid'] = id)
+          !headers['x-b4-traceid'] && (
+            (headers['x-b4-traceid'] = id) && (headers['x-b4-spanid'] = id)
           ),
-          headers['x-b3-sampled'] && (
-            sampled = (headers['x-b3-sampled'] === '1'), true
+          headers['x-b4-sampled'] && (
+            sampled = (headers['x-b4-sampled'] === '1'), true
           ) || (
-            (sampled = (!tracingLimitedID || toInt63(headers['x-b3-traceid']) < tracingLimitedID)) ? (headers['x-b3-sampled'] = '1') : (headers['x-b3-sampled'] = '0')
+            (sampled = (!tracingLimitedID || toInt63(headers['x-b4-traceid']) < tracingLimitedID)) ? (headers['x-b4-sampled'] = '1') : (headers['x-b4-sampled'] = '0')
           ),
           !headers['x-request-id'] && (
             headers['x-request-id'] = uuid
@@ -61,8 +61,8 @@
       makeZipKinData: (msg, headers, clusterName, kind, shared) => (
         (data) => (
           data = {
-            'traceId': headers?.['x-b3-traceid'] && headers['x-b3-traceid'].toString(),
-            'id': headers?.['x-b3-spanid'] && headers['x-b3-spanid'].toString(),
+            'traceId': headers?.['x-b4-traceid'] && headers['x-b4-traceid'].toString(),
+            'id': headers?.['x-b4-spanid'] && headers['x-b4-spanid'].toString(),
             'name': headers?.host,
             'timestamp': Date.now() * 1000,
             'localEndpoint': {
@@ -82,7 +82,7 @@
             },
             'annotations': []
           },
-          headers['x-b3-parentspanid'] && (data['parentId'] = headers['x-b3-parentspanid']),
+          headers['x-b4-parentspanid'] && (data['parentId'] = headers['x-b4-parentspanid']),
           data['kind'] = kind,
           shared && (data['shared'] = shared),
           data.tags['request_size'] = '0',
