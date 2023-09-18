@@ -130,6 +130,8 @@ The following table lists the configurable parameters of the osm chart and their
 | osm.grafana.port | int | `3000` | Grafana service's port |
 | osm.grafana.rendererImage | string | `"grafana/grafana-image-renderer:3.2.1"` | Image used for Grafana Renderer |
 | osm.grafana.tolerations | list | `[]` | Node tolerations applied to control plane pods. The specified tolerations allow pods to schedule onto nodes with matching taints. |
+| osm.http1PerRequestLoadBalancing | bool | `false` | Specifies a boolean indicating if load balancing based on request is enabled for http1. |
+| osm.http2PerRequestLoadBalancing | bool | `true` | Specifies a boolean indicating if load balancing based on request is enabled for http2. |
 | osm.image.digest | object | `{"osmBootstrap":"","osmCRDs":"","osmController":"","osmHealthcheck":"","osmInjector":"","osmInterceptor":"","osmPreinstall":"","osmSidecarInit":""}` | Image digest (defaults to latest compatible tag) |
 | osm.image.digest.osmBootstrap | string | `""` | osm-boostrap's image digest |
 | osm.image.digest.osmCRDs | string | `""` | osm-crds' image digest |

@@ -385,6 +385,12 @@ osm:
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: true
 
+  # -- Specifies a boolean indicating if load balancing based on request is enabled for http1.
+  http1PerRequestLoadBalancing: false
+
+  # -- Specifies a boolean indicating if load balancing based on request is enabled for http2.
+  http2PerRequestLoadBalancing: true
+
   # -- Traffic interception mode in the mesh
   trafficInterceptionMode: iptables
 
