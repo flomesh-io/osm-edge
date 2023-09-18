@@ -115,6 +115,7 @@
     )
   )
 )
+.onEnd(() => void ( _session = null))
 .handleMessageStart(
   msg => (
     _clusterConfig && (
