@@ -12,7 +12,7 @@ osm:
     # -- Container image pull policy for control plane containers
     pullPolicy: IfNotPresent
     # -- Container image tag for control plane images
-    tag: "1.3.8"
+    tag: "1.3.9"
     # -- Image name defaults
     name:
       # -- osm-controller's image name
@@ -60,7 +60,7 @@ osm:
   sidecarDrivers:
     - sidecarName: pipy
       # -- Sidecar image for Linux workloads
-      sidecarImage: flomesh/pipy:0.90.2-14
+      sidecarImage: flomesh/pipy:0.90.3-38
       # -- Remote destination port on which the Discovery Service listens for new connections from Sidecars.
       proxyServerPort: 6060
     - sidecarName: envoy
@@ -76,7 +76,7 @@ osm:
   # -- Pipy RepoServer
   repoServer:
     # -- Image used for Pipy RepoServer
-    image: flomesh/pipy-repo:0.90.2-14
+    image: flomesh/pipy-repo:0.90.3-38
     # -- if false , Pipy RepoServer is installed within osmController pod.
     standalone: false
     # -- ipaddr of host/service where Pipy RepoServer is installed
@@ -384,6 +384,12 @@ osm:
 
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: true
+
+  # -- Specifies a boolean indicating if load balancing based on request is enabled for http1.
+  http1PerRequestLoadBalancing: false
+
+  # -- Specifies a boolean indicating if load balancing based on request is enabled for http2.
+  http2PerRequestLoadBalancing: true
 
   # -- Traffic interception mode in the mesh
   trafficInterceptionMode: iptables

@@ -175,6 +175,8 @@
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
+                "http1PerRequestLoadBalancing",
+                "http2PerRequestLoadBalancing",
                 "trafficInterceptionMode",
                 "enableEgress",
                 "enableReconciler",
@@ -784,6 +786,24 @@
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
                     "examples": [
                         false
+                    ]
+                },
+                "http1PerRequestLoadBalancing": {
+                    "$id": "#/properties/osm/properties/http1PerRequestLoadBalancing",
+                    "type": "boolean",
+                    "title": "The http1PerRequestLoadBalancing schema",
+                    "description": "Indicating if load balancing based on request is enabled for http1.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "http2PerRequestLoadBalancing": {
+                    "$id": "#/properties/osm/properties/http2PerRequestLoadBalancing",
+                    "type": "boolean",
+                    "title": "The http2PerRequestLoadBalancing schema",
+                    "description": "Indicating if load balancing based on request is enabled for http2.",
+                    "examples": [
+                        true
                     ]
                 },
                 "trafficInterceptionMode": {
