@@ -93,6 +93,9 @@ spec:
                     sidecarWindowsImage:
                       description: Image for the sidecar on Windows workers
                       type: string
+                    sidecarDisabledMTLS:
+                      description: Disabled mTLS
+                      type: boolean
                     initContainerImage:
                       description: Image for the init container
                       type: string
@@ -534,6 +537,9 @@ spec:
                     sidecarWindowsImage:
                       description: Image for the sidecar on Windows workers
                       type: string
+                    sidecarDisabledMTLS:
+                      description: Disabled mTLS
+                      type: boolean
                     initContainerImage:
                       description: Image for the init container
                       type: string

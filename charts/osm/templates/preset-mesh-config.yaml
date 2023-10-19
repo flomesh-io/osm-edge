@@ -17,6 +17,7 @@ data:
         "sidecarTimeout": {{.Values.osm.sidecarTimeout | mustToJson}},
         "sidecarClass": {{.Values.osm.sidecarClass | mustToJson }},
         "sidecarImage": {{.Values.osm.sidecarImage | mustToJson }},
+        "sidecarDisabledMTLS": {{.Values.osm.sidecarDisabledMTLS | mustToJson }},
         "sidecarDrivers": {{.Values.osm.sidecarDrivers | mustToJson }},
         "localProxyMode": {{.Values.osm.localProxyMode | mustToJson}},
         "localDNSProxy": {{.Values.osm.localDNSProxy | mustToJson}}

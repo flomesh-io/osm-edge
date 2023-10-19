@@ -85,6 +85,9 @@ type SidecarSpec struct {
 	// SidecarImage defines the container image used for the proxy sidecar.
 	SidecarImage string `json:"sidecarImage,omitempty"`
 
+	// SidecarDisabledMTLS defines whether mTLS is disabled.
+	SidecarDisabledMTLS bool `json:"sidecarDisabledMTLS"`
+
 	// SidecarWindowsImage defines the windows container image used for the proxy sidecar.
 	SidecarWindowsImage string `json:"SidecarImageWindowsImage,omitempty"`
 
